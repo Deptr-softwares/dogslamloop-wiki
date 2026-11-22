@@ -1,16 +1,19 @@
 /**
- * Dogslamloop Wiki - Shared Site Utilities: accounts
- *
- * Signing in, the profile modal, other people's profiles, badges, role
- * badges and notifications. Loads last of the four, after site_media.js:
- * its DOMContentLoaded check of the session runs after site_utils.js's.
+ * Accounts: signing in and registering, the profile modal, other people's
+ * profiles, badges, role badges and the notification inbox. Loads last of the
+ * four parts, so its session check runs after site_utils.js's.
+ * @since v0.3, as part of site_utils.js
+ * @touches Supabase Auth (user_metadata.display_name), user_profiles (bio, flair,
+ *   badges), user_roles, user_notifications, claim_badge, get_public_profiles,
+ *   get_user_expert_pages, localStorage dsl_badges_pending
+ * @watch SITE_BADGES and claim_badge() in SQL list the same badges: change them
+ *   together
+ * @see docs/shared-code.md
  */
 
-// --- GLOBAL AUTHENTICATION & PROFILE MODAL INJECTOR ---
 window.injectAuthModal = function() {
     if (document.getElementById('auth-modal-overlay')) return;
 
-    // 1. The Better Auth Modal (Login & Register Tabs)
     const authModalHTML = `
     <div id="auth-modal-overlay" class="modal-overlay hidden">
         <div class="modal-box modal-sm accent-blue">
@@ -74,7 +77,6 @@ window.injectAuthModal = function() {
         </div>
     </div>`;
 
-    // 2. The Custom Profile Modal
     const profileModalHTML = `
     <div id="profile-modal-overlay" class="modal-overlay hidden">
         <div class="modal-box modal-lg accent-purple">
@@ -140,7 +142,6 @@ window.injectAuthModal = function() {
         </div>
     </div>`;
 
-    // 3. The Custom System Alert Modal
     const alertModalHTML = `
     <div id="alert-modal-overlay" class="modal-overlay tier-priority hidden">
         <div class="modal-box modal-sm accent-green">
@@ -157,15 +158,10 @@ window.injectAuthModal = function() {
         </div>
     </div>`;
 
-    // 4. Somebody else's profile - read-only, opened by clicking a name.
-    //
-    // A separate overlay rather than a mode on the profile modal above. That one
-    // is a form bound to the signed-in user, with a LOGOUT button in its footer;
-    // reusing it would mean disabling five controls and hoping none of them came
-    // back. It borrows the same .profile-identity markup so a person looks the
-    // same whether you are looking at yourself or at them.
-    //
-    // tier-priority so it can open ON TOP of a discussion thread's own modals.
+    // Somebody else's profile, read-only, opened by clicking a name: its own overlay,
+    // not a mode of the profile form (which is bound to the signed-in user and has
+    // LOGOUT). It borrows .profile-identity, so a person looks the same either way.
+    // tier-priority, so it opens over a discussion thread's own modals.
     const publicProfileHTML = `
     <div id="public-profile-overlay" class="modal-overlay tier-priority hidden">
         <div class="modal-box modal-sm accent-blue">
@@ -199,12 +195,10 @@ window.injectAuthModal = function() {
         </div>
     </div>`;
 
-    // Inject all four into the DOM
     const div = document.createElement('div');
     div.innerHTML = authModalHTML + profileModalHTML + alertModalHTML + publicProfileHTML;
     while(div.firstChild) document.body.appendChild(div.firstChild);
 
-    // --- LOGIC: TABS ---
     const tabLogin = document.getElementById('auth-tab-login');
     const tabRegister = document.getElementById('auth-tab-register');
     const viewLogin = document.getElementById('auth-view-login');
@@ -225,7 +219,6 @@ window.injectAuthModal = function() {
         feedbackMsg.classList.add('hidden');
     };
 
-    // --- LOGIC: LOGIN ---
     document.getElementById('btn-auth-action-login').addEventListener('click', async (e) => {
         const email = document.getElementById('auth-email-login').value;
         const password = document.getElementById('auth-password-login').value;
@@ -251,7 +244,6 @@ window.injectAuthModal = function() {
         }
     });
 
-    // --- LOGIC: REGISTER ---
     document.getElementById('btn-auth-action-register').addEventListener('click', async (e) => {
         const name = document.getElementById('auth-name-register').value.trim();
         const email = document.getElementById('auth-email-register').value.trim();
@@ -284,7 +276,7 @@ window.injectAuthModal = function() {
             feedbackMsg.textContent = "Success! Your account has been created. If email verification is enabled on your server, please check your inbox.";
             document.getElementById('auth-password-register').value = '';
             
-            // Auto-login fallback if verification isn't strictly required
+            // Signed straight in when the project does not require email verification.
             if (data.session) {
                 setTimeout(() => {
                     document.getElementById('auth-modal-overlay').classList.add('hidden');
@@ -294,7 +286,6 @@ window.injectAuthModal = function() {
         }
     });
 
-    // 5. Bind Profile Modal Logic (Save & Logout)
     const btnLogout = document.getElementById('btn-profile-logout');
     const btnSave = document.getElementById('btn-profile-save');
 
@@ -311,10 +302,8 @@ window.injectAuthModal = function() {
             const newName = document.getElementById('profile-new-name').value.trim();
             const currentName = document.getElementById('profile-current-name').textContent;
             const bio = document.getElementById('profile-bio').value.trim();
-            // The DB rejects a newline in a flair - it would break the line it
-            // is rendered on. An <input type="text"> already strips them on
-            // both typing and paste, so this is insurance for any other path
-            // into the field rather than the thing doing the work.
+            // The database refuses a newline in a flair; this covers any path into the field
+            // that a text input does not already strip.
             const flair = document.getElementById('profile-flair').value.replace(/[\r\n]+/g, ' ').trim();
             const isPrivate = document.getElementById('profile-private').checked;
 
@@ -327,9 +316,8 @@ window.injectAuthModal = function() {
             btnSave.textContent = "SAVING..."; btnSave.disabled = true;
             const problems = [];
 
-            // The display name is the one field that does NOT live in
-            // user_profiles - it stays in auth metadata, so there is no second
-            // copy to keep in sync. See the migration header.
+            // The display name lives in auth metadata, not user_profiles, so there is no second
+            // copy to keep in step.
             if (newName && newName !== currentName) {
                 const { error } = await window.supabaseClient.auth.updateUser({ data: { display_name: newName } });
                 if (error) problems.push("display name: " + error.message);
@@ -343,9 +331,8 @@ window.injectAuthModal = function() {
                     flair: flair || null,
                     is_private: isPrivate
                 };
-                // Which badges to hide, only once the loaded row is known to
-                // have the column: before the release it does not exist, and
-                // sending it would fail the whole save.
+                // Hidden badges are sent only once the loaded row is known to have the column, or
+                // the whole save fails on a database without it.
                 const badgesField = document.getElementById('profile-badges-field');
                 const withBadges = !!badgesField && badgesField.dataset.ready === 'true';
                 if (withBadges) {
@@ -356,10 +343,8 @@ window.injectAuthModal = function() {
                             .filter(box => !box.checked).map(box => box.dataset.badgeId));
                 }
 
-                // upsert, because the row is created on first save rather than
-                // at signup - there is deliberately no trigger on auth.users.
-                // A row with badges already exists, and is UPDATEd: an upsert
-                // cannot carry hidden_badges (20261023000000 says why).
+                // upsert: the row is made on first save, since there is no trigger on auth.users. A
+                // row with badges is UPDATEd, because an upsert cannot carry hidden_badges.
                 const { error } = withBadges
                     ? await window.supabaseClient
                         .from('user_profiles')
@@ -370,9 +355,8 @@ window.injectAuthModal = function() {
                         .upsert(profileRow, { onConflict: 'user_id' });
 
                 if (error) {
-                    // 42501 is the RLS WITH CHECK refusing the row, and for this
-                    // table there is exactly one way to earn it. Saying so beats
-                    // showing somebody a Postgres string.
+                    // 42501 is RLS refusing the row, which for this table has one cause; saying so beats
+                    // a Postgres string.
                     problems.push(error.code === '42501'
                         ? "your account cannot post content on the site at the moment"
                         : "profile: " + error.message);
@@ -390,9 +374,8 @@ window.injectAuthModal = function() {
         });
     }
 
-    // Password change. Separate from SAVE CHANGES on purpose: it is the one
-    // action here that signs you out of nothing and yet cannot be undone by
-    // re-editing a field, so it gets its own button and its own confirmation.
+    // Changing the password has its own button and confirmation: it cannot be undone by
+    // editing a field again.
     const btnPassword = document.getElementById('btn-profile-password');
     if (btnPassword) {
         btnPassword.addEventListener('click', async () => {
@@ -411,8 +394,8 @@ window.injectAuthModal = function() {
         });
     }
 
-    // Live character counts. Both caps are enforced by CHECK constraints in the
-    // database as well - maxlength is a courtesy, PostgREST is the real door.
+    // Live character counts. The caps are CHECK constraints too: maxlength is a
+    // courtesy, PostgREST is the real door.
     const bindCount = (fieldId, countId, max) => {
         const field = document.getElementById(fieldId);
         const out = document.getElementById(countId);
@@ -429,22 +412,18 @@ window.injectAuthModal = function() {
 
 };
 
-// --- USERNAME & PROFILE SYSTEM ---
-window.currentGlobalUsername = "Anonymous"; // Global cache for the editor to use
+window.currentGlobalUsername = "Anonymous";
+/** The name to show for a session: display name, OAuth name, Discord name, then the email's prefix. */
 
 window.getDisplayName = function(session) {
     if (!session || !session.user) return "Anonymous";
     
-    // Fallback to empty object if metadata is null
     const meta = session.user.user_metadata || {};
     
-    // Priority: 1. Custom Profile Name -> 2. OAuth Full Name -> 3. Old Discord Claim -> 4. Email Prefix
     return meta.display_name || meta.full_name || meta.custom_claims?.global_name || meta.user_name || session.user.email.split('@')[0];
 };
 
-// One line of feedback inside the profile modal, rather than alert(). The old
-// save handler used alert("Failed to update name. Check console.") - which
-// tells a contributor to open devtools.
+/** One line of feedback inside the profile modal, never alert(). */
 window.setProfileFeedback = function (message, ok) {
     const el = document.getElementById('profile-feedback');
     if (!el) return;
@@ -454,13 +433,13 @@ window.setProfileFeedback = function (message, ok) {
     el.classList.toggle('profile-feedback-ok', !!message && !!ok);
 };
 
-// Fills the profile modal with what is actually stored, every time it opens.
-// Deliberately not cached: the role can change under you (the owner assigns
-// them from another tab) and a stale standing is worse than a second fetch.
+/**
+ * Fills the profile modal with what is stored, every time it opens: the role can
+ * change under the reader (the owner assigns them from another tab).
+ */
 window.hydrateProfileModal = async function (session) {
     if (!session || !window.supabaseClient) return;
 
-    // --- STANDING ---
     let role = 'member';
     try {
         const { data } = await window.supabaseClient
@@ -480,7 +459,6 @@ window.hydrateProfileModal = async function (session) {
     }
     if (labelEl) labelEl.textContent = badge.label;
 
-    // --- BIO / FLAIR / PRIVACY ---
     const bioEl = document.getElementById('profile-bio');
     const flairEl = document.getElementById('profile-flair');
     const privEl = document.getElementById('profile-private');
@@ -500,9 +478,7 @@ window.hydrateProfileModal = async function (session) {
     // Repaint the counters against what was just loaded.
     [bioEl, flairEl].forEach(el => el && el.dispatchEvent(new Event('input')));
 
-    // --- BADGES ---
-    // Every badge they have, each with SHOW (owner: "they should be toggleable
-    // by users"). Hidden when they have none.
+    // Every badge they hold, each with SHOW, so a person picks which to show.
     const badgesField = document.getElementById('profile-badges-field');
     const badgesList = document.getElementById('profile-badges-list');
     if (badgesField && badgesList) {
@@ -533,11 +509,9 @@ window.hydrateProfileModal = async function (session) {
         });
     }
 
-    // --- PASSWORD, ONLY FOR ACCOUNTS THAT HAVE ONE ---
-    // Discord and Google sign-in are both live, and those accounts have no
-    // password on this site - offering to change one would fail in a way that
-    // reads as a bug. identities[] is the reliable source: app_metadata.provider
-    // names only the most recent sign-in, and one account can carry both.
+    // A password only for accounts that have one: Discord and Google accounts have
+    // none here. identities[] is the reliable source; app_metadata.provider names only
+    // the latest sign-in.
     const identities = session.user.identities || [];
     const hasPassword = identities.length
         ? identities.some(i => i.provider === 'email')
@@ -557,16 +531,15 @@ window.hydrateProfileModal = async function (session) {
     }
 };
 
-// --- SOMEBODY ELSE'S PROFILE ---
-//
-// Cached for the page load. A thread asks for the same authors twice - once to
-// draw the flairs, again when somebody clicks a name - and nobody's standing
-// changes while you read a thread.
+// Somebody else's profile, cached for the page load: a thread asks for the same
+// authors twice, and nobody's standing changes while a thread is read.
 window.__publicProfileCache = window.__publicProfileCache || new Map();
 
-// Batch by design: one request per thread rather than one per post. The single
-// -row get_public_profile() still exists and is what the modal would use on its
-// own; this is what makes the flair pass affordable.
+/**
+ * Public profiles for many people in one request, one per thread rather than one
+ * per post.
+ * @since v0.17
+ */
 window.fetchPublicProfiles = async function (userIds) {
     const wanted = [...new Set((userIds || []).filter(Boolean))];
     const missing = wanted.filter(id => !window.__publicProfileCache.has(id));
@@ -578,16 +551,14 @@ window.fetchPublicProfiles = async function (userIds) {
             if (!error && Array.isArray(data)) {
                 data.forEach(row => window.__publicProfileCache.set(row.user_id, row));
             }
-            // Cache the misses too. A deleted account would otherwise be
-            // re-requested on every render for the rest of the session, and
-            // anonymize_user_by_email really does hard-delete the auth row.
+            // Misses are cached too: a deleted account would otherwise be asked for again on
+            // every render.
             missing.forEach(id => {
                 if (!window.__publicProfileCache.has(id)) window.__publicProfileCache.set(id, null);
             });
         } catch (e) {
-            // The thread renders without flairs rather than not at all. Before
-            // the release this RPC does not exist in production, and a thread
-            // that threw here would be a blank page instead of a missing chip.
+            // The thread draws without flairs rather than not at all, on a database without
+            // this RPC.
         }
     }
 
@@ -611,8 +582,8 @@ window.openPublicProfile = async function (userId) {
     const bioEl = document.getElementById('pubprofile-bio');
     const joinedEl = document.getElementById('pubprofile-joined');
 
-    // Open on the click, not after the request. A modal that appears half a
-    // second later reads as a dead button and gets clicked again.
+    // Opened on the click, not after the request: a modal that appears half a second
+    // later reads as a dead button and gets clicked again.
     nameEl.textContent = 'Loading...';
     standingEl.textContent = '';
     iconEl.innerHTML = '';
@@ -651,8 +622,8 @@ window.openPublicProfile = async function (userId) {
         flairEl.classList.remove('hidden');
     }
 
-    // The badges they show, named, and how each was earned. Hidden ones never
-    // left the database.
+    // The badges they show, named, with how each was earned. Hidden ones never leave the
+    // database.
     const shown = window.knownBadges(p.badges);
     shown.forEach(id => {
         const item = document.createElement('li');
@@ -662,8 +633,8 @@ window.openPublicProfile = async function (userId) {
     });
     badgesEl.classList.toggle('hidden', !shown.length);
 
-    // Say that a private description exists rather than showing a blank space.
-    // The bio itself never left the database - get_public_profiles nulls it.
+    // A private description is said to exist rather than shown as a blank. The bio never
+    // left the database: get_public_profiles nulls it.
     bioEl.textContent = p.bio || (p.is_private
         ? 'This description is private.'
         : 'No description yet.');
@@ -675,9 +646,8 @@ window.openPublicProfile = async function (userId) {
             : `Joined ${d.toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}`;
     }
 
-    // Expertise last and separately. It is a second request, and the profile is
-    // already readable without it - so a failure here costs a line rather than
-    // the modal. Before the release the RPC does not exist at all.
+    // Expertise last and on its own: a second request, so a failure costs a line, not
+    // the modal.
     const expertiseEl = document.getElementById('pubprofile-expertise');
     const pagesEl = document.getElementById('pubprofile-expertise-pages');
     if (!expertiseEl || !pagesEl) return;
@@ -690,23 +660,22 @@ window.openPublicProfile = async function (userId) {
         if (token !== window.__pubProfileToken) return;
         if (error || !Array.isArray(data) || !data.length) return;
 
-        // Page NAMES, not ids - "crow_charmer" is not what the page is called
-        // anywhere a reader has seen it. textContent, because a page name is
-        // owner-authored content coming back from the database.
+        // Page names, not ids: "crow_charmer" is not what the page is called anywhere a
+        // reader looks.
         pagesEl.textContent = data.map(r => r.page_name || r.page_id).join(' · ');
         expertiseEl.classList.remove('hidden');
     } catch (e) {
-        // Leaves the line hidden, which is the same as somebody who is not an
-        // expert of anything.
+        // Hidden, as for somebody who is an expert of nothing.
     }
 };
 
-// --- BADGES (the Halloween update, 2026-10-23: an early version) ---
-//
-// What each badge id means. Which ids can be claimed, and until when, is
-// claim_badge() in supabase/migrations/20261023000000_user_badges.sql: the two
-// lists must agree. A badge is drawn as a skill slot from the game with its
-// picture in it (owner's pick); the pumpkins are from icons8.
+/**
+ * What each badge id means. Drawn as a skill slot from the game with its picture
+ * in it.
+ * @since v1.1
+ * @watch which ids can be claimed, and until when, is claim_badge() in SQL: the
+ *   two lists agree
+ */
 window.SITE_BADGES = {
     'halloween-2026-gold': {
         name: 'DSL Halloween 2026 - Gold Ver',
@@ -869,8 +838,7 @@ async function claimBadgesNow(extra) {
     return { signedIn: true, claimed };
 }
 
-// What awards a badge. The Halloween minigame called it on a win until the
-// event was removed (2026-11-13); the badges stay, and so does this.
+/** Awards a badge: claimed now when signed in, otherwise kept on the device until a sign-in. */
 window.earnBadge = async function (id) {
     if (!window.knownBadges([id]).length) return;
     writePendingBadges([...new Set([...readPendingBadges(), id])]);
@@ -881,17 +849,14 @@ window.earnBadge = async function (id) {
 window.openAuthModal = async function() {
     if (!window.supabaseClient) return;
     
-    // Ensure the HTML exists in the DOM first
     window.injectAuthModal(); 
 
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     
-    // IF LOGGED IN: Open the Custom Profile Manager
     if (session) {
         const username = window.getDisplayName(session);
         document.getElementById('profile-current-name').textContent = username;
 
-        // Pre-fill the input box with their current name so it's easy to edit
         const nameInput = document.getElementById('profile-new-name');
         nameInput.value = username;
 
@@ -901,26 +866,13 @@ window.openAuthModal = async function() {
         document.getElementById('profile-modal-overlay').classList.remove('hidden');
         nameInput.focus();
 
-        // Always open at the top, whatever moved the scroll.
-        //
-        // .modal-box is capped at max-height:85vh with .modal-body scrolling
-        // inside it, and .modal-header sits OUTSIDE that scroll area - so the
-        // header stays put while the body moves, and the identity strip is the
-        // first thing to disappear under it. Measured 2026-08-28: the body
-        // overflows on any window under about 900px tall, which is most
-        // laptops.
-        //
-        // The strip carries the person's name and standing, so it is the one
-        // part of this modal that must not need scrolling to find. The reset is
-        // cause-agnostic on purpose: the body keeps its scroll position between
-        // openings, and focus, browser zoom and the open animation can each
-        // move it. Cheaper to make the guarantee unconditional than to enumerate
-        // what breaks it.
+        // Always opened at the top: the header sits outside the scrolling body, and the
+        // identity strip under it (the name and standing) must never need scrolling to.
+        // Unconditional, since focus, zoom and the open animation can each move it.
         document.querySelector('#profile-modal-overlay .modal-body').scrollTop = 0;
         return;
     }
 
-    // IF NOT LOGGED IN: Open the Auth Modal
     document.getElementById('auth-modal-overlay').classList.remove('hidden');
 };
 
@@ -936,7 +888,6 @@ window.triggerOAuth = async function(providerName) {
 window.checkActiveSession = async () => {
     if (!window.supabaseClient) return;
 
-    // 1. Fetch Session Data
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     
     if (session) {
@@ -945,17 +896,13 @@ window.checkActiveSession = async () => {
         window.currentGlobalUsername = "Anonymous";
     }
 
-    // 2. Delegate to the unified PageBuilder Dock Engine!
     if (typeof window.initAuthDock === 'function') {
         await window.initAuthDock();
     }
 };
 
-// --- THE SESSION CHECK, THEN THE INBOX ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // Await the auth check so we have session data
     await window.checkActiveSession(); 
-    // Then build the inbox
     if (typeof window.initNotifications === 'function') {
         await window.initNotifications();
     }
@@ -966,7 +913,6 @@ window.initNotifications = async function() {
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     if (!session) return; 
 
-    // Fetch Full Notifications for the Modal
     const { data: notifs, error } = await window.supabaseClient
         .from('user_notifications')
         .select('*')
@@ -976,12 +922,11 @@ window.initNotifications = async function() {
 
     if (error) { console.error("Inbox Error:", error); return; }
 
-    // Build the invisible Modal Container safely into Tier 1 Architecture
     let modal = document.getElementById('site-notification-modal');
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'site-notification-modal';
-        modal.className = 'modal-overlay hidden'; // FIXED: Strict DSL overlay
+        modal.className = 'modal-overlay hidden';
         document.body.appendChild(modal);
     }
 
@@ -1008,7 +953,6 @@ window.initNotifications = async function() {
             </div>
         `).join('');
 
-    // Inject exact DSL Geometry
     modal.innerHTML = `
         <div class="modal-box modal-md accent-blue">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
@@ -1026,10 +970,9 @@ window.initNotifications = async function() {
         </div>
     `;
 
-    // Delegated rather than inline onclick handlers: the row id/link are
-    // stored values, and building them into an onclick="" attribute makes the
-    // attribute itself an injection surface that HTML-escaping alone doesn't
-    // close (the browser unescapes before the JS parser ever sees it).
+    // Delegated, not inline: the row id and link are stored values, and an onclick=""
+    // built from them is an injection surface escaping does not close (the browser
+    // unescapes it before the JS parser sees it).
     modal.onclick = (event) => {
         const deleteBtn = event.target.closest('[data-notif-delete]');
         if (deleteBtn) {
@@ -1043,10 +986,10 @@ window.initNotifications = async function() {
     };
 };
 
-// The dock's inbox button is built by js/pages/core/pagebuilder.js's initAuthDock, which
-// runs BEFORE initNotifications in this file's own DOMContentLoaded handler -
-// so rather than depending on load order, re-fetch on every open. That also
-// means the list is always current instead of a page-load snapshot.
+/**
+ * Opens the inbox, fetching it fresh each time, so it never depends on load order
+ * and is never a snapshot from page load.
+ */
 window.openNotificationModal = async function() {
     if (typeof window.initNotifications === 'function') {
         await window.initNotifications();
@@ -1056,7 +999,6 @@ window.openNotificationModal = async function() {
 };
 
 window.markNotifRead = async function(id, link) {
-    // 1. Optimistic UI Update (Makes it feel instant to the user)
     const row = document.getElementById(`notif-row-${id}`);
     const dot = document.getElementById(`notif-dot-${id}`);
     
@@ -1067,113 +1009,77 @@ window.markNotifRead = async function(id, link) {
     }
     if (dot) dot.classList.add('hidden');
 
-    // 2. Fire database update in the background
     if (window.supabaseClient) {
         window.supabaseClient.from('user_notifications').update({ is_read: true }).eq('id', id).then(() => {
-            // Re-run the session checker to update the red bell badge count on the sidebar!
+            // The bell's count, again.
             window.checkActiveSession();
         });
     }
     
-    // 3. Navigate if a link was provided
-    // Links are stored root-relative (see window.buildPageUrl) since
-    // notifications are shown from every page at every folder depth -
-    // resolve against the CURRENT page's root, not wherever the link
-    // was originally constructed from.
+    // Links are stored root-relative (buildPageUrl): resolved against this page's root.
     if (link && link !== 'null' && link !== '') {
         const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
         window.location.href = rootPath + link;
     }
 };
 
-// --- NOTIFICATION DELETION SYSTEM ---
-
 window.deleteNotification = async function(id, event) {
-    // CRITICAL: Stop the click from bubbling down and triggering "markNotifRead"
+    // Or the row's own click marks it read.
     event.stopPropagation(); 
     
-    // 1. Optimistic UI Animation (Smooth collapse)
     const row = document.getElementById(`notif-row-${id}`);
     if (row) {
-        row.style.height = row.offsetHeight + 'px'; // Lock current height
-        row.offsetHeight; // Force browser reflow
+        row.style.height = row.offsetHeight + 'px';
+        row.offsetHeight;
         row.style.padding = '0px';
         row.style.height = '0px';
         row.style.opacity = '0';
         row.style.border = 'none';
-        setTimeout(() => row.remove(), 200); // Remove node after CSS transition
+        setTimeout(() => row.remove(), 200);
     }
 
-    // 2. Database Execution
     if (window.supabaseClient) {
         await window.supabaseClient.from('user_notifications').delete().eq('id', id);
         
-        // Recalculate the red bell badge count on the sidebar dock!
+        // The bell's count, again.
         window.checkActiveSession(); 
     }
 };
 
-// --- DISPLAY NAME LIMIT ---
-//
-// Display names are capped at 32 characters (owner, 2026-09-03). There was no
-// limit at all, so a name could be any length and it renders inline beside
-// every post, revision and history row that person has ever touched.
-//
-// CLIENT-SIDE ONLY, and worth being honest about: the display name lives in
-// auth.users.raw_user_meta_data, which carries no CHECK constraint - the only
-// way to enforce it in the database would be a trigger on auth.users, and this
-// project deliberately avoids those because one that raises takes signup down
-// with it (see 20260827000005_user_profiles.sql). The bio and flair caps ARE
-// database constraints, because those columns are ours.
+// Display names are capped at 32 characters. Client-side only: the name lives in
+// auth metadata, where a CHECK is impossible, and a trigger on auth.users that
+// raises would take signup down. The bio and flair caps are database constraints.
 window.DISPLAY_NAME_MAX = 32;
 
-// --- ROLE BADGES: one source for the icon suite ---
-//
-// These SVGs were local consts inside initAuthDock (js/pages/core/pagebuilder.js), which
-// was fine while the sidebar dock was the only thing that drew a role. v0.17's
-// profile draws one too, and a second copy would drift the first time an icon
-// changed - which is not hypothetical: the crown and the shield were both
-// redrawn days ago, and a duplicated modal would still be showing a treasure
-// chest.
-//
-// It lives here rather than in pagebuilder.js for a cache reason as much as a
-// structural one. site_utils.js is stamped (?v=), pagebuilder.js is not, so a
-// reader whose browser holds an hour-old pagebuilder.js still gets today's
-// icons. See the cache-stamp note in the v0.17 devlog.
-//
-// Keyed by NAME, not by rank, and that is correct here for the reason stated at
-// js/pages/core/pagebuilder.js:422 - an icon is an identity, not a bar somebody clears.
-// roleMeets would hand the owner the admin's shield, since the owner does meet
-// the admin bar.
-//
-// Each badge's icon is the owner's pixel art (v1.2, window.UI_ICONS in
-// js/utility/site_meta.js), in the badge's color.
+/**
+ * The role badges, one table for the dock and the profile. Keyed by role name, not
+ * rank: an icon is an identity, and roleMeets would give the owner the admin's
+ * shield.
+ * @since v0.17
+ */
 window.ROLE_BADGES = {
     owner: { label: 'Owner', color: 'purple', icon: 'role-owner' },
     admin: { label: 'Admin', color: 'red', icon: 'role-admin' },
     reviewer: { label: 'Reviewer', color: 'blue', icon: 'role-reviewer' },
     trusted_editor: { label: 'Trusted Editor', color: 'yellow', icon: 'role-trusted-editor' },
-    // Signed in, no role - and also where `viewer` lands. A viewer is a soft
-    // ban, and giving it a badge of its own would publish a moderation decision
-    // on the person's own profile. get_public_profile() nulls the standing for
-    // exactly the same reason.
+    // Signed in with no role, and also a viewer: a soft ban with a badge of its own would
+    // publish a moderation decision on the person's profile. get_public_profile() nulls
+    // the standing for the same reason.
     member: { label: 'Member', color: 'green', icon: 'role--member' },
     guest: { label: 'Guest', color: 'regular', icon: 'role--guest' },
 };
 
-// Which badge belongs to a role string. Anything unrecognised falls through to
-// the signed-in badge rather than borrowing a senior one.
+/** The badge for a role name; anything unknown gets the signed-in badge, never a senior one. */
 window.roleBadge = function (roleName) {
     const key = String(roleName || '').trim().toLowerCase();
     return window.ROLE_BADGES[key] || window.ROLE_BADGES.member;
 };
 
-// A role's icon, for whoever draws a badge (the dock, the profile).
+/** A role's icon, for whoever draws a badge (the dock, the profile). */
 window.roleIconHTML = function (roleName, className) {
     return window.uiIconHTML(window.roleBadge(roleName).icon, { className });
 };
 
-// --- CLEARING THE INBOX ---
 window.clearAllNotifications = async function() {
     const ok = await window.siteConfirm(
         'This clears your entire inbox. Notifications cannot be brought back.',
@@ -1181,19 +1087,14 @@ window.clearAllNotifications = async function() {
     if (!ok) return;
 
 
-    // 1. Optimistic UI Wipe
-    // .modal-body, not .auth-body - the modal this targets is built above with
-    // .modal-body, so the old selector never matched and the wipe silently did
-    // nothing (invisible until the modal became reachable at all).
     const body = document.querySelector('#site-notification-modal .modal-body');
     const clearBtn = document.querySelector('#site-notification-modal button[onclick="clearAllNotifications()"]');
     
     if (body) {
         body.innerHTML = `<div style="text-align: center; padding: 2.5rem; color: #555; font-family: var(--text-mono); font-size: 0.75rem;">Inbox is empty.</div>`;
     }
-    if (clearBtn) clearBtn.remove(); // Remove the clear button itself
+    if (clearBtn) clearBtn.remove();
 
-    // 2. Database Execution
     if (window.supabaseClient) {
         const { data: { session } } = await window.supabaseClient.auth.getSession();
         if (session) {

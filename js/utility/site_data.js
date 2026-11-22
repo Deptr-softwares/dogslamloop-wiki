@@ -1,28 +1,25 @@
 /**
- * Dogslamloop Wiki - Shared Site Utilities: page data
- *
- * The roster, tier list entries, archived pages, character modes, matchup
- * tiers, system page sections, the delta engine that applies an approved
- * edit, and the page data fetcher. Loads right after site_utils.js.
+ * Page data: the roster, tier list entries, archived pages, character modes,
+ * matchup tiers, system page section keys, the page data fetcher, and the delta
+ * engine that applies an approved edit (applyDeltaToData). Loads right after
+ * site_utils.js.
+ * @since v0.3, as part of site_utils.js
+ * @touches page_data (desc_data, frame_data, tab_settings), data/navigation.json,
+ *   data/portraits.json, data/archived-pages.json
+ * @watch applyDeltaToData is the last step of approving a ticket: a scope it does
+ *   not know throws, never returns the data unchanged. A reorder never deletes, and
+ *   a delta is applied to a snapshot, so entries it does not name stay put.
+ * @see docs/page-data.md
  */
 
-// --- CHARACTER ROSTER ---
-// page_id -> { name, url, image, hidden }, for every tier list on the site.
-//
-// One loader since v1.1. There were three copies (certified lists, Free
-// Submit, the tier editor), and two of them shipped reading `entry.image`,
-// which navigation.json carries on no character: so they drew a guessed
-// Supabase URL, old art, or a 404 for the five portraits named
-// "Portrait2.webp" or with no suffix. The portrait comes from
-// data/portraits.json, mirrored into the repo by scripts/fetch-portraits.js.
-//
-// Same-origin matters beyond correctness: a cross-origin image taints a
-// canvas, and toBlob() and the clipboard write both throw on one, which every
-// tier list image export depends on.
-//
-// A fresh Map each call, over cached requests, so a caller can keep it as its
-// own state. Empty when navigation.json cannot be read; the next call tries
-// again, because fetchJson drops a failed request from its cache.
+/**
+ * page_id -> { name, url, image, hidden }, for every tier list on the site, a
+ * fresh Map each call over cached requests. The portrait is the same-origin copy
+ * from data/portraits.json: a cross-origin image taints the canvas a tier list
+ * image export draws on.
+ * @since v1.1
+ * @watch empty when navigation.json cannot be read; the next call tries again
+ */
 async function loadCharacterRoster() {
     const roster = new Map();
     try {
@@ -55,21 +52,19 @@ async function loadCharacterRoster() {
     return roster;
 }
 
-// --- TIER LIST ENTRIES: COPIES AND BADGES (v1.2) ---
-//
-// A certified tier list may hold a character more than once, each copy told
-// apart by a badge (owner, 2026-11-19). An entry in tiers[].characters is:
-//   "page_id"                       the character, no badge (every list before)
-//   { id, label, color }            the character, with a badge
-//   { id, copy, label, color }      a copy of it, which always has one
-// The key ("page_id", or "page_id#copy") is what the board, the move diff,
-// the notes and tier_list_changes.character_id use, so each copy is moved and
-// logged on its own. Read here once for the editor (js/pages/tier-lists/tier-editor.js) and the
-// reader (js/pages/tier-lists/certified-tier-lists.js), which must never disagree.
-//
-// save_tier_list stores the tiers as sent, so nothing is trusted: an entry
-// with no string id is dropped (null), a label is cut to TIER_BADGE_MAX, and a
-// colour that is not #rgb or #rrggbb is dropped, because it goes into a style.
+/**
+ * Tier list entries, copies and badges. An entry in tiers[].characters is
+ *   "page_id"                       the character, no badge
+ *   { id, label, color }            the character, with a badge
+ *   { id, copy, label, color }      a copy of it, which always has one
+ * Its key ("page_id" or "page_id#copy") is what the board, the move diff, the notes
+ * and tier_list_changes.character_id use. The editor and the reader both read it
+ * here, so they never disagree.
+ * @since v1.2
+ * @watch save_tier_list stores tiers as sent: an entry with no string id is
+ *   dropped, a label is cut to TIER_BADGE_MAX, and a colour that is not #rgb or
+ *   #rrggbb is dropped, since it lands in a style
+ */
 window.TIER_BADGE_MAX = 12;
 window.tierListEntry = function (raw) {
     if (typeof raw === 'string') return raw ? { key: raw, id: raw, copy: null, label: '', color: '' } : null;
@@ -80,9 +75,8 @@ window.tierListEntry = function (raw) {
     return { key: copy ? `${raw.id}#${copy}` : raw.id, id: raw.id, copy, label, color };
 };
 
-// The badge on a portrait's corner, or null for an entry without one. Its
-// text is black or white by the colour's lightness, the same test the
-// character colours use (isDarkCharacterColor, js/utility/site_meta.js).
+// The badge on a portrait's corner, or null. Its text is black or white by the
+// colour's lightness, the test the character colours use (isDarkCharacterColor).
 window.tierBadgeElement = function (entry) {
     if (!entry || !entry.label) return null;
     const color = entry.color || '#888888';
@@ -95,19 +89,10 @@ window.tierBadgeElement = function (entry) {
     return badge;
 };
 
-// --- ARCHIVED PAGES ---
-// Lives next to fetchNavigationData because it answers the question that file
-// cannot: navigation.json contains only live pages, so anything reading it is
-// already safe from archived ones, and anything NOT reading it is not.
-//
-// The unsafe readers are the ones that reach into page_data or the revision
-// feed directly - matchup and counterplay cards on other character pages,
-// tier-list rows, and the v0.11 dashboard widgets. Those keep linking to a
-// page that has been archived, because nothing ever told them.
-//
-// Returns {} on any failure, deliberately. A missing or malformed manifest
-// should degrade to "nothing is hidden", which is the pre-v0.11 behaviour -
-// not blank out a roster or throw partway through rendering a page.
+// Archived pages. navigation.json holds only live pages, so its readers are safe;
+// the ones that reach into page_data or the revision feed (matchup and counterplay
+// cards, tier list rows, the dashboard widgets) ask here. {} on any failure:
+// "nothing is hidden", never a blank roster.
 async function fetchArchivedPages() {
     try {
         const data = await fetchJson(`${getRootPath()}data/archived-pages.json?v=1.0`, { cache: true });
@@ -118,16 +103,9 @@ async function fetchArchivedPages() {
 }
 
 /**
- * True when a page is archived AND has been explicitly marked to have its
- * remaining references hidden.
- *
- * Archiving alone deliberately does not hide references: it stays a cheap,
- * reversible decision, while scrubbing a character out of every matchup table
- * on the site is a heavier one that has to be opted into per page.
- *
- * Accepts either a page_id ('boomcat') or a nav_id ('Boomcat'), because the
- * callers genuinely differ - page_data is keyed by page_id, while the tier
- * list stores nav_ids.
+ * True when a page is archived and marked to have its remaining references hidden.
+ * Takes a page_id ('boomcat') or a nav_id ('Boomcat'): page_data is keyed by one,
+ * the tier list by the other.
  */
 window.isEntryPointHidden = function(archivedMap, key) {
     if (!archivedMap || !key) return false;
@@ -143,40 +121,25 @@ window.isEntryPointHidden = function(archivedMap, key) {
 
 window.fetchArchivedPages = fetchArchivedPages;
 
-// --- CHARACTER MODES ---
-// A full character fights out of more than one kit: a base kit, plus one or
-// two ultimate modes that replace their whole moveset. Those are *states* of
-// one character, not separate characters, so they share a page and swap the
-// tab contents underneath a toggle.
-//
-// The model is additive on purpose - all 22 characters that exist today
-// declare no modes at all and must keep rendering byte-identically:
-//
-//   frame_data.modes    = [{id:'base', label:'Base Kit'}, {id:'shrine', ...}]
-//   frame_data.modeData = { shrine: { m1s: [], skills: [], specials: [] } }
-//   desc_data.modeData  = { shrine: { profile, overview, matchups, ... } }
-//
-// Declaration (`modes`) is deliberately separate from content (`modeData`):
-// renaming or reordering the toggle then never rewrites a single block, and a
-// mode's content is addressable by a stable id rather than an array position.
-//
-// BASE_MODE_ID is reserved and always means "the existing top level". That is
-// what makes the whole thing free for every page already in the database: no
-// modes declared means one implicit base mode, which is exactly what the
-// top-level m1s/skills/specials already are.
+/**
+ * Character modes: a full character's base kit plus ultimate states that replace
+ * its whole moveset, one page with a toggle.
+ *   frame_data.modes    = [{ id: 'base', label: 'Base Kit' }, { id: 'shrine', ... }]
+ *   frame_data.modeData = { shrine: { m1s: [], skills: [], specials: [] } }
+ *   desc_data.modeData  = { shrine: { profile, overview, matchups, ... } }
+ * @since v0.12
+ * @watch the declaration (modes) is apart from the content (modeData), so renaming
+ *   or reordering the toggle rewrites no Block. BASE_MODE_ID always means the top
+ *   level, so a character with no modes declared is one implicit base mode.
+ */
 window.BASE_MODE_ID = 'base';
 
-// --- MATCHUP TIERS ---
-//
-// One list, because this vocabulary is read in three places that have to
-// agree: the live page (js/pages/core/description.js), the editor's preview
-// (js/editor/tools/editor-previews.js) and the editor's own dropdown (js/editor/tabs/editor-tabs.js).
-// It used to be two colour maps and a separate option array, which is how a
-// rename half-lands - the dropdown offers a word the renderer has no colour
-// for, and the tier renders white.
-//
-// Ordered worst-to-best from the point of view of the character whose page it
-// is, and read in that order by all three.
+/**
+ * The matchup tiers, worst to best for the page's own character: one list for the
+ * live page, the editor's preview and the editor's dropdown, so a renamed tier
+ * cannot half-land.
+ * @since v0.13
+ */
 window.MATCHUP_TIERS = [
     { id: 'Hopeless',             color: '#dc2626' },
     { id: 'Extreme Disadvantage', color: '#ef4444' },
@@ -189,31 +152,21 @@ window.MATCHUP_TIERS = [
     { id: 'Dominating',           color: '#22d3ee' },
 ];
 
-// Permanent, not a migration leftover.
-//
-// The v0.13 migration renames these two words in page_data, but deliberately
-// does not touch page_history or pending_revisions: both are records of what
-// somebody actually submitted and a reviewer actually approved, and editing
-// them to say something else falsifies that record. So old revisions replay
-// with the old words for as long as the history exists, and they have to keep
-// rendering.
+// Permanent: page_history and pending_revisions keep the words people submitted
+// and approved, so old revisions replay with the two old tier names.
 window.MATCHUP_TIER_ALIASES = {
     'Unwinnable': 'Hopeless',
     'Unloseable': 'Dominating',
 };
 
-// Always returns something renderable. An unrecognised tier keeps its own
-// wording and renders white rather than being silently rewritten to a
-// neighbouring difficulty - a matchup rating is a claim about the game, and
-// guessing at one is worse than showing that nobody has set it properly.
+// Always renderable. An unknown tier keeps its wording and renders white: a matchup
+// rating is a claim about the game, and guessing one is worse than showing it unset.
 window.resolveMatchupTier = function(tier) {
     const name = window.MATCHUP_TIER_ALIASES[tier] || tier || 'Equal';
     return window.MATCHUP_TIERS.find(t => t.id === name) || { id: name, color: '#ffffff' };
 };
 
-// The declared modes, or [] when a character has none. Callers should treat []
-// and "one mode called base" as the same thing - the difference only decides
-// whether a toggle is worth drawing.
+/** The declared modes, or [] when a character has none (the same as one base mode). */
 window.getCharacterModes = function(frameData) {
     const modes = frameData && Array.isArray(frameData.modes) ? frameData.modes : [];
     return modes.filter(m => m && m.id).map(m => ({
@@ -226,10 +179,10 @@ window.isBaseMode = function(modeId) {
     return !modeId || modeId === window.BASE_MODE_ID;
 };
 
-// The frame data a given mode renders from. Non-base modes carry their own
-// move arrays and nothing else - a mode with no skills written yet shows an
-// empty Skills tab, which is the honest answer. Falling back to the base kit
-// there would silently claim the ultimate has the same moves as the base.
+/**
+ * The frame data a mode draws from. A non-base mode has its own move arrays only:
+ * one with no skills written shows an empty Skills tab, never the base kit's.
+ */
 window.resolveModeFrame = function(frameData, modeId) {
     const base = frameData || {};
     if (window.isBaseMode(modeId)) return base;
@@ -241,14 +194,10 @@ window.resolveModeFrame = function(frameData, modeId) {
     return out;
 };
 
-// The description data a given mode renders from.
-//
-// `profile` is the one key that falls back to the base mode, and the exception
-// is deliberate: it is the character's identity card - portrait, archetype,
-// health - not an analysis of the kit. A mode that has not overridden its
-// portrait should show the character, not an empty box. Everything else
-// (overview, strategy, matchups, counterplay) is kit-specific by definition
-// and renders empty until someone writes it for that mode.
+/**
+ * The description data a mode draws from. `profile` alone falls back to the base:
+ * it is the character's identity card, not an analysis of the kit.
+ */
 window.resolveModeDesc = function(descData, modeId) {
     const base = descData || {};
     if (window.isBaseMode(modeId)) return base;
@@ -259,14 +208,11 @@ window.resolveModeDesc = function(descData, modeId) {
     });
 };
 
-// Splits a possibly state-wrapped delta into the state it targets and the
-// plain scope underneath. Everything that reads a revision's scope to decide
-// what to show - the queue label, the changed-tab markers, the preview's
-// opening tab, the editor's intercept path - has to look past the wrapper, and
-// they must all split it the same way.
-//
-// Returns modeId: null for an ordinary delta, so callers can treat the result
-// uniformly rather than branching on the scope first.
+/**
+ * Splits a delta aimed at one state into { modeId, scope, key }, modeId null for an
+ * ordinary delta. Everything that reads a revision's scope splits it here, the same
+ * way.
+ */
 window.unwrapModeDelta = function(scope, key) {
     if (scope !== 'mode' || typeof key !== 'string') return { modeId: null, scope, key };
 
@@ -276,22 +222,12 @@ window.unwrapModeDelta = function(scope, key) {
     return { modeId, scope: innerScope, key: parts.join('::') || 'full' };
 };
 
-// --- SYSTEM PAGE SECTION IDENTITY ---
-//
-// A system page is `{ tabs: [ { tabId, tabLabel, sections: [ { sectionTitle,
-// blocks } ] } ] }`, and NOTHING IN IT HAS A STABLE ID. Sections carry no
-// identifier at all, and `tabId` is re-slugged from the label on every rename
-// (js/editor/tabs/editor-system.js), so it is a display name wearing an id's clothes.
-//
-// Keys are therefore DERIVED, not stored. Both sides of a delta compute the
-// same key from the same content, so nothing has to be migrated and no
-// existing page changes shape - the same reasoning as the section anchors in
-// item 5, and the same trade: a RENAME reads as a delete plus an add, exactly
-// as renaming a matchup opponent already does.
-//
-// Position is deliberately not part of the key. Item 8 makes sections
-// reorderable, and a positional key would make every reorder look like every
-// section changing at once.
+/**
+ * A system page's tab or section key, derived from its title. Nothing in a system
+ * page has a stored id (tabId is re-slugged on every rename), so both sides of a
+ * delta derive the same key; a rename reads as a delete plus an add. Position is
+ * never part of a key, so a reorder does not look like every section changing.
+ */
 window.slugifySystemKey = function(text) {
     return String(text == null ? '' : text)
         .trim().toLowerCase()
@@ -335,16 +271,17 @@ window.findSystemTab = function(descData, tabKey) {
     return hit ? hit.tab : null;
 };
 
-// --- DELTA INJECTION ENGINE ---
-// Shared by admin.js, editor.js, and history.js, which each need to
-// reconstruct a full description/frame-data object from a stored
-// scoped patch (used for live preview, revision merging, and history
-// replay respectively).
+/**
+ * Applies one stored delta (scope, key, payload) to copies of desc_data and
+ * frame_data: the review screens' preview, the merge on approval, and History's
+ * replay all go through it.
+ * @returns {{ newDesc, newFrame }}
+ */
 window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     let newDesc = JSON.parse(JSON.stringify(baseDesc || {}));
     let newFrame = JSON.parse(JSON.stringify(baseFrame || {}));
 
-    // --- SMART BATCH UNPACKER (handles bundled multi-field submissions) ---
+    // A bundled submission: each part applied in turn.
     if (scope === 'multi' && Array.isArray(payload)) {
         payload.forEach(edit => {
             const res = window.applyDeltaToData(newDesc, newFrame, edit.scope, edit.key, edit.payload);
@@ -354,15 +291,10 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc, newFrame };
     }
 
-    // --- MODE UNWRAPPER (a delta aimed at one character state) ---
-    // Key shape: `<modeId>::<innerScope>[::<innerKey>]`, payload identical to
-    // whatever the inner scope normally carries. Rather than duplicating all
-    // nine branches below with a mode-aware twin, this peels the mode off and
-    // recurses against that mode's own sub-objects, then puts them back.
-    // Adding a scope later therefore costs nothing here.
-    //
-    // A base-mode delta never reaches this branch - the editor emits the plain
-    // scope for base, so every ticket ever submitted keeps applying unchanged.
+    // A delta aimed at one state: key `<modeId>::<innerScope>[::<innerKey>]`, the
+    // payload what the inner scope carries. The mode is peeled off and the inner scope
+    // applied to that mode's own data, so a new scope needs nothing here. A base-mode
+    // delta is the plain scope, so every older ticket applies unchanged.
     if (scope === 'mode' && typeof key === 'string') {
         const firstSep = key.indexOf('::');
         if (firstSep === -1) return { newDesc, newFrame };
@@ -391,31 +323,19 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc, newFrame };
     }
 
-    // The toggle itself: which states exist, and what they are called. Held
-    // apart from the content so renaming a mode cannot touch a single block.
+    // The toggle itself, apart from the content, so renaming a mode touches no Block.
     if (scope === 'modes') {
         newFrame.modes = payload;
         return { newDesc, newFrame };
     }
 
-    // --- Safely intercept full modular replacements ---
-    //
-    // WHOLE-DOCUMENT REPLACEMENT, AND THE REASON IT IS BEING RETIRED. Every
-    // system and tier list submission used to arrive as this one scope carrying
-    // the entire desc_data, so approving two tickets for one page silently
-    // reverted the first: each payload was captured from the live page as the
-    // contributor found it, and the second wrote its whole snapshot over the
-    // first's approved change. Nothing warned anyone - not the queue, not the
-    // reviewer, not the contributor whose work disappeared.
-    //
-    // Kept, because tickets submitted before the scopes below existed are still
-    // sitting in the queue and have to stay reviewable and applicable.
+    // The whole desc_data at once: kept for tickets already queued. Approving two of
+    // them for one page reverted the first, so new submissions use the scopes below.
     if (scope === 'system_data') {
         return { newDesc: JSON.parse(JSON.stringify(payload)), newFrame };
     }
 
-    // One section of one tab. The scope that replaces system_data for new
-    // submissions - see js/editor/tabs/editor-system.js buildSystemDeltas.
+    // One section of one tab (editor-system.js buildSystemDeltas).
     if (scope === 'system_section') {
         const { tabKey, secKey } = window.splitSystemKey(key);
         const tab = window.findSystemTab(newDesc, tabKey);
@@ -437,17 +357,14 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             const target = window.indexSystemSections(newDesc)[idx];
             target.tab.sections[target.secIdx] = payload;
         } else {
-            // A section the contributor added. Appended rather than positioned:
-            // where it goes is the tab's business, and the tab ships its own
-            // order delta when the author moves things.
+            // Appended: where it goes is the tab's business, and the tab sends its own order.
             tab.sections.push(payload);
         }
         return { newDesc, newFrame };
     }
 
-    // A tab's own metadata and the order of its sections - held apart from the
-    // sections themselves for the same reason the character mode toggle is held
-    // apart from its content: renaming a tab must not touch a single block.
+    // A tab's own metadata and its sections' order, apart from the sections, so
+    // renaming a tab touches no Block.
     if (scope === 'system_tab') {
         if (!Array.isArray(newDesc.tabs)) newDesc.tabs = [];
         const tabIdx = window.indexSystemTabs(newDesc).findIndex(t => t.tabKey === key);
@@ -465,8 +382,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         const existing = tab.sections || [];
         Object.keys(payload).forEach(k => { if (k !== 'sections' && k !== 'order') tab[k] = payload[k]; });
 
-        // Order arrives as a list of section keys, not as section content, so a
-        // reorder cannot carry a stale copy of anybody's prose with it.
+        // The order is a list of section keys, never content, so a reorder cannot carry a
+        // stale copy of somebody's prose.
         if (Array.isArray(payload.order)) {
             const byKey = new Map(window.indexSystemSections(newDesc)
                 .filter(e => e.tabKey === key)
@@ -478,21 +395,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc, newFrame };
     }
 
-    // THE ORDER OF THE TABS THEMSELVES - v0.18 B2.
-    //
-    // Section order has travelled since item 6b, as `order` on the tab's own
-    // metadata above. The tab strip had the reorder control from day one and
-    // nothing that recorded the move: buildSystemDeltas emits per-tab metadata
-    // and per-section content, and reordering tabs changes neither, so the
-    // scan found nothing and the contributor was told "no changes detected".
-    //
-    // Page-level, so it takes key 'full' like `modes` - it belongs to the page
-    // rather than to any one tab, and keying it by a tab would make one tab's
-    // ticket carry the position of all the others.
-    //
-    // The payload is a list of tab KEYS and never tab content, for the reason
-    // stated one level down: a reorder that carried content would let moving a
-    // tab overwrite an edit somebody else made to it in the meantime.
+    // The order of the tabs themselves: page-level (key 'full'), and a list of tab keys,
+    // never content, so moving a tab cannot overwrite an edit made to it meanwhile.
     if (scope === 'system_tab_order') {
         if (!Array.isArray(newDesc.tabs)) newDesc.tabs = [];
         if (!Array.isArray(payload)) {
@@ -500,28 +404,21 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             return { newDesc, newFrame };
         }
 
-        // indexSystemTabs de-duplicates collisions itself (`basics`,
-        // `basics-2`), so the "two entries share an identity" refusal the
-        // generic order scope needs cannot arise here - the keys are unique by
-        // construction rather than by luck.
+        // indexSystemTabs makes keys unique itself (`basics`, `basics-2`), so two tabs can
+        // never share one here.
         const keys = window.indexSystemTabs(newDesc).map(t => t.tabKey);
         const wanted = payload.map(String).filter(k => keys.includes(k));
         const named = new Set(wanted);
         const queue = wanted.map(k => newDesc.tabs[keys.indexOf(k)]);
 
-        // Unnamed tabs KEEP THEIR INDEX rather than being pushed to the end -
-        // the rule the generic `order` scope settled on, and deliberately not
-        // the one the section-order branch above uses. A ticket is raised
-        // against a snapshot, so a tab added since is not this delta's
-        // business, and appending it would move a tab the contributor never
-        // touched.
+        // A tab the payload does not name keeps its index: added since the snapshot, it is
+        // not this delta's business.
         newDesc.tabs = newDesc.tabs.map((tab, i) => (named.has(keys[i]) ? queue.shift() : tab));
         return { newDesc, newFrame };
     }
 
-    // A tier list's tiers and changelog, per tab. Not split per TIER: moving a
-    // character from A to S changes two tiers at once, so a per-tier scope would
-    // manufacture a conflict out of a single ordinary edit.
+    // A tier list's tiers and changelog, per tab, not per tier: moving a character from
+    // A to S changes two tiers, and per tier that would be a conflict.
     if (scope === 'tierlist_tiers' || scope === 'tierlist_changelog') {
         const field = scope === 'tierlist_tiers' ? 'tiers' : 'changelog';
         const tab = window.findSystemTab(newDesc, key);
@@ -533,34 +430,10 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc, newFrame };
     }
 
-    // --- ORDER ---
-    //
-    // The one thing a delta could not say. Every other scope names an ENTRY and
-    // replaces it; nothing named the SEQUENCE, so reordering was invisible at
-    // both ends:
-    //
-    //   The submit scan pairs local against cloud by identity
-    //   (`cloudMoves.find(old => old.id === m.id)`), so a move that only
-    //   changed position has a byte-identical partner and produces no payload -
-    //   the editor reported "no changes detected" and refused to submit.
-    //
-    //   And this function replaces in place (`findIndex` then assign), so even
-    //   a ticket that did carry the new order would have written each entry
-    //   back into the slot it already occupied.
-    //
-    // Together that is the owner's report: reorder alone would not submit, and
-    // reorder plus a wording change submitted, applied the wording, and left
-    // the order untouched.
-    //
-    // `key` is the dotted path js/editor/blocks/editor-reorder.js already names its lists by
-    // - "frame.skills", "desc.comboGroups" - so the strip that does the
-    // reordering and the delta that records it use one vocabulary. `payload` is
-    // the identity of each entry in the new order.
-    //
-    // Entries the payload does not mention are KEPT, appended in their existing
-    // relative order. A reorder must never be able to delete: the ticket was
-    // raised against a snapshot, and anything added since is not this delta's
-    // business.
+    // The order of a list. Every other scope replaces an entry in place, so nothing
+    // else can say a sequence changed. `key` is the dotted path editor-reorder.js names
+    // its lists by ("frame.skills", "desc.comboGroups"); `payload` is each entry's
+    // identity in the new order.
     if (scope === 'order') {
         const parts = String(key || '').split('.');
         const rootName = parts.shift();
@@ -580,9 +453,7 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             return { newDesc, newFrame };
         }
 
-        // Identity is the id for a move and the key field for a keyed entry;
-        // both are resolved by trying each in turn rather than by the caller
-        // having to say which, because one scope covers both kinds of list.
+        // Identity is a move's id or a keyed entry's key field, tried in turn.
         const identify = (entry) => {
             if (!entry || typeof entry !== 'object') return null;
             for (const field of ['id', 'title', 'opponent', 'topic', 'starter', 'theory', 'name']) {
@@ -591,23 +462,10 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             return null;
         };
 
-        // BACKWARD COMPATIBILITY: WHEN IN DOUBT, CHANGE NOTHING.
-        //
-        // This runs against page_data written long before the scope existed,
-        // and two shapes in there make a reorder ambiguous:
-        //
-        //   An entry with no identifiable field at all - older content, or a
-        //   list this scope was never meant for.
-        //
-        //   Two entries sharing one identity. Combo group titles are
-        //   contributor text and js/pages/core/description.js already notes two groups may
-        //   share a title, so this is not hypothetical.
-        //
-        // Either way there is no single correct answer, and guessing would
-        // silently shuffle a reader's page. Refusing leaves the list exactly as
-        // it was - the reorder is lost, which is visible and recoverable, while
-        // corruption is neither. The scan in js/editor/core/editor-core.js declines to emit
-        // in both cases too, so this is the second line rather than the first.
+        // When in doubt, change nothing: an entry with no identity, or two sharing one
+        // (combo group titles can repeat), leaves the list as it was. A lost reorder is
+        // visible and recoverable; a shuffled page is neither. editor-core.js declines to
+        // send these too.
         const ids = list.map(identify);
         if (ids.some(id => id === null)) {
             console.warn(`[Delta] order "${key}" skipped: an entry has no identity to order by.`);
@@ -618,10 +476,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             return { newDesc, newFrame };
         }
 
-        // Entries the payload does not name KEEP THEIR INDEX rather than being
-        // pushed to the end. A ticket is raised against a snapshot, so anything
-        // added since is not this delta's business - and appending it would
-        // move content the contributor never touched.
+        // An entry the payload does not name keeps its index: added since the snapshot, it
+        // is not this delta's business.
         const wanted = payload.map(String).filter(id => ids.includes(id));
         const named = new Set(wanted);
         const queue = wanted.map(id => list[ids.indexOf(id)]);
@@ -632,10 +488,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc, newFrame };
     }
 
-    // Whole-value block sections. The fixed four, plus any declared in
-    // js/utility/character_tabs.js FIXED_BLOCK_SECTIONS - comboIntro is one, and
-    // leaving it out is precisely how a Starter Guide delta reported success
-    // and wrote nothing.
+    // Whole-value Block sections: the fixed four, plus FIXED_BLOCK_SECTIONS
+    // (character_tabs.js), such as comboIntro.
     const fixedScopes = ['profile', 'playstyle', 'overview', 'strategy']
         .concat((window.FIXED_BLOCK_SECTIONS || []).map(f => f.scope));
 
@@ -652,19 +506,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (idx > -1) newDesc.extras[idx] = payload; else newDesc.extras.push(payload);
         }
     }
-    // Every keyed section (js/utility/character_tabs.js): matchups, counterplay,
-    // starterGuide, and anything declared there later.
-    //
-    // THIS IS THE LAST STEP OF APPLYING A TICKET, and an unrecognised scope
-    // used to fall all the way through to the return below - returning the data
-    // UNCHANGED, with no error. The reviewer got a success modal and nothing
-    // was written. That is what shipped for Starter Guide: it had a submit
-    // scan, a merge compiler entry, a diff and a renderer, and the one branch
-    // that actually writes the value did not know the scope existed.
-    //
-    // The missing `starterGuide` key on existing pages was NOT the cause - the
-    // `if (!newDesc[field])` below has always created it on first insert. The
-    // cause was that there was no branch to reach it.
+    // Every keyed section (character_tabs.js): matchups, counterplay, starterGuide and
+    // any declared there later.
     else if (window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope)) {
         const section = window.getKeyedSectionByScope(scope);
         const field = section.field;
@@ -678,10 +521,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (idx > -1) newDesc[field][idx] = payload; else newDesc[field].push(payload);
         }
     }
-    // One delta per gallery item, keyed by name. A gallery is the one page
-    // type where many people add many small things independently - thirty
-    // contributors submitting an emote each must never collide, and they
-    // cannot if each submission only ever names its own item.
+    // One delta per gallery item, keyed by name: many people add items independently,
+    // and each submission names only its own.
     else if (scope === 'gallery_item') {
         if (!newDesc.items) newDesc.items = [];
         if (payload === null) {
@@ -691,12 +532,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (idx > -1) newDesc.items[idx] = payload; else newDesc.items.push(payload);
         }
     }
-    // The prose above a gallery, and the tool config on a tool page. Whole-
-    // value replacements, like profile/playstyle - they are single objects,
-    // not lists with identities.
-    // The prose around a gallery or a tool. 'gallery_intro' is the original
-    // name and is kept because tickets carrying it may already be queued; new
-    // submissions use the plain key, which reads correctly on both page types.
+    // Whole-value replacements: a gallery's or tool page's intro, and a tool's config.
+    // 'gallery_intro' is the old name, kept for tickets already queued.
     else if (scope === 'gallery_intro' || scope === 'intro') {
         newDesc.intro = payload;
     }
@@ -706,9 +543,8 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     else if (scope === 'tool_config') {
         newDesc.tool = payload;
     }
-    // A page's own settings (v1.1): the words it colours and its house style.
-    // Page-level, so on a character with states it sits beside modeData and
-    // never inside it; the editor never wraps it in a state. null removes them.
+    // A page's own settings (its words and house style). Page-level: on a character
+    // with states it sits beside modeData, never in it. null removes them.
     else if (scope === 'pageConfig') {
         if (payload === null || payload === undefined) delete newDesc.pageConfig;
         else newDesc.pageConfig = payload;
@@ -729,12 +565,9 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             newDesc.moveStrategies[moveId] = payload.desc_data || [];
         }
     }
-    // Nothing matched. This used to return silently, which is how a Starter
-    // Guide ticket could pass every check, show the reviewer a success modal
-    // and write nothing at all. A scope this function does not understand is
-    // always a bug - either a new scope was added without a branch here, or
-    // js/utility/character_tabs.js did not load and the keyed-section lookup above
-    // could not run.
+    // Nothing matched, which is always a bug: a new scope with no branch here, or
+    // character_tabs.js not loaded. A silent return would let a reviewer approve a
+    // ticket that writes nothing.
     else {
         console.error(
             `[Delta] No handler for scope "${scope}" - the edit was NOT applied. `
@@ -746,26 +579,19 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     return { newDesc, newFrame };
 };
 
-// --- SUPABASE CLOUD DATA FETCHER ---
-// In-flight requests are shared, not cached: the entry is dropped the moment
-// it settles, so a later call always re-reads. A character page boot fires
-// four callers at once (three loadMoveSection tabs plus loadPageDescriptions,
-// and js/pages/core/character_modes.js makes five) for the same single row, and without
-// this they were four separate round-trips. Deduping only what is currently
-// in flight keeps that saving without ever serving stale data after a save.
+// In-flight page data requests are shared, never cached: a character page asks for
+// its one row five times at boot, and each later call still reads fresh data.
 const inFlightPageData = new Map();
 
-// The settings of the page being read (v1.1), for js/pages/core/internalstyling.js's page
-// words. Kept per page id and looked up by the route, so a page that reads
-// another page's row can never pick up that page's words.
+// The settings of the page being read, kept per page id, so a page that reads
+// another page's row never picks up that page's words.
 window.readerPageConfigs = window.readerPageConfigs || {};
 window.rememberPageConfig = function(pageId, descData) {
     if (!pageId) return;
     window.readerPageConfigs[pageId] = (descData && descData.pageConfig) || null;
 };
 
-// A house style as blocks, one paragraph per line, for the two places that
-// show it: the editor's HOUSE STYLE window and the review diff.
+/** A house style as Blocks, one paragraph a line, for the editor's window and the review diff. */
 window.houseStyleBlocks = function(text) {
     return String(text || '').split(/\n+/).map(line => line.trim()).filter(Boolean)
         .map(line => ({ type: 'paragraph', content: line }));
@@ -784,11 +610,10 @@ window.fetchCloudCharacterData = async function(pageId) {
 };
 
 async function fetchCloudCharacterDataUncached(pageId) {
-    // Failsafe: If Supabase isn't connected, immediately fall back to local files
+    // No Supabase client: no data.
     if (!window.supabaseClient) return null;
     
     try {
-        // Using the updated universal routing schema we built!
         const { data, error } = await window.supabaseClient
             .from('page_data')
             .select('*')
@@ -796,8 +621,7 @@ async function fetchCloudCharacterDataUncached(pageId) {
             .single();
 
         if (error) {
-            // PGRST116 is Supabase's code for "No rows found". 
-            // This just means the character is completely blank/new, so we silently return null.
+            // PGRST116 is "no rows": a page with no content yet, so null quietly.
             if (error.code !== 'PGRST116') {
                 console.error("Database fetch error:", error.message);
             }
@@ -812,5 +636,4 @@ async function fetchCloudCharacterDataUncached(pageId) {
         return null;
     }
 }
-// --- GLOBALS THE OTHER FILES CALL ---
 window.loadCharacterRoster = loadCharacterRoster;
