@@ -1,11 +1,11 @@
-/* THE CLASSIC LOOK (v1.2, owner 2026-11-19): a plain dark wiki, picked under
-   Look in Site settings (js/utility/site_utils.js) and worn as html.look-classic.
-   Reader pages only: the editor and staff pages never load this file.
-
-   Kept small on purpose (owner: "minimal code"). It re-points the shared
-   variables, then takes away the slants, hard shadows, halftone dots and the
-   striped ground. The layout is today's. Frame data keeps its colours and its
-   monospace. Colours inside page content are the editors', as written. */
+/* The Classic look: a plain dark wiki, picked under Look in Site Settings and worn
+   as html.look-classic. It re-points the shared variables, then takes away the
+   slants, hard shadows, halftone dots and the striped ground; the layout stays.
+   Frame data keeps its colours and monospace, and colours in page content are the
+   editors', as written.
+   Since v1.2.
+   Watch: reader pages only; the editor and staff pages never load this file.
+   See: docs/looks.md */
 
 /* !important where a character page's theme (applyCharacterTheme,
    js/utility/site_meta.js) sets the same variable inline on <html>. */
@@ -27,7 +27,7 @@ html.look-classic {
 
 html.look-classic body { background-image: none; }
 
-/* Frame data reads in monospace, as it does today. */
+/* Frame data reads in monospace. */
 html.look-classic .views-wrapper,
 html.look-classic .legend-section {
     --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -72,9 +72,9 @@ html.look-classic :is(.btn-manga, .filter-toggle).active {
 }
 html.look-classic .btn-manga-content { transform: none; }
 
-/* Panels have no box, like an article: a heading and its rule separate them
-   (owner, 2026-11-20). Nothing lifts on hover. A frame data card keeps a thin
-   box, and the profile card is the infobox. */
+/* Panels have no box, like an article: a heading and its rule separate them.
+   Nothing lifts on hover. A frame data card keeps a thin box, and the profile card
+   is the infobox. */
 html.look-classic :is(.wiki-card, .wiki-section) {
     background: none;
     border: 0;
@@ -159,8 +159,8 @@ html.look-classic .sidebar-nav-title.sidebar-group-header {
     margin-bottom: 0;
 }
 
-/* "On this tab" and the site menu on the left: plain links, the minor ones
-   indented. A character's name keeps its own colour (owner, 2026-11-20). */
+/* "On this tab" and the site menu: plain links, the minor ones indented. A
+   character's name keeps its own colour. */
 html.look-classic :is(.local-sidebar-right, .global-sidebar-left) .btn-nav {
     background: none;
     border: 0;
@@ -176,9 +176,8 @@ html.look-classic :is(.local-sidebar-right, .global-sidebar-left) .btn-nav.activ
 html.look-classic .global-sidebar-left .update-badge { background: none; border: 0; padding: 0; color: var(--accent-yellow); }
 html.look-classic .global-sidebar-left .badge-ea { color: hsl(28, 99%, 53%); }
 
-/* The account buttons are a list of links under "Account" (owner,
-   2026-11-20). Site settings keeps its small box. A collapsed sidebar has no
-   room for words, so it keeps the icons. */
+/* The account buttons are a list of links under "Account". Site settings keeps its
+   small box, and a collapsed sidebar keeps the icons. */
 html.look-classic #sidebar-dynamic-dock { gap: 0.15rem; }
 html.look-classic #sidebar-dynamic-dock::before { content: 'Account'; }
 html.look-classic .global-sidebar-left.collapsed #sidebar-dynamic-dock::before { content: none; }
@@ -218,10 +217,8 @@ html.look-classic .modal-box {
 html.look-classic .modal-box .modal-header h3 { color: var(--text-primary); font-family: var(--font-title), serif; font-weight: normal; letter-spacing: 0; }
 html.look-classic .modal-footer { border-top-style: solid; }
 
-/* Content blocks (owner, 2026-11-20: "custom build blocks such as callout
-   and dropdown could get its own version"): thin rules, no shadow, nothing
-   that moves. A callout keeps its colour as a left edge, which says what kind
-   it is. */
+/* Content Blocks: thin rules, no shadow, nothing that moves. A callout keeps its
+   colour as a left edge, which says what kind it is. */
 html.look-classic .inline-callout-btn {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -244,7 +241,7 @@ html.look-classic .wiki-block-list-boxed { border-width: 1px; box-shadow: none; 
 html.look-classic .sbox-tabs { border-bottom-width: 1px; }
 html.look-classic .sbox-tab { font-size: 0.8rem; letter-spacing: 0; }
 html.look-classic .sbox-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
-/* The hover tooltip draws its own border inline (js/utility/site_utils.js). */
+/* The hover tooltip draws its own border inline (site_media.js). */
 html.look-classic #wiki-frame-tooltip { border-width: 1px !important; }
 
 /* The site's dropdown: a plain box like a browser's own. */
