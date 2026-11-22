@@ -1,25 +1,14 @@
 /**
- * Dogslamloop Wiki - Owner Tools: Tier Lists
- *
- * Split from owner.js like the other owner-*.js modules.
- *
- * Two controls that belong together:
- *
- *   1. The page's own introduction, shown before anybody is picked and hidden
- *      the moment somebody is. Stored in tier_page_settings, a singleton.
- *   2. Who has a tier list. Assigning one also grants trusted_editor, because
- *      those are one decision - the owner picked somebody to write on the wiki
- *      under their own name - and leaving the role to a second manual step is
- *      how a new author ends up assigned but unable to do anything.
- *
- * The role is granted, never downgraded: an admin or reviewer who gets a list
- * keeps what they had. A 'viewer' is refused outright by the RPC, because
- * viewer is the soft ban and handing a banned account a public platform is a
- * contradiction far more likely to be a mistyped email.
- *
- * The introduction reuses initStrategyBlockBuilder, which keeps a single
- * module-level buffer - so this page must never open a second block editor
- * beside it.
+ * Tier Lists: the Tier List page's introduction, who has a list, archiving and
+ * deleting one, and the Free Submit Tier List's settings and reset.
+ * @since v0.14
+ * @touches tier_page_settings, list_tier_lists(), assign_tier_list(),
+ *   set_tier_list_status(), delete_tier_list(), reset_free_submit_tier_list(),
+ *   initStrategyBlockBuilder and currentStrategyBlocks (editor-blocks.js)
+ * @watch assigning a list also grants trusted_editor, never downgrades a role,
+ *   and the RPC refuses a viewer. The introduction uses the one Block editor's
+ *   buffer, so this page never opens a second Block editor.
+ * @see docs/owner-tools.md
  */
 
 let tierPageIntroLoaded = false;
@@ -32,14 +21,11 @@ function tierToolSay(containerId, message, isError) {
         : `<span class="owner-success-text">${window.escapeHtml(message)}</span>`;
 }
 
-// The normal state between writing a migration and the release that applies
-// it, said plainly rather than as a raw error.
+// Normal between a migration and the release that applies it, and said so.
 function tierNotDeployed(error) {
     return error && (error.code === 'PGRST202' || error.code === 'PGRST205'
         || /schema cache/i.test(error.message || ''));
 }
-
-// --- THE PAGE INTRODUCTION ---
 
 window.loadTierPageIntro = async function () {
     const host = document.getElementById('tier-page-intro-editor');
@@ -63,11 +49,8 @@ window.loadTierPageIntro = async function () {
 async function saveTierPageIntro() {
     if (!tierPageIntroLoaded) { tierToolSay('tier-page-intro-results', 'Nothing loaded to save.', true); return; }
 
-    // The buffer only reaches a caller when read out - the same flush every
-    // other editor surface does before it writes. The whole list,
-    // currentStrategyBlocks: getActiveBlocks() is a box's own list while the
-    // owner is inside a Section Box or a Dropdown, and saving there wrote only
-    // that box as the introduction.
+    // The whole list, flushed first: getActiveBlocks() is only the open box's list
+    // inside a Section Box or a Dropdown.
     if (typeof currentStrategyBlocks === 'undefined') {
         tierToolSay('tier-page-intro-results', 'The block editor did not load, so there is nothing to save.', true);
         return;
@@ -89,8 +72,6 @@ async function saveTierPageIntro() {
     tierToolSay('tier-page-intro-results', 'Saved. It shows until somebody picks a list.');
 }
 
-// --- WHO HAS A TIER LIST ---
-
 window.loadTierListRoster = async function () {
     const container = document.getElementById('tier-assign-roster');
     if (!container || !window.supabaseClient) return;
@@ -109,8 +90,7 @@ window.loadTierListRoster = async function () {
         return;
     }
 
-    // Built with escaping at every interpolation: author names and emails are
-    // account-supplied, and this renders in an admin's authenticated session.
+    // Escaped at every interpolation: names and emails are account-supplied.
     container.innerHTML = data.map(row => `
         <div class="personnel-row">
             <div class="personnel-row-main">
@@ -129,9 +109,7 @@ window.loadTierListRoster = async function () {
             </div>
         </div>`).join('');
 
-    // Delegated, not inline: the slug is account-influenced (the owner types it,
-    // but it round-trips through the database) and this codebase does not build
-    // such values into onclick attributes.
+    // Delegated, not inline: the slug round-trips through the database.
     container.querySelectorAll('.tier-status-btn').forEach(btn => {
         btn.addEventListener('click', () => setTierListStatus(btn.dataset.slug, btn.dataset.status));
     });
@@ -141,10 +119,8 @@ window.loadTierListRoster = async function () {
     });
 };
 
-// Archiving rather than deleting is the whole design - see
-// 20260904000002. The public read policy is `status = 'published'`, so an
-// archived list is off the site entirely, and nothing is destroyed: the list
-// and every note in its change history survive, and RESTORE puts it back.
+// Archived, not deleted: the public read policy is status = 'published', so the
+// list leaves the site, and it and its change history stay for RESTORE.
 async function setTierListStatus(slug, status) {
     const archiving = status === 'archived';
 
@@ -170,16 +146,9 @@ async function setTierListStatus(slug, status) {
 }
 window.setTierListStatus = setTierListStatus;
 
-// Deletion, which archiving deliberately is not.
-//
-// Only rendered on an ALREADY-ARCHIVED row (owner's call, 2026-09-04), so
-// removing a live list is two deliberate steps and never one misclick. The
-// database enforces the same rule - delete_tier_list refuses anything that is
-// not archived - because a button that is not on screen has never been a
-// permission check.
-//
-// The confirmation names the cost rather than asking "are you sure": the change
-// history cascades, and that is the part somebody would not think of.
+// Deleting is offered only on an archived list, so removing a live one takes two
+// steps. delete_tier_list refuses the same. The confirmation names the change
+// history, which goes with it.
 async function deleteTierList(slug) {
     const ok = await window.adminConfirm(
         `Permanently delete the list at ?list=${slug}? This destroys the list AND every change note explaining every tier move on it. It cannot be undone - if you only want it off the site, it is already archived.`);
@@ -230,13 +199,8 @@ async function assignTierList() {
     window.loadTierListRoster();
 }
 
-// --- THE COMMUNITY RANKING ---
-//
-// The knobs for the Free Submit tier list, which live on the same singleton as
-// the page introduction. They are settings rather than constants because the
-// failure they guard against arrives without warning: when a brigade is under
-// way the useful response is to close voting from here within a minute, not to
-// write a migration and wait for a release.
+// The Free Submit Tier List's knobs are settings, so voting can be closed from
+// here within a minute during a brigade.
 
 window.loadFreeSubmitSettings = async function () {
     const openField = document.getElementById('fs-setting-open');
@@ -258,9 +222,8 @@ window.loadFreeSubmitSettings = async function () {
     document.getElementById('fs-setting-age').value = data.free_submit_min_age_days;
     document.getElementById('fs-setting-contrib').value = data.free_submit_min_contributions;
     document.getElementById('fs-setting-floor').value = data.free_submit_min_votes;
-    // Defaulted here as well as in the schema: a client newer than the database
-    // reads undefined, and an empty select would then save 'undefined' over a
-    // perfectly good setting.
+    // Defaulted here too: a client newer than the database reads undefined, which
+    // would save 'undefined'.
     document.getElementById('fs-setting-tie').value = data.free_submit_tie_break === 'higher' ? 'higher' : 'lower';
 };
 
@@ -274,16 +237,13 @@ async function saveFreeSubmitSettings() {
     const contrib = num('fs-setting-contrib', 0);
     const votes = num('fs-setting-floor', 1);
 
-    // Refused here rather than silently coerced. A blank age field written as 0
-    // would open voting to every account ever made, which is the exact failure
-    // the gate exists to prevent.
+    // Refused, not coerced: a blank age written as 0 opens voting to every account.
     if (age === null || contrib === null || votes === null) {
         tierToolSay('fs-setting-results', 'Every number must be filled in, and the vote floor must be at least 1.', true);
         return;
     }
 
-    // Whitelisted rather than passed through, because the column has a CHECK
-    // constraint and a rejected write would surface as a raw Postgres error.
+    // Allowed values only: the column's CHECK would surface as a raw Postgres error.
     const tie = (document.getElementById('fs-setting-tie') || {}).value === 'higher' ? 'higher' : 'lower';
 
     const { error } = await window.supabaseClient
@@ -308,12 +268,8 @@ async function saveFreeSubmitSettings() {
     tierToolSay('fs-setting-results', 'Saved. It applies to the next vote.');
 }
 
-// v0.16 feature 4. Destructive and irreversible: the individual votes are the
-// raw material of the median, so there is no aggregate to rebuild them from.
-//
-// Behind the site's own confirm modal rather than a browser confirm(), for the
-// same reason the rest of v0.16 replaced those - and here it also lets the
-// question name the consequence properly rather than in one line of chrome.
+// Cannot be undone: the votes are what the median is made of. Behind the site's
+// own confirm, which names the consequence.
 async function resetFreeSubmitTierList() {
     const ok = await window.adminConfirm(
         'Delete every vote in the Free Submit Tier List?\n\n'
@@ -324,8 +280,7 @@ async function resetFreeSubmitTierList() {
     const btn = document.getElementById('btn-reset-free-submit');
     if (btn) btn.disabled = true;
 
-    // The RPC checks the caller itself (IS DISTINCT FROM 'admin' -> 42501). The
-    // owner page being RBAC-gated is a courtesy; the function is the boundary.
+    // The RPC refuses anyone but the owner (is_owner()); the page's gate is a courtesy.
     const { data, error } = await window.supabaseClient.rpc('reset_free_submit_tier_list');
 
     if (btn) btn.disabled = false;
@@ -337,9 +292,7 @@ async function resetFreeSubmitTierList() {
         return;
     }
 
-    // The function returns how many votes it removed. Reported rather than
-    // swallowed: "done" on a destructive action tells the owner nothing about
-    // whether it did what they meant.
+    // It reports how many votes it removed, rather than just "done".
     tierToolSay('fs-reset-results', String(data || 'Reset complete.'));
 }
 
@@ -356,9 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveFs = document.getElementById('btn-save-free-submit');
     if (saveFs) saveFs.addEventListener('click', saveFreeSubmitSettings);
 
-    // Loaded when the group is first opened rather than at boot: the block
-    // editor is heavy, and the whole point of the owner-group split is that a
-    // panel nobody opens costs nothing.
+    // Loaded when the group first opens: the Block editor is heavy.
     const nav = document.getElementById('owner-nav');
     if (nav) {
         nav.addEventListener('click', (e) => {

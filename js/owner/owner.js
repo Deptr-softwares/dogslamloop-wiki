@@ -1,32 +1,30 @@
 /**
- * Dogslamloop Wiki - Owner Tools (Personnel Management, Media Garbage Collection)
- *
- * Split out of admin.js as part of the admin-page rework: these two tools
- * are admin-only and unrelated to the reviewer workflow admin.html/admin.js
- * are scoped to. Access here is admin-only, not admin/reviewer like
- * admin.html - the RBAC-gate shape is intentionally duplicated from
- * admin.js rather than shared, matching this codebase's precedent of small
- * per-file duplication over one feature file depending on another. The
- * ACCESS DENIED screen both gates show is window.showAccessDenied, in
- * site_utils.js.
+ * The owner tools page (owner.html): its gate, and the tools that are not split
+ * into owner-*.js files: Personnel (roles, capabilities, account search), the page
+ * registry, page restrictions, the FAQ, deleting an account, and media garbage
+ * collection.
+ * @since v0.4, as part of admin.js
+ * @touches user_roles via list_personnel(), search_users(), assign_role_by_email()
+ *   and set_user_capability(); site_pages, page_permissions, site_faq,
+ *   anonymize_user_by_email(); the wiki-media bucket against page_data,
+ *   pending_revisions and page_history; showAccessDenied and rolesMeet
+ *   (site_utils.js)
+ * @watch the gate is owner only and its own copy, not admin-core.js's: small
+ *   duplication over one feature file depending on another. The owner-*.js files
+ *   use its contentNotDeployedMessage. Every tool's RPC or RLS checks the caller
+ *   itself.
+ * @see docs/owner-tools.md
  */
 
-// --- BFCACHE GUARD ---
-// Same fix as admin.js's own bfcache guard (see that file's comment for
-// the full incident writeup) - this page shares the identical RBAC-gate
-// shape and is just as vulnerable to a stale back-forward-cache snapshot
-// skipping the auth check entirely on back/forward navigation.
+// A page restored from the back-forward cache skips the gate, so it reloads.
 window.addEventListener('pageshow', (event) => {
     if (event.persisted) location.reload();
 });
 
-// --- RBAC GATEKEEPER (admin only) ---
 document.addEventListener('DOMContentLoaded', async () => {
     if (!window.supabaseClient) return;
 
-    // Same retry-before-denying resilience as admin-core.js's own gate - a
-    // single dropped request here used to permanently kick a legitimate
-    // admin to ACCESS DENIED with no recovery short of a manual refresh.
+    // One dropped request must not refuse the owner: retry once before the gate decides.
     let { data: { session } } = await window.supabaseClient.auth.getSession();
     if (!session) {
         await new Promise(r => setTimeout(r, 600));
@@ -44,12 +42,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const roles = (roleData && roleData.length > 0) ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
 
-    // Owner only, which is the whole point of v0.17's split: an admin works the
-    // review queue and has no owner-tool access at all (owner, 2026-08-27).
+    // Owner only: an admin works the review queue and has no owner tools.
     if (error || !window.rolesMeet(roles, 'owner')) { window.showAccessDenied(); return; }
 
-    // Lets loadPersonnel mark the signed-in admin and enforce the
-    // self-demotion guard without a second lookup.
     currentAdminUserId = session.user.id;
 
     populateDirectoryOptions();
@@ -59,7 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (el) el.addEventListener('input', updateNewPagePreview);
     });
 
-    // Changing the page type re-suits the folder before the preview reads it.
     const typeEl = document.getElementById('new-page-type');
     if (typeEl) {
         typeEl.addEventListener('change', () => {
@@ -70,11 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     wireCategoryField();
-    // 'Character page' is the first option, so the form opens on it.
     syncCategoryToType();
 
-    // Enter searches. A lookup field that only responds to a button is a field
-    // people type into and then wonder about.
     const accountSearch = document.getElementById('account-search');
     if (accountSearch) {
         accountSearch.addEventListener('keydown', (event) => {
@@ -88,27 +79,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSitePages();
     await loadPagePermissions();
     await loadFaqEntries();
-    // Credits are edited on the Collaborators page itself since v1.2.
     if (typeof loadStaffPerks === 'function') await loadStaffPerks();
-    // Same guard as above: these tools are separate files, and a missing one
-    // must not take the rest of the page down.
+    // Each tool is its own file, and a missing one must not take the page down.
     if (typeof loadPageExperts === 'function') await loadPageExperts();
 });
 
-// --- PERSONNEL MANAGEMENT ---
-// assign_role_by_email() is a "set role" RPC (supabase/migrations/
-// 20260801000000_role_model_fix.sql, applied 2026-08-01): it unconditionally
-// clears the target's existing role, then assigns the new one - so a user
-// can only ever hold one role at a time, matching the UNIQUE(user_id)
-// constraint the same migration added. An empty target-role value means
-// "clear all roles" - passed through as SQL NULL, not the string 'guest'
-// the old (always-broken, since 'guest' was never a legal role value)
-// dropdown option used to send.
+// assign_role_by_email() sets the role: it clears the old one first, since an
+// account holds one. An empty choice clears it, sent as NULL.
 
-// 'contributor' was removed in v0.11 - it gated nothing, so holding it and
-// holding no role at all were the same permission set. 'viewer' now means a
-// soft ban: signed in, can read, cannot submit. Labelled explicitly so it
-// cannot be mistaken for a neutral or default option in the dropdown.
+// 'viewer' is the soft ban, and labelled so it cannot pass for a default.
 const ROLE_LABELS = {
     admin: 'Administrator',
     reviewer: 'Reviewer',
@@ -116,13 +95,8 @@ const ROLE_LABELS = {
     viewer: 'Viewer (blocked from submitting)',
 };
 
-// A role is optional from 20260904000001 onward: a capability can stand on its
-// own, so a row may carry a moderator and no role at all. Without this the
-// badge rendered empty and the class came out as `badge-role-`.
-// Not `roleLabel`: applyRoleChange below already declares a local const by that
-// name, and a module-level function of the same name would sit in its shadow -
-// legal today, a temporal-dead-zone error the first time somebody calls it from
-// in there.
+// A capability can stand without a role, so a row may have none.
+// Not `roleLabel`: applyRoleChange declares a local const by that name.
 function roleLabelFor(role) {
     if (!role) return 'No role';
     return ROLE_LABELS[role] || role;
@@ -132,19 +106,8 @@ function roleBadgeClass(role) {
     return role ? `badge-role-${window.escapeHtml(role)}` : 'badge-role-none';
 }
 
-// The dropdown must always open showing what the person ACTUALLY has, because
-// the button next to it applies whatever is showing.
-//
-// Two ways it could show something else. A roleless account matches none of
-// ROLE_LABELS, so the select fell through to its first option - Administrator -
-// and APPLY would have promoted somebody the owner only meant to look at. And
-// 'owner' has never been in ROLE_LABELS, so an owner's row had the same
-// problem whenever the last-owner guard did not happen to disable it.
-//
-// Both are fixed the same way: whatever the person holds is rendered as a
-// selected option, in the list or not. Roles NOT in ROLE_LABELS stay
-// unofferable - this makes the current value visible, it does not add a way to
-// grant it.
+// The dropdown opens on what the person holds, in the list or not, because APPLY
+// applies whatever shows. A role outside ROLE_LABELS is shown, never offered.
 function roleOptionsHTML(currentRole) {
     const options = [];
 
@@ -160,25 +123,16 @@ function roleOptionsHTML(currentRole) {
         );
     }
 
-    // Only meaningful for somebody who has something to lose. Offering it on a
-    // roleless row would read as an action where there is none.
+    // Only for someone with something to lose.
     if (currentRole) options.push(`<option value="">Revoke all access</option>`);
 
     return options.join('');
 }
 
-// Why a capability box is inert, as TEXT rather than only a title attribute.
-//
-// Owner-reported, 2026-09-04: "The button to grant 'moderate discussions' in
-// the owner tools doesn't work (clicking on it and nothing happen)." It was
-// working exactly as designed - the box is disabled for anyone who already has
-// the capability by virtue of their role - but the only thing saying so was a
-// tooltip, and a tooltip is invisible to somebody who has already clicked.
-// Nothing about the logic changed here; the reason just became legible.
+// Why a capability box is inert, as text: a tooltip is invisible to someone who
+// has already clicked.
 function capabilityState(person, capability) {
-    // Admin and above since 20261116000000: a reviewer moderates only by this
-    // tick (the owner's card, "Remove Reviewer default permission to moderate
-    // discussion"), so their box is live.
+    // Admins moderate by role; a reviewer only by this tick, so their box is live.
     if (capability === 'can_moderate' && window.roleMeets(person.role, 'admin')) {
         return { disabled: true, note: 'comes with the role' };
     }
@@ -188,18 +142,14 @@ function capabilityState(person, capability) {
     if (capability === 'can_upload_media' && window.roleMeets(person.role, 'trusted_editor')) {
         return { disabled: true, note: 'comes with the role' };
     }
-    // Left tickable: the owner may set it ahead of lifting a ban. But
-    // can_upload_media() refuses a viewer whatever the box says, so the row
-    // says so. 'viewer' by name is the one role CLAUDE.md allows that for:
-    // it is a ban, not a rung.
+    // Left tickable, to set ahead of lifting a ban, but can_upload_media() refuses a
+    // viewer, so the row says so. 'viewer' by name: it is a ban, not a rung.
     if (capability === 'can_upload_media' && person.role === 'viewer') {
         return { disabled: false, note: 'no effect while banned' };
     }
     return { disabled: false, note: '' };
 }
 
-// Populated by loadPersonnel so the self-demotion guard below can recognise
-// the signed-in admin without a second round trip.
 let currentAdminUserId = null;
 let adminCount = 0;
 
@@ -212,10 +162,8 @@ async function loadPersonnel() {
     const { data, error } = await window.supabaseClient.rpc('list_personnel');
 
     if (error) {
-        // PGRST202 means the function is not in the schema cache - almost
-        // always "this migration has not been applied yet", which is the
-        // normal state between deploying the code and merging. Raw PostgREST
-        // text here reads like a crash; say what it actually means.
+        // Normal between deploying the code and the release that applies its
+        // migration, and said so.
         const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
         container.innerHTML = notDeployed
             ? `<p class="admin-error-text">The roster isn't available yet - the <code>list_personnel</code> database function hasn't been deployed. It arrives with the next migration.</p>`
@@ -228,9 +176,8 @@ async function loadPersonnel() {
         return;
     }
 
-    // Counts OWNERS, not admins. This guards against removing the last account
-    // that can still reach this page - and after v0.17 an admin cannot, so
-    // counting admins would leave the site with nobody able to assign roles.
+    // Counts owners: the last one demoting themselves would leave nobody able to
+    // reach this page.
     adminCount = data.filter(p => p.role === 'owner').length;
 
     container.innerHTML = data.map(personnelRowHTML).join('');
@@ -238,16 +185,12 @@ async function loadPersonnel() {
 }
 window.loadPersonnel = loadPersonnel;
 
-// Shared by the roster and by the account search below, so somebody found by
-// search gets exactly the same controls as somebody already on the roster -
-// including the role dropdown, which is how a searched-for account gets its
-// first role without a second, near-identical block of markup to keep in sync.
+// The roster and the account search share one row, so a found account gets the
+// same controls.
 function personnelRowHTML(person) {
     {
         const isSelf = person.user_id === currentAdminUserId;
-        // The last admin demoting themselves locks everyone out of this page
-        // permanently - the only recovery is direct database access. Blocked
-        // in the UI rather than left as a trap.
+        // The last owner cannot demote themselves: the only way back is the database.
         const isLastAdmin = person.role === 'owner' && adminCount === 1;
         const moderateState = capabilityState(person, 'can_moderate');
         const deleteMediaState = capabilityState(person, 'can_delete_media');
@@ -326,8 +269,7 @@ function personnelRowHTML(person) {
     }
 }
 
-// Same delegated pattern as the APPLY button, and for the same reason:
-// the email comes from auth.users and must never reach an inline handler.
+// Delegated, like APPLY: the email must never reach an inline handler.
 function bindPersonnelRows(container) {
     container.querySelectorAll('.personnel-capability-box').forEach(box => {
         box.addEventListener('change', async () => {
@@ -343,9 +285,7 @@ function bindPersonnelRows(container) {
             box.disabled = false;
 
             if (error) {
-                // Put the box back rather than leaving it showing a state the
-                // database does not have - the same rule the staff perk switch
-                // follows.
+                // Back to what the database holds.
                 box.checked = !enabled;
                 const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
                 results.innerHTML = notDeployed
@@ -358,10 +298,7 @@ function bindPersonnelRows(container) {
         });
     });
 
-    // Delegated rather than inline onclick: the email is attacker-influenced
-    // in principle (it comes from auth.users) and building it into an
-    // onclick attribute is the exact pattern that made site_utils.js's
-    // notification modal an XSS risk in v0.8.
+    // Delegated, never an inline onclick built around an email address.
     container.querySelectorAll('.personnel-apply-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const email = btn.dataset.email;
@@ -371,19 +308,8 @@ function bindPersonnelRows(container) {
     });
 }
 
-// Finding somebody who is not on the roster yet.
-//
-// The roster is FROM user_roles, so it can only ever show people who already
-// hold something. The owner's problem, in their words: "a new Vessel Expert
-// come to me... he logged in using a burner mail expecting that I don't talk
-// about it. Now it is impossible for me to shift through the list just to find
-// the email to assign it to him."
-//
-// So this searches the DISPLAY NAME as well as the address, because the name is
-// the only thing the owner actually knows in that situation. Results render
-// through personnelRowHTML - the same row, with the same controls - so granting
-// a role or a capability to somebody found here is the same gesture as doing it
-// on the roster, rather than a second half-featured path.
+// Anyone, not only role holders: the roster comes from user_roles. It searches
+// the display name too, often the only thing the owner knows.
 async function searchAccounts() {
     const input = document.getElementById('account-search');
     const container = document.getElementById('account-search-results');
@@ -391,8 +317,7 @@ async function searchAccounts() {
 
     const query = input.value.trim();
 
-    // Matches the function's own floor, so the UI explains the rule rather than
-    // returning silently and looking broken.
+    // The RPC's own floor, explained rather than silently refused.
     if (query.length < 2) {
         container.innerHTML = `<p class="admin-tool-hint">Type at least two characters of an email address or a display name.</p>`;
         return;
@@ -456,33 +381,15 @@ async function changeUserRole() {
     document.getElementById('target-email').value = '';
 }
 
-// --- PAGES ---
-// site_pages is the registry data/navigation.json is generated from
-// (20260808000003_site_pages.sql). Creating a page here is an insert; the
-// regeneration workflow turns it into a nav entry and a stub file.
-//
-// Archiving rather than deleting is the default on purpose: an archived page
-// keeps a tombstone stub so existing links and Discord embeds resolve instead
-// of 404ing, and it simply stops appearing in menus.
+// site_pages is the registry navigation.json is generated from: a new page is an
+// insert, and regeneration makes its nav entry and stub. Archiving is the
+// default: an archived page keeps a stub, so old links and Discord embeds resolve.
 
 const STATUS_LABELS = { live: 'Live', draft: 'Draft', archived: 'Archived' };
 
-// Mirrors js/utility/site_utils.js's buildPageUrl and the folder convention the
-// generator expects: characters/Capitalized_snake/, systems/lower-slug/.
-// Where a page lives, kept separate from how it renders.
-//
-// These were the same thing until now: page_type decided the directory, so
-// "Others" and "Tools" pages were impossible without inventing render types
-// for them. They are different questions. An Emotes page lives in others/ and
-// renders exactly like a system page - tabs of blocks, which js/pages/core/page_boot.js
-// already treats as the default for anything that is not a character.
-//
-// Keeping page_type as-is also means no migration: the CHECK constraint on
-// site_pages.page_type is untouched, and site_pages.url already stores the
-// full path, so the directory needs no column of its own.
-// A directory lists the types it can hold, not one type: others/ takes both
-// ordinary system pages (gamemodes, easter eggs) and the gallery that Emotes
-// needs. The first entry is the default when the type changes.
+// Where a page lives, kept apart from how it renders: others/ and tools/ hold
+// pages that render as system pages. A folder lists the types it can hold, the
+// first the default. It matches buildPageUrl (site_utils.js) and the generator.
 const PAGE_DIRECTORIES = {
     characters: { label: 'characters/ - character pages', pageTypes: ['character'] },
     systems: { label: 'systems/ - systems and guides', pageTypes: ['system'] },
@@ -496,15 +403,11 @@ function derivePageIdentity(name, pageType, directory) {
         .replace(/[^\w\s-]/g, '').replace(/[\s-]+/g, '_').replace(/^_|_$/g, '');
     if (!pageId) return null;
 
-    // Defaulting from page_type keeps every existing caller working unchanged,
-    // and gives a new type somewhere sensible to land when no folder is named.
     const dir = PAGE_DIRECTORIES[directory]
         ? directory
         : (Object.keys(PAGE_DIRECTORIES).find(d => PAGE_DIRECTORIES[d].pageTypes.includes(pageType)) || 'systems');
 
-    // Character folders are Capitalised_like_this; everything else is
-    // kebab-case. That split is historical but it is what the 22 existing
-    // character URLs look like, so it stays.
+    // Character folders are Capitalised_like_this, the rest kebab-case.
     const folder = dir === 'characters'
         ? pageId.charAt(0).toUpperCase() + pageId.slice(1)
         : pageId.replace(/_/g, '-');
@@ -514,10 +417,8 @@ function derivePageIdentity(name, pageType, directory) {
 }
 window.derivePageIdentity = derivePageIdentity;
 
-// Fills the folder list, and keeps it in step with the page type: picking
-// "Character page" should not leave the folder on tools/. Only nudges the
-// selection when the current one does not suit the type, so an explicit
-// choice of others/ for a system page survives.
+// Keeps the folder suited to the page type, and leaves an explicit choice that
+// still suits it.
 function populateDirectoryOptions() {
     const select = document.getElementById('new-page-directory');
     const typeEl = document.getElementById('new-page-type');
@@ -568,20 +469,8 @@ async function loadSitePages() {
         return;
     }
 
-    // Grouped by category rather than listed flat.
-    //
-    // Owner: "the pages are placed on a column. They mirror the data structure
-    // well, but they aren't seperated well and create a long column, so
-    // scrolling through them take quite a time." Fifty-two rows ordered by
-    // category with nothing marking where one category ends.
-    //
-    // Collapsed by default, so the tool opens as a short list of categories
-    // instead of a page of rows - and <details> rather than a JS toggle,
-    // because the browser already does this correctly including keyboard and
-    // find-in-page.
-    //
-    // The row markup inside is untouched: the move and archive buttons are
-    // bound by class below and do not care that they now sit inside a group.
+    // Grouped by category in <details>, collapsed, so the browser handles the
+    // keyboard and find-in-page. The move and archive buttons are bound by class.
     const groups = new Map();
     for (const page of data) {
         const key = page.category || 'Uncategorised';
@@ -615,8 +504,7 @@ async function loadSitePages() {
         </details>
     `).join('');
 
-    // Re-apply whatever is in the filter box, so a reload after archiving or
-    // moving does not silently drop the owner back to the full list.
+    // The filter survives a reload after an archive or a move.
     filterSitePages();
 
     container.querySelectorAll('.page-archive-btn').forEach(btn => {
@@ -630,28 +518,21 @@ async function loadSitePages() {
     });
 
     const filter = document.getElementById('pages-filter');
-    // Bound once. loadSitePages runs again after every archive and every move,
-    // and re-adding the listener each time would fire the handler once per
-    // reload that had happened since the page opened.
+    // Bound once: loadSitePages runs again after every archive and move.
     if (filter && !filter.dataset.bound) {
         filter.dataset.bound = '1';
         filter.addEventListener('input', filterSitePages);
     }
 
     cachedSitePages = data;
-    // Order matters: both of these read knownCategories(), which derives from
-    // the cache assigned on the line above.
+    // Both read knownCategories(), from the cache set on the line above.
     populateCategoryOptions();
     populatePositionOptions();
     updateCategoryNote();
 }
 
-// Filters across name, url and category at once, and OPENS a group that has a
-// match - a filter that leaves everything collapsed has told you a page exists
-// and hidden it in the same breath.
-//
-// Groups with no match are hidden entirely rather than left as empty headers,
-// which would make an empty result look like a list of categories.
+// Across name, url and category, opening a group with a match and hiding one
+// without, so an empty result does not look like a list of categories.
 function filterSitePages() {
     const filter = document.getElementById('pages-filter');
     const container = document.getElementById('pages-list');
@@ -669,28 +550,19 @@ function filterSitePages() {
         });
 
         group.hidden = matches === 0;
-        // Opened only while filtering. With the box empty the tool returns to
-        // its short, all-collapsed shape rather than staying expanded from the
-        // last search.
+        // Open only while filtering.
         group.open = needle.length > 0 && matches > 0;
     });
 }
 window.filterSitePages = filterSitePages;
 window.loadSitePages = loadSitePages;
 
-// Kept so the position dropdown and the move buttons can reason about
-// neighbours without re-querying on every keystroke.
 let cachedSitePages = [];
 
-// Order within a category is sort_order, and the site's character list is
-// meaningful rather than alphabetical - it mirrors in-game release order,
-// full characters before base-only ones. So a new page frequently belongs in
-// the middle, not at the end.
-// The category field is free text with a datalist. site_pages.category has no
-// CHECK constraint and navigation.json is keyed by the string verbatim
-// (js/pages/core/pagebuilder.js builds one sidebar group per key), so "Guides" and
-// "guides " would render as two separate groups. Existing spellings are
-// offered first, and canonicaliseCategory below adopts one on save.
+// Order within a category is sort_order, and the character list follows in-game
+// release order, so a new page often goes in the middle. The category is free
+// text with a datalist, and navigation.json is keyed by it verbatim, so
+// existing spellings are offered first.
 function knownCategories() {
     return [...new Set(cachedSitePages.map(p => p.category).filter(Boolean))].sort();
 }
@@ -702,9 +574,8 @@ function populateCategoryOptions() {
         .map(c => `<option value="${window.escapeHtml(c)}"></option>`).join('');
 }
 
-// Trims, then adopts an existing category's exact spelling if one matches
-// case-insensitively. Returns the canonical string, so a new category is only
-// ever created when the owner genuinely typed something new.
+// Trims, and adopts an existing category's spelling when it matches ignoring
+// case, so a new category is made only on purpose.
 function canonicaliseCategory(raw) {
     const trimmed = String(raw || '').trim().replace(/\s+/g, ' ');
     if (!trimmed) return '';
@@ -712,18 +583,8 @@ function canonicaliseCategory(raw) {
     return match || trimmed;
 }
 
-// Says plainly when the typed value will create a new sidebar group, so that
-// is a deliberate act rather than a typo nobody notices until the nav renders.
-// A character page's category is not a choice, and offering one produced a
-// broken site (owner, 2026-09-03: "Adding a character page require me to pick a
-// category, but if I do, it will break the formatting").
-//
-// navigation.json is keyed by category and 'Characters' is load-bearing in
-// three separate places: buildCharacterRoster reads navData["Characters"]
-// literally (js/pages/core/pagebuilder.js), buildSystemsDirectory renders every key EXCEPT
-// that one, and the sidebar colours entries only under it. So a character filed
-// under anything else vanished from the roster AND appeared as a stray category
-// in Guides & Such - which is the formatting break, in both directions at once.
+// A character page's category is always 'Characters': the roster, the systems
+// directory and the sidebar's colours all read that key by name.
 const CHARACTER_CATEGORY = 'Characters';
 
 function categoryIsForced() {
@@ -731,9 +592,7 @@ function categoryIsForced() {
     return !!typeEl && typeEl.value === 'character';
 }
 
-// Pins the field to 'Characters' for a character page and hands it back
-// otherwise. Called on every type change, so switching away restores whatever
-// the owner had typed rather than leaving 'Characters' behind on a system page.
+// Pinned for a character page; switching away restores what was typed.
 function syncCategoryToType() {
     const input = document.getElementById('new-page-category');
     if (!input) return;
@@ -753,8 +612,7 @@ function syncCategoryToType() {
     populatePositionOptions();
 }
 
-// Says plainly when the typed value will create a new sidebar group, so that
-// is a deliberate act rather than a typo nobody notices until the nav renders.
+// Says when the typed value will make a new sidebar group.
 function updateCategoryNote() {
     const note = document.getElementById('new-page-category-note');
     const input = document.getElementById('new-page-category');
@@ -773,13 +631,8 @@ function updateCategoryNote() {
         : `New category. "${value}" becomes its own section in the sidebar.`;
 }
 
-// Changing category changes which pages the new one can sit after, and
-// whether it is creating a section or joining one.
-//
-// 'input' rather than 'change': this is a text field with a datalist now, so
-// it has to react to typing as well as to picking a suggestion. Named and
-// exported rather than inlined into the DOMContentLoaded handler so the
-// binding can be re-applied to a rebuilt form.
+// 'input', not 'change': a text field with a datalist reacts to typing. Named, so
+// a rebuilt form can be wired again.
 function wireCategoryField() {
     const categoryEl = document.getElementById('new-page-category');
     if (!categoryEl) return;
@@ -800,18 +653,13 @@ function populatePositionOptions() {
     select.innerHTML = `<option value="">At the end of the category</option>`
         + siblings.map(p => `<option value="${window.escapeHtml(p.page_id)}">After: ${window.escapeHtml(p.name)}</option>`).join('');
 
-    // Preserve the choice across a re-render if it is still valid.
     if (current && siblings.some(p => p.page_id === current)) select.value = current;
 }
 
 /**
- * Works out the sort_order for a page being inserted after `afterPageId`.
- *
- * sort_order is spaced by 10 so there is normally room to slot between two
- * neighbours. When there is not - repeated insertions in the same spot
- * eventually close the gap - the whole category is renumbered back to clean
- * spacing first. Returning a fractional or duplicate value instead would
- * quietly corrupt the ordering.
+ * The sort_order for a page inserted after afterPageId. Spaced by 10; when two
+ * neighbours have no gap left, the category is renumbered first rather than
+ * given a fractional or duplicate value.
  */
 async function resolveSortOrder(category, afterPageId) {
     const siblings = cachedSitePages
@@ -839,8 +687,6 @@ async function resolveSortOrder(category, afterPageId) {
         return { sortOrder: before.sort_order + Math.floor(gap / 2), renumbered: false };
     }
 
-    // No room. Renumber the category to 0,10,20,... then insert into the
-    // freshly-created gap.
     for (let i = 0; i < siblings.length; i++) {
         const desired = i * 10;
         if (siblings[i].sort_order !== desired) {
@@ -852,9 +698,7 @@ async function resolveSortOrder(category, afterPageId) {
     return { sortOrder: idx * 10 + 5, renumbered: true };
 }
 
-// Swaps a page with its neighbour. Simpler to reason about than recomputing
-// the whole category, and it is the operation people actually want after
-// realising something is one slot out of place.
+// Swaps a page with its neighbour.
 async function movePage(pageId, direction) {
     const results = document.getElementById('pages-results');
     const page = cachedSitePages.find(p => p.page_id === pageId);
@@ -907,9 +751,8 @@ async function createSitePage() {
     const results = document.getElementById('pages-results');
     const name = document.getElementById('new-page-name').value.trim();
     const pageType = document.getElementById('new-page-type').value;
-    // Forced rather than read for a character page. The field is locked in the
-    // form, but the form is a courtesy - this is the value that reaches the
-    // database, and a character under any other category breaks the roster.
+    // Forced for a character page: the locked field is a courtesy, and this is the
+    // value the database gets.
     const category = pageType === 'character'
         ? CHARACTER_CATEGORY
         : canonicaliseCategory(document.getElementById('new-page-category').value);
@@ -919,9 +762,7 @@ async function createSitePage() {
         return;
     }
 
-    // Free text means it can be left empty, which a select could not do. An
-    // empty category would key navigation.json on "" and render a nameless
-    // sidebar group.
+    // An empty category would key navigation.json on "".
     if (!category) {
         results.innerHTML = `<span class="admin-error-text">Pick a category, or type a new one.</span>`;
         return;
@@ -938,9 +779,6 @@ async function createSitePage() {
 
     results.innerHTML = 'Creating...';
 
-    // Position matters: the character list mirrors in-game release order
-    // (full characters, then base-only), so a new page often belongs in the
-    // middle rather than at the end.
     const afterPageId = document.getElementById('new-page-position').value;
     const { sortOrder: nextOrder } = await resolveSortOrder(category, afterPageId);
 
@@ -953,9 +791,7 @@ async function createSitePage() {
         sort_order: nextOrder,
         page_type: pageType,
         edit_role: 'open',
-        // New pages are works in progress by definition - this puts the WIP
-        // badge on straight away rather than presenting an empty page as
-        // finished.
+        // A new page is a work in progress, so it gets the WIP badge.
         is_wip: true,
     }]);
 
@@ -974,11 +810,7 @@ async function createSitePage() {
 }
 window.createSitePage = createSitePage;
 
-// --- PAGE RESTRICTIONS ---
-// page_permissions gained a write path in v0.10
-// (20260808000002_page_permissions_writable.sql), and required_role stopped
-// being decorative in the same migration. Before that, the only rows that
-// existed were three seeded by a migration, and the column nothing read.
+// Page restrictions: page_permissions, whose required_role decides who may submit.
 
 const PERMISSION_ROLE_LABELS = {
     trusted_editor: 'Trusted Editor',
@@ -1035,9 +867,8 @@ async function loadPagePermissions() {
 }
 window.loadPagePermissions = loadPagePermissions;
 
-// Offers only pages that exist and are not already restricted, so the form
-// cannot create a row for a page id that was mistyped or has since been
-// renamed - a stray row would silently lock a page nobody can find.
+// Only pages that exist and are not restricted yet, so a mistyped id cannot lock
+// a page nobody can find.
 async function populatePermissionPageOptions(existing) {
     const select = document.getElementById('permission-page');
     if (!select) return;
@@ -1057,15 +888,8 @@ async function populatePermissionPageOptions(existing) {
 
     const options = Object.values(navData).flat()
         .filter(e => e.cms_config && e.cms_config.pageId && !taken.has(e.cms_config.pageId))
-        // Every page type that has an editor behind it, which is the real
-        // criterion for "can its editing be restricted". 'hub' and 'external'
-        // are excluded because there is nothing to edit: a hub is
-        // hand-authored and an external entry is a link with no page.
-        //
-        // gallery and tool were missing until 2026-08-12 - they shipped in
-        // v0.12 with their own editors, and this list was not updated, so the
-        // owner's Emotes gallery could never be locked to trusted editors.
-        // Same omission that broke the regeneration validators.
+        // Every page type with an editor behind it. A hub is hand-written and an
+        // external entry is a link.
         .filter(e => ['character', 'system', 'tierlist', 'gallery', 'tool'].includes(e.cms_config.pageType))
         .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -1121,19 +945,12 @@ async function removePagePermission(pageId) {
     await loadPagePermissions();
 }
 
-// --- FAQ ---
-// data/faq.json was a static file, so changing an answer meant a commit. The
-// runtime still fetches plain JSON (js/dashboards/home_widgets.js loadFAQ) - the
-// regeneration workflow writes it back out from site_faq.
+// The FAQ: site_faq, written out to data/faq.json by regeneration.
 
 function contentNotDeployedMessage(error, what) {
     const notDeployed = error.code === 'PGRST205' || /schema cache/i.test(error.message || '');
-    // PGRST202 is the same situation for a FUNCTION rather than a table, and it
-    // is what an RPC-backed tool gets between deploying its code and the
-    // release. It was missing here, which is why loadPersonnel carried its own
-    // inline check - the shared helper only knew about tables, so every RPC tool
-    // fell through to raw PostgREST text. The 205 sentence is unchanged on
-    // purpose: it is asserted elsewhere.
+    // The same situation for an RPC (PGRST202). The 205 sentence is asserted
+    // elsewhere, so it stays.
     if (error.code === 'PGRST202') {
         return `<p class="admin-error-text">${what} isn't available yet - the database function it needs hasn't been deployed. It arrives with the next migration.</p>`;
     }
@@ -1156,14 +973,7 @@ async function loadFaqEntries() {
         return;
     }
 
-    // The answer was previously write-once: this tool could add and delete a
-    // question but never change one, so fixing a typo meant deleting the entry
-    // and retyping it - which also moved it to the bottom, because a new row
-    // gets a new sort_order.
-    //
-    // Edited in place rather than in a modal: the paragraph splitting is the
-    // thing most likely to surprise, and seeing the answer in the same shape it
-    // was written is what makes that legible.
+    // Edited in place, so an answer is seen in the shape it was written.
     container.innerHTML = data.map(row => `
         <div class="personnel-row faq-row" data-id="${window.escapeHtml(row.id)}">
             <div class="personnel-row-main">
@@ -1191,9 +1001,7 @@ async function loadFaqEntries() {
         btn.addEventListener('click', () => deleteFaqEntry(btn.dataset.id));
     });
 
-    // hidden, not style.display: the harness toggles .hidden elsewhere in this
-    // codebase and a stylesheet that later sets display on this class would win
-    // against an inline style set the other way.
+    // hidden, not style.display, so a later display rule cannot win.
     container.querySelectorAll('.faq-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const editor = btn.closest('.faq-row').querySelector('.owner-inline-editor');
@@ -1203,9 +1011,7 @@ async function loadFaqEntries() {
 
     container.querySelectorAll('.faq-cancel-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            // Reloads rather than just hiding, so a cancelled edit cannot leave
-            // edited text sitting in a closed box waiting to confuse the next
-            // person who opens it.
+            // Reloaded, so a cancelled edit leaves no text in a closed box.
             loadFaqEntries();
         });
     });
@@ -1222,8 +1028,8 @@ async function loadFaqEntries() {
     });
 }
 
-// Same paragraph rule as addFaqEntry, and deliberately the same validation:
-// an edit that empties an answer would render a question with nothing under it.
+// The same paragraph rule and validation as addFaqEntry: an empty answer is
+// refused.
 async function saveFaqEntry(id, question, answer) {
     const results = document.getElementById('faq-results');
     const trimmed = question.trim();
@@ -1253,8 +1059,7 @@ async function addFaqEntry() {
 
     if (!question) { results.innerHTML = `<span class="admin-error-text">Enter a question.</span>`; return; }
 
-    // Blank lines separate paragraphs, matching how the renderer emits one
-    // <p> per array entry.
+    // Blank lines split paragraphs: one <p> per entry.
     const paragraphs = answer.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
     if (paragraphs.length === 0) { results.innerHTML = `<span class="admin-error-text">Enter an answer.</span>`; return; }
 
@@ -1285,11 +1090,8 @@ async function deleteFaqEntry(id) {
     await loadFaqEntries();
 }
 
-// --- ACCOUNT DELETION (ANONYMIZE) ---
-// Owner-confirmed semantics: the account and email go, past edits stay and
-// are re-attributed. See 20260808000004_anonymize_user.sql - a plain delete
-// is impossible anyway, because pending_revisions.author_id's foreign key has
-// no ON DELETE clause and blocks it.
+// Deleting an account anonymizes it: the account and email go, past edits stay,
+// re-attributed. A plain delete is blocked by pending_revisions' foreign key.
 
 async function anonymizeAccount() {
     const input = document.getElementById('delete-account-email');
@@ -1301,9 +1103,7 @@ async function anonymizeAccount() {
         return;
     }
 
-    // Deliberately spells out what survives. The failure mode to avoid is an
-    // admin expecting a full erasure and being surprised later that the
-    // contributor's edits are still on the wiki under a placeholder.
+    // Says what survives, so nobody expects a full erasure.
     const confirmed = await adminConfirm(
         `Delete the account for ${email}?\n\n` +
         `The account and email are removed permanently. Their past edits stay on the wiki, ` +
@@ -1329,52 +1129,28 @@ async function anonymizeAccount() {
 }
 window.anonymizeAccount = anonymizeAccount;
 
-// --- MEDIA GARBAGE COLLECTION ---
-//
-// This tool works by elimination: a file whose name appears nowhere in the
-// page data is unused, so it can go. Every hazard here lives in that
-// inversion. A reference query that fails, or one that quietly returns only
-// its first page, is indistinguishable from "nothing references this file" -
-// and the answer it produces is "delete the entire media library". The first
-// version of this checked neither case and reported the result in green, as a
-// success.
-//
-// So nothing is deleted except on evidence actually held:
-//
-//   * every read is error-checked, and a failed read aborts the whole run
-//   * every read is paged to exhaustion, so a server-side row cap can never
-//     be mistaken for the end of the table
-//   * the corpus is sanity-checked before it is trusted - a wiki with live
-//     pages cannot legitimately reference nothing
-//   * scanning and deleting are separate clicks, and the confirmation names
-//     the count
-//
-// The name matching itself is unchanged, and deliberately errs towards
-// keeping files: a short name occurring inside a longer one counts as
-// referenced, which wastes storage rather than losing it.
+// Media garbage collection works by elimination: a file named nowhere in the
+// page data goes. A failed or short read looks the same as "nothing uses this",
+// which would delete the library. So every read is checked and paged to the end,
+// an empty corpus is refused, and scanning and deleting are separate clicks.
+// Matching errs towards keeping: a name inside a longer one counts as used.
 
-// PostgREST caps rows per request and that cap is a server setting this repo
-// does not control, so pages are requested explicitly rather than assuming
-// one request returns a whole table.
+// PostgREST caps rows per request, a server setting, so pages are explicit.
 const GC_PAGE_SIZE = 200;
 
-// A runaway stop. If paging ever stops advancing, this ends the loop with an
-// error instead of hanging the browser or scanning against a partial read.
+// A runaway stop, so a read that stops advancing fails instead of hanging.
 const GC_MAX_ROWS = 50000;
 
-// Past this share of the library a sweep stops looking like cleanup and
-// starts looking like a broken scan. Still allowed - a first run can
-// legitimately be large - but the confirmation has to say so.
+// Past this share of the library a sweep looks like a broken scan, and the
+// confirmation says so.
 const GC_BULK_SHARE = 0.25;
 
-// What the last scan found. Held so that the click which deletes is never the
-// click which decided what to delete, and cleared the moment the bucket may
-// have changed underneath it.
+// What the last scan found, so the click that deletes is never the click that
+// decided; cleared whenever the bucket may have changed.
 let gcOrphans = null;
 
-// Ordered, because an unordered range() is not stable between requests: rows
-// can shift between pages, and a reference that slips through the gap becomes
-// a file deleted as an orphan. All three tables have an `id`.
+// Ordered: an unordered range() can shift between pages, and a reference that
+// slips through becomes a deleted file.
 async function gcFetchAllRows(table, columns) {
     const rows = [];
     for (let from = 0; from < GC_MAX_ROWS; from += GC_PAGE_SIZE) {
@@ -1409,8 +1185,7 @@ async function gcListBucket() {
     throw new Error('The media library holds more files than this tool will scan at once.');
 }
 
-// Every form a file name takes in stored JSON - some URLs are saved raw,
-// others encoded, depending on which editor wrote them.
+// Every form a name takes in stored JSON, raw or encoded.
 function gcNameVariants(name) {
     return [...new Set([
         name,
@@ -1427,17 +1202,15 @@ async function gcFindOrphans(report) {
 
     report(`${files.length} files found. Reading live, pending and history data...`);
 
-    // Cast to text server-side: these are large JSONB columns and the only
-    // thing wanted from them is a substring search.
+    // Cast to text in SQL: only a substring search is wanted.
     const [live, pending, history] = await Promise.all([
         gcFetchAllRows('page_data', 'desc_data::text, frame_data::text'),
         gcFetchAllRows('pending_revisions', 'desc_data::text, frame_data::text, delta_payload::text'),
         gcFetchAllRows('page_history', 'desc_data::text, frame_data::text'),
     ]);
 
-    // A wiki with live pages cannot reference nothing. If it reads that way
-    // the scan is wrong, not the library - and acting on it would take every
-    // file in one click.
+    // A wiki with live pages cannot reference nothing: the scan is wrong, not the
+    // library.
     if (live.length === 0) {
         throw new Error('No live page data came back. Refusing to read an empty result as an empty wiki.');
     }
@@ -1457,8 +1230,6 @@ async function gcFindOrphans(report) {
 
     report(`Checking ${files.length} files against ${chunks.length} records...`);
 
-    // Names drop out of the map as they are found, so nothing is searched for
-    // twice and a library that is entirely in use finishes early.
     const unmatched = new Map(files.map(f => [f.name, gcNameVariants(f.name)]));
     for (const chunk of chunks) {
         for (const [name, variants] of unmatched) {
@@ -1470,9 +1241,8 @@ async function gcFindOrphans(report) {
     return { files, orphans: files.filter(f => unmatched.has(f.name)) };
 }
 
-// Single point of truth for "is there anything to delete". Every path that
-// invalidates the scan calls this with null, so the delete button cannot
-// outlive the list that justified it.
+// The one place that says whether there is anything to delete, so the button
+// cannot outlive its list.
 function gcSetOrphans(orphans, bucketSize) {
     gcOrphans = (orphans && orphans.length) ? { files: orphans, bucketSize } : null;
 
@@ -1489,7 +1259,6 @@ async function runGarbageCollector() {
     const btn = document.getElementById('btn-run-gc');
     const results = document.getElementById('gc-results');
 
-    // Any earlier finding is void the moment a new scan starts.
     gcSetOrphans(null);
 
     btn.textContent = 'SCANNING...';
@@ -1524,8 +1293,7 @@ async function purgeOrphanedMedia() {
     const purgeBtn = document.getElementById('btn-purge-gc');
     const results = document.getElementById('gc-results');
 
-    // The scan's list is the only thing that authorises a deletion. No list,
-    // no deletion - including a list already spent on an earlier purge.
+    // No list, no deletion, including a list already spent.
     if (!gcOrphans) {
         results.innerHTML += `<span class="admin-error-text">Nothing to delete. Run a scan first.</span>`;
         return;
@@ -1551,8 +1319,8 @@ async function purgeOrphanedMedia() {
     const names = files.map(f => f.name);
     const { data, error } = await window.supabaseClient.storage.from('wiki-media').remove(names);
 
-    // Spent either way: after a partial delete the list no longer describes
-    // the library, so the next delete has to be earned by a fresh scan.
+    // Spent either way: after a partial delete the list no longer describes the
+    // library.
     gcSetOrphans(null);
     purgeBtn.disabled = false;
 
@@ -1561,8 +1329,7 @@ async function purgeOrphanedMedia() {
         return;
     }
 
-    // remove() reports what it actually removed, which is not always
-    // everything it was handed.
+    // remove() reports what it removed, not always all it was given.
     const removed = Array.isArray(data) ? data.length : names.length;
     results.innerHTML += removed < names.length
         ? `<span class="admin-error-text">Deleted ${removed} of ${names.length} files. Scan again to see what is left.</span>`

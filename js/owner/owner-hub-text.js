@@ -1,34 +1,21 @@
 /**
- * Dogslamloop Wiki - Owner Tools: Dashboard Text
- *
- * Plain fields for the prose on the three hub dashboards. Pick a dashboard,
- * pick a section, type, save.
- *
- * Hub text was originally routed through edit.html. That was wrong: the
- * editor is built around character and system pages, so it showed a generic
- * "Editing Section" title, leftover matchups/counterplay tab containers, and a
- * system-page preview that could never show the roster grid and widgets a
- * dashboard's text is actually read against.
- *
- * The first replacement over-corrected into an iframe preview of the real
- * dashboard. That was removed: the owner had raised the preview to explain why
- * the editor was the wrong tool, not to ask for one. A form is the whole ask.
- *
- * Storage is unchanged: page_data rows keyed by hub id, tabs used as named
- * slots. Admins write live data directly (the "Admin Write Live Data" policy
- * on page_data) rather than going through the review queue - hub copy is site
- * chrome, and an admin reviewing their own one-line edit is ceremony.
+ * Dashboard Text: plain fields for the prose on the three hub dashboards. Pick a
+ * dashboard, pick a section, type, save.
+ * @since v0.11
+ * @touches page_data (one row per hub id, its tabs used as named slots)
+ * @watch it writes live data directly, under "Admin Write Live Data", with no
+ *   review: hub copy is site chrome
+ * @see docs/owner-tools.md
  */
 
-// Declared here rather than read from the row, so a slot can be filled before
-// it exists in the database.
+// Declared here, so a slot can be filled before its row exists.
 const HUB_SLOTS = {
     'main-hub': { slots: [{ id: 'about', label: 'About Us' }] },
     'character-hub': { slots: [{ id: 'intro', label: 'Roster Overview' }] },
     'systems-hub': { slots: [{ id: 'intro', label: 'Introduction' }] },
 };
 
-let hubRows = {};        // pageId -> desc_data
+let hubRows = {};
 
 function hubTextEls() {
     return {
@@ -39,7 +26,6 @@ function hubTextEls() {
     };
 }
 
-/** Blank-line separated paragraphs, matching the FAQ card's convention. */
 function textToBlocks(text) {
     return String(text || '')
         .split(/\n\s*\n/)
@@ -74,11 +60,7 @@ async function loadHubText() {
         hubRows[pageId] = (data && data.desc_data) || { tabs: [] };
     }
 
-    // Re-checked after the await for the same reason as loadPageMeta: the guard
-    // above passed before the query, and owner.html's RBAC gate replaces the
-    // page wholesale on a denied load. renderSlotOptions and fillSlotText both
-    // re-query the DOM and both read `.value` unguarded, so one check here
-    // covers the whole chain.
+    // Checked again after the await: the gate replaces the page on a refused load.
     if (!document.getElementById('hub-text-select')) return;
 
     results.innerHTML = '';
@@ -116,9 +98,8 @@ async function saveHubText() {
         tab = { tabId: slotId, tabLabel: currentSlot().label, sections: [] };
         desc.tabs.push(tab);
     }
-    // One section per slot: a hub slot is a single region, and preserving an
-    // arbitrary number of sections here would give the owner a structure they
-    // have no way to see or control from this form.
+    // One section per slot: a slot is one region, and more would be structure the
+    // form cannot show.
     tab.sections = [{
         sectionTitle: currentSlot().label,
         layout: 'full',

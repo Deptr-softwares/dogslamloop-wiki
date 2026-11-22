@@ -1,28 +1,18 @@
 /**
- * Dogslamloop Wiki - Post Editor (blog + hotfix notes)
- *
- * Admin-only authoring for the site_posts table. Reuses the wiki's own block
- * builder (js/editor/blocks/editor-blocks.js) rather than introducing a second content
- * format, so posts support the same paragraphs, headings, images, callouts,
- * tables and [color=]/[b]/[url=] shortcodes as page content.
- *
- * Deliberately does NOT load js/editor/core/editor-core.js. That file's DOMContentLoaded
- * handler boots the full page-revision editor and throws outright without a
- * ?page= parameter and an #editor-title element. Its two genuinely shared
- * helpers (editorAlert, customConfirm) are small enough to provide locally,
- * which is a much smaller surface than adopting the whole revision pipeline.
- *
- * Writes straight to site_posts - no revision queue. Posts are the owner's
- * own writing, not a contributor submission, and the table's RLS is
- * admin-only to match.
+ * The Post editor (post-editor.html): the blog and hotfix notes, written with the
+ * wiki's own Block editor and saved straight to site_posts, with no review.
+ * @since v0.10
+ * @touches site_posts, user_roles, initStrategyBlockBuilder and currentStrategyBlocks
+ *   (editor-blocks.js), showAccessDenied (site_utils.js)
+ * @watch it does not load editor-core.js, whose start-up boots the page editor and
+ *   throws without ?page=. Owner only, as site_posts' write policy (is_owner()).
+ * @see docs/owner-tools.md
  */
 
 window.currentEditingPostId = null;
 
-// editor-blocks.js reads/writes `currentStrategyBlocks`, a top-level `let` in
-// a classic script. It lives in the global lexical scope rather than on
-// window, so it is referenced by bare name here - the same way
-// js/editor/tabs/editor-tabs.js and js/editor/core/editor-sync.js do it.
+// currentStrategyBlocks is a top-level let in a classic script, in the global
+// lexical scope, not on window, so it is named bare.
 function readBlocks() {
     try {
         return typeof currentStrategyBlocks !== 'undefined' ? currentStrategyBlocks : [];
@@ -31,9 +21,8 @@ function readBlocks() {
     }
 }
 
-// URL-safe, stable, and predictable from the title so the owner rarely has to
-// think about it - but still editable, because changing a published post's
-// title should not silently break its existing links.
+// From the title, and still editable: a published post's link must not change
+// with its title.
 window.slugify = function(text) {
     return String(text || '')
         .toLowerCase()
@@ -107,9 +96,8 @@ window.loadPostAdminList = async function() {
         </div>
     `).join('');
 
-    // Bound here rather than written into an inline onclick: escaping a value
-    // inside a JS string inside an attribute protects nothing, because the
-    // browser decodes it back before the handler runs.
+    // A listener, not an inline onclick: escaping inside a JS string inside an
+    // attribute protects nothing.
     container.querySelectorAll('.post-admin-row').forEach((row, i) => {
         const id = data[i].id;
         row.querySelector('[data-post-action="edit"]').addEventListener('click', () => window.editPost(id));
@@ -160,8 +148,7 @@ async function savePost(status) {
         updated_at: new Date().toISOString(),
     };
 
-    // Set on first publish only, so re-editing a published post does not keep
-    // moving it to the top of the list.
+    // Set on first publish only, so an edit does not move a post to the top.
     if (status === 'published') {
         const existing = window.currentEditingPostId
             ? await window.supabaseClient.from('site_posts').select('published_at').eq('id', window.currentEditingPostId).single()
@@ -180,8 +167,7 @@ async function savePost(status) {
     const { error } = await query;
 
     if (error) {
-        // The slug unique constraint is the one a person will actually hit,
-        // so name it rather than showing a raw Postgres error.
+        // The slug's unique constraint is the one a person hits, so it is named.
         const message = /duplicate key|unique/i.test(error.message || '')
             ? `A post with the URL slug "${slug}" already exists. Pick a different one.`
             : error.message;
@@ -211,10 +197,7 @@ window.deletePost = async function(id) {
     await window.loadPostAdminList();
 };
 
-// --- RBAC GATE ---
-// Admin only, matching site_posts' write policy. Same retry-before-denying
-// shape as js/overseer/admin-core.js and js/owner/owner.js: a single dropped request should
-// not permanently lock a legitimate admin out.
+// One dropped request must not refuse the owner: retry once before the gate decides.
 document.addEventListener('DOMContentLoaded', async () => {
     if (!window.supabaseClient) return;
 
@@ -234,16 +217,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const roles = (roleData && roleData.length > 0) ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
-    // Owner only. Authoring site-wide posts is not on the list of what an admin
-    // may do (owner, 2026-08-27), and this mirrors "Admins can write posts" on
-    // site_posts, which became is_owner() in 20260827000003.
+    // Owner only, as site_posts' write policy.
     if (error || !window.rolesMeet(roles, 'owner')) { window.showAccessDenied(); return; }
 
     window.currentGlobalUsername = window.getDisplayName ? window.getDisplayName(session) : 'Staff';
 
-    // Auto-fill the slug from the title until the owner edits it by hand -
-    // after that, leave it alone so a title tweak cannot silently change a
-    // published post's URL.
+    // The slug follows the title until edited by hand.
     const titleInput = document.getElementById('post-title');
     const slugInput = document.getElementById('post-slug');
     let slugTouched = false;
@@ -252,8 +231,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!slugTouched && !window.currentEditingPostId) slugInput.value = window.slugify(titleInput.value);
     });
 
-    // The preview shows the title/summary too, so it has to refresh as those
-    // are typed, not only on block changes.
     ['post-title', 'post-summary'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
@@ -265,8 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await window.loadPostAdminList();
 });
 
-// Same bfcache guard as admin.html/owner.html: a back-forward restore skips
-// DOMContentLoaded entirely, so the gate above would never re-run.
+// A page restored from the back-forward cache skips the gate, so it reloads.
 window.addEventListener('pageshow', (event) => {
     if (event.persisted) location.reload();
 });

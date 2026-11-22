@@ -1,17 +1,11 @@
 /**
- * Dogslamloop Wiki - Owner Tools: group navigation.
- *
- * owner.html grew from two tools to ten in one uninterrupted scroll, with no
- * way to find anything and no reason to expect that to stop. The tools are now
- * in four groups - People, Pages, Content, Danger Zone - and this switches
- * between them.
- *
- * Deliberately not a router: no hash, no history entries. Switching groups is
- * not navigation, and putting it in the back button would mean the browser's
- * Back leaves a half-filled form on a page whose whole job is filling in forms.
- *
- * The choice is remembered, because the alternative is landing on People every
- * time you come back to fix one more FAQ answer.
+ * Switches owner.html between its four tool groups: People, Pages, Content and
+ * Danger Zone. Remembered on this device.
+ * @since v0.11
+ * @touches localStorage dsl_owner_group
+ * @watch not a router: no hash and no history, since Back would leave a
+ *   half-filled form
+ * @see docs/owner-tools.md
  */
 
 const OWNER_GROUP_KEY = 'dsl_owner_group';
@@ -21,8 +15,7 @@ function showOwnerGroup(name) {
     const buttons = document.querySelectorAll('.owner-nav-btn');
     if (groups.length === 0) return;
 
-    // An unknown name (a stale value in storage after a group is renamed)
-    // falls back to the first group rather than hiding everything.
+    // An unknown name, such as a renamed group's, falls back to the first.
     const known = [...groups].some(g => g.dataset.group === name);
     const target = known ? name : groups[0].dataset.group;
 

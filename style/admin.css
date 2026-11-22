@@ -9,7 +9,7 @@
    pages, so an owner-only rule is scoped to .owner-tool-area. A class that sets
    display restates [hidden]. Inside the 900px block a rule is prefixed with body
    where its base rule comes later in this file, so specificity decides, not order.
-   See: docs/overseer.md */
+   See: docs/overseer.md, docs/owner-tools.md */
 
 /* The revision's tab strip: the same top strip as the page it will become. Its
    own class, since .character-nav is scoped to .character-header in Layout.css. */

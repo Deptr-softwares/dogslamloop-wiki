@@ -37,7 +37,7 @@ const BUDGET = {
     'forum.html': { js: 230, css: 60 },
     'history.html': { js: 232, css: 52 },
     'index.html': { js: 201, css: 53 },
-    'owner.html': { js: 219, css: 84 },
+    'owner.html': { js: 206, css: 84 },
     'post-editor.html': { js: 233, css: 84 },
     'privacy-policy.html': { js: 143, css: 50 },
     'recent-changes.html': { js: 145, css: 46 },

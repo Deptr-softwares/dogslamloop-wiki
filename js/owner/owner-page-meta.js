@@ -1,33 +1,22 @@
 /**
- * Dogslamloop Wiki - Owner Tools: Page Details.
- *
- * The flags and labels that drive how a page is presented rather than what it
- * says: the WIP and EA badges in the sidebar, the roster filters, and a
- * character's archetype and release date. (A tier field was here until v1.0
- * Part 3, when the owner had the column dropped: it was "TBD" on every
- * character.)
- *
- * All of them are site_pages columns, and until now the only way to change one
- * was a SQL edit. They surface through data/navigation.json, so - like every
- * other registry change - they reach the site on the next regeneration run
- * rather than immediately.
- *
- * Which fields apply depends on the page type. archetype and release_date
- * are emitted only for characters (scripts/fetch-registry.js
- * omits them for everything else, deliberately, so the JSON does not grow
- * columns that mean nothing), so the form hides them for a system page rather
- * than offering an edit that would be silently dropped.
+ * Page Details: the flags and labels that decide how a page is presented (the
+ * WIP, EA and Hidden badges, the roster filters, a character's archetype, release
+ * date and colour) and which optional tabs a character has.
+ * @since v0.11
+ * @touches site_pages (to navigation.json at the next regeneration),
+ *   page_data.tab_settings, the optional tabs in character_tabs.js,
+ *   parseCharacterColor (site_meta.js)
+ * @watch archetype and release_date are emitted only for characters
+ *   (fetch-registry.js), so the form hides them for other pages. A colour is
+ *   stored in a form the site reads: hex or hsl().
+ * @see docs/owner-tools.md
  */
 
-// Column -> label. Shown for every page type; these are all meaningful on a
-// system page too, even where the roster filters only read them for
-// characters.
+// Shown for every page type.
 const PAGE_FLAGS = [
     { column: 'is_wip', label: 'Work in progress' },
-    // Private-server-only (v0.16 feature 3). Separate from is_wip on purpose:
-    // work-in-progress is about whether a page is FINISHED, hidden is about
-    // where the character can be PLAYED, and a page can be either without being
-    // the other.
+    // Apart from is_wip: WIP is whether a page is finished, Hidden is where the
+    // character can be played.
     { column: 'is_hidden', label: 'Hidden (private server only)' },
     { column: 'is_ea', label: 'Early access' },
     { column: 'is_base_only', label: 'Base-only character' },
@@ -37,9 +26,8 @@ const PAGE_FLAGS = [
 
 let pageMetaRows = [];
 
-// page_id -> tab_settings, read from page_data rather than site_pages. Kept
-// separate because the two tables are saved separately: site_pages reaches the
-// site at the next regeneration, page_data on the next page load.
+// From page_data, which is saved apart from site_pages and reaches the site on
+// the next load, not the next regeneration.
 let pageMetaTabSettings = {};
 
 async function loadPageMeta() {
@@ -55,11 +43,8 @@ async function loadPageMeta() {
 
     if (error) { results.innerHTML = contentNotDeployedMessage(error, 'Page details'); return; }
 
-    // Not awaited alongside the query above: a page with no page_data row yet
-    // is normal (a page created here has one only once somebody edits it), and
-    // the whole card must still work when this table is unreachable - the
-    // migration adding tab_settings lands with a release, so between merging
-    // this and that release the column genuinely does not exist.
+    // Not awaited with the query above: a page may have no page_data row yet, and
+    // the card must work without this table.
     pageMetaTabSettings = {};
     try {
         const { data: tabRows, error: tabErr } = await window.supabaseClient
@@ -73,19 +58,14 @@ async function loadPageMeta() {
 
     pageMetaRows = data || [];
 
-    // The guard at the top of this function passed BEFORE the await, and
-    // owner.html's RBAC gate replaces the page wholesale when it denies access
-    // - which it does on any logged-out load, while this query is still in
-    // flight. `select` above stays usable because it was captured first: it is
-    // simply detached, so writing to it succeeds and nothing looks wrong. It is
-    // renderPageMetaFields' fresh lookup below that returns null and throws.
-    // Re-check once here rather than guarding every helper underneath.
+    // Checked again after the await: the gate replaces the page on a refused load,
+    // and a helper below would throw.
     if (!document.getElementById('page-meta-select')) return;
 
     results.innerHTML = '';
 
-    // Archived and draft pages are included on purpose: their details are
-    // exactly what you would want to fix before bringing one back.
+    // Archived and draft pages too: their details are what you fix before bringing
+    // one back.
     select.innerHTML = pageMetaRows.map(row => `
         <option value="${window.escapeHtml(row.page_id)}">${window.escapeHtml(row.name)}${row.status !== 'live' ? ` (${window.escapeHtml(row.status)})` : ''}</option>
     `).join('');
@@ -95,41 +75,24 @@ async function loadPageMeta() {
 
 function currentPageMetaRow() {
     const select = document.getElementById('page-meta-select');
-    // Null when the page has been replaced under us. Returning null rather than
-    // throwing costs nothing here - every caller already handles "no row
-    // selected", which is the same situation from their point of view.
     if (!select) return null;
     return pageMetaRows.find(r => r.page_id === select.value) || null;
 }
 
-// The browser's own colour parser, borrowed. Returns false for anything it
-// cannot render, which is exactly the question being asked - and unlike a regex
-// it already knows about hsl(), rgb(), #rgb, #rrggbbaa and every named colour.
+// The browser's own colour parser: it knows every form the renderer does.
 function isValidCssColor(value) {
     if (typeof CSS !== 'undefined' && CSS.supports) return CSS.supports('color', value);
 
-    // Fallback for a browser without CSS.supports: let the style system reject
-    // it. Assigning an invalid value to a style property leaves it unchanged,
-    // so a non-empty result means it parsed.
+    // Without CSS.supports, the style system rejects an invalid value.
     const probe = document.createElement('span');
     probe.style.color = '';
     probe.style.color = value;
     return probe.style.color !== '';
 }
 
-// THE COLOUR AS THE SITE CAN READ IT (owner's card, v1.2).
-//
-// This box takes anything the browser understands, and the site reads two
-// forms: hsl(n, n%, n%) and hex (parseCharacterColor, js/utility/site_meta.js). So
-// `red`, `rgb(...)` or `hsl(0 100% 50%)` saved fine here and themed nothing,
-// and a named colour then failed the regeneration job's colour check that
-// night. Owner, 2026-11-17: convert it on save.
-//
-// One of the two forms is kept exactly as typed. Anything else is painted to
-// one pixel and read back, which is the browser's answer for every form it
-// knows (named, rgb(), the space-separated hsl(), oklch()), and that pixel is
-// stored as hsl(). Returns null for a colour with transparency: a page colour
-// has no alpha to keep, and dropping it would store a colour nobody picked.
+// The site reads two forms, hex and hsl(n, n%, n%) (parseCharacterColor). One of
+// them is kept as typed; anything else is painted to one pixel, read back and
+// stored as hsl(). A colour with transparency returns null: nobody picked it.
 const SITE_COLOR_FORMS = /^(#([0-9a-f]{3}|[0-9a-f]{6})|hsl\(\d+,\s*[\d.]+%,\s*[\d.]+%\))$/i;
 
 function toSiteColor(value) {
@@ -148,8 +111,6 @@ function toSiteColor(value) {
     return `hsl(${Math.round(parts.h)}, ${Math.round(parts.s)}%, ${Math.round(parts.l)}%)`;
 }
 
-// A swatch beside the field, because a hex string is not a colour to a person
-// and the whole point of this feature is picking one that looks right.
 function syncColorPreview() {
     const input = document.getElementById('page-meta-color');
     const swatch = document.getElementById('page-meta-color-swatch');
@@ -163,9 +124,8 @@ function syncColorPreview() {
     swatch.classList.toggle('page-meta-color-swatch-empty', !valid);
     swatch.title = value === '' ? 'No colour set' : (valid ? value : `${value} is not a colour`);
 
-    // The native picker only speaks #rrggbb, so it follows the text field when
-    // it can and is simply left alone when it cannot - an hsl() value stays
-    // readable in the text field rather than being silently rewritten to hex.
+    // The native picker speaks only #rrggbb, so it follows the text when it can, and
+    // an hsl() value stays as typed.
     if (picker && valid && /^#[0-9a-f]{6}$/i.test(value)) picker.value = value;
 }
 window.syncColorPreview = syncColorPreview;
@@ -195,10 +155,8 @@ function renderPageMetaFields() {
     renderPageMetaTabs(row, isCharacter);
 }
 
-// One checkbox per OPTIONAL tab in the vocabulary, read from
-// js/utility/character_tabs.js rather than naming Techs. A second optional tab is then
-// a registry entry and nothing else - which is the whole reason the flag is a
-// jsonb object keyed by tab id instead of a techs_enabled column.
+// One checkbox per optional tab in the vocabulary, so a second optional tab is a
+// registry entry and nothing more.
 function renderPageMetaTabs(row, isCharacter) {
     const block = document.getElementById('page-meta-tabs-block');
     const host = document.getElementById('page-meta-tabs');
@@ -206,8 +164,6 @@ function renderPageMetaTabs(row, isCharacter) {
 
     const optional = window.getOptionalCharacterTabs ? window.getOptionalCharacterTabs() : [];
 
-    // Character pages only: the tab vocabulary is a character's, so offering
-    // it on a system page would be an edit that means nothing.
     block.hidden = !isCharacter || optional.length === 0;
     if (block.hidden) { host.innerHTML = ''; return; }
 
@@ -227,35 +183,24 @@ async function savePageMeta() {
     if (!row) { results.innerHTML = '<p class="admin-error-text">Pick a page first.</p>'; return; }
 
     const payload = { updated_at: new Date().toISOString() };
-    // What was typed, when the colour was stored in another form (toSiteColor).
     let convertedFrom = null;
     document.querySelectorAll('.page-meta-checkbox').forEach(box => {
         payload[box.dataset.column] = box.checked;
     });
 
     if (row.page_type === 'character') {
-        // Empty string -> NULL, not "". fetch-registry omits a field when it is
-        // falsy, so both work today - but a row of empty strings reads as data
-        // that exists and is blank, rather than data that was never set.
+        // Empty is NULL, not "": never set, not set to blank.
         const value = (id) => document.getElementById(id).value.trim() || null;
         payload.archetype = value('page-meta-archetype');
         payload.release_date = value('page-meta-release');
 
-        // Checked with the browser's own parser rather than a regex. The
-        // existing dictionary is hsl(), the picker writes #rrggbb, and somebody
-        // will eventually type `rebeccapurple` - CSS.supports understands every
-        // form the renderer does, and a regex would reject a valid colour the
-        // first time it met one it had not thought of.
-        //
-        // Refused rather than written, because a colour the browser cannot
-        // parse reaches ten consumers and renders as nothing on all of them.
+        // Refused rather than written: a colour the browser cannot parse renders as
+        // nothing everywhere it is read.
         const typed = value('page-meta-color');
         if (typed && !isValidCssColor(typed)) {
             results.innerHTML = `<span class="admin-error-text">${window.escapeHtml(typed)} is not a colour the browser understands. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
             return;
         }
-        // Stored in a form the site reads (see toSiteColor), and the box shows
-        // what was stored.
         const color = typed ? toSiteColor(typed) : null;
         if (typed && !color) {
             results.innerHTML = `<span class="admin-error-text">${window.escapeHtml(typed)} is see-through, and a page colour cannot be. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
@@ -273,10 +218,8 @@ async function savePageMeta() {
     const { error } = await window.supabaseClient
         .from('site_pages').update(payload).eq('page_id', row.page_id);
 
-    // Optional tabs go to a different table, so they are a second write. Done
-    // after the first succeeds rather than in parallel: if site_pages fails
-    // there is nothing to report about tabs, and two independent failures in
-    // one message is not something anyone can act on.
+    // A second write to another table, after the first succeeds, so one failure is
+    // reported at a time.
     let tabError = null;
     if (!error) tabError = await savePageMetaTabs(row);
 
@@ -302,16 +245,9 @@ async function savePageMeta() {
 }
 
 /**
- * Writes the optional-tab flags into page_data.tab_settings.
- *
- * Merged into whatever is already there rather than replacing it, so a tab id
- * this build does not know about - one added by a newer deploy while this tab
- * was open - is not silently dropped by an older client.
- *
- * upsert with the page_id, because a character nobody has edited yet has no
- * page_data row at all. desc_data and frame_data are left out of the payload
- * on purpose: PostgREST's ON CONFLICT DO UPDATE only writes the columns it is
- * given, so this cannot clobber a page's content.
+ * Writes the optional-tab flags into page_data.tab_settings, merged with what is
+ * there, so a tab id from a newer deploy survives. An upsert that names only
+ * page_id and tab_settings, so it cannot touch a page's content.
  */
 async function savePageMetaTabs(row) {
     const boxes = Array.from(document.querySelectorAll('.page-meta-tab-checkbox'));
@@ -319,14 +255,8 @@ async function savePageMetaTabs(row) {
 
     const stored = pageMetaTabSettings[row.page_id] || {};
 
-    // Nothing to do unless a box actually MOVED. Writing on every SAVE DETAILS
-    // click would touch page_data as a side effect of saving site_pages fields
-    // that have nothing to do with tabs - and for a page with no page_data row
-    // yet, the upsert would CREATE one with desc_data and frame_data NULL.
-    // That is exactly the shape that made the Main Dashboard unsaveable
-    // (20260818000001): a row NULL in either column could not be updated by
-    // anything until the trigger was fixed. Saving a page's archetype should
-    // not quietly manufacture one.
+    // Only when a box moved: an upsert on a page with no row would make one with
+    // desc_data and frame_data NULL.
     const changed = boxes.some(box => (stored[box.dataset.tab] === true) !== box.checked);
     if (!changed) return null;
 
@@ -347,9 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     select.addEventListener('change', renderPageMetaFields);
 
-    // The swatch follows the text field, and the picker writes into it. The
-    // text field stays the value: it is the only one of the three that can hold
-    // an hsl().
+    // The text field stays the value: only it can hold hsl().
     const colorInput = document.getElementById('page-meta-color');
     if (colorInput) colorInput.addEventListener('input', syncColorPreview);
 

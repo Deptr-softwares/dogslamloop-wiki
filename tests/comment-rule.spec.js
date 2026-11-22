@@ -93,15 +93,27 @@ const TRIMMED = [
     'js/overseer/admin-media-queue.js',
     'js/overseer/admin-reports.js',
     'style/admin.css',
+    'js/owner/owner.js',
+    'js/owner/owner-nav.js',
+    'js/owner/owner-page-meta.js',
+    'js/owner/owner-page-experts.js',
+    'js/owner/owner-staff-perks.js',
+    'js/owner/owner-site-meta.js',
+    'js/owner/owner-hub-text.js',
+    'js/owner/owner-hub-lists.js',
+    'js/owner/owner-tier-lists.js',
+    'js/owner/owner-media-report.js',
+    'js/owner/post-editor.js',
 ];
 
-// What a comment never holds. A PR number is #NNN on its own, never a colour.
+// What a comment never holds. A PR number is #NNN on its own, never a colour,
+// and "(owner" is the owner's words, never a file name like "(owner.js)".
 const BANNED = [
     [/\b20\d\d-\d\d-\d\d\b/, 'a date'],
     [/(?:^|[\s(,])#\d{2,3}(?=[\s),.;:]|$)/m, 'a PR number'],
     [/\b(?:batch|item) \d/i, 'a batch or item number'],
     [/\bv\d+\.\d+\s+(?:[A-Z]{1,2}\d+|Part \d)\b/, 'a roadmap item'],
-    [/\(owner\b|\bowner, \d|\bowner's (?:call|words|list|pick|request|wording)\b/i, "the owner's words"],
+    [/\(owner\b(?!\.[a-z])|\bowner, \d|\bowner's (?:call|words|list|pick|request|wording)\b/i, "the owner's words"],
 ];
 
 // Every comment in a file, with the line it starts on.

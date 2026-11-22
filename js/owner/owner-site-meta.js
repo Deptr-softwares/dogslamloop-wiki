@@ -1,28 +1,18 @@
 /**
- * Dogslamloop Wiki - Owner Tools: Site Metadata & Game Info
- *
- * Split from owner.js rather than appended to it, matching the admin-*.js and
- * editor-*.js precedent: owner.js was already 900 lines of unrelated tools.
- * Depends on owner.js for contentNotDeployedMessage, which is
- * the same direction the other owner tools already lean.
- *
- * site_meta is a singleton row holding three kinds of thing that reach the
- * site by three different routes:
- *
- *   version / tagline  -> data/site_meta.json, read at runtime by site_meta.js
- *   hub headings       -> data/site_meta.json, read at runtime by hub_content.js
- *   hub title / desc   -> data/site_meta.json, then baked into each hub page's
- *                         <head> by scripts/generate-hub-meta.js
- *
- * Only the last needs a regeneration run before it shows up, because Discord,
- * Twitter and Facebook unfurlers do not execute JavaScript and so cannot be
- * served a runtime-injected tag. owner.html's hint text tells the owner that;
- * this comment records why it is true.
+ * Site Metadata and Game Info: the version and tagline, each hub dashboard's
+ * title, description and headings, and the Game Info panel, all on the site_meta
+ * row.
+ * @since v0.11
+ * @touches site_meta (to data/site_meta.json), contentNotDeployedMessage (owner.js),
+ *   scripts/generate-hub-meta.js
+ * @watch a hub's title and description reach the page only after a regeneration
+ *   run: they are baked into its <head>, since link unfurlers run no JavaScript.
+ *   The rest is read at runtime.
+ * @see docs/owner-tools.md
  */
 
-// Held between load and save because the dashboard selector switches three
-// sets of fields against one database row - saving has to send the other two
-// hubs back unchanged rather than blanking them.
+// Held between load and save: one row holds all three hubs, so saving sends the
+// other two back unchanged.
 let siteMetaRow = null;
 
 async function loadSiteMeta() {
@@ -32,8 +22,7 @@ async function loadSiteMeta() {
     const { data, error } = await window.supabaseClient
         .from('site_meta').select('*').limit(1).maybeSingle();
 
-    // owner.js may have replaced the page with ACCESS DENIED while this was
-    // reading. The fields are gone then, and there is nothing to fill.
+    // Gone if owner.js sent the visitor to ACCESS DENIED during the read.
     if (!results.isConnected) return;
     if (error) { results.innerHTML = contentNotDeployedMessage(error, 'Site metadata'); return; }
     if (!data) { results.innerHTML = '<p class="admin-error-text">No site_meta row exists yet.</p>'; return; }
@@ -69,9 +58,7 @@ function renderHubMetaFields() {
         return;
     }
 
-    // The key is shown but deliberately not editable: it has to match a
-    // data-heading-key in the page markup, so a typo here would silently stop
-    // a heading applying with nothing on screen to explain why.
+    // The key is shown, not editable: it must match a data-heading-key in the page.
     container.innerHTML = keys.map(key => `
         <div class="personnel-row">
             <div class="personnel-row-main">
@@ -162,8 +149,7 @@ function renderGameInfoAdmin() {
         </div>
     `).join('') || '<p class="loading-msg">No links yet.</p>';
 
-    // Re-read the inputs before splicing, so edits typed into other rows are
-    // not thrown away by deleting one.
+    // Reads the inputs first, so deleting one row keeps text typed into the others.
     document.querySelectorAll('.gi-field-delete').forEach(btn => {
         btn.addEventListener('click', () => {
             const next = collectGameInfo();
@@ -182,7 +168,6 @@ function renderGameInfoAdmin() {
     });
 }
 
-/** Reads the form back into the stored shape. */
 function collectGameInfo() {
     const info = gameInfo();
 
@@ -235,10 +220,7 @@ async function saveGameInfo() {
 
     const info = collectGameInfo();
 
-    // Validated here as well as at render time. hub_content.js already refuses
-    // any non-http scheme when painting the panel, so a bad URL cannot become
-    // an executable href - but silently rewriting it to "#" would look like
-    // the save had worked, which is worse than refusing it outright.
+    // Refused rather than rewritten to "#": a quiet rewrite looks like the save worked.
     const badLink = info.links.find(l => l.url && !/^https?:\/\//i.test(l.url));
     if (badLink) {
         results.innerHTML = `<p class="admin-error-text">"${window.escapeHtml(badLink.name || badLink.url)}" must start with http:// or https://.</p>`;
@@ -265,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const select = document.getElementById('meta-hub-select');
     if (!select) return;   // not on owner.html
 
-    // Switching dashboards must not lose edits typed into the current one.
+    // Switching dashboards keeps the edits typed into this one.
     select.addEventListener('change', () => {
         if (!siteMetaRow) { renderHubMetaFields(); return; }
 
