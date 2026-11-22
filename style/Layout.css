@@ -1,8 +1,15 @@
-/* =========================================
-   DESIGN SYSTEM: PAGE LAYOUTS (Layout.css)
-   ========================================= */
+/* Page layout: the scaffolding and both sidebars, dashboard widgets, headers and
+   grids, scroll boxes, profiles, tier lists, footers, Blocks (media, tables,
+   accordions, Section Boxes, combos and their notation, the video player and
+   clips), the phone's drawers and bottom bar, gallery and tool pages, the combo
+   table and Combo Card, search, and the matchup grid.
+   Since v0.4.
+   Watch: this sheet loads before Buttons.css on some page kinds and after it on
+   others, so a single-class rule that ties with a .btn-* rule wins by file order:
+   qualify it (.btn-sys.x) instead.
+   See: docs/looks.md */
 
-/* --- 1. GLOBAL SCAFFOLDING --- */
+/* Scaffolding */
 .site-layout {
     display: flex;
     justify-content: space-between;
@@ -29,18 +36,15 @@
     .grid-layout-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-/* Two columns rather than three, for the v0.11 dashboard widgets. Stacks
-   below the same 900px breakpoint the 3-col grid uses, so the hubs and the
-   homepage change shape at the same width. */
+/* Two columns, for the dashboard widgets; stacks below 900px like the 3-column grid. */
 .grid-layout-2col { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
 @media (min-width: 900px) {
     .grid-layout-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* --- DASHBOARD WIDGETS (js/dashboards/dashboards.js) --- */
+/* Dashboard widgets (dashboards.js) */
 
-/* Reading path / contribute steps. An <ol> so the order is in the markup and
-   not just the styling - it is the point of the section. */
+/* Reading path and contribute steps: an <ol>, so the order is in the markup. */
 .reading-path { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: step; }
 .reading-step {
     counter-increment: step;
@@ -122,7 +126,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .glossary-term { color: var(--text-white); font-weight: bold; margin: 0; }
 .glossary-def { color: var(--text-muted); font-size: 0.85rem; margin: 0.15rem 0 0; }
 
-/* --- 2. SIDEBARS (Left & Right) --- */
+/* Sidebars */
 .global-sidebar-left {
     width: 240px; flex-shrink: 0; padding: 2rem 1.5rem;
     border-right: 2px solid var(--border-color); display: none;
@@ -136,13 +140,13 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     padding: 2rem 1rem; 
 }
 
-/* THE DESPAWN MECHANICS */
+/* Collapsed */
 .global-sidebar-left.collapsed .sidebar-master-title,
 .global-sidebar-left.collapsed .sidebar-title-container,
 .global-sidebar-left.collapsed .sidebar-nav-title,
 .global-sidebar-left.collapsed #global-sidebar-nav,
 .global-sidebar-left.collapsed .kofi-text { 
-    display: none !important; /* Physically rips them out of the render tree */
+    display: none !important;
 }
 
 .global-sidebar-left.collapsed .btn-manga-text { 
@@ -177,13 +181,9 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     .local-sidebar-right { display: block; } 
 }
 
-/* Sidebar Internal Layouts */
-/* Shared with .column-subgroup-title deliberately, as ONE declaration block
-   rather than two matching ones. Both label a group of pages inside a Main
-   Dashboard column - Site Info in Guides & Such, Gamemodes in Others - and
-   until 2026-08-14 they were styled apart: Finger-Paint 1.15rem here, mono
-   0.68rem there, sitting in side-by-side columns. Two rules that must agree
-   are two rules that will not. */
+/* One declaration block with .column-subgroup-title, not two matching ones: both
+   label a group of pages in a dashboard column, and two rules that must agree will
+   not. */
 .sidebar-master-title,
 .column-subgroup-title {
     font-family: var(--font-title), sans-serif;
@@ -230,20 +230,11 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 /* Collapsible category groups in the global sidebar menu (js/pages/core/pagebuilder.js
    buildGlobalSidebarMenu) */
-/* Tightened 2026-08-12. The sidebar carried five categories until the
-   sub-grouped Others column shipped and Gamemodes / Misc / Servers joined it,
-   which pushed the Ko-fi button below the fold. This buys the rows back
-   without touching font size, and the list keeps growing as others/ fills, so
-   the spacing is deliberately proportional rather than a one-off nudge. */
+/* Tight rows, so the categories leave Ko-fi above the fold as the list grows; the
+   spacing is proportional, not a one-off nudge. */
 .sidebar-group-wrapper { margin-bottom: 0.35rem; }
-/* A <button> as of v0.11 - it is operated by click, so it has to be reachable
-   by keyboard and announced as a control. That brings UA button styling with
-   it, reset here.
-
-   Scoped to the compound selector deliberately: plain .sidebar-nav-title is
-   still a <div> in several places (the "Sitewide" heading on the homepage,
-   admin.html's preview sidebar), and a reset on the bare class would restyle
-   all of them. */
+/* A <button>, so the browser's button styling is reset, on the compound selector
+   only: plain .sidebar-nav-title is still a <div> elsewhere. */
 .sidebar-nav-title.sidebar-group-header {
     cursor: pointer; display: flex; justify-content: space-between;
     align-items: center; margin-bottom: 0;
@@ -253,16 +244,8 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     border: none;
     text-align: left;
 
-    /* Was `font: inherit; color: inherit`, which is what a UA button reset
-       usually wants - but this selector is 0-2-0 and .sidebar-nav-title is
-       0-1-0, so those two lines beat the title styling they sit inside and
-       the group headers rendered in the body font and body colour. The
-       neighbouring "NAVIGATION" heading is a plain <div>, kept its styling,
-       and made the difference look intentional.
-
-       Stated explicitly instead. --accent-blue is re-pointed per character by
-       js/utility/site_meta.js, so the headers now follow the page's own accent rather
-       than a fixed blue. */
+    /* Stated, not inherited: font: inherit at 0-2-0 beat the title styling it sits in.
+       --accent-blue follows the page's own accent. */
     font-family: var(--font-title), sans-serif;
     color: var(--accent-blue);
     text-transform: inherit;
@@ -273,12 +256,9 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 
-/* Table of Contents links (js/pages/core/pagebuilder.js refreshTOC). Compound with
-   .btn-nav, which sets colour, padding and size in Buttons.css at one class
-   too: a page loading Layout.css first (the generated system pages,
-   forum.html) let .btn-nav win, so its contents were gray and its
-   sub-headings not indented (owner, 2026-10-23). A sub-heading's colour is
-   .btn-nav's own, so hover and active still reach it. */
+/* Contents links (refreshTOC), compound with .btn-nav, which sets colour, padding
+   and size at one class too: where Layout.css loads first, .btn-nav won. A
+   sub-heading's colour is .btn-nav's own, so hover and active reach it. */
 .btn-nav.toc-link-minor { padding-left: 1.5rem; font-size: 0.7rem; opacity: 0.7; }
 .btn-nav.toc-link-major { font-size: 0.75rem; color: var(--text-white); }
 .btn-nav.toc-link-major-toggle { font-size: 0.75rem; color: var(--text-white); padding-right: 2rem; }
@@ -298,31 +278,16 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 /* Auth/dock action buttons (js/pages/core/pagebuilder.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
-/* Deliberately declares NO padding and NO font-size, 2026-08-14.
-
-   Both used to be here (0.75rem / 0.85rem) and both fought .btn-sys in
-   Buttons.css (0.4rem 0.75rem / 0.7rem) at identical 0-1-0 specificity - so
-   the winner was decided by which stylesheet the page happened to load last.
-   Generated character stubs put Layout.css after Buttons.css and system stubs
-   put it before, which is why the SAME button rendered 45px tall on a
-   character page and 34px on a system page.
-
-   Leaving both out settles it: .btn-sys supplies them everywhere, the dock is
-   compact on every page type, and there is nothing left to tie. That was the
-   owner's ask - the sub-categories added enough sidebar rows to push Ko-fi
-   below the fold again, and four buttons losing 11px each buys the space back
-   without shrinking anything the reader navigates by. */
+/* No padding and no font-size here: they tied with .btn-sys at 0-1-0 and the
+   stylesheet loaded last won, so one button stood 45px tall on a character page
+   and 34px on a system page. .btn-sys supplies both everywhere. */
 .dock-action-btn {
     width: 100%; display: flex;
     align-items: center; justify-content: flex-start; gap: 0.75rem;
     white-space: nowrap; text-decoration: none;
 }
-/* The same tie, left over for layout until 2026-11-19: .btn-sys sets
-   inline-flex and centres its content at the same 0-1-0, so system, tool and
-   hub pages, which load Buttons.css after this file, centred every dock
-   button's icon and label while character pages kept them on the left (owner:
-   "Why is the alignment of the buttons in this tier list centered?"). Both
-   classes, 0-2-0, so the dock's own layout wins whatever the load order. */
+/* Both classes, 0-2-0, so the dock's own layout wins over .btn-sys's centred
+   inline-flex whatever the load order. */
 .btn-sys.dock-action-btn { display: flex; justify-content: flex-start; }
 .dock-action-icon { display: flex; align-items: center; justify-content: center; }
 .dock-action-text { overflow: hidden; text-overflow: ellipsis; }
@@ -353,9 +318,8 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     gap: 0.75rem; padding-top: 2rem;
 }
 .kofi-btn-wrapper { margin-top: 0.75rem; }
-/* Same treatment as .dock-action-btn above: sizing left to .btn-sys, so Ko-fi
-   matches the four buttons it is stacked with instead of standing 8px taller
-   in the same dock. */
+/* Sizing left to .btn-sys, as for .dock-action-btn, so Ko-fi matches the buttons it
+   is stacked with. */
 .kofi-btn-wrapper .btn-sys {
     width: 100%; display: flex;
     align-items: center; justify-content: center; gap: 0.5rem;
@@ -364,38 +328,24 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    with the sidebar's own headings below it. */
 .local-sidebar-right > .kofi-btn-wrapper { margin: 0 0 1.5rem; }
 
-/* --- 3. PAGE HEADERS & GRIDS --- */
+/* Page headers and grids */
 .home-main-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }
 .home-main-title { font-size: 2rem; margin: 0; color: var(--text-white); }
 
 .back-home-wrapper { margin-bottom: 1.5rem; }
 .character-header { margin-bottom: 2.5rem; }
-/* Scoped to .character-header, not a bare .character-nav rule: the
-   .character-nav class is also reused by js/pages/records/history.js and
-   systems/tierlist/index.html's static nav with a *different* margin
-   convention (margin-bottom, not margin-top) and one variant omits
-   align-items - a bare rule here would leak margin-top/align-items onto
-   those, since inline styles only override the specific properties they
-   set. .character-header only wraps .character-nav in the character page
-   template, so this scoping keeps the two independent. */
+/* Scoped to .character-header: history.js and the tier list page reuse
+   .character-nav with a different margin, and a bare rule would leak onto them. */
 .character-header .character-nav {
     display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem;
     padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue);
     align-items: center;
 }
 
-/* The character mode toggle (js/pages/core/character_modes.js): which kit - base, or one
-   of the ultimate states - every tab below is describing.
-
-   Deliberately NOT .btn-manga. The tab strip directly underneath is built from
-   .btn-manga-slanted, and two rows of the same button in the same corner would
-   read as one twelve-item nav where the top row happened to wrap. These are
-   flatter, smaller and yellow-accented so the hierarchy is legible at a
-   glance: pick a state, then pick a tab within it. Yellow because
-   --accent-blue is already spoken for by the tab strip's own active state.
-
-   Hidden entirely for the 22 characters that declare no modes, so nothing
-   about the existing pages moves. */
+/* The character mode toggle (character_modes.js): which kit every tab below
+   describes. Not .btn-manga, so it does not read as a second row of the tab strip:
+   flatter, smaller and yellow, since blue is the strip's active state. Hidden for a
+   character with no modes. */
 .character-mode-bar {
     display: flex; flex-wrap: wrap; gap: 0.4rem;
     margin-top: 1.25rem;
@@ -455,19 +405,14 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Grids & Galleries */
 .roster-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
 .systems-grid-container { display: flex; flex-direction: column; gap: 2.5rem; }
-/* Tightened from a uniform 1.25rem, 2026-08-14. The buttons read as scattered
-   cards at that spacing rather than as one list.
-
-   The floor is the hover state, not taste: .btn-manga-slanted:hover moves the
-   button translate(-2px, -2px) and grows its shadow to 4px, so a button paints
-   6px past its resting box on the bottom and right. Row gap 0.65rem (10.4px)
-   and column gap 0.9rem (14.4px) both clear that, with the column gap kept
-   larger because skewX(-10deg) also leans each button roughly 3px sideways. */
+/* The gaps clear the hover state, not taste: a slanted button moves 2px and grows a
+   4px shadow on hover, painting 6px past its box, and leans about 3px sideways,
+   hence the wider column gap. */
 .system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
 
 /* Systems directory grid (js/pages/core/pagebuilder.js buildSystemsDirectory) */
-/* One line under every title (owner, 2026-11-16): solid, as .section-title has
-   it. Dashed is left for the lines between rows of a list. */
+/* One solid line under every title, as .section-title has; dashed is for the lines
+   between a list's rows. */
 .system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; }
 .system-directory-btn { width: 100%; padding: 0.6rem 1rem; }
 .system-directory-btn .btn-manga-content { justify-content: center; }
@@ -478,7 +423,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .filter-group-right { margin-left: auto; }
 .filter-label { font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--accent-blue); text-transform: uppercase; }
 
-/* --- 4. SCROLL BOXES --- */
+/* Scroll boxes */
 .scroll-lg { max-height: 450px !important; }
 .scroll-sm { max-height: 220px !important; }
 
@@ -488,7 +433,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 #site-updates-dashboard { max-height: 410px !important; overflow-y: auto; overflow-x: hidden; }
 
-/* --- 5. INTERNAL SECTION LAYOUTS --- */
+/* Section layouts */
 /* Game Info Widget */
 .game-info-logo-box { display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem; }
 .game-info-title { font-family: var(--font-title), sans-serif; font-size: 1.125rem; color: var(--text-white); letter-spacing: 0.15em; text-align: center; line-height: 1.2; margin: 0; }
@@ -527,9 +472,8 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-stat-label { color: #8b949e; font-size: 0.9rem; }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
 
-/* Profile Description (v1.1, js/pages/core/description.js profileDescriptionHTML): the
-   quote, Trivia and Character Navigation, under the stats in the profile
-   card. */
+/* Profile Description (profileDescriptionHTML): the quote, Trivia and Character
+   Navigation under the stats. */
 .profile-desc[hidden], .profile-pager[hidden] { display: none; }
 .profile-quote { margin: 1rem 0 0.25rem; }
 .profile-quote blockquote { margin: 0; font-size: 0.9rem; font-style: italic; line-height: 1.55; color: var(--text-white); }
@@ -588,24 +532,15 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-pager-link:hover .profile-pager-name, .profile-pager-link:focus-visible .profile-pager-name {
     text-decoration: underline; text-underline-offset: 3px;
 }
-/* Square, always. A roster of portraits at whatever shape each source happened
-   to be is the single most visible inconsistency on the character pages, and
-   unlike skill media a portrait has one obvious subject - so cropping to a
-   fixed shape is safe as long as the crop can be aimed.
-
-   --portrait-focus is that aim: description.js sets it from
-   desc_data.profile.imageFocus, which the editor exposes as a nine-point
-   picker. Defaults to dead centre, which is right for most portraits and
-   wrong for the ones where the character's head sits high in the frame. */
+/* Portraits are square, always, with an aimable crop: --portrait-focus comes from
+   desc_data.profile.imageFocus (the editor's nine-point picker), centre by default. */
 .profile-portrait {
     width: 100%; aspect-ratio: 1 / 1;
     object-fit: cover; object-position: var(--portrait-focus, 50% 50%);
     margin-bottom: 1rem; border: 1px solid var(--border-color);
 }
-/* Had no rule at all before - an unstyled div rendering bare "[No Portrait]"
-   text. Now that the portrait next to it is a fixed square, the placeholder
-   has to hold the same space or a character without art collapses its whole
-   profile card. Same dashed-box language as .skill-media-missing. */
+/* Holds the portrait's square, or a character without art collapses its profile
+   card. The dashed-box look of .skill-media-missing. */
 .profile-portrait-missing {
     aspect-ratio: 1 / 1; width: 100%; margin-bottom: 1rem;
     display: flex; align-items: center; justify-content: center;
@@ -613,20 +548,13 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     color: var(--text-muted); font-family: var(--text-mono); font-size: 0.875rem;
 }
 
-/* Tier List Layout (js/pages/tier-lists/tierlist.js LIVE RENDERER: loadTierList/switchLiveTierTab).
-   .tier-tabs/.tier-row/.tier-label/.tier-characters/.tier-char-tooltip were
-   removed here - confirmed zero references anywhere in the codebase, dead
-   CSS from an earlier iteration of this feature that current tierlist.js
-   markup doesn't use. .tier-list-container is still live (wraps #tier-list-ui
-   in both systems/tierlist/index.html and js/pages/records/history.js's tierlist branch). */
+/* The older tier list (tierlist.js). .tier-list-container wraps #tier-list-ui on the
+   Tier List page and in History. */
 .tier-list-container { background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 6px 6px 0px var(--manga-shadow); display: flex; flex-direction: column; gap: 2px; }
 
 .tier-nav-overall-wrapper { display: flex; justify-content: center; width: 100%; margin-bottom: 1.5rem; }
-/* Compound selectors (.btn-manga.X) rather than bare classes: .btn-manga's
-   own base rule already sets padding/border-color at the same (single
-   class) specificity, so a bare .tier-nav-overall-btn rule would only win
-   by source order - fragile and, in practice, lost the tie here (confirmed
-   via a real 16px layout regression caught by the visual-regression suite). */
+/* Compound (.btn-manga.x): .btn-manga's base rule sets padding and border at the
+   same specificity, so a bare class would win only by source order. */
 .btn-manga.tier-nav-overall-btn { padding: 0.85rem 3rem; border-color: var(--accent-blue); }
 .tier-nav-overall-text { font-size: 1.2rem; }
 .tier-nav-matchup-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); }
@@ -646,39 +574,20 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .tier-changelog-empty { color: var(--text-muted); font-family: var(--text-mono); font-style: italic; }
 
 .tier-portrait { width: 60px; height: 60px; position: relative; border: 2px solid var(--border-color); box-shadow: 3px 3px 0px var(--manga-shadow, #000); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0; }
-/* touch-action: none so a touch-drag on a portrait doesn't also scroll the
-   page - the Pointer Events engine in tierlist.js's bindTierDragAndDrop
-   owns the gesture entirely once it starts. */
+/* touch-action: none, so a touch-drag on a portrait does not also scroll the page:
+   bindTierDragAndDrop owns the gesture. */
 .tier-portrait.draggable-portrait { cursor: grab; touch-action: none; }
 .tier-portrait-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
 
-/* v0.18 FT4 - a list rendered with roster ICONS rather than portraits.
-   `contain`, not `cover`, and that is the whole difference: a portrait is a
-   tall crop of a full-body render and wants cropping to a square, while a
-   roster icon is ALREADY square and drawn to its own edges, so cropping it
-   trims the art. Same treatment .roster-card-icon gets in style/Cards.css,
-   deliberately - it is the same file being drawn at a similar size, and two
-   answers to that would be visible side by side on the same site. */
+/* Icon mode: contain, not cover. A portrait is a tall crop that wants cropping to a
+   square; an icon is square already, and cropping trims the art. As
+   .roster-card-icon in Cards.css. */
 .tier-portrait-icon .tier-portrait-img { object-fit: contain; }
 
-/* Batch 3.5, owner 2026-09-09: in icon mode the box should "mimic the Boxes on
-   the Roster Selection".
-
-   THE CHARACTER COLOUR MOVES FROM THE FILL TO THE BORDER, which is the whole
-   of that treatment (owner, 2026-08-24, on the roster). An icon is drawn to sit
-   on the site's dark ground, so filling the box with the character's colour
-   fights the art instead of framing it - and on a dark-coded character it
-   leaves a dark icon on a dark square.
-
-   Every value here is copied from .roster-card.has-icon in style/Cards.css
-   rather than re-chosen: same -45deg hatching at the same 2px/8px rhythm and
-   the same 0.06 alpha, same 3px border. Two answers to "what does an icon box
-   look like" would be visible on one site, and this is the second surface to
-   ask the question.
-
-   The colour arrives as --char-color rather than as an inline background,
-   because an inline style would beat every rule here. Both portrait() renderers
-   set one or the other, never both. */
+/* In icon mode the colour moves from the fill to the border, copied from
+   .roster-card.has-icon (Cards.css): the same hatching, alpha and 3px border, so the
+   site gives one answer to what an icon box looks like. The colour arrives as
+   --char-color, since an inline background would beat every rule here. */
 .tier-portrait.tier-portrait-icon {
     border-width: 3px;
     border-color: var(--char-color, var(--border-color));
@@ -692,30 +601,15 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     );
 }
 
-/* v1.1 batch 10. The name behind the picture is the fallback for one that
-   fails to load, and an icon is fitted, not cropped: most have see-through
-   parts, and the name showed through them. Hidden once the icon has loaded,
-   which each renderer marks with .is-icon-loaded, so a missing icon still
-   names the character. */
+/* The name behind the picture is the fallback for one that fails to load. An icon
+   is fitted, and most have see-through parts, so the name hides once the icon has
+   loaded (.is-icon-loaded). */
 .tier-portrait-icon.is-icon-loaded .tier-portrait-name { visibility: hidden; }
 
-/* v0.18 batch 3.5 - the editor's draggable boxes. Owner: "as big as possible".
-   96px because the drop zone is ALREADY 96px tall (.tier-editor-row .ctl-chars
-   and .tier-editor-tray both set min-height: 96px in style/tier-editor.css), so
-   this fills the row that exists rather than inventing a number and then
-   growing the row to match.
-
-   Scoped to the editor's own containers, NOT applied to .tier-portrait. The
-   certified reader sets its own 78px and the history renderer keeps the base
-   60px; one shared size for three surfaces is what these overrides exist to
-   avoid.
-
-   The comments on the 60px assertions in tests/tier-portrait-hover.spec.js and
-   tests/tierlist-live-dedupe.spec.js said the editor kept that size because its
-   drag hit-testing was built around it. THAT IS NOT TRUE OF THE CODE: the drag
-   resolves through document.elementFromPoint plus closest('.tier-dropzone,
-   .tier-editor-tray') and reads no dimension at all. Checked before changing
-   this, because if it had been true the boxes could not have grown. */
+/* The editor's draggable boxes, as big as the 96px drop zone that holds them
+   (tier-editor.css). Scoped to the editor's containers: the reader and History
+   keep their own sizes. The drag reads no dimension (elementFromPoint), so this
+   size is free to change. */
 .tier-editor-row .ctl-chars .tier-portrait,
 .tier-editor-tray .tier-portrait {
     width: 96px;
@@ -734,21 +628,9 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .tier-portrait.tier-portrait-ghost { position: fixed; z-index: 9999; pointer-events: none; opacity: 0.9; transform: translate(-50%, -50%) scale(1.05); box-shadow: 6px 6px 0px rgba(0,0,0,0.5); }
 .tier-portrait-dragging { opacity: 0.4; }
 
-/* --- THE NAME RISES ON HOVER (v0.16 fine-tuning 8) ---
-   The same interaction the Roster Icon got in this version, on the second
-   surface that shows a portrait with a name behind it - built once, in the
-   direction the owner described for each: the roster's name slides in from the
-   side, a tier portrait's rises from under it.
-
-   `attr(title)` rather than a new element: all three renderers
-   (js/pages/tier-lists/tierlist.js, js/pages/tier-lists/tier-editor.js, js/pages/tier-lists/certified-tier-lists.js) already set
-   title to the character's name, so this needs no JS at all and cannot fall out
-   of step with the markup.
-
-   .tier-portrait-name is deliberately left alone. It sits BEHIND the image at
-   z-index 2 and is the fallback that shows through when a portrait 404s - the
-   reason an unresolved key is visible rather than silently blank. Moving it
-   would have traded a working fallback for a hover effect. */
+/* A tier portrait's name rises from under it on hover, from attr(title), which
+   every renderer sets, so it needs no script. .tier-portrait-name stays behind the
+   image as the fallback a broken portrait shows. */
 @media (hover: hover) {
     .tier-portrait::after {
         content: attr(title);
@@ -789,14 +671,8 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     }
 }
 
-/* --- BIGGER BOXES, TIGHTER SPACING (v0.16 fine-tuning 8) ---
-   The certified tier lists page already got this (style/certified-tier-lists.css,
-   scoped to #tier-list-ui); this is the same treatment for the OTHER live
-   surface, the one js/pages/tier-lists/tierlist.js renders.
-
-   Scoped to .tier-list-row-chars on purpose, exactly as that file scoped its
-   own: the editor's drag-and-drop hit-testing was built around 60px portraits,
-   and raising .tier-portrait globally would change the boxes it measures. */
+/* Bigger boxes and tighter spacing on the older tier list's live rows, scoped to
+   .tier-list-row-chars. */
 .tier-list-row-chars {
     gap: 0.3rem;
     padding: 0.4rem;
@@ -813,7 +689,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     .tier-list-row-chars .tier-portrait { width: 60px; height: 60px; }
 }
 
-/* --- TIER LIST EDITOR (js/pages/tier-lists/tierlist.js EDITOR BUILDER: renderTierEditorUI) --- */
+/* The older tier list's editor (tierlist.js) */
 /* Compound: .daw-variant-tabs's own base rule sets border-bottom color/
    padding-bottom at the same specificity. */
 .daw-variant-tabs.tier-editor-tabs-row { overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 1px solid #333; align-items: center; }
@@ -832,14 +708,10 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Compound: .btn-sys's own base rule sets padding at the same specificity. */
 .btn-sys.btn-sys-compact { padding: 0.3rem 0.5rem; }
 
-/* Base rule for .tier-dropzone was previously 100% inline (JS-hardcoded on
-   every render) - both the per-tier rows and the unassigned pool now share
-   this, with tier rows getting the taller .tier-row-dropzone modifier. */
+/* Both drop zones, the tier rows and the pool; a tier row adds .tier-row-dropzone. */
 .tier-dropzone { background: rgba(0,0,0,0.2); border: 1px dashed #333; border-radius: 4px; padding: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start; min-height: 80px; }
 .tier-dropzone.tier-row-dropzone { min-height: 90px; }
-/* Highlight while a drag is hovering this zone - previously a direct
-   zone.style.backgroundColor write from the native-DnD dragover/dragleave
-   handlers; now a class toggled by the Pointer Events engine. */
+/* While a drag hovers the zone (the Pointer Events engine toggles it). */
 .tier-dropzone.drag-over { background-color: rgba(168, 85, 247, 0.1); }
 
 .tier-changelog-card { margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-left: 4px solid var(--accent-blue); }
@@ -871,35 +743,21 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .footer-grid-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
 .credits-list { list-style: none; padding: 0; margin: 0; }
 .credits-list li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-/* box-sizing is load-bearing: .tab-contributors-footer below sets width: 100%,
-   and this rule adds 1.25rem of padding each side plus a 2px border. There is
-   no global border-box on this site - only individual classes opt in - so the
-   footer rendered ~44px wider than its column and overhung the table of
-   contents on the right (owner, 2026-08-18). */
+/* border-box matters: the tab footer below is width: 100%, and this padding and
+   border made it 44px wider than its column. The site has no global border-box. */
 .aggregated-contributors-footer { box-sizing: border-box; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 0.5rem; padding: 1rem 1.25rem; background: var(--bg-main); border: 2px solid var(--border-color); clear: both; box-shadow: 6px 6px 0px var(--manga-shadow); position: relative; }
 .aggregated-contributors-footer::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--accent-blue); }
 .contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-label), sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
-/* One footer per tab (consolidateTabContributors in js/pages/core/description.js), not
-   one per section. It is the last thing in the tab now, so it takes the full
-   width regardless of the float/flex layout the sections above it used, and
-   ends the tab rather than interrupting it. */
+/* One footer per tab (consolidateTabContributors), the last thing in it, full
+   width, ending the tab. */
 .tab-contributors-footer { width: 100%; flex-basis: 100%; margin-top: 3rem; }
 
-/* Router skeleton (js/pages/core/page_router.js) - these replace inline styles that used
-   to live on the system-page template only. The character template relied on
-   classes for the same elements, so unifying the two skeletons meant lifting
-   the system page's inline rules up into real classes rather than picking one
-   template's look arbitrarily. Values are copied verbatim from the originals
-   (systems/m1-trading/index.html:50,52-53,65,88 pre-v0.9). */
+/* The page skeleton's classes (page_router.js). */
 .sidebar-dynamic-dock { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem; }
 .kofi-btn-wrapper-spaced { margin-top: 0.75rem; }
 .kofi-btn-full { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
 .system-back-row { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-/* The right sidebar's header row needs no new rule: .sidebar-tab-header
-   (defined above, ~line 101) is already byte-identical to what the system
-   template was doing inline, so both templates were always meant to look the
-   same here and the router just uses the class for both. */
 
 /* Site posts (blog + hotfix notes, js/pages/community/posts.js). Post bodies reuse the wiki's
    own .wiki-section block styling, so only the listing card and post header
@@ -940,10 +798,9 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 /* General Typography & Utility */
 .loading-msg { color: var(--text-muted); font-style: italic; margin: 0; }
-/* Something is on its way (v1.1): three slanted bars light up in turn in
-   front of the words. Only on .loading-msg-busy, because .loading-msg is also
-   the muted text for an empty list or an error, which wait for nothing. With
-   less motion they hold still, the first one lit. */
+/* Something on its way: three slanted bars light up in turn before the words, on
+   .loading-msg-busy only (.loading-msg is also an empty list's or an error's text).
+   With less motion they hold still, the first one lit. */
 @property --loading-bar-1 { syntax: '<color>'; inherits: false; initial-value: transparent; }
 @property --loading-bar-2 { syntax: '<color>'; inherits: false; initial-value: transparent; }
 @property --loading-bar-3 { syntax: '<color>'; inherits: false; initial-value: transparent; }
@@ -966,10 +823,8 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .wiki-block-heading[style*="center"] { clear: both; display: block; }
 .wiki-block-list { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
 .strategy-paragraph { margin-bottom: 0.75rem; line-height: 1.6; }
-/* A Heading Block's side bar (v1.1), the block's own choice in any tab. The
-   Matchup, Counterplay and Starter Guide tabs used to draw one by themselves;
-   every heading now renders the same way everywhere (owner, 2026-10-19). The
-   colour arrives through --heading-bar, set by js/pages/core/description.js. */
+/* A Heading Block's side bar, the block's own choice in any tab; --heading-bar comes
+   from description.js. */
 .wiki-block-heading-bar { border-left: 3px solid var(--heading-bar); padding-left: 0.75rem; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; }
 .card-header-title { 
@@ -987,7 +842,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .space-y-2 > * + * { margin-top: 0.5rem; }
 .hidden { display: none !important; }
 
-/* --- ACCESSIBILITY (v0.11) --- */
+/* Accessibility */
 
 /* Visually hidden but still announced. The clip-path/1px combination is used
    rather than display:none or visibility:hidden, both of which remove the
@@ -1021,9 +876,8 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 .skip-link:focus { top: 0.5rem; }
 
-/* There was no keyboard focus indicator anywhere outside form inputs, so a
-   keyboard user could not tell where they were. :focus-visible rather than
-   :focus, so a mouse click does not leave a ring behind. */
+/* A keyboard focus ring on every control; :focus-visible, so a mouse click leaves
+   none. */
 a:focus-visible,
 button:focus-visible,
 [tabindex]:focus-visible,
@@ -1032,16 +886,12 @@ summary:focus-visible {
     outline-offset: 2px;
 }
 
-/* The brand in the mobile bar stopped being an <h1> - every page had two, and
-   a logo is not the page heading. It kept an <h1>'s block layout, so that is
-   restored explicitly rather than left to inherit an inline default. */
+/* The mobile bar's brand is not an <h1> (a page has one heading), so its block
+   layout is stated. */
 .mobile-site-title { display: block; }
 
-/* Respect a reduced-motion preference. The site's transitions are decorative
-   and several run on hover across a whole roster grid at once.
-   html.reduce-motion rather than the media query (v1.1): js/utility/site_utils.js
-   sets it for the device's preference AND for Site settings > Turn off
-   animations, so every rule like this one is written once. */
+/* Less motion: html.reduce-motion, set for the device's preference and for Site
+   Settings > Turn off animations (site_utils.js), so each rule is written once. */
 html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
@@ -1051,8 +901,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     scroll-behavior: auto !important;
 }
 
-/* Tab content panes (used across editor.js/admin.js/history.js/description.js) -
-   explicit so removing .hidden doesn't rely on the browser's implicit default. */
+/* Tab panels, stated, so removing .hidden relies on no browser default. */
 .tab-content, .vessel-content { display: block; }
 
 /* Wiki Divider Blocks (js/pages/core/description.js generateHTMLForBlocks 'divider' type) */
@@ -1090,16 +939,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .playstyle-icon.dislikes { color: #ef4444; }
 .playstyle-item-text { line-height: 1.4; }
 
-/* Wiki content blocks: image/video, callout tooltip content, table, accordion
-   (js/pages/core/description.js generateHTMLForBlocks). Media has sharp corners like
-   everything else on the site (owner, 2026-10-18), so none of these rounds. */
+/* Content Blocks (generateHTMLForBlocks): media, callout tooltip content, tables,
+   accordions. Square corners, like everything else on the site. */
 .wiki-block-image { width: 100%; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
 
-/* Stands in for media a moderator has flagged (js/utility/site_utils.js
-   sweepBlockedMedia). Says what happened rather than leaving a gap, because
-   a silently missing image reads as the wiki being broken - and it replaces
-   elements in wildly different contexts (skill cards, gallery tiles, inline
-   blocks), so it sizes to whatever it lands in rather than assuming one. */
+/* Stands in for media a moderator has flagged (the blocked-media guard,
+   site_media.js), sized to whatever it lands in. */
 .media-blocked-notice {
     display: flex;
     align-items: center;
@@ -1116,10 +961,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     text-align: center;
 }
 
-/* The compact form, standing in for a video button rather than for a whole
-   image or player. Sized to match .wiki-video-btn so a moderated cell keeps
-   the row height it had - the full notice above is 60px tall and turned a
-   one-line table row into three. */
+/* The short form, in place of a video button, sized like .wiki-video-btn so a cell
+   keeps its row height. */
 .media-blocked-inline {
     display: inline-flex;
     align-items: center;
@@ -1137,15 +980,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-video-embed { width: 100%; aspect-ratio: 16/9; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
 .wiki-video-native { width: 100%; background: #050505; display: block; box-shadow: 4px 4px 0px var(--manga-shadow); }
 
-/* --- THE VIDEO PLAYER (v0.15 item 10) ---
-   Native <video> with controls on. Everything here is painted with
-   var(--accent-blue), which js/utility/site_meta.js overrides on :root for the
-   character whose page this is - so the player re-themes per page and nothing
-   in here knows a character exists.
-
-   Sharp on purpose: no border-radius anywhere, hard offset shadows, square
-   glyphs. It sits next to the manga buttons and the frame-data tables, and a
-   rounded pill player would read as somebody else's component. */
+/* The video player: painted with var(--accent-blue), which site_meta.js sets per
+   character, so it takes the page's colour by itself. Square corners, hard shadows
+   and square glyphs, so it reads as the site's own component. */
 .wiki-player { display: block; width: 100%; }
 .wiki-player .wiki-video-native {
     border-radius: 0;
@@ -1153,9 +990,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     border: 2px solid var(--accent-blue);
     display: block;
 }
-/* One row: play, sound, then the bar taking whatever is left. Stacked, the
-   controls read as two separate things and wasted a line under every video
-   (owner, 2026-08-18). */
+/* One row: play, sound, then the bar taking the rest. */
 .wiki-player-controls {
     display: flex;
     flex-direction: row;
@@ -1252,10 +1087,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     background: var(--accent-blue);
 }
 
-/* --- THE VIDEO BUTTON AND ITS MODAL (v0.15 item 11) ---
-   A table cell and a combo card have no room for a player, so a video in one
-   is a button that opens a player. Both used to be links straight to the
-   Supabase file, which navigated the reader off the wiki entirely. */
+/* The video button (a cell or a card has no room for a player) and its modal. */
 .wiki-video-btn {
     display: inline-flex;
     align-items: center;
@@ -1281,11 +1113,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     flex: 0 0 auto;
 }
 
-/* --- THE CLIP'S CORNER BUTTON (v0.20 V1) ---
-   An autoplaying clip keeps its loop, and a small square in its bottom-right
-   corner opens the player in the modal (js/pages/core/description.js wikiClipHTML). The
-   wrapper is only a positioning box: in a skill card or a gallery card it fills
-   the fixed-shape frame the video used to fill on its own. */
+/* The clip's corner button opens the player in the modal (wikiClipHTML). The
+   wrapper only positions it; in a fixed-shape frame it fills the frame. */
 .wiki-clip { position: relative; }
 .skill-media-wrapper > .wiki-clip,
 .gallery-card-media > .wiki-clip { width: 100%; height: 100%; }
@@ -1366,7 +1195,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     box-shadow: 2px 2px 0px var(--manga-shadow);
 }
 
-/* --- EMPTY MEDIA PLACEHOLDER (v0.15 item 12) --- */
+/* The empty media placeholder */
 .wiki-media-placeholder {
     display: flex;
     flex-direction: column;
@@ -1408,38 +1237,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .manga-accordion { background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); width: 100%; }
 .wiki-accordion-summary { position: relative; padding: 0.75rem 2.5rem 0.75rem 1rem; cursor: pointer; font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: var(--accent-blue, #3b82f6); list-style: none; outline: none; user-select: none; text-transform: uppercase; }
 .accordion-arrow { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, #888); transition: transform 0.2s; }
-/* NOT a flex container, and that is the whole point of this rule (owner bug,
-   2026-09-20: "alignment is broken inside accordion").
-
-   Media alignment on this site is `float` - .wiki-media-left and
-   .wiki-media-right in this same file - and FLOAT IS IGNORED ON A FLEX ITEM.
-   So an image set to Right inside an accordion silently rendered hard left,
-   while the same image one level out floated correctly. Centre survived only
-   because .wiki-media-center uses `margin: auto` rather than a float, which is
-   why this read as "middle and right do not work" rather than as nothing
-   working: measured at 800px, an image set to Right sat 40px from the left
-   edge instead of 420px.
-
-   The rest of the page lays blocks out as normal flow, so this now matches it
-   rather than inventing a second model inside a container. The gap becomes a
-   sibling margin, and the clearfix is needed for the same reason floats work
-   again: without it a float at the end of the body escapes its own box.
-
-   Anything else that nests blocks inside a container - SectionedBox in C3 -
-   has to avoid flex here too, or it inherits this bug on day one.
-   .theorybox-body, the other nesting container, is normal flow already. */
+/* Not a flex container: media alignment on this site is float, and float is
+   ignored on a flex item, so an image set to Right inside an accordion drew at the
+   left. Normal flow, with a clearfix so a float at the end stays inside. Any
+   container that nests Blocks must avoid flex here too. */
 .wiki-accordion-body { padding: 1rem; border-top: 1px dashed var(--border-color, #333); background: var(--bg-secondary, #111); text-align: left; }
 .wiki-accordion-body > * + * { margin-top: 0.5rem; }
 .wiki-accordion-body::after { content: ""; display: block; clear: both; }
 
-/* --- SECTION BOX (v0.19 C3) ---
-   A title, an introduction, and a row of switchable tabs. */
+/* The Section Box */
 .sbox { margin: 1.5rem 0; }
 
-/* The wrapper is worn ONLY inside a Combos/Techs group, where it matches the
-   Combo Card beside it. Everywhere else the box is bare, or it becomes a card
-   inside a card - which is the same thing the owner objected to when a combo
-   group was wrapped in .wiki-section. */
+/* Boxed only inside a Combos or Techs group, beside the Combo Card; elsewhere bare,
+   or it is a card in a card. */
 .sbox-boxed {
     background: var(--bg-secondary); border: 2px solid var(--border-color);
     box-shadow: 4px 4px 0px var(--manga-shadow); padding: 1rem;
@@ -1461,28 +1271,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .sbox-tab:hover { color: var(--text-white); }
 .sbox-tab.is-active { background: var(--bg-main); color: var(--accent-blue); border-color: var(--accent-blue); }
 
-/* NOT a flex container, and the reason is written out on .wiki-accordion-body
-   above: a panel holds BLOCKS, media alignment on this site is `float`, and
-   float is ignored on a flex item. The clearfix is needed for the same reason
-   the floats work at all. */
+/* Not flex, for the reason on .wiki-accordion-body: a panel holds floated media. */
 .sbox-panel { display: none; }
 .sbox-panel.is-active { display: block; }
 .sbox-panel::after { content: ""; display: block; clear: both; }
 
-/* ONE COMBO = ONE BOX (owner, 2026-08-16, modelled on Dustloop's combo table).
-   The route, its damage and its note are a single reading unit, so they share
-   a single surface rather than floating as separate chips on the page.
-
-   `display: block` with `width: fit-content` so the box hugs its route instead
-   of stretching to the column width - a two-step combo should not draw a
-   full-width panel - while still starting on its own line. inline-block gets
-   the hugging right and the stacking wrong: two combos in a row then sit side
-   by side, which reads as one four-step route. The bottom margin carries the
-   shadow, which sits outside the border box.
-
-   Square corners and a shadow directly below, not the softened card look:
-   that is the manga treatment the rest of the wiki uses (see .btn-manga), and
-   it is what keeps this reading as our page rather than as Dustloop's. */
+/* One combo, one box: the route, its damage and its note are one reading unit.
+   block with width: fit-content, so the box hugs its route and still starts its own
+   line (inline-block would set two combos side by side). Square corners and a hard
+   shadow, the site's own treatment. */
 /* flow-root, not block (v1.1): a plain block box does not move out of a
    float's way, only its text does. Beside a right-aligned video the route
    wrapped clear of it while the box itself, border and background, ran
@@ -1495,13 +1292,10 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
 
-/* --- NOTATION STYLES (v0.20, js/pages/core/description.js comboRouteHTML) ------------
-   A route with more than one notation. The route itself is the control, and
-   the mark is the owner's "small toggle visuals on the side, which is very
-   small and thin": one segment per style, the one showing lit.
-   Each style is display: contents, so its chips stay direct flex items of the
-   row and wrap exactly as a plain route's do. The [hidden] rule has to be
-   restated, because display: contents would otherwise beat the browser's. */
+/* Notation styles (comboRouteHTML): the route itself is the control, and the mark
+   beside it has one thin segment per style, the one showing lit. Each style is
+   display: contents, so its chips wrap as a plain route's do; [hidden] is
+   restated, since display: contents beats the browser's. */
 .combo-has-notations { cursor: pointer; border-radius: 2px; }
 .combo-has-notations:hover .combo-notation-mark > i.is-on { background: var(--text-white); }
 .combo-has-notations:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
@@ -1518,10 +1312,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .combo-notation-mark > i.is-on { background: var(--accent-blue); }
 .combo-notation-name { display: none; }
 
-/* The review screens (the queue on admin.html, the editor's own diff) show
-   EVERY style at once, one per line with its name, so a reviewer never has to
-   click to find a changed route. Scoped to the diff container both screens
-   render into; js/pages/core/description.js ignores clicks there too. */
+/* The review screens show every style at once, one a line with its name, so no
+   click is needed to find a changed route. Clicks there switch nothing. */
 .diff-inline-target .combo-has-notations { cursor: default; }
 .diff-inline-target .combo-notation-mark { display: none; }
 .diff-inline-target .combo-notation,
@@ -1538,44 +1330,16 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    step. */
 .combo-sep { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem; opacity: 0.55; padding: 0 0.1rem; }
 
-/* The note sits under the route, matching its alignment - it is a condition on
-   the whole combo, not a label on the damage.
-
-   .combo-meta-group is gone with it: it existed to hold the note and damage
-   together at the far right of the page, and nothing emits it now. */
+/* The note sits under the route, matching its alignment: a condition on the whole
+   combo. */
 .combo-note-row { display: flex; margin-top: 0.35rem; }
 
-/* The rest of the combo block, moved out of style/FrameData.css on
-   2026-08-15. The container above lived here and the nodes lived there, so
-   the block was only fully styled on a character page - the one page type
-   that loads FrameData.css. A combo authored on a guide, a gallery or a
-   tool page rendered as an unstyled row of words.
-
-   These are authored-BLOCK styles: generateHTMLForBlocks emits them, and
-   every page type that renders blocks needs them. Frame data is a
-   different thing that happens to also show combos. */
-/* --- 6. COMBO STRINGS --- */
-/* Monospace, and smaller. Two reasons, both from real pages:
-
-   A combo step is notation, and in notation alignment carries meaning -
-   'M1 M1 M1' should be visibly three of the same thing. A proportional comic
-   face (this was CC-Wild-Words) makes the same input a different width every
-   time it appears, so a route cannot be read by shape.
-
-   And the chips were big enough that an ordinary route wrapped onto a second
-   line - the 76-damage Crow Charmer combo broke mid-route - which loses the
-   left-to-right reading a combo depends on. Smaller padding, smaller type and
-   a tighter gap keep a typical route on one line. */
-/* A step is now text inside the shared box rather than its own keycap - the
-   box is the container, so a border per step drew a box inside a box.
-
-   Monospace, and small. A combo step is notation, and in notation alignment
-   carries meaning: 'M1 M1 M1' should be visibly three of the same thing. A
-   proportional comic face (this was CC-Wild-Words) gave the same input a
-   different width every time it appeared, so a route could not be read by
-   shape. The size also keeps an ordinary route on one line - the 76-damage
-   Crow Charmer combo was wrapping mid-route, which loses the left-to-right
-   reading a combo depends on. */
+/* The combo Block's styles live here, not in FrameData.css, since every page kind
+   that renders Blocks needs them. */
+/* Combo strings */
+/* A step is text in the shared box, not its own keycap. Monospace and small: in
+   notation, M1 M1 M1 should be visibly three of the same thing, and a typical route
+   stays on one line. */
 /* The wrapper a compound step's contents go into. Normal inline flow, so the
    spaces between "Cancel" and "Murmurate" survive - inline-flex would make
    them flex items and drop the whitespace between them. */
@@ -1588,14 +1352,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     border-radius: 0; transition: background-color 0.1s, color 0.1s; cursor: default;
 }
 
-/* Hover lights up ONE STEP in the character's own colour, rather than pressing
-   the whole chip down. The route is the thing being read, so the feedback
-   belongs on the step under the cursor.
-
-   --character-ink is the readable text colour for that background, set beside
-   --accent-blue by js/utility/site_meta.js: white on a character below 50% lightness
-   (Crow Charmer, Black Death, Ten Shadows), black on the light ones. Without
-   it, Register (100% light) and Aspiring Mangaka (96%) render white-on-white. */
+/* Hover lights up one step in the character's colour; --character-ink is the
+   readable text on it (site_meta.js), or a light character renders white on white. */
 .combo-node:hover {
     background-color: var(--accent-blue);
     color: var(--character-ink, #000);
@@ -1612,14 +1370,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-size: 0.9rem; text-shadow: 1px 1px 0px #000; margin-left: 0.3rem;
 }
 
-/* Heading for an authored strategy block, moved here for the same reason.
-   The same heading as a card's (.card-header-flex + .card-header-title
-   above): same size, weight and colour, and a rule across the whole panel.
-   Until v1.2 it was a small 1rem heading with a short accent underline, so
-   Overview & Strategy and every move's "Move Overview and Strategy" read
-   unlike Matchups, Starter Guide, Counterplay, Combos and Techs (owner,
-   2026-11-20: "This type of small heading and underline is seemingly only
-   used in the Overview and Strategy, M1s, Skills, and Innate sections"). */
+/* An authored strategy block's heading: the same heading as a card's
+   (.card-header-title), with a rule across the panel, so Overview and the move
+   write-ups read like the other tabs. */
 .strategy-title {
     font-family: var(--font-title), sans-serif;
     font-size: 1.5rem; font-weight: bold; color: var(--text-white);
@@ -1632,10 +1385,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-section-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; font-style: italic; border-top: 1px dashed var(--border-color); }
 .wiki-section-empty-flex { flex-basis: 100%; }
 
-/* System page dynamic tab grid (js/pages/core/description.js loadPageDescriptions
-   system-page engine). .wiki-section's own box-sizing/margin-bottom
-   already match what this grid needs - only the horizontal padding and
-   flex-basis/height "row breaker" spacers are genuinely specific here. */
+/* A system page's tab grid (loadPageDescriptions): .wiki-section already sizes the
+   sections; only the padding and the row breakers are this grid's. */
 .wiki-tab-content { display: flex; flex-wrap: wrap; margin: 0 -0.5rem; }
 .flex-row-break { flex-basis: 100%; height: 0; }
 .system-content-grid-section { padding: 0 0.5rem; }
@@ -1651,10 +1402,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-media-center { display: block; margin: 1.5rem auto; }
 .wiki-media-full { margin: 1.5rem 0; }
 
-/* v0.20: stands in for an image or video that failed to load (js/pages/core/description.js,
-   showMissingMedia). The look of a skill card with no media, .skill-media-missing,
-   so "missing" reads the same everywhere. It keeps an image block's alignment
-   classes, hence the compound selector: .wiki-media's solid border must lose. */
+/* Stands in for an image or video that failed to load (showMissingMedia), in the
+   look of a skill card with no media. It keeps an image block's alignment classes,
+   so .wiki-media's solid border must lose. */
 .media-missing-notice,
 .media-missing-notice.wiki-media {
     display: flex; align-items: center; justify-content: center;
@@ -1669,43 +1419,16 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .discussion-media > .media-missing-notice { width: 160px; min-height: 90px; }
 .wiki-cell-media-td > .media-missing-notice { min-height: 3rem; font-size: 0.7rem; }
 
-/* --- 6. MOBILE SUPPORT --- */
+/* Phones */
 .mobile-top-bar { display: none; }
 .mobile-backdrop { display: none; }
 .mobile-bottom-bar { display: none; }
 
-/* .tab-editor-btn-mobile and #mobile-btn-group were removed on 2026-08-14
-   along with the buttons they styled. They existed because the sidebar
-   holding the real Edit and History pair was display:none below 1024px, so a
-   phone got a second copy of both in the page body. The contents are a drawer
-   now and carry that pair with them, which left the copies a tab row wide on
-   the narrowest screen the site serves, one tap further away than the drawer.
-   tests/mobile-drawers.spec.js pins that they do not come back. */
-
-/* Right-sidebar "EDIT TAB"/"EDIT PAGE" + History buttons
-   (js/pages/core/pagebuilder.js initTabEditorButtons). Un-hidden via .is-active
-   instead of a direct style.display write, matching the mobile pattern
-   above. */
-/* The `.btn-sys` in these selectors is load-bearing, not decoration.
- *
- * This rule and `.btn-sys` (Buttons.css) both set font-size and padding, and
- * as two single-class selectors they have EQUAL specificity - so which one
- * wins is decided purely by which stylesheet loads last. The two page
- * templates disagree: a character stub loads Layout.css last, a system stub
- * loads it second, before Buttons.css. So the same pair of buttons rendered at
- * 9.6px/4px on a character page and 11.2px/6.4px on a system page - the owner
- * reported it as the system pair being "slightly larger", measured 2026-09-10.
- *
- * Qualifying with .btn-sys makes this win in both orders instead of relying on
- * a file ordering that is not stated anywhere and differs per template. Every
- * consumer carries .btn-sys today - page_router.js, pagebuilder.js and
- * systems/tierlist/index.html - and tests/sidebar-button-parity.spec.js fails
- * if one ever does not, because such a consumer would silently lose this rule
- * entirely rather than merely lose a property.
- *
- * NOT fixed by reordering the system template's stylesheets: that would change
- * which rule wins for every other class these two files share, on 18 pages, to
- * settle one button pair. */
+/* The page's Edit and History buttons (initTabEditorButtons), shown by .is-active.
+   .btn-sys in the selector is needed: this and .btn-sys tie at one class, and the
+   stylesheet order differs per page kind, so the pair drew at two sizes.
+   tests/sidebar-button-parity.spec.js fails if a caller drops .btn-sys. Reordering
+   the stylesheets would move every other tie on 18 pages. */
 .btn-sys.tab-editor-btn-sidebar { display: none; font-size: 0.6rem; padding: 0.25rem 0.5rem; align-items: center; gap: 0.35rem; flex: 1; }
 .btn-sys.tab-editor-btn-sidebar.is-active { display: flex; }
 #sidebar-btn-group { display: flex; gap: 0.5rem; width: 100%; }
@@ -1732,13 +1455,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .global-sidebar-left.mobile-open { transform: translateX(0); }
     .sidebar-toggle-btn { display: none !important; }
 
-    /* The table of contents, which below 1024px was display:none and therefore
-       simply did not exist on a phone - on a wiki whose longest pages are the
-       ones a phone reader most needs to jump around inside.
-
-       Mirrors the left drawer exactly, from the opposite edge. Both are
-       position:fixed, so the off-screen transform costs no horizontal scroll:
-       fixed boxes are outside the document's scrollable overflow region. */
+    /* The table of contents is a drawer on a phone, the left drawer's mirror from the
+       other edge. Both are position: fixed, so the off-screen transform adds no
+       horizontal scroll. */
     .local-sidebar-right {
         display: block; position: fixed; top: 0; right: 0;
         width: 280px; max-width: 85vw; height: 100vh;
@@ -1761,19 +1480,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
     .mobile-backdrop.active { display: block; animation: fadeIn 0.2s ease-out; }
     
-    /* A <button> since 2026-08-14 - it opens the navigation drawer rather than
-       going home. The UA button styling is reset explicitly rather than with
-       `font: inherit; color: inherit`: this is the same trap the v0.13 sidebar
-       group headers fell into, where those two lines quietly beat the title
-       styling they were meant to leave alone. */
+    /* A <button> that opens the navigation drawer, its browser styling reset
+       explicitly, not by font: inherit, which beat the title styling before. */
     .mobile-logo-link {
         display: flex; align-items: center; gap: 0.75rem; text-decoration: none;
         background: none; border: none; padding: 0; margin: 0;
         text-align: left; cursor: pointer;
     }
     .mobile-logo-img { width: 32px; height: 32px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px #000; object-fit: cover; }
-    /* Was inheriting the body font, which made the one piece of branding on a
-       phone the only place the wiki's own typeface was missing. */
+    /* The wiki's own typeface on the phone's one piece of branding. */
     .mobile-site-title {
         font-family: var(--font-title), sans-serif;
         font-size: 1.05rem; margin: 0; line-height: 1.15; color: var(--text-white);
@@ -1781,10 +1496,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; cursor: pointer; }
     .mobile-menu-btn[hidden] { display: none; }
     
-    /* The bottom bar (js/pages/core/pagebuilder.js buildMobileBottomBar): Search, Ko-fi,
-       Settings and the account, one tap away. Under the drawers and their
-       backdrop, which cover it while one is open. The page and the edit
-       button make room for it, and for a phone's home indicator below it. */
+    /* The bottom bar (buildMobileBottomBar): search, Ko-fi, settings and the account,
+       under the drawers and their backdrop. The page and the edit button make room for
+       it, and for a phone's home indicator. */
     .mobile-bottom-bar {
         display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
         background: var(--bg-main); border-top: 2px solid var(--border-color);
@@ -1812,24 +1526,16 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Phone-width typography & spacing (deliberately narrower than the 1023px
-   nav-switch breakpoint above - tablets have plenty of room for the desktop
-   sizing, this is specifically for phone-class viewports). Contributor
-   feedback 2026-08-04: desktop-sized heading/padding values applied
-   unscaled made every page feel cramped - .main-content-area's 2rem padding
-   plus .wiki-section's own 1.5rem compounded to ~56px eaten on each side of
-   a ~375px screen, and .character-title's fixed 3.5rem routinely wrapped to
-   3 lines. */
+/* Phone-width spacing and type, narrower than the 1023px drawer breakpoint: tablets
+   keep the desktop sizes. Stacked paddings ate about 56px on each side of a 375px
+   screen. */
 @media (max-width: 640px) {
     .main-content-area { padding: 1rem; }
     .wiki-section { padding: 1rem; }
 
-    /* Phone text (owner's mobile card, v1.2: "Texts are too large"). Their
-       pick, 2026-11-16: body 14px and titles two steps down, so section
-       titles 18px, a character's name 24px, a Skill Card title 20px. Reading
-       text inherits the body's size; the titles are set one by one because
-       each has its own size in rem. Reader pages only (.site-body): the card
-       leaves the editor and the review queue out. */
+    /* Phone text: the body at 14px and titles two steps down (section titles 18px, a
+       character's name 24px, a Skill Card title 20px), on reader pages only
+       (.site-body). */
     body.site-body { font-size: 0.875rem; }
     .section-title { font-size: 1.125rem; margin-bottom: 1rem; }
     .character-title { font-size: 1.5rem; }
@@ -1841,48 +1547,26 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     h2.wiki-block-heading { font-size: 1.2em; }
     h3.wiki-block-heading { font-size: 1.1em; }
 
-    /* A table keeps columns wide enough to read and scrolls sideways inside
-       its own box (same card: "Avoid big table having extremely stretched
-       vertical length"). Squeezed to the screen, a three-column table of
-       sentences ran to 3,400px tall. Columns take the width of what is in
-       them, up to 16rem, and never less than the box. */
+    /* A table keeps readable columns and scrolls sideways in its own box: squeezed to
+       the screen, a three-column table of sentences ran 3,400px tall. Columns take
+       their content's width, up to 16rem, and never less than the box. */
     .wiki-table-wrapper > table { width: max-content; min-width: 100%; max-width: none; }
     .wiki-table-wrapper > table th, .wiki-table-wrapper > table td { max-width: 16rem; }
 
-    /* description.js block-level media (image/video/youtube/embed): the
-       max-width safety net above stops true overflow, but a contributor-set
-       percentage width (reasonable against a wide desktop column) still
-       renders tiny against a narrow phone column, and a floated
-       left/right image leaves almost no room for text beside it. Forcing
-       full-width + dropping the float makes every media block predictable
-       on phones regardless of what width/align a contributor chose for
-       desktop. Needs !important - customWidth is an inline style, which
-       always wins over a plain stylesheet rule. */
+    /* Block media goes full width and stops floating on a phone: a width or float
+       chosen against a wide desktop column leaves it tiny, or the text beside it no
+       room. !important, since the width is an inline style. */
     .wiki-media { width: 100% !important; max-width: 100% !important; }
     .wiki-media-left, .wiki-media-right { float: none; margin: 1rem 0; }
 
-    /* Profile card (js/pages/core/description.js's character overview aside) sits
-       beside .profile-text-wrapper in a flex row on desktop. On mobile we
-       want a plain single-column stack - not flex-direction: column, which
-       still leaves both children as flex items subject to Chromium's flex
-       automatic-minimum-size sizing pass for replaced (image) content.
-       Confirmed directly: with flex-direction: column, a percentage-width
-       .profile-portrait inside .profile-card left the card's own
-       offsetHeight (407px) shorter than its actual scrollHeight (456px) -
-       the last stat row rendered outside the visible border, worse for
-       low-resolution source images since intrinsic image size feeds that
-       calculation. Dropping to display: block sidesteps the whole
-       flex-sizing bug class entirely - a plain block child is just 100%
-       width and auto height, no two-pass replaced-content sizing involved,
-       exactly matching every other .wiki-section on the page. */
+    /* The profile card and its text stack as plain blocks on a phone, not
+       flex-direction: column: as flex items, a percentage-width portrait left the card
+       shorter than its contents in Chromium, and its last stat drew outside the border. */
     .profile-top-split { display: block; }
     .profile-card { max-width: none; margin-bottom: 1.5rem; }
 }
-/* --- GALLERY PAGES (page_type 'gallery', js/pages/types/gallery.js) ---
-   A flat searchable grid rather than tabs of blocks. auto-fill with a minmax
-   floor so the same markup gives four columns on a desktop and one on a
-   phone, without a breakpoint per size - a gallery's item count is the thing
-   that varies, not its layout. */
+/* Gallery pages (gallery.js): a flat grid, auto-fill with a minmax floor, so one
+   markup gives four columns on a desktop and one on a phone. */
 .gallery-shell { display: flex; flex-direction: column; gap: 1.5rem; }
 .gallery-intro:empty { display: none; }
 
@@ -1920,8 +1604,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .gallery-card-name { color: var(--text-white); font-weight: bold; font-size: 0.85rem; word-break: break-word; }
 .gallery-card-note { color: var(--text-muted); font-size: 0.7rem; font-family: var(--text-mono); }
 
-/* --- TOOL PAGES (page_type 'tool', js/pages/types/tool_page.js) ---
-   The tool leads; prose sits around it. */
+/* Tool pages (tool_page.js): the tool leads, prose around it. */
 .tool-shell { display: flex; flex-direction: column; gap: 1.5rem; }
 .tool-intro:empty, .tool-notes:empty { display: none; }
 .tool-frame { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; }
@@ -1931,16 +1614,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .tool-launch-btn { text-decoration: none; }
 
-/* Sub-group heading inside a Main Dashboard column (js/pages/core/pagebuilder.js
-   buildCategoryColumn). The Others column is one column holding several
-   groups - Gamemodes, Servers, Misc - so each needs a label, while a
-   single-group column renders none.
-
-   Typography comes from the block it shares with .sidebar-master-title above,
-   because the sibling column's headings ARE that class and the owner's
-   requirement is that all of them agree. Only the spacing is its own: this
-   divides a column into groups, where the systems grid gets its separation
-   from .systems-grid-container's gap instead. */
+/* A sub-group heading in a dashboard column (buildCategoryColumn), sharing
+   .sidebar-master-title's typography so all the columns' headings agree; only its
+   spacing is its own. */
 .column-subgroup-title {
     margin: 2rem 0 1.25rem;
 }
@@ -1948,14 +1624,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    its own spacing. */
 .column-subgroup-title:first-child { margin-top: 0; }
 
-/* ==========================================================================
-   THE COMBO TABLE (v0.15 item 3)
-   ==========================================================================
-   Adapted from Dustloop's combo table into this site's chrome: square corners
-   and a shadow below, the same manga language .btn-manga and .combo-block use.
-
-   The route reuses .combo-node / .combo-sep from the legacy combo block above,
-   so a combo reads identically whether it is inline in prose or a row here. */
+/* The combo table, adapted from Dustloop's into the site's own look. The route
+   reuses .combo-node and .combo-sep, so a combo reads the same in prose and in a
+   row. */
 
 .combo-group { margin-bottom: 1.5rem; }
 
@@ -1999,11 +1670,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .combo-resource strong { color: var(--text-white); }
 .combo-note-text { white-space: normal; }
 
-/* Difficulty is ORDINAL, not categorical: eight distinguishable hues on a dark
-   background is close to impossible, eight steps along a ramp is routine - and
-   a ramp is also the honest encoding, because adjacent difficulties should look
-   adjacent. Green through red, by slot index rather than by label, so the
-   labels can be renamed without touching the palette. */
+/* Difficulty is ordinal, so a green-to-red ramp, by slot index, so a label can be
+   renamed without touching the palette. */
 .combo-difficulty { font-weight: bold; white-space: nowrap; }
 .combo-difficulty-0 { color: hsl(140, 65%, 60%); }
 .combo-difficulty-1 { color: hsl(110, 60%, 58%); }
@@ -2014,11 +1682,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .combo-difficulty-6 { color: hsl(5,   85%, 62%); }
 .combo-difficulty-7 { color: hsl(320, 80%, 65%); }
 
-/* Below the breakpoint every row becomes a card.
-   Ten columns cannot fit a phone, and this site has had a deliberate mobile
-   pass - it collapses matchup cards rather than scrolling them, so a
-   sideways-scrolling table would be the one place that behaves differently.
-   The header is hidden and each cell carries its own label from data-label. */
+/* Below the breakpoint every row becomes a card, as matchup cards do; each cell
+   carries its label from data-label. */
 @media (max-width: 900px) {
     /* `td` is NOT in this list on purpose. `.combo-table td` outranks
        `.combo-cell` on specificity, so setting display:block here beat the
@@ -2058,11 +1723,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .combo-cell-notes::before { display: block; flex: none; margin-bottom: 0.2rem; }
 }
 
-/* --- THE COMBO CARD (TheoryBox, v0.15 item 4) --- */
-/* A combo and everything known about it, living inside a combo group. Same
-   square-cornered, shadow-below treatment as the combo block and the table -
-   this is the third thing on the page that is "a combo", and they should read
-   as one family. */
+/* The Combo Card */
+/* A combo and everything known about it, in the same square, shadow-below look as
+   the combo Block and the table: three things that are "a combo" read as one family. */
 .theorybox {
     background: var(--bg-secondary); border: 2px solid var(--border-color);
     border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
@@ -2074,10 +1737,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     color: var(--text-white); flex: 1 1 auto;
 }
 .theorybox-difficulty { font-family: var(--text-mono); font-size: 0.75rem; }
-/* Plain: Practicality is free text, so it has no scale to colour. Free text
-   can be a sentence, so it wraps: kept on one line, Vessel's Techs tab was
-   170px wider than a phone (v1.2 mobile pass). The head still gives it a row
-   of its own before it has to break. */
+/* Practicality is free text, so it has no colour scale, and it wraps. */
 .theorybox-practicality { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
 .theorybox-oneliner { color: var(--text-muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
 .theorybox-route { margin: 0.6rem 0 0; }
@@ -2088,27 +1748,16 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .theorybox-title { flex: 1 1 100%; }
 }
 
-/* The Combos tab's three parts are document SECTIONS, so each is a heading and
-   the cards under it are the boxes. Wrapping a group in .wiki-section made
-   every TheoryBox a card inside a card (owner, 2026-08-16). */
+/* A document tab's three parts are headings, with the Combo Cards under them as the
+   boxes; a group in a card made every Combo Card a card in a card. */
 .combo-section-title { margin: 1.75rem 0 0.5rem; }
 .combo-section-title:first-child { margin-top: 0; }
 .combo-group:not(:last-child) { margin-bottom: 0.5rem; }
 
-/* --- COMPACT DIRECTORY GRID (v0.17) ---
-   The home page's three navigation columns (Guides & Such, Others, Tools) are
-   narrow, so `repeat(auto-fill, minmax(220px, 1fr))` above resolved to a single
-   column - a tall stack that pushed most of the links below the scroll box and
-   out of sight. Owner, 2026-09-03: two columns, unslanted buttons, and the odd
-   last one widened to cover both.
-
-   Applied through its own class rather than by changing .system-button-grid,
-   because buildSystemsDirectory also fills the full-width Systems Hub, where
-   two fixed columns would leave most of the page empty. See the `compact`
-   option in js/pages/core/pagebuilder.js.
-
-   minmax(0, 1fr) rather than 1fr: a grid track's default min is auto, so a long
-   page name would refuse to shrink and push the second column off the edge. */
+/* The compact directory grid, for the home page's narrow columns: two columns,
+   unslanted buttons, an odd last one spanning both. Its own class, since the
+   full-width Systems Hub fills the same grid (buildSystemsDirectory's compact
+   option). minmax(0, 1fr), so a long name cannot push the second column off. */
 .system-button-grid-compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
@@ -2122,21 +1771,14 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     grid-column: 1 / -1;
 }
 
-/* The gap floor is still the hover state, as for the slanted grid above:
-   .btn-manga-box:hover moves translate(-2px, -2px) and its shadow is 4px, so a
-   button paints 6px past its resting box. 0.5rem is 8px and clears it. The
-   column gap no longer needs the extra allowance the slanted version did,
-   because there is no skewX lean to account for. */
+/* The gap clears the hover state: a button moves 2px and grows a 4px shadow,
+   painting 6px past its box; 0.5rem is 8px. */
 .system-button-grid-compact .system-directory-btn {
     padding: 0.4rem 0.65rem;
 }
 
-/* Wrapping, not ellipsis. .btn-manga-text is nowrap + text-overflow: ellipsis
-   by default, which at this width cut real page names down to "FUNDAMENT...",
-   "COLLABORA..." and "RECENT CHA..." - unreadable, and worse than the scroll
-   bar this replaces, because a truncated name is not a name. Page names are
-   owner-authored and can be any length, so shrinking the font until today's
-   longest happens to fit would only defer it to the next page they create. */
+/* Wrapping, not an ellipsis: a cut name ("FUNDAMENT...") is not a name, and page
+   names can be any length. */
 .system-button-grid-compact .system-directory-btn .btn-manga-text {
     font-size: 0.7rem;
     letter-spacing: 0;
@@ -2164,14 +1806,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     }
 }
 
-/* --- CATEGORY SPACING IN THE COMPACT COLUMNS (v0.17) ---
-   Owner, 2026-09-03: reduce the spacing between categories. The gaps were sized
-   for the full-width Systems Hub, where 2.5rem between blocks reads as air; in
-   a 300px column it read as three separate boxes and pushed the last category
-   back under the scroll bar the compaction had just cleared.
-
-   Scoped to the compact container so the Hub keeps its own spacing - the
-   complaint was about the narrow columns, and a wide page wants the room. */
+/* Tighter gaps between categories in the compact columns, scoped so the Systems Hub
+   keeps its room. */
 .systems-grid-container-compact { gap: 1.1rem; }
 
 .systems-grid-container-compact .system-category-block .sidebar-master-title {
@@ -2187,14 +1823,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     padding-bottom: 0.35rem;
 }
 
-/* --- SITE SEARCH (v0.19 F1a, js/utility/search.js) ------------------------------
-   Injected by buildGlobalSidebarMenu above #global-sidebar-nav, so it lands
-   inside .global-sidebar-left on all 64 pages without any of them shipping
-   markup for it.
-
-   The results panel is absolutely positioned rather than in flow: the sidebar
-   scrolls, and a panel in flow would push the whole navigation list down by
-   its own height every time somebody typed two characters. */
+/* The search box (search.js), added above #global-sidebar-nav on every page. The
+   results panel is positioned, not in flow, so typing never pushes the navigation
+   down. */
 .site-search { position: relative; margin-bottom: 0.75rem; }
 
 .site-search-input {
@@ -2252,7 +1883,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-family: var(--text-mono); font-size: 0.65rem; text-align: center;
 }
 
-/* --- SEARCH PAGE (v0.19 F1b, search.html + js/pages/records/search-page.js) ----------- */
+/* The search page (search.html, search-page.js) */
 .search-page-header { margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; }
 .search-page-title { color: var(--accent-blue); }
 .search-page-blurb { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; margin-top: 0.5rem; max-width: 60ch; }
@@ -2301,21 +1932,16 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-more:hover { background: var(--accent-blue); color: #000; }
 
 
-/* --- MATCHUP CHART (v0.19 F4, js/dashboards/dashboards.js buildMatchupTable) --------
-   A 22x22 grid on a hub page that also has to work on a phone. The table is
-   given its natural width and the WRAPPER scrolls, rather than the table
-   shrinking to fit - squeezing 22 columns into a phone gives cells too small
-   to hit and a header nobody can read. */
+/* The matchup grid (buildMatchupTable): the table keeps its natural width and its
+   wrapper scrolls, since 22 columns squeezed onto a phone are too small to hit. */
 .matchup-grid-caption {
     color: var(--text-muted); font-family: var(--text-mono);
     font-size: 0.7rem; line-height: 1.5; margin: 0 0 0.75rem; max-width: 70ch;
 }
 
-/* position: relative makes this the containing block for every cell's
-   absolutely positioned .sr-only label. Without it the labels resolve against
-   an ancestor OUTSIDE the scroll box, escape its clipping, and the whole hub
-   page scrolled sideways on a phone: 639px wide at a 390px viewport, live from
-   v0.19 until v0.20 found it. */
+/* position: relative makes this the containing block for each cell's .sr-only
+   label, or the labels escape the scroll box and the page scrolls sideways on a
+   phone. */
 .matchup-grid-scroll {
     position: relative;
     overflow-x: auto; border: 2px solid var(--border-color);
@@ -2371,11 +1997,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     border: 1px solid var(--border-color);
 }
 
-/* --- MATCHUP CLASHES (v0.20, js/dashboards/dashboards.js buildMatchupTable) ---------
-   A pair whose two pages don't mirror each other, marked with a dark corner on
-   BOTH cells. The corner is a fixed #111 rather than a theme token because the
-   tier colours under it are fixed too, and every one of them, plus the white
-   an unknown tier gets, is light enough for it to read on. */
+/* A Clash: a dark corner on both cells of a pair whose pages do not mirror each
+   other. A fixed near-black, since every tier colour under it, and an unknown tier's
+   white, is light. */
 .matchup-grid-link.is-clash,
 .matchup-legend-swatch.is-clash { position: relative; }
 .matchup-legend-swatch.is-clash { background: var(--text-muted); }
@@ -2400,31 +2024,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .matchup-clashes a:hover { text-decoration: underline; }
 .matchup-clash-tier { font-weight: bold; }
 
-/* --- COMBO CARD: MULTIPLE SECTIONS (v0.19 C3b, owner 2026-09-20) ---
-   Each tab is a whole variant, so the row switches CARDS. It sits ABOVE the
-   card on the page background rather than inside it, which is how the owner's
-   reference reads - the card keeps its own box and the tabs label it.
-   The tab and panel styling itself is .sbox-tab / .sbox-panel, shared with the
-   Section Box rather than copied, so both rows behave identically. */
+/* A Combo Card's Multiple Sections: the tab row sits above the card, on the page,
+   labelling it; the tabs are .sbox-tab and .sbox-panel, shared with the Section Box. */
 .theorybox-sections { margin: 1.5rem 0; }
 .theorybox-sections > .sbox-panel > .theorybox { margin-top: 0; }
 
-/* --- TIER PORTRAIT CHANGE TOOLTIP (v0.19, owner 2026-09-20) ---
-   Rendered into the shared frame-data tooltip, so it inherits that box and
-   only has to say how its four lines relate to each other. */
+/* A tier portrait's change tooltip, inside the shared tooltip. */
 .ctl-tip-move { font-family: var(--text-mono); font-weight: bold; color: var(--accent-blue); }
 .ctl-tip-date { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.3rem; }
 .ctl-tip-note { max-width: 32ch; line-height: 1.45; }
 .ctl-tip-author { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }
 
-/* --- BOX-IN A LIST (v0.19 C7) ---
-   The owner's whole spec, carried since v0.15: "visual only, a sleek clean
-   border around the list". Opt-in per list (`boxed` on the block), so the
-   hundreds of lists already written are untouched.
-
-   The bullets move inside the box rather than hanging outside it - a marker
-   sitting on the border is the thing that stops it reading as clean - and the
-   list keeps its own bottom margin from .wiki-block-list above. */
+/* A boxed list, opt-in per list: a thin clean border, with the bullets inside it so
+   no marker sits on the border. */
 .wiki-block-list-boxed {
     border: 2px solid var(--border-color);
     background: var(--bg-secondary);
