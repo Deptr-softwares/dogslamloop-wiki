@@ -1,34 +1,14 @@
 /**
- * Dogslamloop Wiki - Editor: first-visit notices (v0.18 F6 and F7)
- *
- * Two one-time notices the owner asked for: one when somebody opens the editor,
- * one when they open the Media Library. Both point at the Writing Guide, which
- * is the thing that decides whether an edit gets accepted, and neither is worth
- * showing twice to the same person.
- *
- * THE COPY IS THE OWNER'S, AND IT WAS REVISED BY THEM. It arrived with "Do not
- * change anything" against it and was shipped verbatim; on 2026-09-08 the owner
- * asked for the grammar to be corrected, and this is that pass. Anything still
- * reading oddly is deliberate until they say otherwise - "Local Resource" stays
- * singular and capitalised because it reads as the name of a section in the
- * Writing Guide, while the lowercase "local resources" beside it is the
- * ordinary noun and was pluralised.
- *
- * Which words are bold and which are the link are the owner's too, and are not
- * a styling decision to revisit.
- *
- * WHY THIS IS THE ONE PLACE innerHTML TAKES MARKUP. Every other interpolation
- * in this project escapes, because the text is contributor-authored and
- * attacker-reachable. These two strings are the exception that proves it: they
- * are FIXED COPY, authored in this file, reaching innerHTML with no
- * substitution of any kind. `renderNotice` therefore takes a notice ID and
- * looks the body up in NOTICES - it does NOT take an HTML argument, so there is
- * no parameter for a caller to pass user text into later.
- *
- * The modal is built here rather than added to edit.html so that the copy, the
- * markup and the once-only rule sit together. Both surfaces are edit.html only
- * (#interactive-builder and #media-modal-overlay exist on no other page), so
- * this file has exactly one host.
+ * The two first-visit notices: one on opening the editor, one on opening the
+ * Media Library, both pointing at the Writing Guide, each shown once per browser.
+ * The editor's notice hands over to the tour.
+ * @since v0.18
+ * @touches localStorage dsl_notice_seen_*, startEditorTutorial, pauseEditorTutorial
+ *   and resumeEditorTutorial (editor-tutorial.js)
+ * @watch the copy is the owner's own, word for word, bold and link included. It
+ *   is the one place innerHTML takes markup: fixed copy from this file, looked up
+ *   by id, never passed in, so no caller can hand it user text.
+ * @see docs/editor.md
  */
 
 (function () {
@@ -37,10 +17,8 @@
     const SEEN_PREFIX = 'dsl_notice_seen_';
     const GUIDE = 'https://dogslamloop.com/systems/writing_guide/index.html';
 
-    // target="_blank" is a behaviour decision, not a change to the copy, and it
-    // is load-bearing: the editor holds unsaved work, and a same-tab navigation
-    // out of it would discard whatever the contributor had typed. rel="noopener"
-    // because a _blank link hands the new page a window.opener otherwise.
+    // A new tab: the editor holds unsaved work. noopener, or the new page gets a
+    // window.opener.
     const guideLink = `<a href="${GUIDE}" target="_blank" rel="noopener">Writing Guide</a>`;
 
     const NOTICES = {
@@ -60,17 +38,15 @@
         },
     };
 
-    // localStorage throws outright in some privacy modes rather than returning
-    // null, and a notice is not worth breaking the editor over. Failing to read
-    // shows the notice again; failing to write shows it again next visit. Both
-    // are the harmless direction.
+    // localStorage throws in some privacy modes. Both failures show the notice once
+    // more, which is harmless.
     function hasSeen(id) {
         try { return window.localStorage.getItem(SEEN_PREFIX + id) === '1'; }
         catch (e) { return false; }
     }
     function markSeen(id) {
         try { window.localStorage.setItem(SEEN_PREFIX + id, '1'); }
-        catch (e) { /* nothing to do - it will show once more */ }
+        catch (e) { /* it will show once more */ }
     }
 
     function dismiss(overlay) {
@@ -84,41 +60,26 @@
     }
 
     /**
-     * Shows a notice once per browser. Takes an ID, never markup - see the
-     * header. Returns true if it was shown.
+     * Shows a notice once per browser, by id, never by markup. True if it was shown.
      */
     window.showEditorNotice = function (id, opts = {}) {
         const notice = NOTICES[id];
         if (!notice) return false;
         if (!opts.force && hasSeen(id)) return false;
-        // Two notices stacked on top of each other is a modal nobody can read.
-        // Opening the Media Library on a first visit is the case: it fires
-        // while the editor notice may still be up.
+        // Two notices stacked is a modal nobody can read: the library can open while the
+        // editor's notice is up.
         if (openOverlay) return false;
 
-        // v0.19 F2. The tutorial hands over FROM this notice, so on a first
-        // visit the tour is open by the time somebody reaches the Media
-        // Library - and the tour's text box sits at the bottom of the screen,
-        // exactly where this modal's GOT IT button lands. The notice rendered
-        // visible and could not be clicked, which is this project's recurring
-        // failure shape; tests/editor-notices.spec.js timed out on that click.
-        //
-        // The tour steps aside and comes back. The first fix REFUSED the
-        // notice instead, and that was worse: a first-time contributor would
-        // never have seen the Media Library notice at all, because the tour is
-        // always open by the time they open the library. Both are the owner's
-        // features and neither should cost the other.
+        // The tour's text box sits where this modal's GOT IT lands, so the tour steps
+        // aside and comes back. Refusing the notice instead would mean a first-time
+        // contributor never sees the library's notice.
         const pausedTutorial = typeof window.pauseEditorTutorial === 'function'
             && window.pauseEditorTutorial();
 
         const overlay = document.createElement('div');
-        // editor-notice-overlay carries an explicit z-index. Appending to body
-        // would put this last in DOM order and win at the shared 10000 anyway,
-        // and that is precisely the mechanism style/editor.css warns about two
-        // paragraphs above its own confirm-layer rule - DELETE COMBO opened a
-        // confirmation a reviewer could see and could not click. The media
-        // notice is a RESPONSE to opening the Media Library, so it can never be
-        // the one underneath.
+        // Its own z-index: appended last at the shared 10000 it would win by DOM order,
+        // the mechanism editor.css warns about. A response to opening the library is
+        // never the one underneath.
         overlay.className = 'editor-modal-overlay editor-notice-overlay';
         overlay.id = `editor-notice-${id}`;
         overlay.setAttribute('role', 'dialog');
@@ -142,27 +103,16 @@
             dismiss(overlay);
             openOverlay = null;
 
-            // v0.19 F2: the editor notice hands straight over to the tutorial.
-            // The owner's sequence - read the notice, press GOT IT, get shown
-            // around - so the tour starts on the one click that proves somebody
-            // is actually looking at the editor rather than passing through.
-            //
-            // Only the editor notice. The Media Library one fires while
-            // somebody is mid-task picking a file, and interrupting that with a
-            // five-step tour of a screen behind the modal would be the opposite
-            // of helpful. startEditorTutorial is once-per-browser on its own
-            // account, so a returning contributor gets nothing here.
+            // GOT IT on the editor's notice starts the tour: the click proves somebody is
+            // looking at the editor. Not after the library's notice: they are picking a file.
+            // startEditorTutorial is once per browser on its own.
             if (id === 'editor' && typeof window.startEditorTutorial === 'function') {
                 window.startEditorTutorial();
             }
 
-            // Give the tour back. UNCONDITIONAL rather than only when this
-            // notice paused it, because the tour can also have opened paused
-            // on its own - it loads asynchronously and can arrive after this
-            // notice is already up. resumeEditorTutorial no-ops when there is
-            // no tour, so the unconditional call is the one that covers both
-            // orderings. `pausedTutorial` is kept only so the log of what
-            // happened stays readable at the pause site above.
+            // Always given back, not only when this notice paused it: the tour loads
+            // asynchronously and can open paused on its own. resumeEditorTutorial does
+            // nothing when there is no tour.
             void pausedTutorial;
             if (typeof window.resumeEditorTutorial === 'function') {
                 window.resumeEditorTutorial();
@@ -175,24 +125,19 @@
         return true;
     };
 
-    // Marked seen when SHOWN rather than when dismissed, deliberately: a
-    // contributor who closes the tab has still been shown it, and the
-    // alternative is a modal that reappears on every load until somebody clicks
-    // the button.
+    // Marked seen when shown, not when dismissed, or it would reappear on every load
+    // until someone clicks.
 
     document.addEventListener('DOMContentLoaded', () => {
-        // The editor page, not post-editor or tier-editor - both load this
-        // file's neighbours but are different tools with their own guidance.
+        // The editor page only: the Post editor and the tier editor have their own
+        // guidance.
         if (document.getElementById('interactive-builder')) {
             window.showEditorNotice('editor');
         }
     });
 
-    // Delegated, because the Media Library button is inside markup the block
-    // builder re-renders - a listener bound to the button would be dropped on
-    // the next render, which is the failure js/pages/core/pagebuilder.js's tab strip
-    // registry already documents. It also keeps editor-blocks.js unaware of
-    // notices entirely.
+    // Delegated: the Block editor redraws the library's button, and it keeps
+    // editor-blocks.js unaware of notices.
     document.addEventListener('click', (e) => {
         if (!e.target.closest) return;
         if (e.target.closest('#btn-media-library')) {

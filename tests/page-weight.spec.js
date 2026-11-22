@@ -30,7 +30,7 @@ const BUDGET = {
     'the editor_playground tool page': { js: 200, css: 50 },
     'the free_submit_tier_list tool page': { js: 205, css: 53 },
     '404.html': { js: 216, css: 53 },
-    'admin.html': { js: 317, css: 105 },
+    'admin.html': { js: 300, css: 105 },
     'blog.html': { js: 193, css: 53 },
     'characters/index.html': { js: 205, css: 50 },
     'edit.html': { js: 438, css: 87 },

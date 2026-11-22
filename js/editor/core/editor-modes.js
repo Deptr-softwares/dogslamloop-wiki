@@ -1,48 +1,33 @@
 /**
- * Dogslamloop Wiki - Editor: character modes
- *
- * The editor side of js/pages/core/character_modes.js. Same toggle, in the same shape and
- * the same place, because the live page is what contributors are looking at
- * when they decide what to write.
- *
- * The whole design rests on one trick: the editor never learns about modes.
- * window.currentEditorDescData and window.currentEditorFrameData are re-pointed
- * at the active mode's slice of the master objects, and every existing writer
- * - the block buffer, the move editor, the matchup list, the sync engine -
- * keeps writing through them exactly as before. The slice is a live reference
- * into the master, so those writes land in the right place with no plumbing.
- *
- * For the base mode the slice IS the master, by identity. That is what makes
- * this free for the 22 characters that have no modes: same objects, same
- * writes, same everything.
- *
- * Only two things had to know: the draft/submit path, which must persist the
- * master rather than the slice, and the delta builder, which wraps each scope
- * so a mode edit lands in modeData instead of over the base kit.
- *
- * Wrapped in an IIFE because every script on this page shares one global
- * scope, and js/owner/post-editor.js and js/dashboards/dashboards.js each already declare a
- * top-level `esc`.
+ * Character states in the editor: the same toggle as the live page
+ * (character_modes.js), in the same place, so contributors write what they see.
+ * The editor never learns about states: window.currentEditorDescData and
+ * currentEditorFrameData point at the active state's slice of the masters, a
+ * live reference, so every writer lands in the right place unchanged. For the
+ * base state the slice is the master itself.
+ * @since v0.12
+ * @touches window.editorMasterDescData and editorMasterFrameData, frame_data.modes,
+ *   modeData, ?mode=, window.interceptedTicketData
+ * @watch only two paths know about states: drafts and Submit persist the
+ *   masters, and scopeEditorDelta wraps each scope so a state's edit lands in
+ *   modeData. An IIFE, since other files declare a top-level `esc`.
+ * @see docs/editor.md
  */
 
 (function () {
-    // Anything that is not a system, tierlist or gallery page is a character
-    // page - the editor's own convention (see initFullTabEditor).
+    // Anything that is not a system, tier list, gallery or tool page is a character.
     const NON_CHARACTER_TYPES = new Set(['system', 'tierlist', 'gallery', 'tool']);
 
     function editorSupportsModes() {
         return !NON_CHARACTER_TYPES.has(window.currentEditorPageType);
     }
 
-    // Local fallbacks for the two trivial predicates this module leans on, so
-    // an hour-old cached site_utils.js cannot throw partway through a render.
-    // A one-line duplicate of a one-line predicate is cheaper than a module
-    // that dies when its dependency is a deploy behind.
+    // Fallbacks for two one-line predicates, so a stale cached site_utils.js cannot
+    // throw partway through a render.
     const BASE = () => (typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base');
     const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === BASE()));
 
-    // --- STATE ---
-    // The masters. currentEditor* are views onto these.
+    // The masters; currentEditor* are views onto them.
     window.editorMasterDescData = null;
     window.editorMasterFrameData = null;
     window.originalCloudMasterDesc = null;
@@ -51,10 +36,8 @@
     window.editorActiveMode = null;
     window.editorIsBaseOnlyCharacter = false;
 
-    // --- VIEWS ---
-    // Writable: creates the bucket, because this is the object the user is
-    // about to type into. Read-only: never creates, so the pristine cloud copy
-    // stays pristine and "this mode had nothing live" reads as an empty object.
+    // Writable creates the state's bucket, since it is about to be typed into.
+    // Read-only never does, so the cloud copy stays as it was.
     function writableView(master, modeId) {
         if (!master) return {};
         if (isBase(modeId)) return master;
@@ -69,6 +52,9 @@
         return (master.modeData && master.modeData[modeId]) || {};
     }
 
+    /**
+     * Points currentEditorDescData and currentEditorFrameData at the active state.
+     */
     window.applyEditorModeView = function() {
         const modeId = window.editorActiveMode;
 
@@ -77,46 +63,36 @@
         window.originalCloudDescData = readonlyView(window.originalCloudMasterDesc, modeId);
         window.originalCloudFrameData = readonlyView(window.originalCloudMasterFrame, modeId);
 
-        // js/pages/core/framedata.js resolves the preview's move arrays through this,
-        // exactly as the live page does - the editor preview and the real page
-        // therefore render a mode by the same code path rather than two that
-        // can drift.
+        // framedata.js resolves the preview's moves through this, as the live page does,
+        // so both render a state by one code path.
         window.activeCharacterMode = modeId;
     };
 
-    // --- DELTA SCOPING ---
-    // A base-mode edit emits the plain scope it always did, so every ticket
-    // already in the queue keeps applying. A mode edit is wrapped once here
-    // and unwrapped once in applyDeltaToData - the nine scopes in between
-    // never learn modes exist.
+    /**
+     * The scope a delta is sent under: plain for the base state, so every ticket in
+     * the queue keeps applying, and wrapped once for any other (applyDeltaToData
+     * unwraps it), so the scopes in between never learn states exist.
+     */
     window.scopeEditorDelta = function(scope, key) {
         if (isBase(window.editorActiveMode)) return { scope, key };
         return { scope: 'mode', key: `${window.editorActiveMode}::${scope}::${key}` };
     };
 
-    // --- MODE MANAGEMENT ---
     function declaredModes() {
         if (typeof window.getCharacterModes !== 'function') return [];
         return window.getCharacterModes(window.editorMasterFrameData || {});
     }
 
-    // site_utils.js is cached for an hour by GitHub Pages, and this file is
-    // new - so the first load after a deploy can pair a fresh copy of this
-    // file with an hour-old copy of that one. Calling into it bare threw
-    // straight through editor-core.js's boot try/catch and took the whole
-    // editor down with it ("Editor failed to initialize context", reported on
-    // the live site 2026-08-10). Every other cross-file call in this codebase
-    // is written `if (typeof window.x === 'function')` for exactly this
-    // reason; these two modules skipped it.
+    // After a deploy this file can meet an hour-old cached site_utils.js, and a bare
+    // call into it took the whole editor down. Cross-file calls check first.
     function sharedHelpersReady() {
         return typeof window.getCharacterModes === 'function'
             && typeof window.isBaseMode === 'function'
             && typeof window.BASE_MODE_ID === 'string';
     }
 
-    // Ids are the delta keys and the ?mode= in shared links, so they are fixed
-    // at creation and a later rename only ever touches the label. Renaming a
-    // state must not orphan its content.
+    // Ids are the delta keys and the ?mode= in shared links, fixed at creation: a
+    // rename touches the label only, so no content is orphaned.
     function nextModeId(existing, stem) {
         const taken = new Set(existing.map(m => m.id));
         if (!taken.has(stem)) return stem;
@@ -126,9 +102,8 @@
         return `${stem}-${Date.now()}`;
     }
 
-    // A full character's other states are its ultimates. A base-only
-    // character's ultimate is its own tab, so its states are other forms (an
-    // install, a buffed form), and are named and addressed for that.
+    // A full character's other states are its ultimates. A base-only character's
+    // ultimate is its own tab, so its states are other forms (an install).
     function newStateNaming() {
         return window.editorIsBaseOnlyCharacter
             ? { stem: 'state', word: 'New State' }
@@ -138,10 +113,8 @@
     const MAX_STATES = 4;
     const TOO_MANY_STATES = 'A character can have at most four states. Rename or remove one first.';
 
-    // A deep copy of the base kit's moves, every move tab of them, with the
-    // strategy notes written under them. The state's moves are its own from
-    // here on: a later fix to the base kit does not reach them, which is what
-    // the + STATE question says.
+    // A deep copy of the base kit's moves, with their strategy notes. From here they
+    // are the state's own: a later fix to the base kit does not reach them.
     function copyBaseKitInto(modeId) {
         const frame = window.editorMasterFrameData || {};
         const desc = window.editorMasterDescData || {};
@@ -163,17 +136,15 @@
         copied.forEach(id => { descSlice.moveStrategies[id] = clone(notes[id]); });
     }
 
-    // start: 'empty' (every tab blank, which is how a state has always
-    // started) or 'copy' (the base kit's moves). The + STATE button asks.
+    // start: 'empty' (every tab blank) or 'copy' (the base kit's moves); + STATE asks.
     window.addEditorMode = async function(start = 'empty') {
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
 
         const master = window.editorMasterFrameData;
         if (!master) return;
 
-        // The first added state implies the base one, which until now was just
-        // "the top level, with nothing declared about it". Declare it too, or
-        // the toggle has one button and no way back to the base kit.
+        // The first added state declares the base one too, or the toggle would have one
+        // button and no way back.
         if (!Array.isArray(master.modes) || master.modes.length === 0) {
             master.modes = [{ id: BASE(), label: 'Base Kit' }];
         }
@@ -192,9 +163,8 @@
         await window.setEditorMode(id);
     };
 
-    // An ultimate replaces the whole kit, so it starts empty. An install is
-    // mostly the same kit buffed, which is quicker as a copy. Asked before
-    // anything is made, so CANCEL leaves the page exactly as it was.
+    // An ultimate replaces the whole kit, so it starts empty; an install is mostly
+    // the kit buffed, quicker as a copy. Asked first, so CANCEL changes nothing.
     async function addStateFromBar() {
         if (declaredModes().length >= MAX_STATES) {
             window.editorAlert(TOO_MANY_STATES);
@@ -221,9 +191,8 @@
 
         entry.label = label;
 
-        // Only the chip's text, never a redraw: this runs on every keystroke
-        // in the name field, and rebuilding the controls would destroy the
-        // input being typed into.
+        // The chip's text only: this runs per keystroke, and a redraw would destroy the
+        // field being typed in.
         const chip = document.querySelector(`#editor-mode-bar [data-mode-id="${CSS.escape(entry.id)}"]`);
         if (chip) chip.textContent = label;
 
@@ -248,9 +217,7 @@
         if (frame) {
             if (Array.isArray(frame.modes)) frame.modes = frame.modes.filter(m => m.id !== doomed);
             if (frame.modeData) delete frame.modeData[doomed];
-            // One state left is no states at all - drop the declaration so the
-            // page goes back to being a plain character rather than showing a
-            // toggle with a single button on it.
+            // One state left is none: the declaration goes, and with it the toggle.
             if (Array.isArray(frame.modes) && frame.modes.length < 2) delete frame.modes;
         }
         if (desc && desc.modeData) delete desc.modeData[doomed];
@@ -258,22 +225,16 @@
         await window.setEditorMode(BASE());
     };
 
-    // --- SWITCHING ---
     window.setEditorMode = async function(modeId) {
         if (modeId === window.editorActiveMode) return;
 
-        // Flush before crossing: currentStrategyBlocks is a buffer that only
-        // reaches desc_data on sync, so switching without this drops whatever
-        // is being typed right now - into the wrong state, at that.
+        // Flushed first: the Block buffer reaches desc_data only on sync, and would land
+        // in the wrong state.
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
 
-        // Same reset as switchEditorTab, for the same reason: every sub-tab
-        // loader flushes the *previous* selection's blocks on entry, and the
-        // previous selection belongs to the state being left. The shared
-        // function, not a copy: a copy of three of its lines left the open
-        // Combos/Techs group and card set, so the state arrived at flushed the
-        // other state's card into its card of the same number (reported by an
-        // editor on Perfection's Techs, 2026-11-20).
+        // The reset switchEditorTab does, through the shared function: each loader
+        // flushes the previous selection's Blocks on entry, and that selection belongs
+        // to the state being left.
         window.clearEditorSubSelection();
 
         window.editorActiveMode = isBase(modeId) ? BASE() : modeId;
@@ -300,14 +261,13 @@
         if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
     };
 
-    // --- UI ---
     function renderEditorModeBar() {
         const bar = document.getElementById('editor-mode-bar');
         const controls = document.getElementById('editor-mode-controls');
         if (!bar) return;
 
-        // A base-only character's ultimate is the extra tab, not a state, but
-        // it can still have states: other forms, like an install.
+        // A base-only character's ultimate is a tab, not a state, but it can still have
+        // states: other forms, like an install.
         if (!editorSupportsModes()) {
             bar.classList.add('hidden');
             if (controls) controls.classList.add('hidden');
@@ -325,8 +285,7 @@
                 ` aria-pressed="${isActive ? 'true' : 'false'}" data-mode-id="${window.escapeHtml(m.id)}">${window.escapeHtml(m.label)}</button>`;
         }).join('');
 
-        // The add button carries no mode id, so the delegated handler can tell
-        // it apart without a second listener.
+        // The add button carries no mode id, so the delegated handler tells it apart.
         bar.innerHTML = `${chips}<button type="button" class="character-mode-chip editor-mode-add" data-mode-add="true">+ STATE</button>`;
 
         if (!controls) return;
@@ -385,28 +344,25 @@
         return false;
     }
 
-    // The Ultimate tab button ships in edit.html but stays hidden: it applies
-    // only to base-only characters, and offering it on a full character would
-    // invite writing an ultimate into a page whose ultimate is a state.
+    // The Ultimate tab is only for base-only characters: on a full character its
+    // ultimate is a state.
     function revealUltimateTab(show) {
         const btn = document.getElementById('edit-nav-ultimateAtk');
         if (btn) btn.classList.toggle('hidden', !show);
     }
 
-    // --- BOOT ---
-    // Called by js/editor/core/editor-core.js once desc/frame data are loaded and before
-    // the builder is routed, so the first initFullTabEditor already sees the
-    // right slice.
+    /**
+     * Sets up states once the page's data is loaded and before the builder is
+     * routed, so the first initFullTabEditor sees the right slice.
+     */
     window.initEditorModes = async function(pageId, descData, frameData) {
         window.editorMasterDescData = descData;
         window.editorMasterFrameData = frameData;
         window.originalCloudMasterDesc = window.originalCloudDescData;
         window.originalCloudMasterFrame = window.originalCloudFrameData;
 
-        // A stale cached site_utils.js means states cannot work this load.
-        // Leaving currentEditor* exactly as editor-core.js set them - the whole
-        // page objects - degrades to the pre-states editor, which edits the
-        // base kit correctly. The next reload picks up the fresh file.
+        // A stale cached site_utils.js: leave the whole page objects in place, which
+        // edits the base kit correctly. The next load picks up the fresh file.
         if (!sharedHelpersReady()) {
             console.warn('[Editor] Shared helpers are older than this file (likely a cached copy). Character states are off for this load; reload to restore them.');
             window.editorActiveMode = BASE();
@@ -422,13 +378,8 @@
 
         const modes = declaredModes();
 
-        // A reviewer intercepting a ticket must land on the state that ticket
-        // edits, not on the base kit - otherwise their corrections are written
-        // into the wrong state and submitted back over the base one. The
-        // ticket wins over ?mode=: admin.html now appends the state the
-        // reviewer was reading (js/overseer/admin-actions.js), but a mode-scoped ticket
-        // states outright which one it edits, and that is the stronger signal
-        // of the two when they disagree.
+        // A reviewer intercepting a ticket lands on the state it edits, or their
+        // corrections would go into the wrong state. The ticket wins over ?mode=.
         const intercepted = window.interceptedTicketData;
         const fromTicket = (intercepted && intercepted.target_scope === 'mode' && typeof intercepted.target_key === 'string')
             ? intercepted.target_key.split('::')[0]

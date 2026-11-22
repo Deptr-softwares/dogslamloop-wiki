@@ -1,64 +1,41 @@
 /**
- * Dogslamloop Wiki - The side-by-side diff, shared by the Overseer's DIFF VIEW
- * (js/overseer/admin-preview.js) and the editor's VIEW DIFF (js/editor/core/editor-sync.js)
- *
- * Owner's Overseer card (v1.2): "turning the navigation bar to an overlay that
- * can pop out and in, and then fit in the review panel that page current state
- * with all the red parts, and the current submission with all the green
- * parts". Picked from mockups on 2026-11-18: the whole page, side by side,
- * rows level with each other.
- *
- * HOW. Each caller draws both versions with the site's own renderers, the
- * ones the reader's page and the PENDING / LIVE views use, and hands the two
- * results to mount(). So each side looks exactly as the page would, and no
- * block type needs a diff of its own. Then:
- *
- *   1. Each side is cut into units: the smallest blocks that sit one above
- *      the other (a paragraph, a list item, a heading, a table, a Frame
- *      Track). A block holding inline content is one unit, so is anything
- *      that only makes sense whole (a table, a clip, an accordion).
- *   2. Units are paired: identical ones first (longest common subsequence),
- *      then, between two identical pairs, units of the same kind in order.
- *   3. Changes are marked: changed words red on the left and green on the
- *      right; a unit only one side has, outlined in its side's colour; a unit
- *      whose words match but whose picture changed (a clip, a colour, a
- *      Frame Track bar), outlined on both sides.
- *   4. The higher unit of each pair is pushed down until the two are level,
- *      so a change sits beside what it replaces. A unit standing in a row
- *      moves with its row. The gap left opposite a unit only one side has is
- *      the labelled slot ("Not on the live page").
- *
- * Text is never re-rendered here. Changed words are wrapped where they stand,
- * in elements this file creates, so nothing a contributor wrote goes through
- * innerHTML a second time. Labels are fixed strings set with textContent.
+ * The side-by-side diff of a whole page, rows level with each other, shared by
+ * the Overseer's DIFF VIEW (admin-preview.js) and the editor's VIEW DIFF
+ * (editor-sync.js). Each caller draws both versions with the site's own
+ * renderers and hands them to mount(), so each side looks as the page would and
+ * no Block type needs a diff of its own. Then each side is cut into units (the
+ * smallest blocks stacked one above the other), the units are paired (identical
+ * ones first, then the same kind in order), changes are marked (words red on the
+ * left and green on the right, a unit only one side has outlined, a changed
+ * picture outlined on both), and the higher unit of each pair is pushed down
+ * until the two are level.
+ * @since v1.2
+ * @watch text is never drawn again here: changed words are wrapped where they
+ *   stand, in elements this file makes, and labels are set with textContent
+ * @see docs/editor.md
  */
 (function () {
-    // Whole units, never cut further: a table's rows only line up as a
-    // table, a Frame Track's bars only beside its ruler, and an accordion or
-    // a clip is one thing to a reader.
+    // Whole units: a table's rows only line up as a table, a Frame Track's bars only
+    // beside its ruler, and an accordion or a clip is one thing to a reader.
     const ATOMIC = [
         'table', 'figure', 'img', 'video', 'iframe', 'picture', 'svg', 'canvas',
         'details', 'pre', 'blockquote', 'button', 'select', 'input', 'textarea', 'hr',
         '.frame-scroll-wrapper', '.skill-media-wrapper', '.sbs-spacer',
     ].join(',');
     const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT']);
-    // A box of its own, even when it flows inline: a section's title is an
-    // inline-block above its blocks (Layout.css), and a row of chips or
-    // badges holds nothing but inline-blocks.
+    // A box of its own even when it flows inline: a section's title is an inline-block
+    // above its Blocks, and a row of chips holds only inline-blocks.
     const BLOCKISH = new Set([
         'block', 'flow-root', 'flex', 'grid', 'list-item', 'table',
         'inline-block', 'inline-flex', 'inline-grid', 'inline-table',
     ]);
-    // A picture or a clip between two paragraphs flows inline but stands on
-    // its own line (an image block with no caption is a bare <img>).
+    // A picture or clip between two paragraphs stands on its own line.
     const REPLACED = new Set(['IMG', 'VIDEO', 'IFRAME', 'CANVAS', 'PICTURE', 'svg', 'SVG']);
     const DESCEND = new Set(['block', 'flow-root', 'flex', 'grid', 'list-item']);
-    // Past this many words a side, a unit is outlined instead of diffed word by
-    // word: the comparison table grows with the product of the two lengths
-    // (1,500 x 1,500 is about 4.5 MB).
+    // Past this many words a side, a unit is outlined instead: the comparison table
+    // grows with the product of the two lengths (1,500 x 1,500 is about 4.5 MB).
     const WORD_LIMIT = 1500;
-    // Where the Overseer and the editor go to one column (admin.css,
-    // editor.css). Stacked, there is nothing to line up.
+    // Where the Overseer and the editor go to one column: nothing to line up.
     const STACK_QUERY = '(max-width: 900px)';
 
     const DEFAULT_LABELS = {
@@ -72,8 +49,6 @@
 
     const cs = (el) => window.getComputedStyle(el);
     const hasLayout = (el) => el.getClientRects().length > 0;
-
-    // --- 1. UNITS ---
 
     function isContainer(el) {
         if (el.matches(ATOMIC)) return false;
@@ -93,10 +68,8 @@
         return blockChild;
     }
 
-    // A hidden element (another Micro Variant, a closed Section Box tab) is
-    // kept as one unit: it cannot be lined up, but its words are still
-    // compared, so its tab can say it changed and the marks are there when a
-    // reviewer opens it.
+    // A hidden element (another Micro Variant, a shut Section Box tab) is one unit:
+    // it cannot be lined up, but its words are compared, so its tab can say it changed.
     function collectUnits(root) {
         const units = [];
         const visit = (el) => {
@@ -123,31 +96,25 @@
         return list.join(' ');
     }
 
-    // What a reader would see, without what only the page's own bookkeeping
-    // sets: ids (renamed on the left), and where a lazy clip happens to be in
-    // loading. Two units with the same signature are the same unit.
+    // What a reader would see, without the page's bookkeeping (ids, a lazy clip's
+    // loading state). Two units with one signature are the same unit.
     function signatureOf(el) {
         const html = el.outerHTML
             .replace(/\s(?:id|src|data-lazy-src|poster|loading|aria-controls|aria-labelledby)="[^"]*"/g, '')
-            // A clip's shape comes from the stills list (js/pages/core/description.js),
-            // which can reach one side before the other.
+            // A clip's shape comes from the stills list, which can reach one side first.
             .replace(/aspect-ratio:[^;"]*;?\s*/g, '')
             .replace(/\sstyle=""/g, '')
             .replace(/\s+/g, ' ');
         return `${html}\u0001${mediaOf(el)}`;
     }
 
-    // --- 2. PAIRING ---
-
-    // Longest common subsequence over two arrays, by a key. Returns the
-    // matched index pairs in order.
+    // Longest common subsequence over two arrays, by a key: the matched index pairs.
     function lcsPairs(a, b, keyA, keyB) {
         const n = a.length;
         const m = b.length;
         if (!n || !m) return [];
         const width = m + 1;
-        // Uint16 holds any length here: the longest list compared is
-        // WORD_LIMIT words or one page's units.
+        // Uint16 holds any length here: at most WORD_LIMIT words or one page's units.
         const table = new Uint16Array((n + 1) * width);
         for (let i = n - 1; i >= 0; i--) {
             for (let j = m - 1; j >= 0; j--) {
@@ -167,8 +134,7 @@
         return pairs;
     }
 
-    // The two sides as one ordered sequence of rows: a pair (same or changed)
-    // or a unit only one side has.
+    // The two sides as one ordered list of rows: a pair, or a unit one side has.
     function align(left, right) {
         const sigL = left.map(signatureOf);
         const sigR = right.map(signatureOf);
@@ -202,8 +168,6 @@
         return seq;
     }
 
-    // --- 3. MARKING ---
-
     function wordTokens(root) {
         const tokens = [];
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -221,9 +185,8 @@
         return tokens;
     }
 
-    // Wraps the given tokens in <del> or <ins>. Neighbouring changed words in
-    // one text node become one mark, spaces between them included, so a
-    // rewritten sentence reads as one change rather than a row of boxes.
+    // Neighbouring changed words in one text node are one mark, so a rewritten
+    // sentence reads as one change.
     function wrapTokens(tokens, tag, cls) {
         const byNode = new Map();
         tokens.forEach(t => {
@@ -253,9 +216,8 @@
         });
     }
 
-    // Marks the words that differ. Returns false when it could not tell
-    // (too long to compare, or the same words), so the caller outlines the
-    // unit instead.
+    // False when it could not tell (too long, or the same words): the caller then
+    // outlines the unit.
     function markWords(l, r) {
         const a = wordTokens(l);
         const b = wordTokens(r);
@@ -272,9 +234,8 @@
     const holdsChange = (el) => el.matches('.sbs-changed, .sbs-gone, .sbs-new')
         || !!el.querySelector('del.diff-del, ins.diff-add, .sbs-changed');
 
-    // The tab that would show a hidden change: a Micro Variant's button
-    // (view-X is opened by tab-X, js/pages/core/framedata.js) or a Section Box's
-    // (data-sbox-panel N by data-sbox-tab N, js/pages/core/description.js).
+    // The tab that shows a hidden change: a Micro Variant's button (view-X by tab-X,
+    // framedata.js) or a Section Box's (data-sbox-panel N by data-sbox-tab N).
     function tabFor(hidden, col) {
         const view = hidden.closest('.view-section');
         if (view && view.id) {
@@ -290,8 +251,6 @@
         return null;
     }
 
-    // --- 4. LEVELLING ---
-
     function makeSpacer(parent, height, text) {
         const sp = document.createElement(/^(UL|OL)$/.test(parent.tagName) ? 'li' : 'div');
         sp.className = text ? 'sbs-spacer sbs-slot' : 'sbs-spacer';
@@ -304,14 +263,11 @@
 
     window.SideBySide = {
         /**
-         * Puts two drawn versions side by side in `host` and marks the
-         * difference. `left` and `right` are elements holding each version's
-         * drawn content, already finished (no renderer still writing into
-         * them), with each one's shortcodes already styled.
-         *
-         * opts.labels overrides DEFAULT_LABELS; opts.dataChanged says the
-         * caller's data differs, for the note when nothing visible does;
-         * opts.extraButtons are put in the bar, opts.leadButtons first in it.
+         * Puts two drawn versions side by side in `host` and marks the difference.
+         * `left` and `right` hold each version's finished content, tags already styled.
+         * opts.labels overrides DEFAULT_LABELS; opts.dataChanged says the caller's data
+         * differs, for the note when nothing visible does; opts.extraButtons go in the
+         * bar, opts.leadButtons first.
          */
         mount(host, left, right, opts = {}) {
             const labels = { ...DEFAULT_LABELS, ...(opts.labels || {}) };
@@ -380,7 +336,7 @@
                 }
             });
 
-            // An accordion that holds a change opens on both sides.
+            // An accordion holding a change opens on both sides.
             seq.forEach(e => {
                 if (e.type !== 'pair' || e.same) return;
                 if (e.l.tagName === 'DETAILS' && e.r.tagName === 'DETAILS') { e.l.open = true; e.r.open = true; }
@@ -409,13 +365,12 @@
             const changes = stops.length;
             count.textContent = changes === 0 ? 'No change on this tab'
                 : (changes === 1 ? '1 change on this tab' : `${changes} changes on this tab`);
-            // A class, not the hidden attribute: .btn-sys sets a display,
-            // which beats [hidden] (CLAUDE.md, Conventions).
+            // A class, not `hidden`: .btn-sys sets a display, which beats [hidden].
             next.classList.toggle('hidden', changes === 0);
             if (changes === 0) {
                 note.hidden = false;
-                // The Overseer knows which tabs a submission touched; the
-                // editor does not, so it gets the sentence that is true either way.
+                // The Overseer knows which tabs a submission touched; the editor gets the
+                // sentence that is true either way.
                 if (opts.dataChanged === true) note.textContent = 'This tab changed in ways the page does not show (an editor folder or a setting, for example). CHANGE LIST shows where.';
                 else if (opts.dataChanged === false) note.textContent = 'Nothing on this tab changed.';
                 else note.textContent = 'Nothing this tab shows has changed.';
@@ -433,24 +388,19 @@
                 });
             });
 
-            // --- levelling, and keeping it level ---
             const saved = new Map();
             const stacked = window.matchMedia(STACK_QUERY);
             const topOf = (el) => el.getBoundingClientRect().top;
 
-            // Side by side rather than one above the other: a flex row, or a
-            // grid of more than one column.
+            // Side by side: a flex row, or a grid of more than one column.
             const isRow = (el) => {
                 const c = cs(el);
                 if (/flex/.test(c.display)) return !c.flexDirection.startsWith('column');
                 if (/grid/.test(c.display)) return c.gridTemplateColumns.trim().split(/\s+/).length > 1;
                 return false;
             };
-            // What moves to level a unit: the unit, or the row it stands in.
-            // Pushing one item of a row down makes the whole row taller and
-            // stretches the items beside it (a Micro Variant's tab bar,
-            // 2026-11-21). The row moves as one instead, so the next pair in
-            // the same two rows is usually level already.
+            // What moves to level a unit: the unit, or the row it stands in. Pushing one item
+            // of a row stretches the items beside it, so the row moves as one.
             const moverOf = (el) => {
                 while (el.parentElement !== left && el.parentElement !== right && isRow(el.parentElement)) el = el.parentElement;
                 return el;
@@ -462,21 +412,17 @@
                 saved.clear();
             }
 
-            // Pushes `unit` down by `by` pixels, by moving it or its row
-            // (moverOf): a spacer before that in ordinary flow, or a larger top
-            // margin where a new element would become a flex item or a grid
-            // cell. Then corrects for margins that collapsed differently once
-            // the spacer was there.
+            // Pushes `unit` down by `by` pixels, moving it or its row: a spacer in ordinary
+            // flow, or a larger top margin for a flex item or grid cell, then corrected for
+            // margins that collapse differently.
             function push(unit, by, twin, slotText) {
                 const el = moverOf(unit);
                 const parent = el.parentElement;
                 const display = cs(parent).display;
                 if (/flex|grid/.test(display)) {
                     if (!saved.has(el)) saved.set(el, el.style.marginTop);
-                    // At once, and for good: a margin that animates (many
-                    // things here have `transition: all`) is still moving
-                    // after it was measured, so the observer below would
-                    // level again, mid-animation, every frame.
+                    // At once: an animated margin is still moving after it is measured, and the
+                    // observer below would level again every frame.
                     el.style.transition = 'none';
                     const base = parseFloat(cs(el).marginTop) || 0;
                     el.style.marginTop = `${base + by}px`;
@@ -513,9 +459,8 @@
                         gapL = 0;
                         gapR = 0;
                     });
-                    // Rows after the last pair: the shorter side ends in a slot,
-                    // after its content rather than in it, since the content
-                    // root can be a flex row (a system page's tab).
+                    // After the last pair the shorter side ends in a slot, after its content, since
+                    // the content root can be a flex row.
                     const diff = right.getBoundingClientRect().bottom - left.getBoundingClientRect().bottom;
                     if (Math.abs(diff) >= 1) {
                         if (diff > 0) leftCol.appendChild(makeSpacer(leftCol, diff, gapR && !gapL ? labels.onlyRight : ''));
@@ -527,10 +472,8 @@
                 }
             }
 
-            // A clip or an image that loads, an accordion, a Micro Variant
-            // switched: anything that changes a side's height lines the rows
-            // up again. Heights equal to the ones the last levelling left
-            // behind are its own doing and are ignored.
+            // Anything that changes a side's height (a clip loading, an accordion, a Micro
+            // Variant) levels the rows again. Heights the last levelling left are ignored.
             let frame = 0;
             const observer = new ResizeObserver(() => {
                 if (aligning) return;
@@ -543,10 +486,8 @@
             const onStack = () => level();
             stacked.addEventListener('change', onStack);
 
-            // --- the two sides move together ---
-            // A Micro Variant or Section Box tab pressed on one side is pressed
-            // on the other, and an accordion opened on one opens on the other,
-            // so the reader keeps comparing like with like.
+            // The two sides move together: a tab pressed or an accordion opened on one side
+            // does the same on the other, so the reader compares like with like.
             const unitOf = (el) => {
                 for (let at = el; at && at !== cols; at = at.parentElement) {
                     if (partner.has(at)) return at;

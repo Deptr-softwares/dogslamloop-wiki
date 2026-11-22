@@ -1,33 +1,23 @@
 /**
- * Dogslamloop Wiki - Editor Playground (v1.1)
- *
- * edit.html?playground: the real editor, where nothing is sent anywhere. The
- * owner, 2026-10-18: "a place where Editor can mess around with the Editor as
- * much as they like without any consequences or worry". It starts as a blank
- * character page, and Submit becomes Pull: "the editor can pull page_data
- * from any page and edit them in the editor playground".
- *
- * Open to anyone, signed in or not. What makes it safe is what it cannot do,
- * and each of those is switched off where it happens, not hidden from here:
- *
- *   Submit           js/editor/core/editor-core.js never wires the button
- *   media uploads    js/editor/tools/editor-media.js refuses them
- *   Conflict Check   js/editor/core/editor-config.js leaves it out of Config > Actions
- *   page drafts      js/editor/core/editor-drafts.js writes the one Playground draft
- *                    instead, under its own key, so practising on Boomcat
- *                    never touches a real Boomcat draft
- *
- * Runs while the page is still loading, before js/editor/core/editor-core.js reads the
- * address, because the Playground's draft decides which page is open.
+ * The Editor Playground, edit.html?playground: the real editor, where nothing is
+ * sent anywhere, open to anyone. It starts as a blank character page, and Submit
+ * becomes Pull, which copies any page's data in to edit.
+ * @since v1.1
+ * @touches window.editorPlayground, localStorage (its one draft), data/navigation.json
+ * @watch what it cannot do is switched off where it happens: editor-core.js never
+ *   wires Submit, editor-media.js refuses uploads, editor-config.js leaves out the
+ *   Conflict Check, editor-drafts.js keeps its one draft apart from the page's.
+ *   Runs while the page loads, before editor-core.js reads the address.
+ * @see docs/editor.md
  */
 (function () {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('playground')) return;
 
     const DRAFT_KEY = 'dsl_playground';
-    // Not a page: the blank start is never fetched (js/editor/core/editor-core.js).
+    // Not a page: the blank start is never fetched.
     const BLANK_ID = 'playground';
-    // The page types edit.html opens. A tier list has its own editor.
+    // The page types edit.html opens; a tier list has its own editor.
     const PULLABLE_TYPES = new Set(['character', 'system', 'tool', 'gallery']);
 
     let draft = null;
@@ -41,17 +31,15 @@
 
     const pulling = params.get('pull') === '1';
 
-    // The draft decides what is open, not the address: there is one
-    // Playground, and an old link must not open a second. A pull is the one
-    // time the address wins, and it replaces the draft once loaded.
+    // The draft decides what is open, not the address: one Playground, and an old
+    // link must not open a second. A pull is the one time the address wins.
     if (!pulling) {
         params.set('page', draft ? draft.charId : BLANK_ID);
         params.set('type', draft && typeof draft.pageType === 'string' ? draft.pageType : 'character');
         params.set('tab', draft && typeof draft.tabId === 'string' ? draft.tabId : 'overview');
         params.delete('move');
     }
-    // Every way the editor opens something real: a ticket, a draft, a
-    // character state carried over from a page.
+    // Every way the editor opens something real: a ticket, a draft, a state.
     ['char', 'editTicket', 'loadDraft', 'draftKey', 'mode'].forEach(name => params.delete(name));
     window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
 
@@ -62,12 +50,10 @@
         draft: pulling ? null : draft,
     };
 
-    // --- THE HEADER ---
-
     const byId = (id) => document.getElementById(id);
     ['btn-drafts', 'btn-save'].forEach(id => { const node = byId(id); if (node) node.classList.add('hidden'); });
-    // Removed, not hidden: it is about Submit, and initEditorChrome would
-    // un-hide it from the reader's dismissed-or-not preference.
+    // Removed, not hidden: it is about Submit, and initEditorChrome would show it
+    // again.
     const tip = byId('editor-scope-tip');
     if (tip) tip.remove();
 
@@ -116,8 +102,6 @@
         go('playground');
     }
 
-    // --- PULL ---
-
     async function pullablePages() {
         const nav = await window.fetchNavigationData();
         const groups = [];
@@ -125,7 +109,7 @@
             if (!Array.isArray(entries)) return;
             const pages = entries.filter(e => e && e.cms_config && e.cms_config.pageId
                 && PULLABLE_TYPES.has(e.cms_config.pageType)
-                // A locked page has no editor, the Playground's own included.
+                // A locked page has no editor, the Playground's included.
                 && e.cms_config.editRole !== 'locked'
                 && e.cms_config.pageId !== 'editor_playground');
             if (pages.length) groups.push({ category, pages });
@@ -220,9 +204,7 @@
         go(`playground&${query.toString()}`);
     }
 
-    // --- ONCE THE EDITOR HAS LOADED ---
-
-    // The name the menus use, or the id written out if the page has left them.
+    // The name the menus use, or the id written out.
     async function pageName(id) {
         try {
             const nav = await window.fetchNavigationData();
@@ -235,14 +217,13 @@
         return String(id).split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     }
 
-    // Called by js/editor/core/editor-core.js at the end of its boot.
+    // Called at the end of editor-core.js's boot.
     window.playgroundBooted = async function () {
         const now = new URLSearchParams(window.location.search);
         const id = now.get('page');
 
-        // A pull is the Playground's new draft from the start, so leaving
-        // before the first edit still comes back to it, and a reload does not
-        // pull again over the edits.
+        // A pull is the new draft from the start, so leaving before the first edit comes
+        // back to it, and a reload does not pull again over the edits.
         if (now.get('pull') === '1') {
             if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
             now.delete('pull');

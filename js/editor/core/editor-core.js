@@ -1,36 +1,36 @@
-// --- RECLAIMING EDITOR SPACE (owner's fine-tuning item, 2026-08-14) ---
-//
-// Two controls that answer the same complaint: the top of the editor was
-// spending vertical space on things a contributor reads once and then writes
-// underneath for an hour.
-//
-// Both remember their state in localStorage, which is per-browser rather than
-// per-account on purpose - this is a preference about a screen, not a fact
-// about a person, and storing it server-side would mean a round trip before
-// the editor could draw itself.
+/**
+ * The editor's start-up and Submit: the collapsible header and the Workspace
+ * splitter, loading the page (and a ticket, or a draft), routing to the tab's
+ * editor, the QA modal, and the Submit pipeline that turns every change into
+ * deltas for the review queue.
+ * @since v0.4, as part of editor.js
+ * @touches page_data, pending_revisions, page_permissions, user_roles,
+ *   site_settings, window.currentEditorDescData and currentEditorFrameData,
+ *   editorMasterDescData (editor-modes.js), localStorage dsl_editor_*
+ * @watch the role and cooldown checks here only choose the message: RLS and
+ *   check_revision_rate_limit() are the boundary, and the two must agree. An
+ *   intercept whose ticket did not load is refused, never sent as a new
+ *   submission.
+ * @see docs/editor.md
+ */
+// The header and the splitter remember their state per browser: a preference
+// about a screen, read before the editor draws.
 const EDITOR_CHROME_KEY = 'dsl_editor_chrome_collapsed';
 const EDITOR_TIP_KEY = 'dsl_editor_tip_dismissed';
 const EDITOR_SPLIT_KEY = 'dsl_editor_split_pct';
 
-// 30/70 stays the default deliberately: the preview exists to show the page at
-// the proportions a reader gets, so widening the workspace is a trade the
-// writer opts into rather than the state they start in (owner, 2026-08-25).
+// 30/70 is the default: the preview shows the page at a reader's proportions, and
+// a wider Workspace is a trade the writer opts into.
 const EDITOR_SPLIT_DEFAULT = 30;
-// Floors in PIXELS, not percent. A percentage that is comfortable at 1920 is
-// unusable at 1280, and the preview needs enough width to still be a preview.
+// Floors in pixels: a percentage comfortable at 1920 is unusable at 1280.
 const EDITOR_SPLIT_MIN_PX = 300;
 const EDITOR_PREVIEW_MIN_PX = 360;
-// How close a drag has to get to the default before it clicks onto it exactly
-// (owner, 2026-08-25). The point of the default is that it shows the page at a
-// reader's proportions, and "roughly 30%" is not that - without a snap you can
-// only land on it by accident, and a preview one percent off is a preview of a
-// layout nobody has. Percent rather than px so the pull feels the same on a
-// laptop and an ultrawide.
+// A drag this close to the default snaps onto it exactly: "roughly 30%" is not a
+// reader's proportions. Percent, so the pull feels the same on any width.
 const EDITOR_SPLIT_SNAP_PCT = 2;
 
-// localStorage throws outright in a few real configurations - Safari's private
-// mode historically, and any browser with site data blocked. A contributor
-// with cookies off should still get a working editor, just one that forgets.
+// localStorage throws in some setups (private mode, site data blocked): the
+// editor still works and only forgets.
 function editorPrefRead(key) {
     try { return window.localStorage.getItem(key) === '1'; } catch (e) { return false; }
 }
@@ -39,7 +39,7 @@ function editorPrefWrite(key, on) {
     try {
         if (on) window.localStorage.setItem(key, '1');
         else window.localStorage.removeItem(key);
-    } catch (e) { /* preference is lost, the control still works this session */ }
+    } catch (e) { /* the control still works this session */ }
 }
 
 window.setEditorChromeCollapsed = function (collapsed) {
@@ -72,15 +72,16 @@ function editorPrefWriteNum(key, n) {
     try { window.localStorage.setItem(key, String(n)); } catch (e) { /* forgets, still works */ }
 }
 
-// Clamped in pixels and returned as a percentage. Both panes have a floor: a
-// workspace under ~300px cannot hold the block cards, and a preview under
-// ~360px stops being a preview of anything.
+/**
+ * A split percentage clamped to both panes' floors in pixels: a Workspace under
+ * about 300px cannot hold the cards, and a preview under about 360px is none.
+ * @since v0.16
+ */
 window.clampEditorSplit = function (pct, layoutWidth) {
     if (!layoutWidth) return pct;
     const minPct = (EDITOR_SPLIT_MIN_PX / layoutWidth) * 100;
     const maxPct = ((layoutWidth - EDITOR_PREVIEW_MIN_PX) / layoutWidth) * 100;
-    // A window too narrow to satisfy both floors: the default is the least-bad
-    // answer, and it is what the layout would have done anyway.
+    // Too narrow for both floors: the default is the least bad answer.
     if (minPct > maxPct) return EDITOR_SPLIT_DEFAULT;
     return Math.min(Math.max(pct, minPct), maxPct);
 };
@@ -90,8 +91,7 @@ window.setEditorSplit = function (pct, persist) {
     if (!layout) return;
     const clamped = window.clampEditorSplit(pct, layout.getBoundingClientRect().width);
     layout.style.setProperty('--editor-split', clamped.toFixed(3) + '%');
-    // A focusable separator tells a screen reader where it stands: the
-    // workspace's share of the width, in percent.
+    // The separator tells a screen reader the Workspace's share, in percent.
     const splitter = document.getElementById('editor-splitter');
     if (splitter) splitter.setAttribute('aria-valuenow', String(Math.round(clamped)));
     if (persist) editorPrefWriteNum(EDITOR_SPLIT_KEY, Math.round(clamped * 1000) / 1000);
@@ -110,17 +110,15 @@ window.initEditorSplitter = function () {
         const r = layout.getBoundingClientRect();
         if (!r.width) return;
         const raw = ((clientX - r.left) / r.width) * 100;
-        // Snap only while dragging. The keyboard steps in 1% and 5% units and
-        // would otherwise be unable to leave the default at all.
+        // Only while dragging: the keyboard's 1% steps could never leave the default.
         const snapped = Math.abs(raw - EDITOR_SPLIT_DEFAULT) <= EDITOR_SPLIT_SNAP_PCT
             ? EDITOR_SPLIT_DEFAULT : raw;
         splitter.classList.toggle('is-snapped', snapped === EDITOR_SPLIT_DEFAULT);
         window.setEditorSplit(snapped, false);
     };
 
-    // Pointer events rather than mouse: one code path covers a trackpad, a
-    // mouse and a stylus, and setPointerCapture keeps the drag alive when the
-    // cursor outruns the 5px bar - which it does immediately.
+    // Pointer events cover a trackpad, a mouse and a stylus, and pointer capture
+    // keeps the drag once the cursor outruns the 5px bar.
     splitter.addEventListener('pointerdown', (e) => {
         dragging = true;
         splitter.setPointerCapture(e.pointerId);
@@ -140,19 +138,17 @@ window.initEditorSplitter = function () {
         splitter.classList.remove('is-dragging');
         splitter.classList.remove('is-snapped');
         layout.classList.remove('is-resizing');
-        // Persisted once, at the end. Writing on every pointermove would put a
-        // localStorage round trip inside the drag loop.
+        // Saved once, at the end, not inside the drag loop.
         const current = parseFloat(getComputedStyle(layout).getPropertyValue('--editor-split'));
         window.setEditorSplit(Number.isFinite(current) ? current : EDITOR_SPLIT_DEFAULT, true);
     };
     splitter.addEventListener('pointerup', endDrag);
     splitter.addEventListener('pointercancel', endDrag);
 
-    // Back to the proportions a reader sees, in one gesture.
+    // Back to a reader's proportions in one gesture.
     splitter.addEventListener('dblclick', () => window.setEditorSplit(EDITOR_SPLIT_DEFAULT, true));
 
-    // Keyboard, because a separator with tabindex that does nothing on arrow
-    // keys is worse than one nobody can focus.
+    // A focusable separator must answer the arrow keys.
     splitter.addEventListener('keydown', (e) => {
         const step = e.shiftKey ? 5 : 1;
         const current = parseFloat(getComputedStyle(layout).getPropertyValue('--editor-split')) || EDITOR_SPLIT_DEFAULT;
@@ -161,14 +157,18 @@ window.initEditorSplitter = function () {
         else if (e.key === 'Home') { window.setEditorSplit(EDITOR_SPLIT_DEFAULT, true); e.preventDefault(); }
     });
 
-    // A stored percentage can violate the pixel floors after a window resize -
-    // 45% is roomy at 1920 and leaves no preview at 1100.
+    // A stored percentage can break the floors after a resize.
     window.addEventListener('resize', () => {
         const current = parseFloat(getComputedStyle(layout).getPropertyValue('--editor-split'));
         if (Number.isFinite(current)) window.setEditorSplit(current, false);
     });
 };
 
+/**
+ * Wires the header's collapse button and the splitter. The Playground calls it
+ * too.
+ * @since v0.14
+ */
 window.initEditorChrome = function () {
     window.initEditorSplitter();
 
@@ -176,8 +176,7 @@ window.initEditorChrome = function () {
     const dismiss = document.getElementById('btn-dismiss-tip');
     if (!toggle && !dismiss) return;
 
-    // Applied before any listener is bound, so the editor opens the way it was
-    // left rather than flashing the full header first.
+    // Before any listener, so the editor opens as it was left.
     window.setEditorChromeCollapsed(editorPrefRead(EDITOR_CHROME_KEY));
     window.setEditorTipDismissed(editorPrefRead(EDITOR_TIP_KEY));
 
@@ -193,27 +192,19 @@ window.initEditorChrome = function () {
 
 document.addEventListener('DOMContentLoaded', window.initEditorChrome);
 
-// --- LEAVING THE EDITOR ---
-// Cancel used to be a bare window.history.back(). A reviewer intercepting a
-// ticket arrives via window.open(..., '_blank') from admin.html, and a fresh
-// tab has no history entry to go back to - so the button did nothing at all,
-// which is exactly how it was reported. Each step in cancelEditor below is a
-// real exit; the chain only exists because no single one covers every way in.
-// Where cancel lands when there is no history and no opener - a deep link
-// straight into the editor, from a bookmark or a pasted URL. Separate from
-// cancelEditor so the choice can be asserted without stubbing navigation.
+// Leaving the editor. A reviewer intercepting a ticket arrives in a new tab with
+// no history, so each step in cancelEditor is a real exit, and none covers every
+// way in alone. This picks where a deep link with no history goes.
 window.editorExitDestination = function(search = window.location.search) {
     const params = new URLSearchParams(search);
     const pageId = params.get('page') || params.get('char');
     const pageType = params.get('type') || 'character';
 
-    // The Playground goes back to its own page, not to the page it copied.
+    // The Playground goes back to its own page.
     if (params.has('playground')) return 'tools/editor-playground/';
 
-    // Staff go back to the queue they were working; everyone else to the page.
-    // An author editing their OWN submission goes to My Submissions instead:
-    // admin.html turns a contributor away, and since v1.1 every new
-    // submission carries on as an edit of itself, with ?editTicket= set.
+    // Staff go back to the queue, an author editing their own submission to My
+    // Submissions (the Overseer turns a contributor away), everyone else to the page.
     if (params.get('editTicket')) {
         const own = window.interceptedTicketData && window.currentGlobalUserId
             && window.interceptedTicketData.author_id === window.currentGlobalUserId;
@@ -223,12 +214,12 @@ window.editorExitDestination = function(search = window.location.search) {
     return 'index.html';
 };
 
-// After a NEW submission succeeds, the editor carries on as an edit of it
-// (v1.1). Before this, the button still said Submit, so anyone who kept going
-// and pressed it again sent a second submission holding the first one's
-// content as well. It takes the same state an EDIT from My Submissions sets up:
-// the ticket id in the URL (so a reload continues it too), the row, and the
-// purple UPDATE button.
+/**
+ * After a new submission, the editor carries on as an edit of it: the ticket id
+ * in the URL (so a reload continues it), the row, and the purple UPDATE button.
+ * Pressing Submit again would otherwise send a second submission.
+ * @since v1.1
+ */
 window.adoptOwnSubmission = function(row) {
     window.activeEditTicketId = row.id;
     window.interceptedTicketData = row;
@@ -247,46 +238,27 @@ window.adoptOwnSubmission = function(row) {
 };
 
 /**
- * Rebuild the delta for an intercepted ticket, from whatever is in the editor
- * right now.
- *
- * Returns null when the ticket has NO single scope to rebuild, which means the
- * caller must fall back to the ordinary diff scanner. Two shapes do:
- *
- *   'multi'   - a batch of deltas, produced both by the editor's own batching
- *               (buildPayload('multi','batch',...)) and by the admin merge
- *               compiler. There is no `currentEditorDescData.multi` to read.
- *   legacy    - is_delta false, target_scope null. A whole-page upload from
- *               before the delta model; same problem, no scope to resolve.
- *
- * WHY THIS RETURNS NULL INSTEAD OF GUESSING (v0.17). It used to fall through to
- * `dPayload = window.currentEditorDescData[scope]`, which for both shapes above
- * is `undefined`. supabase-js serializes the update with JSON.stringify, and
- * JSON.stringify DROPS undefined values - so `delta_payload` was not in the
- * PATCH at all and the column kept its old contents. The row's author_id,
- * status and qa_metadata all updated, the request returned no error, the button
- * said UPDATED! and the reviewer's edits were gone. That is the "nothing
- * changed" the owner reported.
- *
- * A merged ticket is the common case here, not a corner: merging is a feature
- * of the queue, and every merged ticket is 'multi'.
+ * The delta for an intercepted ticket, rebuilt from the editor. null when the
+ * ticket has no single scope: a 'multi' batch (the editor's own, or the merge
+ * compiler's) or a legacy whole-page upload. The caller then scans as Submit does.
+ * @since v0.17
+ * @watch never return undefined: JSON.stringify drops it from the update, which
+ *   then succeeds and changes nothing
  */
 window.buildInterceptDelta = function (ticket) {
     if (!ticket) return null;
 
-    // Legacy whole-page upload: nothing scoped to rebuild.
+    // A legacy whole-page upload: nothing scoped to rebuild.
     if (!ticket.is_delta) return null;
 
     let scope = ticket.target_scope;
     let key = ticket.target_key;
 
-    // A batch has no single target. The caller re-scans and re-batches.
+    // A batch has no single target.
     if (scope === 'multi') return null;
 
-    // Unwrap a character-state ticket back to the plain scope it wraps.
-    // initEditorModes has already switched the editor into that state, so the
-    // currentEditor* reads below are the right slice, and buildPayload re-wraps
-    // on the way out.
+    // A character state's ticket unwraps to the plain scope. initEditorModes has
+    // already opened that state, and buildPayload wraps it again.
     if (scope === 'mode' && typeof key === 'string') {
         const parts = key.split('::');
         parts.shift();
@@ -306,8 +278,7 @@ window.buildInterceptDelta = function (ticket) {
             desc_data: (window.currentEditorDescData.moveStrategies || {})[mId] || []
         };
     } else if (scope === 'extra' || window.getKeyedSectionByScope(scope)) {
-        // 'extra' is not a tab, so it stays named here; every other array scope
-        // resolves through the vocabulary.
+        // 'extra' is not a tab; every other array scope resolves through the vocabulary.
         const section = window.getKeyedSectionByScope(scope);
         const field = section ? section.field : 'extras';
         const list = window.currentEditorDescData[field];
@@ -317,22 +288,25 @@ window.buildInterceptDelta = function (ticket) {
         delta = window.currentEditorDescData[scope];
     }
 
-    // The guard that was missing. An undefined delta is not a small edit - it
-    // is a write that silently does nothing, so it must never reach the update.
+    // An undefined delta is a write that does nothing, so it never reaches the update.
     if (delta === undefined) return null;
 
     return { scope, key, delta };
 };
 
+/**
+ * Leaves the editor: closes a tab the queue opened, goes back where there is
+ * history, or goes to editorExitDestination.
+ * @since v0.12
+ */
 window.cancelEditor = function() {
-    // Opened by script from the review queue: closing reveals admin.html
-    // underneath, which is where the reviewer wants to be.
+    // Opened from the review queue: closing shows the Overseer underneath.
     if (window.opener && !window.opener.closed) {
         window.close();
         return;
     }
 
-    // Navigated to normally - length 1 means this tab has been nowhere else.
+    // Length 1: this tab has been nowhere else.
     if (window.history.length > 1) {
         window.history.back();
         return;
@@ -341,16 +315,9 @@ window.cancelEditor = function() {
     window.location.href = window.editorExitDestination();
 };
 
-// applyDeltaToData is defined once, in site_data.js (loaded before this file).
-// triggerManualSync, updateLivePreview, toggleDiffMode, and renderDiffView all
-// moved to js/editor/core/editor-sync.js; diffTextLCS to js/utility/diff-markers.js.
-
-// A character-state edit is wrapped once, here, and unwrapped once in
-// applyDeltaToData. 'multi' is the envelope around deltas that have each
-// already been wrapped, so wrapping it again would nest a batch inside a state.
-// 'modes' is the page-level list of which states exist - it belongs to the
-// character, not to any one of them. So does 'pageConfig', the page's own
-// settings (v1.1).
+// A character state's edit is wrapped once here and unwrapped once in
+// applyDeltaToData. 'multi' holds deltas already wrapped, and 'modes' and
+// 'pageConfig' belong to the character, not to one state.
 function scopeSubmissionDelta(scope, key) {
     const unwrappable = scope === 'multi' || scope === 'modes' || scope === 'pageConfig';
     return (unwrappable || typeof window.scopeEditorDelta !== 'function')
@@ -359,35 +326,24 @@ function scopeSubmissionDelta(scope, key) {
 }
 
 /**
- * EVERY CHANGE ON SCREEN, AS SUBMIT WOULD SEND IT (v1.1)
- *
- * The Submit handler's change scan, lifted out of it unchanged so the Edit
- * Conflict Check in Config > Actions (js/editor/core/editor-config.js) reads the very list
- * Submit sends, not a second scan that would drift from it. Returns
- * [{ scope, key, payload }] against the page as the editor loaded it, each
- * scope already wrapped for its character state.
- *
- * Async because a system, tier list or tool page flushes its block buffer
- * first, as Submit always has.
+ * Every change on screen as Submit sends it, [{ scope, key, payload }] against
+ * the page as loaded, each wrapped for its character state. Config's Edit
+ * Conflict Check reads this same list.
+ * @since v1.1
+ * @watch async: a system, tier list or tool page flushes its Block buffer first
  */
 window.collectEditorDeltas = async function () {
     const pageType = window.currentEditorPageType || 'character';
     const isDiff = (a, b) => JSON.stringify(a || null) !== JSON.stringify(b || null);
     const deltas = [];
-    // Wrapped as each one is found: the state scan below points the editor at
-    // each state in turn, and the wrap reads which one is open.
+    // Wrapped as found: the state scan opens each state in turn.
     const add = (scope, key, payload) => {
         const scoped = scopeSubmissionDelta(scope, key);
         deltas.push({ scope: scoped.scope, key: scoped.key, payload });
     };
 
-    // --- Which states exist ---
-    // Page-level, so it is scanned before the per-tab branches
-    // rather than under one of them. Without this a contributor
-    // could add an ultimate state, write a full kit into it, and
-    // have every content delta land in modeData while the
-    // declaration never shipped - leaving the work in the database
-    // with no toggle on the page to reach it.
+    // Which states exist, scanned at page level: otherwise a new state's content
+    // could ship without the declaration, out of reach of any toggle.
     if (!['system', 'tierlist', 'gallery', 'tool'].includes(pageType)) {
         const localModes = (window.editorMasterFrameData || {}).modes;
         const cloudModes = (window.originalCloudMasterFrame || {}).modes;
@@ -396,10 +352,8 @@ window.collectEditorDeltas = async function () {
         }
     }
 
-    // --- The page's own settings (v1.1) ---
-    // Page-level for the same reason, so read from the masters:
-    // on a character with states, currentEditorDescData is one
-    // state's slice and has never held them.
+    // The page's own settings, read from the masters: on a character with states,
+    // currentEditorDescData is one state's slice.
     if ((window.PAGE_CONFIG_PAGE_TYPES || []).includes(pageType)) {
         const localConfig = (window.editorMasterDescData || window.currentEditorDescData || {}).pageConfig;
         const cloudConfig = (window.originalCloudMasterDesc || window.originalCloudDescData || {}).pageConfig;
@@ -408,13 +362,8 @@ window.collectEditorDeltas = async function () {
         }
     }
 
-    // --- Gallery Payload ---
-    // One delta per item, keyed by name, rather than one payload
-    // carrying the whole list. That is what makes a gallery safe
-    // with thirty contributors: two people adding different
-    // emotes touch different keys and can never collide, and a
-    // reviewer approving one does not drag the other's
-    // half-finished work along with it.
+    // A gallery: one delta per item, keyed by name, so two people adding different
+    // items never collide, and approving one never carries the other.
     if (pageType === 'gallery') {
         const localItems = (typeof window.getGalleryEditorItems === 'function'
             ? window.getGalleryEditorItems() : []) || [];
@@ -424,46 +373,23 @@ window.collectEditorDeltas = async function () {
             add(d.scope, d.key, d.payload);
         });
     }
-    // --- Tool Payload ---
-    // Config and prose ship as separate scopes: the config is the
-    // owner's and the prose is everyone's, so a contributor fixing
-    // the intro must not be able to carry a URL change with it.
+    // A tool page: config and prose are separate scopes, since the config is the
+    // owner's and the prose everyone's.
     else if (pageType === 'tool') {
         await window.triggerManualSync();
         window.buildToolDeltas(window.currentEditorDescData, window.originalCloudDescData)
             .forEach(d => add(d.scope, d.key, d.payload));
     }
-    // --- System Payload ---
-    // --- System Payload ---
-    // One delta per section, per tab's metadata, and per tier list
-    // table - not the whole document. Shipping the document meant
-    // approving two tickets for one page silently reverted the
-    // first, because each carried a snapshot of the page as its
-    // author found it. See buildSystemDeltas.
+    // A system or tier list page: one delta per section, tab metadata and tier
+    // table, never the whole document (see buildSystemDeltas).
     else if (pageType === 'system' || pageType === 'tierlist') {
         await window.triggerManualSync();
         window.buildSystemDeltas(window.currentEditorDescData, window.originalCloudDescData, pageType)
             .forEach(d => add(d.scope, d.key, d.payload));
     }
-    // --- CHARACTER PAYLOAD ENGINE ---
-    //
-    // Scans EVERY tab, not just the open one. This used to be a
-    // chain of `else if (tabId === ...)`, so a contributor who
-    // edited Overview, then Skills, then Matchups and pressed
-    // Submit once shipped only whatever tab happened to be open -
-    // the other two were silently dropped. The v0.12 "One tab per
-    // submission" notice was the stopgap; this retires it.
-    //
-    // Nothing had to be fetched to make this work: the editor
-    // already holds the whole desc_data/frame_data object and only
-    // switches which slice it renders, and switchEditorTab flushes
-    // the open block buffer before moving. So every tab's edits are
-    // already in memory by the time Submit is pressed - the scan
-    // just never looked at them.
-    //
-    // Still one delta per section, so the reviewer side is
-    // unchanged: several deltas from one submission become a
-    // `multi` ticket, which admin already compiles and renders.
+    // A character: every tab is scanned, not only the open one, from the data the
+    // editor already holds (switchEditorTab flushes the buffer before moving). One
+    // delta per section, so several become a 'multi' ticket.
     else {
         const scanMoveTab = (moveTab) => {
             const localMoves = (window.currentEditorFrameData || {})[moveTab] || [];
@@ -511,8 +437,8 @@ window.collectEditorDeltas = async function () {
             });
         };
 
-        // Every keyed section is the same shape, keyed by a
-        // different field. See js/utility/character_tabs.js.
+        // Every keyed section has one shape, keyed by a different field
+        // (character_tabs.js).
         const scanKeyedList = (field, keyField, scope) => {
             const local = window.currentEditorDescData[field] || [];
             const cloud = window.originalCloudDescData[field] || [];
@@ -529,39 +455,16 @@ window.collectEditorDeltas = async function () {
             });
         };
 
-        // --- ORDER ---
-        //
-        // Every scan above pairs local against cloud by IDENTITY,
-        // which is what makes them stable - but it also means a
-        // list whose entries only moved produces nothing at all,
-        // and the contributor is told "no changes detected".
-        //
-        // One payload per list, naming the new sequence. Emitted
-        // only when the sequence actually differs, so an ordinary
-        // edit does not carry a redundant order delta on every
-        // list it did not touch.
-        //
-        // The key is the dotted path js/editor/blocks/editor-reorder.js names its
-        // strips by, so the control that reorders and the delta
-        // that records it agree without a second registry.
+        // Order. The scans pair entries by identity, so a list whose entries only moved
+        // would report "no changes". One payload per list names the new sequence, only
+        // when it differs, keyed by the path editor-reorder.js names the strip by.
         const scanOrder = (spec, localList, cloudList, identity) => {
             const local = (localList || []).map(identity);
             const cloud = (cloudList || []).map(identity);
 
-            // BACKWARD COMPATIBILITY, FIRST LINE.
-            //
-            // This reads page_data written long before the scope
-            // existed, and an order delta is only meaningful when
-            // every entry has a UNIQUE identity to order by. An
-            // entry carrying none, or two sharing one - combo group
-            // titles are contributor text and js/pages/core/description.js
-            // already notes two groups may share one - has no
-            // single correct answer, so nothing is emitted and the
-            // reorder simply is not recorded. Losing a reorder is
-            // visible and repeatable; shuffling somebody's page is
-            // neither. applyDeltaToData refuses the same two
-            // shapes, so this is the first of two lines rather than
-            // the only one.
+            // Only when every entry has a unique identity (combo group titles may repeat):
+            // otherwise nothing is recorded, since a lost reorder is visible and repeatable
+            // and a shuffled page is neither. applyDeltaToData refuses the same shapes.
             const usable = (arr) => arr.length > 0
                 && arr.every(v => v !== null && v !== undefined && v !== '')
                 && new Set(arr.map(String)).size === arr.length;
@@ -570,10 +473,7 @@ window.collectEditorDeltas = async function () {
             const l = local.map(String);
             const c = cloud.map(String);
 
-            // Same members, different sequence. A list that gained
-            // or lost an entry is already covered by the entry
-            // scans, and comparing raw sequences there would emit
-            // an order delta for every ordinary add.
+            // Same members only: an added or removed entry is the entry scans' job.
             if (l.length !== c.length) return;
             if (l.join(' ') === c.join(' ')) return;
             if ([...l].sort().join(' ') !== [...c].sort().join(' ')) return;
@@ -591,15 +491,13 @@ window.collectEditorDeltas = async function () {
                 scanOrder(`frame.${cat}`, frame[cat], cloudFrame[cat], m => (m ? m.id : null));
             });
 
-            // Driven by the vocabulary, so a keyed section added
-            // later is reorderable without another edit here.
+            // From the vocabulary, so a new keyed section is reorderable with no change here.
             (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
                 scanOrder(`desc.${s.field}`, desc[s.field], cloudDesc[s.field],
                     e => (e ? e[s.keyField] : null));
             });
 
-            // The Overview tab's custom tabs, which are author-
-            // ordered and are not a keyed section.
+            // The Overview tab's custom tabs, author-ordered and not a keyed section.
             scanOrder('desc.extras', desc.extras, cloudDesc.extras, e => (e ? e.title : null));
         };
 
@@ -607,14 +505,11 @@ window.collectEditorDeltas = async function () {
             (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
             scanOverview();
             scanEveryOrder();
-            // Driven by the vocabulary, so a section added there is
-            // swept here without a second edit. Missing one is
-            // silent - the edits simply never become deltas.
+            // From the vocabulary: a section missed here would never become a delta.
             (window.getKeyedSections ? window.getKeyedSections() : []).forEach(
                 s => scanKeyedList(s.field, s.keyField, s.scope));
 
-            // Fixed block sections (comboIntro): a plain [blocks]
-            // array under its own scope, same as overview/strategy.
+            // Fixed Block sections (comboIntro): a plain Blocks array under its own scope.
             (window.FIXED_BLOCK_SECTIONS || []).forEach(f => {
                 const local = window.currentEditorDescData[f.field];
                 const cloud = window.originalCloudDescData[f.field];
@@ -624,33 +519,10 @@ window.collectEditorDeltas = async function () {
             });
         };
 
-        // ...AND EVERY CHARACTER STATE, not just the open one.
-        //
-        // The tab scan above was v0.13's fix. It missed that every
-        // one of those scans reads currentEditorDescData /
-        // currentEditorFrameData, and applyEditorModeView points
-        // those at the ACTIVE STATE's slice - so it swept every tab
-        // inside one state. A contributor who edited the base kit
-        // and two ultimates and pressed Submit once shipped only
-        // whichever state was open; the rest stayed in
-        // editorMasterDescData, rode along in the desc_data
-        // fallback, and were never applied, because the reviewer
-        // applies the delta.
-        //
-        // Same bug as v0.13, one axis over, and the same fix: run
-        // the scan once per state with the views re-pointed for
-        // each pass. scopeEditorDelta already reads
-        // editorActiveMode, so each pass tags its own deltas and
-        // the nine scopes still never learn states exist.
-        //
-        // The states come from the DATA, not from the declared
-        // `modes` list. Dropping a contributor's work is the bug
-        // being fixed, so a state with a bucket but no declaration
-        // must still be scanned - and a declared state nobody ever
-        // opened has no bucket and therefore nothing to find.
-        // Reading modeData rather than declaring it also avoids
-        // writableView creating empty buckets as a side effect of
-        // scanning.
+        // Every character state, not only the open one: the scans read
+        // currentEditorDescData, which points at the active state, so the scan runs once
+        // per state. The states come from the data (modeData), so a state with content
+        // but no declaration is still scanned, and scanning creates no empty buckets.
         const collectStates = () => {
             const base = typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base';
             const ids = [base];
@@ -677,10 +549,7 @@ window.collectEditorDeltas = async function () {
                     scanEveryTab();
                 });
             } finally {
-                // Restored even if a scan throws. Leaving the
-                // editor pointed at the last state scanned would
-                // silently move the user somewhere they never
-                // navigated, mid-submit.
+                // Put back even if a scan throws, or the editor would move mid-submit.
                 window.editorActiveMode = savedMode;
                 window.applyEditorModeView();
             }
@@ -694,25 +563,20 @@ window.collectEditorDeltas = async function () {
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     
-    // Grab the raw parameters
     const pageIdRaw = urlParams.get('page') || urlParams.get('char'); 
     const pageType = urlParams.get('type') || 'character';
 
     window.currentEditorPageType = pageType;
 
-    // `let`, because an optional tab that this character does not have has to
-    // be corrected away once the page row lands - a hand-typed or stale
-    // ?tab=techs would otherwise open a Techs editor on a character with no
-    // Techs tab, and everything typed into it would submit deltas nobody can
-    // see. The correction is below, next to the fetch.
+    // `let`: a ?tab= this character does not have is corrected once the row lands
+    // (below), or its edits would submit deltas nobody can see.
     let tabId = urlParams.get('tab') || 'overview';
     const moveId = urlParams.get('move');
     
     const editTicketId = urlParams.get('editTicket'); 
     window.activeEditTicketId = editTicketId;
     window.interceptedTicketData = null;
-    // Cleared alongside the data it explains, so a failure from a previous
-    // navigation cannot be reported against this one.
+    // Cleared with the data it explains.
     window.interceptedTicketLoadError = null;
 
     window.currentGlobalUsername = "Anonymous";
@@ -738,10 +602,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const pageId = pageIdRaw.toLowerCase();
 
-    // Told on the way in as well as at Submit (owner, 2026-10-29): someone
-    // below the page's required role used to find out only after writing the
-    // whole edit. Signed out, they are asked to sign in at Submit instead, and
-    // the Playground submits nothing.
+    // Told on the way in as well as at Submit, so nobody below the page's role writes
+    // a whole edit first. Signed out, they are asked to sign in at Submit; the
+    // Playground submits nothing.
     if (window.currentGlobalUserId && !urlParams.has('playground')) {
         if (!(await window.warnIfBelowPageRole(pageId))) {
             window.cancelEditor();
@@ -769,7 +632,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     fakeTitle.textContent = exactCharName;
     document.body.appendChild(fakeTitle);
 
-    // --- QOL: CLARIFY CONFIDENCE LEVELS ---
     const confidenceSelect = document.getElementById('qa-confidence');
     if (confidenceSelect) {
         confidenceSelect.innerHTML = `
@@ -787,7 +649,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (targetPreviewTab) targetPreviewTab.classList.remove('hidden');
 
     try {
-        // 1. FETCH DATA
         let descData = null;
         let frameData = null;
         
@@ -795,7 +656,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             let cloudData = null;
             
             if (window.supabaseClient) {
-                // The Playground's blank page is not a page: no row to fetch.
+                // The Playground's blank page has no row to fetch.
                 if (!(window.editorPlayground && window.editorPlayground.blankPage)) {
                     const { data, error } = await window.supabaseClient
                         .from('page_data')
@@ -806,35 +667,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!error && data) cloudData = data;
                 }
 
-                // Which optional tabs this character has, before the tab strip
-                // or any editor is built. Without it the editor would offer
-                // Techs on every character, which is the half of the feature
-                // the owner actually asked for ("not visible even in the
-                // editor and the admin preview").
+                // Which optional tabs this character has, before any tab strip is built, so the
+                // editor never offers a tab the page does not show.
                 if (typeof window.applyOptionalTabsFromPageRow === 'function') {
                     window.applyOptionalTabsFromPageRow(cloudData);
 
-                    // ?tab= naming a tab this character does not have falls
-                    // back to the default, the same way an undeclared ?mode=
-                    // does in js/pages/core/character_modes.js.
+                    // A ?tab= this character lacks falls back to the default, like an undeclared
+                    // ?mode= (character_modes.js).
                     const reachable = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
                     if (pageType === 'character' && !reachable.includes(tabId)) {
                         tabId = window.getDefaultCharacterTabId();
                     }
                 }
                 
-                // IF INTERCEPTING: Fetch the target ticket from the queue
-                //
-                // A failure here used to be silent, and silence was the bug: the
-                // submit path routed on interceptedTicketData, so a ticket that
-                // did not load turned the whole session into an ORDINARY
-                // SUBMISSION. Someone who clicked EDIT on their own revision got
-                // a SECOND revision in the queue and no indication why.
-                //
-                // The URL says what the person meant to do. If that intent
-                // cannot be honoured, the editor has to say so rather than
-                // quietly do something else - so the failure is recorded here
-                // and enforced at submit.
+                // Intercepting: the ticket is fetched, and a failure is recorded and enforced at
+                // Submit. The URL says what the person meant, and a session that silently
+                // became a new submission would put a second revision in the queue.
                 if (editTicketId) {
                     const { data: tData, error: tErr } = await window.supabaseClient
                         .from('pending_revisions').select('*').eq('id', editTicketId).single();
@@ -853,7 +701,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (cloudData && cloudData.desc_data) {
                 baseCloudDesc = cloudData.desc_data;
                 
-                // --- AUTO-MIGRATION: Rescue Corrupted Data ---
+                // Rescue: a system page with no tabs.
                 if (window.currentEditorPageType === 'system' && !baseCloudDesc.tabs) {
                     let rescued = [];
                     if (baseCloudDesc.overview) rescued.push(...baseCloudDesc.overview);
@@ -884,18 +732,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const forceLoadDraft = urlParams.get('loadDraft') === 'true';
             const specificDraftKey = urlParams.get('draftKey');
 
-            // --- AN OPEN SUBMISSION ON THIS PAGE (v1.1) ---
-            //
-            // The editor opened from a page always starts a NEW submission. An
-            // author who came back to change one they had already sent got a
-            // second submission in the queue carrying the first one's content
-            // again: a Star Rage submission on 2026-10-16 was revised that way
-            // 18 minutes after it was sent. Reviewers never meet this, because
-            // they edit from the queue. So the editor asks, and continuing goes
-            // through the same ?editTicket= route as EDIT on My Submissions.
-            //
-            // Silent on any failure, deliberately: this is an offer, and a
-            // query that fails must not stand between someone and the editor.
+            // An open submission on this page: the editor asks whether to continue it
+            // (through ?editTicket=, like EDIT on My Submissions), since a new one would
+            // repeat its content. Silent on failure on purpose: it is an offer, and a failed
+            // query must not stand between someone and the editor.
             if (!window.editorPlayground && !editTicketId && !forceLoadDraft && !specificDraftKey && window.currentGlobalUserId) {
                 try {
                     const { data: open } = await window.supabaseClient
@@ -927,20 +767,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Scoped per-character, not per-tab/move - window.currentEditorDescData
-            // is always the FULL character object regardless of which tab/move is
-            // active, so a per-tab/move key just created a new, never-cleaned-up
-            // localStorage entry every time the user switched tabs within one
-            // session (fixed 2026-08-02 - see js/editor/core/editor-drafts.js saveLocalDraft).
+            // One draft per page: the editor always holds the whole page, whatever tab is open.
             const defaultDraftKey = `wiki_draft_${pageId}`;
 
             const targetKey = specificDraftKey || defaultDraftKey;
             const rawDraft = localStorage.getItem(targetKey);
             let useDraft = false;
 
-            // --- THE HANDSHAKE ROUTING ---
-            // The Playground keeps one draft of its own and never asks about
-            // the page's (js/editor/tools/editor-playground.js).
+            // The handshake. The Playground keeps one draft of its own and never asks about
+            // the page's.
             if (window.editorPlayground) {
                 const kept = window.editorPlayground.draft;
                 if (kept) {
@@ -963,7 +798,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     descData = window.interceptedTicketData.desc_data || baseCloudDesc;
                     frameData = window.interceptedTicketData.frame_data || baseCloudFrame;
                 }
-                useDraft = true; // Bypasses local draft logic
+                useDraft = true; // skips the local draft logic
                 console.log(`[Editor] Intercept Mode Active: Loaded Ticket ${editTicketId}`);
             } 
             else if (rawDraft) {
@@ -972,9 +807,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (forceLoadDraft) {
                         useDraft = true;
                     } else {
-                        // A draft saved before this browser submitted the page
-                        // holds changes already in the queue (v1.1: Submit
-                        // keeps drafts and warns instead of clearing them).
+                        // A draft saved before this browser submitted the page holds changes already in
+                        // the queue.
                         const submittedAt = typeof window.draftSubmittedAt === 'function'
                             ? window.draftSubmittedAt(pageId, parsedDraft.timestamp) : 0;
                         const restore = await window.customConfirm(submittedAt
@@ -1010,18 +844,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Before the preview is built, so a ?mode= link opens the editor on
-        // the state it names rather than rendering the base kit and then
-        // snapping. This takes ownership of window.currentEditorDescData and
-        // currentEditorFrameData: from here they are views onto the master
-        // objects, and for the base mode they are the master objects.
+        // Before the preview, so a ?mode= link opens on its state. From here
+        // currentEditorDescData and currentEditorFrameData are views onto the masters.
         if (typeof window.initEditorModes === 'function') {
             await window.initEditorModes(pageId, descData, frameData);
         }
-        // The House Style button, now the page's data (and any draft) is known.
         if (typeof window.refreshHouseStyleButton === 'function') window.refreshHouseStyleButton();
 
-        // --- INTERCEPT UI OVERRIDES ---
         if (window.interceptedTicketData) {
             titleEl.innerHTML = `<span class="editor-intercept-label">Intercepting Submission</span>`;
             subTitleEl.textContent = `Reviewing and editing submission by ${window.interceptedTicketData.author_name}`;
@@ -1033,9 +862,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             subTitleEl.textContent = `${pageDisplay} / ${tabId}`;
         }
 
-        // 2. BUILD THE PREVIEW DOM
-        // Reads the mode view rather than the master: on a character with
-        // states, the first move of the *active* state is the one to open.
+        // The active state's first move is the one to open.
         const modeFrame = window.currentEditorFrameData || frameData;
         if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId) && typeof window.loadMoveSection === 'function') {
             let activeMoveId = moveId;
@@ -1049,13 +876,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             await window.loadPageDescriptions(pageId, pageType);
         }
 
-        // 3. ROUTE TO THE CORRECT EDITOR
         window.currentEditorTabId = tabId;
         window.currentEditorCharId = pageId;
 
-        // applyEditorModeView owns these two now, and re-points them at the
-        // active state's slice. Assigning the masters here instead would undo
-        // the view and send every edit into the base kit.
+        // applyEditorModeView points these at the active state; the masters here would
+        // send every edit into the base kit.
         if (typeof window.applyEditorModeView === 'function') {
             window.applyEditorModeView();
         } else {
@@ -1067,9 +892,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const editFrame = window.currentEditorFrameData;
 
         if (moveId) {
-            // This branch skips initFullTabEditor, which is where the tab
-            // strip normally syncs itself - so do it here too, or deep-
-            // linking to a single move leaves the strip unrendered.
+            // This branch skips initFullTabEditor, which renders the tab strip.
             if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
 
             const moveStats = editFrame ? editFrame[tabId]?.find(m => m.id === moveId) : null;
@@ -1091,7 +914,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         subTitleEl.textContent = "Check browser console for detailed logs.";
     }
 
-    // --- QA MODAL ENGINE (SHORT / LONG / TECHNICAL) ---
     window.openQAModal = function(isIntercept) {
         return new Promise((resolve) => {
             let overlay = document.getElementById('dynamic-qa-modal-overlay');
@@ -1211,10 +1033,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    // --- SUBMIT PAYLOAD & UPLOAD PIPELINE ---
     const submitBtn = document.getElementById('submit-payload-btn');
-    // Never wired in the Playground, where the button is Pull: nothing there
-    // reaches the review queue (js/editor/tools/editor-playground.js).
+    // Never wired in the Playground, where the button is Pull.
     if (submitBtn && !window.editorPlayground) {
         if (window.activeEditTicketId) {
             submitBtn.textContent = "UPDATE SUBMISSION";
@@ -1227,24 +1047,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             if (!session) { window.openAuthModal(); return; }
 
-            // --- EXCLUSIVE PAGE GUARD (Trusted Editor & Admin Only) ---
-            // Mirrors the server-side check in the pending_revisions RLS policy
-            // (supabase/migrations/20260731000000_page_permissions.sql) - this is
-            // just UX, the database is the real boundary. Reading from
-            // page_permissions instead of a hardcoded array means adding a new
-            // restricted page is a table row, not a code change.
-            // Selects required_role, not just page_id: as of v0.10 that column
-            // actually gates submission (see the "Guests can submit revisions"
-            // policy in 20260808000002_page_permissions_writable.sql). This
-            // check must mirror the policy exactly - if it is looser the user
-            // gets an opaque RLS rejection after filling in the QA modal, and
-            // if it is tighter they are blocked from something the database
-            // would have allowed.
-            // A 'viewer' is soft-banned: signed in and able to read, but
-            // blocked from submitting anything (see the "Guests can submit
-            // revisions" policy). Checked here so they are told before filling
-            // in the QA modal, rather than hitting an opaque RLS rejection at
-            // the very end. The database is still the real boundary.
+            // The exclusive page guard, from page_permissions, so a restricted page is a
+            // row, not code. It only chooses the message (asked before the QA modal, not an
+            // RLS refusal after it): the policy is the boundary, so the two must agree. A
+            // viewer is soft-banned and told here.
             const { data: ownRole } = await window.supabaseClient
                 .from('user_roles').select('role').eq('user_id', session.user.id).maybeSingle();
             if ((ownRole?.role || '').trim().toLowerCase() === 'viewer') {
@@ -1261,29 +1067,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const userRole = (roleData?.role || 'guest').trim().toLowerCase();
                 const requiredRole = (permissionRow.required_role || 'trusted_editor').trim().toLowerCase();
 
-                // Mirrors the "Guests can submit revisions" policy exactly
-                // (supabase/migrations/20260825000001_role_rank.sql). Anyone at
-                // or above the row's own required_role passes, so a page asking
-                // for trusted_editor admits admin, reviewer and trusted_editor,
-                // while one asking for admin still admits only admin.
-                //
-                // This used to test two literal role names and left a REVIEWER
-                // out of both - they saw the Edit button, wrote the whole edit,
-                // and were refused at Submit (v0.16 bug 6). The gate below is
-                // the message; the policy is the boundary, and they have to say
-                // the same thing or one of them is lying to somebody.
-                // The fallback names the TOP of the ladder, not a middle rung.
-                // It only runs if site_utils.js failed to load, and in that case
-                // refusing everyone below the owner is the safe way to be wrong -
-                // 'admin' used to be the top and stopped being it in v0.17.
+                // Rank, never role names: a page asking for trusted_editor admits everyone
+                // above it. Without site_utils.js, only the owner passes: the safe way to be wrong.
                 const allowed = typeof window.roleMeets === 'function'
                     ? window.roleMeets(userRole, requiredRole)
                     : userRole === 'owner';
 
                 if (!allowed) {
-                    // page_permissions.required_role is one of trusted_editor,
-                    // admin or owner (20260827000003), so the message has three
-                    // cases now rather than two.
+                    // required_role is trusted_editor, admin or owner.
                     const restrictedTo = {
                         owner: "READ ONLY: This page is restricted to the site owner.",
                         admin: "READ ONLY: This page is restricted to Admins and the site owner.",
@@ -1294,41 +1085,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Mirrors check_revision_rate_limit()'s bypass exactly
-            // (supabase/migrations/20260810000000_staff_cooldown_perk.sql).
-            // The trigger is the real boundary; this is only about which
-            // message the contributor sees. If the two disagree, staff either
-            // get a friendly wait the server would have allowed, or a raw
-            // Postgres exception where they expected the friendly wait.
-            // Rank-tested rather than listed, so owner and admin are both
-            // covered without naming them - the literal list here was one of the
-            // three places v0.16 bug 6 lived, and it would have gone stale again
-            // the moment 'owner' existed.
+            // The cooldown bypass, by rank, as check_revision_rate_limit() decides it. The
+            // trigger is the boundary; this only picks the message.
             let skipsCooldown = false;
             if (window.roleMeets(ownRole?.role, 'trusted_editor')) {
                 const { data: settings } = await window.supabaseClient
                     .from('site_settings').select('staff_bypass_submission_cooldown').maybeSingle();
-                // Absent row or a failed read means enforce, matching the
-                // trigger's COALESCE.
+                // No row or a failed read means enforce, as the trigger's COALESCE does.
                 skipsCooldown = settings?.staff_bypass_submission_cooldown === true;
             }
 
-            // An intercept whose ticket never loaded, refused BEFORE anything is
-            // scanned or built.
-            //
-            // Routed on INTENT, not on data. `activeEditTicketId` comes from the
-            // URL and is always set; `interceptedTicketData` is fetched and can
-            // be null. The database routing further down used to read only the
-            // second, so any fetch failure silently downgraded "update this
-            // ticket" into "create a new one" - the contributor-side half of
-            // B-I, where clicking EDIT on your own submission produced a SECOND
-            // revision in the queue with no indication why.
-            //
-            // Refusing is the only safe answer: inserting is not a degraded
-            // version of updating, it is a different action against a queue a
-            // human reads. It is checked here rather than beside the write
-            // because an empty scan returns "No changes detected" first, which
-            // would report the wrong problem.
+            // An intercept whose ticket never loaded is refused before anything is scanned:
+            // routed on the URL's intent, since inserting is a different action, not a
+            // lesser update. Here, because an empty scan would report the wrong problem.
             if (window.activeEditTicketId && !window.interceptedTicketData) {
                 window.editorAlert(
                     "This submission could not be loaded, so it cannot be updated"
@@ -1360,13 +1129,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const tabId = window.currentEditorTabId;
                     const isDiff = (objA, objB) => JSON.stringify(objA || null) !== JSON.stringify(objB || null);
 
-                    // originalCloudDescData is the *active state's* slice, so
-                    // the row just read has to be narrowed the same way before
-                    // the two are compared - otherwise editing an ultimate
-                    // state compares its matchups against the base kit's and
-                    // warns about a collision on every single submission.
-                    // Both resolvers hand the object straight back for the
-                    // base mode, which is every page with no states.
+                    // originalCloudDescData is the active state's slice, so the row just read is
+                    // narrowed the same way, or every state would warn of a collision.
                     const mode = window.editorActiveMode;
                     const onBase = typeof window.isBaseMode === 'function'
                         ? window.isBaseMode(mode) : (!mode || mode === 'base');
@@ -1416,9 +1180,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (e) { console.warn("Collision check failed, proceeding safely.", e); }
 
-            // Character names and broken format tags in what this submission
-            // adds or changes (v1.1, js/editor/tools/editor-writing-checks.js). Shown once
-            // more here, and the editor may still send.
+            // Character names and broken format tags in what this submission changes,
+            // shown once more; the editor may still send.
             if (typeof window.confirmWritingChecks === 'function' && !(await window.confirmWritingChecks())) {
                 submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
                 return;
@@ -1426,12 +1189,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             submitBtn.textContent = "WAITING ON QA...";
             
-            // 🚨 TRIGGER THE DYNAMIC QA MODAL 🚨
             const qaResult = await window.openQAModal(!!window.activeEditTicketId);
             
             if (!qaResult) {
                 submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
-                return; // User cancelled
+                return; // cancelled
             }
 
             submitBtn.textContent = "UPLOADING...";
@@ -1439,16 +1201,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             let payloadsToInsert = [];
 
-            // A helper to quickly spawn standardized payload objects. rowFor
-            // takes a scope that is already wrapped for its character state,
-            // as collectEditorDeltas hands them over; buildPayload wraps it
-            // first (scopeSubmissionDelta).
+            // A row for the queue. rowFor takes a scope already wrapped for its state.
             const rowFor = (targetScope, targetKey, deltaPayload) => ({
                 page_id: pageId,
                 page_type: pageType,
-                // The legacy fallback is the whole page, not the slice of
-                // it currently being edited - anything reading this field
-                // instead of the delta expects a complete object.
+                // The legacy fallback is the whole page: whatever reads it expects one.
                 desc_data: window.editorMasterDescData || window.currentEditorDescData,
                 frame_data: pageType === 'system' ? null : (window.editorMasterFrameData || window.currentEditorFrameData),
                 is_delta: true,
@@ -1464,21 +1221,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return rowFor(scoped.scope, scoped.key, deltaPayload);
             };
 
-            // 1. IF INTERCEPTING a ticket with ONE rebuildable scope: rebuild
-            //    exactly that scope and nothing else.
-            //
-            //    buildInterceptDelta returns null for a 'multi' batch and for a
-            //    legacy whole-page upload, because neither has a scope to read.
-            //    Those fall through to the scanner below and are re-batched by
-            //    the batching engine, which is why its intercept exclusion is
-            //    gone. Before v0.17 they took this branch anyway, resolved to
-            //    `undefined`, and were dropped out of the PATCH by
-            //    JSON.stringify - the reviewer's edits vanished silently.
-            //    Except an author updating their OWN submission (v1.1). They
-            //    may have edited a section the ticket did not touch, and
-            //    rebuilding only the ticket's scope dropped that edit without a
-            //    word. Their update is scanned like a new submission instead, so
-            //    it carries everything they changed against the live page.
+            // An intercept with one rebuildable scope rebuilds exactly that. A 'multi' or
+            // legacy ticket falls through to the scanner below. An author updating their own
+            // submission is scanned like a new one, since they may have changed a section
+            // the ticket did not touch.
             const isSelfEdit = !!(window.interceptedTicketData && window.currentGlobalUserId
                 && window.currentGlobalUserId === window.interceptedTicketData.author_id);
             const interceptDelta = window.interceptedTicketData && !isSelfEdit
@@ -1489,17 +1235,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 payloadsToInsert.push(
                     buildPayload(interceptDelta.scope, interceptDelta.key, interceptDelta.delta));
             }
-            // 2. NORMAL SUBMISSION, and any intercept the branch above could
-            //    not scope: Multi-Payload Diff Scanner
+            // A normal submission, or an intercept the branch above could not scope.
             else {
                 (await window.collectEditorDeltas())
                     .forEach(d => payloadsToInsert.push(rowFor(d.scope, d.key, d.payload)));
 
-                // The intercept exclusion is gone (v0.17). A 'multi' or legacy
-                // intercept now reaches the scanner, so it can genuinely come
-                // back empty - and falling through with nothing would take
-                // finalPayloads[0] as `undefined` and throw on the next line.
-                // "Nothing to submit" is also simply the truth at this point.
+                // A 'multi' or legacy intercept can scan empty, and "nothing to submit" is the truth.
                 if (payloadsToInsert.length === 0) {
                     submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
                     submitBtn.disabled = false;
@@ -1508,17 +1249,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // ==========================================
-            // SMART BATCHING ENGINE (Rate Limit Bypass)
-            // ==========================================
-            //
-            // Batching now applies during an intercept too. It was excluded
-            // because an intercept only ever produced one payload - which was
-            // true for a single-scope ticket and quietly wrong for a 'multi'
-            // one, where the scanner below is the only way to rebuild it.
+            // Batching: several deltas become one 'multi' ticket, during an intercept too.
             let finalPayloads = [];
             if (payloadsToInsert.length > 1) {
-                // Combine all independent deltas into a single master ticket!
                 const batchedDeltas = payloadsToInsert.map(p => ({
                     scope: p.target_scope,
                     key: p.target_key,
@@ -1535,10 +1268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const wasUpdate = !!window.interceptedTicketData;
             let newTicket = null;
 
-            // --- DATABASE ROUTING ---
-            //
-            // The "intent without data" case is refused at the top of this
-            // handler, so by here these two always agree.
+            // The case with intent but no data was refused at the top, so these agree.
             if (window.interceptedTicketData) {
                 const payload = finalPayloads[0];
                 payload.author_id = window.interceptedTicketData.author_id;
@@ -1548,10 +1278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const oldQa = window.interceptedTicketData.qa_metadata || {};
                 payload.qa_metadata = oldQa;
 
-                // A contributor resuming/editing their own still-pending submission
-                // (e.g. from submissions.html) isn't a staff takeover - only wrap
-                // the changelog with the "Staff Note" framing when someone other
-                // than the original author is the one editing it.
+                // Only someone other than the author gets the "Staff Note" framing.
                 if (isSelfEdit) {
                     payload.qa_metadata.changelog = qaResult.changelog;
                 } else {
@@ -1562,8 +1289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 dbError = error;
             } else {
                 console.log(`Pushing ${finalPayloads.length} Master Ticket(s) to Revision Queue...`);
-                // .select() returns the row it made, so this editor can carry on
-                // as an edit of it (adoptOwnSubmission, below).
+                // .select() returns the new row, so the editor can carry on as an edit of it.
                 const { data: inserted, error } = await window.supabaseClient
                     .from('pending_revisions').insert(finalPayloads).select();
                 dbError = error;
@@ -1577,18 +1303,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.editorAlert("Failed to save to database: " + dbError.message);
                 submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
             } else {
-                // The page's drafts are kept, not cleared (owner, v1.1). What
-                // is recorded is when this browser sent the page, and a draft
-                // saved before then warns that sending it again duplicates the
-                // submission (js/editor/core/editor-drafts.js).
+                // Drafts are kept. What is recorded is when this browser sent the page, and a
+                // draft saved before then warns that sending it again duplicates it.
                 window.markPageSubmitted(pageId);
 
                 submitBtn.textContent = wasUpdate ? "UPDATED!" : "SUBMITTED!";
                 submitBtn.style.backgroundColor = "#22c55e";
                 submitBtn.style.color = "#000";
 
-                // From here on, this editor is editing the submission it just
-                // made, so pressing the button again updates it.
+                // From here, the button updates the submission it just made.
                 if (newTicket) window.adoptOwnSubmission(newTicket);
                 const fallbackText = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
 
@@ -1610,9 +1333,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// True to carry on into the editor. The two reads and roleMeets are the submit
-// guard's own, so the warning and the refusal agree. A failed read carries on
-// without a warning on purpose: the submit guard reads again and says why.
+/**
+ * True to carry on into the editor. It makes the submit guard's own two reads
+ * and roleMeets, so the warning and the refusal agree. A failed read carries on
+ * without a warning on purpose: the submit guard reads again and says why.
+ * @since v1.2
+ */
 window.warnIfBelowPageRole = async function(pageId) {
     const [{ data: permissionRow }, { data: roleData }] = await Promise.all([
         window.supabaseClient.from('page_permissions').select('required_role').eq('page_id', pageId).maybeSingle(),
@@ -1632,16 +1358,3 @@ window.warnIfBelowPageRole = async function(pageId) {
         'EDIT ANYWAY', false, 'GO BACK');
 };
 
-// --- CUSTOM TAB MANAGEMENT + MOVE ID GATEKEEPER + SUB-NAVIGATION (overview/matchups/counterplay/moves) + PROFILE/PLAYSTYLE: moved to js/editor/tabs/editor-tabs.js ---
-
-// --- BLOCK BUILDER STATE + CONTENT BLOCK BUILDER: moved to js/editor/blocks/editor-blocks.js ---
-
-// --- LIVE PREVIEW RENDERERS (overview/matchups/counterplay): moved to js/editor/tools/editor-previews.js ---
-
-// --- MASTER MANUAL SYNC + LIVE SYNC & STATE MANAGEMENT + VISUAL DIFF COMPARISON ENGINE: moved to js/editor/core/editor-sync.js ---
-
-// --- LOCAL AUTO-SAVE ENGINE + LOCAL DRAFT MANAGER HUB: moved to js/editor/core/editor-drafts.js ---
-
-// --- MEDIA LIBRARY SYSTEM: moved to js/editor/tools/editor-media.js ---
-
-// --- V0.4 DYNAMIC SYSTEM PAGE ENGINE: moved to js/editor/tabs/editor-system.js ---
