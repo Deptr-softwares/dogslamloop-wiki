@@ -28,6 +28,7 @@ paths:
 - `tests/css-variables.spec.js`: every `var()` without a fallback reads a defined variable, taken from the browser's own parse of every stylesheet, so a variable lost to a broken comment is missing there too.
 - `tests/input-slots.spec.js`: each input slot's colour variable reaches the browser, and no chip falls back to the text around it.
 - `tests/asset-stamping.spec.js`: every script and stylesheet tag carries the shared stamp.
+- `tests/axe.spec.js`: axe on one page of each kind, with everything they read frozen. The low contrast and small touch targets it found when it arrived are its baseline, kept for the UI/UX pass (C-5): a new finding fails, and so does a fixed one still listed.
 - `visual.spec.js` (local only): screenshots before and after a CSS change.
 
 ## Read more
