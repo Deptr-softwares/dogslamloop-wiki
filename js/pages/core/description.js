@@ -625,7 +625,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                     // Policy says so, v1.0).
                     mediaInnerHtml = `
                         <iframe data-lazy-src="https://www.youtube-nocookie.com/embed/${videoId}" src="about:blank"
-                                class="wiki-video-embed"
+                                class="wiki-video-embed" title="YouTube video"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowfullscreen>
                         </iframe>
