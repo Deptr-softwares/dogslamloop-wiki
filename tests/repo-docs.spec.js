@@ -4,6 +4,10 @@
 // dogslamloop.com (Jekyll skips only folders and files starting with . or _),
 // so a note on the code is a public page unless robots.txt asks crawlers to
 // skip it.
+//
+// A rule in .claude/rules/ loads only when a file its paths match is read or
+// edited. Rename the file it covers and the rule never loads again, with
+// nothing to say so, which is what the second half of this file catches.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -83,5 +87,92 @@ test.describe('robots.txt and the Markdown Pages publishes', () => {
         for (const url of ['/', '/index.html', '/characters/', '/systems/tierlist/', '/CONTENT-LICENSE', '/privacy-policy.html']) {
             expect(crawlable(rules, url), url).toBe(true);
         }
+    });
+});
+
+// A rule's paths, read the way Claude Code reads them: a YAML list or a
+// comma-separated string under `paths:`. Null when there are none, which
+// makes the rule load at launch.
+function rulePaths(text) {
+    const front = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!front) return null;
+    const lines = front[1].split(/\r?\n/);
+    const at = lines.findIndex(l => /^paths\s*:/.test(l));
+    if (at < 0) return null;
+    const unquote = s => s.trim().replace(/^(["'])(.*)\1$/, '$2');
+    const inline = lines[at].replace(/^paths\s*:/, '').trim();
+    if (inline) return inline.split(',').map(unquote).filter(Boolean);
+    const list = [];
+    for (const line of lines.slice(at + 1)) {
+        const m = line.match(/^\s*-\s*(.+)$/);
+        if (!m) break;
+        list.push(unquote(m[1]));
+    }
+    return list;
+}
+
+// Claude Code's glob: a pattern with no slash matches at any depth, a leading
+// slash anchors it to the root, ** crosses folders and * does not, and {a,b}
+// is either.
+function globRegExp(glob) {
+    const anchored = glob.startsWith('/') || glob.replace(/\/$/, '').includes('/');
+    const g = glob.replace(/^\//, '');
+    let re = '';
+    let braces = 0;
+    for (let i = 0; i < g.length; i++) {
+        const c = g[i];
+        if (c === '*' && g[i + 1] === '*') {
+            if (g[i + 2] === '/') { re += '(?:[^/]*/)*'; i += 2; } else { re += '.*'; i += 1; }
+        } else if (c === '*') re += '[^/]*';
+        else if (c === '?') re += '[^/]';
+        else if (c === '{') { re += '(?:'; braces++; }
+        else if (c === '}' && braces) { re += ')'; braces--; }
+        else if (c === ',' && braces) re += '|';
+        else re += c.replace(/[.+^$()|[\]\\]/g, '\\$&');
+    }
+    return new RegExp(`^${anchored ? '' : '(?:.*/)?'}${re}$`);
+}
+
+test.describe('the rules in .claude/rules/', () => {
+    const RULES = TRACKED.filter(f => f.startsWith('.claude/rules/') && f.endsWith('.md'));
+    const claude = read('CLAUDE.md');
+
+    test('every rule names paths, and each path matches a file, so the rule still loads', () => {
+        expect(RULES).toContain('.claude/rules/combo-card.md');
+        for (const rule of RULES) {
+            const paths = rulePaths(read(rule));
+            expect(paths, `${rule} has no paths, so it loads in every session: that is what CLAUDE.md is for`).not.toBeNull();
+            expect(paths.length, `${rule} lists no paths`).toBeGreaterThan(0);
+            for (const p of paths) {
+                const re = globRegExp(p);
+                expect(TRACKED.some(f => re.test(f)), `${rule}: "${p}" matches no file in the repo`).toBe(true);
+            }
+        }
+    });
+
+    test('CLAUDE.md lists every rule, and every rule or docs file it names exists', () => {
+        for (const rule of RULES) {
+            expect(claude, `CLAUDE.md does not name ${path.basename(rule)}`).toContain(`\`${path.basename(rule)}\``);
+        }
+        const named = [
+            ...[...claude.matchAll(/`((?:\.claude\/rules|docs)\/[^`\s]+\.md)`/g)].map(m => m[1]),
+            ...[...claude.matchAll(/`(practice-[a-z-]+\.md)`/g)].map(m => `.claude/rules/${m[1]}`),
+        ];
+        expect(named).toContain('.claude/rules/practice-escaping.md');
+        for (const f of named) {
+            expect(TRACKED.includes(f) || fs.existsSync(path.join(ROOT, f)), `CLAUDE.md names ${f}, which is not there`).toBe(true);
+        }
+    });
+
+    test('the glob reads paths the way Claude Code does', () => {
+        expect(globRegExp('*.md').test('docs/glossary.md')).toBe(true);
+        expect(globRegExp('/*.html').test('edit.html')).toBe(true);
+        expect(globRegExp('/*.html').test('characters/Boomcat/index.html')).toBe(false);
+        expect(globRegExp('js/**/*.js').test('js/a.js')).toBe(true);
+        expect(globRegExp('js/**/*.js').test('js/pages/core/page_boot.js')).toBe(true);
+        expect(globRegExp('characters/*/index.html').test('characters/Boomcat/index.html')).toBe(true);
+        expect(globRegExp('characters/*/index.html').test('x/characters/Boomcat/index.html')).toBe(false);
+        expect(globRegExp('style/*.{css,scss}').test('style/editor.css')).toBe(true);
+        expect(globRegExp('supabase/functions/**').test('supabase/functions/_shared/discord-relay-core.mjs')).toBe(true);
     });
 });

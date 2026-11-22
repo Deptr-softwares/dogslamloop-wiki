@@ -96,19 +96,21 @@ Decided by where the tool lives (owner, 2026-08-15). A page that **wraps an exte
 
 Code an assistant wrote is a draft until something has checked it. Assistant code fails security checks in nearly half of tasks (Veracode, 2025), people using an assistant write less secure code while trusting it more (Perry et al., CCS 2023), and assistants copy where they should reuse (GitClear, 2025). Each of those has happened in this repo.
 
+This section is the index. A rule that names a practice file has its incidents, its checks and an outside source there, in `.claude/rules/`, and the file loads by itself when a file it covers is read or edited. Name a practice file in backticks, never with `@`: an `@` import loads at launch.
+
 **Before writing**
-- Read the code being changed and the code that calls it. Search for an existing helper by what it does, not only by its name, and reuse it.
+- Read the code being changed and the code that calls it. Search for an existing helper by what it does, not only by its name, and reuse it (`practice-new-code.md`).
 - The current devlog is the spec. If it does not settle a data shape or a behaviour, ask; never invent one.
 - Never use a function, column, table, flag, API or package you have not seen exist, in this repo or in the library's official docs. A plausible-looking name that does not exist is the commonest assistant error. A new dependency (a CDN `<script>`, an npm package) is the owner's call.
 
 **While writing**
 - The smallest change that solves the stated problem. No abstraction, option or layer for a case that does not exist yet, and no refactor in passing.
-- Every value from a user, contributor, Discord, the URL or the database is hostile. Escape at **every** `innerHTML` interpolation, or use `textContent`. Never put a user-influenced value in an inline `onclick`: use `data-` attributes and a delegated listener.
-- Authorization lives in Postgres: RLS, table grants and the RPC's own caller check. A page's RBAC gate only decides what to show, because anyone can call the REST endpoint directly.
+- Every value from a user, contributor, Discord, the URL or the database is hostile. Escape at **every** `innerHTML` interpolation, or use `textContent`. Never put a user-influenced value in an inline `onclick`: use `data-` attributes and a delegated listener (`practice-escaping.md`).
+- Authorization lives in Postgres: RLS, table grants and the RPC's own caller check. A page's RBAC gate only decides what to show, because anyone can call the REST endpoint directly. Roles are compared by rank, never by name (`practice-roles.md`).
 - Fail visibly. No empty `catch`, no error swallowed into a half-built page: show the reader an error state and keep the message. A deliberate silent failure says so in a comment (`window.loadHotfixPosts` is one).
 - Walk the edges: empty, NULL, one, many, signed out, roleless, banned, slow network, a second click. NULL made the worst hole here (`is_owner()`, closed 2026-09-28).
-- State a rule once and derive the rest (`role_rank()`, `NAV_FLAGS` in `scripts/fetch-registry.js`). Small per-file duplication is still preferred over one feature file depending on another (`owner.js` runs its own RBAC gate rather than importing `admin-core.js`'s), but two copies of one rule that must agree will drift: the rules in `.claude/rules/` name the known pairs. What several files share lives in `js/utility/site_utils.js` and the three parts split from it by job, which every page loads first, in this order: `site_utils.js` (settings, paths, the Supabase client, escaping, roles, dialogs: `window.escapeHtml`, `window.escapeRegExp`, `window.showAccessDenied`), `site_data.js` (page data and the delta engine), `site_media.js` (media, the tooltip, math), `site_account.js` (sign-in, profiles, badges, notifications). A shared helper goes in the part for its job.
-- **When a part grows too large** (plan, owner 2026-11-22): a part past about 1,500 lines is split by job the same way. The new part is named `site_<job>.js`, loads right after the part it came from on every page (the generator's templates included), and joins `PARTS` in `tests/site-utils-parts.spec.js`. Past six parts, the family moves into its own folder, `js/utility/site/`.
+- State a rule once and derive the rest (`role_rank()`, `NAV_FLAGS` in `scripts/fetch-registry.js`): two copies of one rule that must agree will drift, and the rules in `.claude/rules/` name the known pairs. A new feature extends what exists. What several files share lives in `js/utility/site_utils.js` and the parts split from it by job, and a part past about 1,500 lines is split again (`practice-new-code.md`).
+- CSS: restate `[hidden]` for every class that sets `display` and test with `toBeHidden`, check every page a shared class is used on, and read only variables that are defined (`practice-css.md`).
 - Comments say why, not what.
 
 **Before saying it is done**
@@ -155,10 +157,8 @@ On a draft the owner hands over: grammar and spelling only, keep their wording, 
 - **NEVER use an em-dash (`—`).** The owner banned it outright, 2026-09-21: *"I strictly ban the usage of the Em-dash"*. Every file and every message: site pages, commit messages, PR bodies, code comments, replies. A colon, full stop, comma or brackets always cover it. En-dashes only in numeric ranges (`#190–#199`). Older text still has them; don't sweep it in unrelated work.
 - **In a policy, licence or reference document, state the rule and stop.** No clause explaining why (owner, 2026-09-21: *"you don't need to include reasoning next to a statement... No, just no."*). A privacy policy still says what data is **for**: that is content, not justification.
 - **Text readers see is written in the owner's voice**, read off their own pages: the `writing-site-text` skill. "Never write 'you'" is a changelog rule, not a site rule.
-- **Shared CSS classes** (`.btn-sys`, `.btn-manga` and the like) are used in contexts that don't reference each other. Check every consumer, not just the page at hand.
-- **The `hidden` attribute loses to any `display` a stylesheet sets**, because the browser's `[hidden]` rule sits below every author rule. Restate it (`.thing[hidden] { display: none; }`) for every class that sets `display`, and test with `toBeHidden`, not the attribute. Eight classes carry it already (four in `admin.css`, the rest in `editor.css`, `Layout.css` and `discussions.css`), and v1.0 needed two more.
 - **Media the wiki shows lives in Supabase Storage, never on Discord's CDN.** Discord attachment links expire (all four on Sky Bender were dead by 2026-09-28), and tests never fetch real media, so a dead link is invisible to them.
 
 ## Rules that load with their files
 
-`.claude/rules/` holds rules that load when a matching file is read: `combo-card.md` (the two Combo Card editors), `tier-rosters.md` (the shared roster loader), `discord-relay.md` (`supabase/functions/`) and `regeneration.md` (workflows, scripts and generated stubs).
+`.claude/rules/` holds rules that load when a file their `paths:` match is read or edited: `combo-card.md` (the two Combo Card editors), `tier-rosters.md` (the shared roster loader), `discord-relay.md` (`supabase/functions/`), `regeneration.md` (workflows, scripts and generated stubs), and the practice files "Writing code here" names: `practice-escaping.md`, `practice-roles.md`, `practice-new-code.md` and `practice-css.md`. `tests/repo-docs.spec.js` fails when a rule's paths match no file in the repo, or a rule is missing from this list.
