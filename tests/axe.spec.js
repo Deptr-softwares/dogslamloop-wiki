@@ -3,8 +3,8 @@
 //
 // Everything these pages read is frozen, so only a code change can change
 // what axe finds: Supabase answers from here (Crow Charmer's page data from
-// tests/fixtures, empty lists for the rest, no media), the generated data
-// files come from tests/fixtures/axe-site.json, and site_meta.js arrives with
+// tests/fixtures, empty lists for the rest, no media), every local .json a
+// page reads comes from tests/fixtures/axe-site.json, and site_meta.js arrives with
 // its character colours swapped for the copy in that file. Text in a
 // character's own colour (.sc-auto) is left out: those colours are the
 // owner's content.
@@ -99,13 +99,13 @@ async function freeze(page) {
         }
         return route.fulfill({ status: 200, contentType: 'application/json', body: one ? 'null' : '[]' });
     });
-    await page.route('**/data/*.json*', route => {
-        const name = new URL(route.request().url()).pathname.split('/').pop();
-        if (!(name in SITE.data)) {
-            unfrozen.push(name);
+    await page.route(/^http:\/\/localhost:\d+\/[^?#]*\.json(?:[?#]|$)/, route => {
+        const file = new URL(route.request().url()).pathname.slice(1);
+        if (!(file in SITE.data)) {
+            unfrozen.push(file);
             return route.abort();
         }
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SITE.data[name]) });
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SITE.data[file]) });
     });
     await page.route('**/js/utility/site_meta.js*', async route => {
         const response = await route.fetch();

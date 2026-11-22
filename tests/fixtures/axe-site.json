@@ -1,7 +1,7 @@
 {
- "about": "A frozen copy of the generated data the axe pages read (tests/axe.spec.js), taken 2026-11-22, so an owner edit cannot change what axe finds. Refresh by copying the current files in; the baseline in the spec may move with it.",
+ "about": "A frozen copy of the generated data the axe pages read (tests/axe.spec.js), keyed by its path in the repo and taken 2026-11-22, so an owner edit cannot change what axe finds. Refresh by copying the current files in; the baseline in the spec may move with it.",
  "data": {
-  "navigation.json": {
+  "data/navigation.json": {
    "Characters": [
     {
      "id": "Honored-One",
@@ -744,7 +744,7 @@
     }
    ]
   },
-  "site_meta.json": {
+  "data/site_meta.json": {
    "version": "Stable v1.2",
    "tagline": "The Competitive JJS Wiki",
    "hubs": {
@@ -863,7 +863,7 @@
     ]
    }
   },
-  "faq.json": {
+  "data/faq.json": {
    "faqs": [
     {
      "id": 1,
@@ -890,7 +890,7 @@
     }
    ]
   },
-  "portraits.json": {
+  "data/portraits.json": {
    "aspiring_mangaka": "medias/portraits/aspiring_mangaka.webp",
    "black_death": "medias/portraits/black_death.webp",
    "blood_manipulator": "medias/portraits/blood_manipulator.webp",
@@ -918,7 +918,7 @@
    "true_cannon": "medias/portraits/true_cannon.webp",
    "vessel": "medias/portraits/vessel.webp"
   },
-  "archived-pages.json": {
+  "data/archived-pages.json": {
    "source-code": {
     "name": "Source Code",
     "url": "https://github.com/Deptr-softwares/dogslamloop-wiki",
@@ -927,7 +927,7 @@
     "hideEntryPoints": false
    }
   },
-  "updates.json": {
+  "data/updates.json": {
    "changelogs": [
     {
      "version": "Stable v1.2",
@@ -1012,7 +1012,109 @@
     }
    ]
   },
-  "video-stills.json": {}
+  "data/video-stills.json": {},
+  "systems/collaborators/collaborators_data.json": {
+   "mainContributors": [
+    {
+     "name": "Deptr",
+     "role": "Lead Developer and Owner",
+     "badgeType": "badge-patch",
+     "avatar": "/medias/images/DestroymanFront.webp",
+     "description": "Pretty much the sole dev of Dogslamloop, worked on almost every feature in the site, and some double checking of frame data.",
+     "links": [
+      {
+       "url": "https://github.com/Deptr-softwares",
+       "name": "GitHub"
+      }
+     ]
+    },
+    {
+     "name": "MrT1",
+     "role": "Frame Data & Testing",
+     "badgeType": "badge-site",
+     "avatar": "/medias/images/Solid Blue.webp",
+     "description": "Spent countless hours recording 60FPS footage to count frames and such. Contact him via @.mrt1 on Discord.",
+     "links": []
+    },
+    {
+     "name": "Air Putrifier",
+     "role": "Strategies and Resource",
+     "badgeType": "badge-site",
+     "avatar": "/medias/images/diego2.webp",
+     "description": "Written a lot of strategy entries for the site (perchance), also allow me to borrow his awesome Medal clips.",
+     "links": [
+      {
+       "url": "https://www.youtube.com/@AirPutrifier",
+       "name": "Youtube"
+      }
+     ]
+    },
+    {
+     "name": "Nickolas4F",
+     "role": "Strategies",
+     "badgeType": "badge-site",
+     "avatar": "/medias/images/nickpfp.webp",
+     "description": "Written a lot of strategy entries for the site, awesome mobile player as well.",
+     "links": [
+      {
+       "url": "https://www.youtube.com/@CrailsheimTS",
+       "name": "YouTube"
+      }
+     ]
+    },
+    {
+     "name": "PositiveHA",
+     "role": "Testing & Strategies",
+     "badgeType": "badge-site",
+     "avatar": "/medias/images/OrochimaruKunfoPop.webp",
+     "description": "Figured out the 4-frames rule for M1 trading stuff, among other things as well.",
+     "links": [
+      {
+       "url": "https://www.youtube.com/@PositiveHA",
+       "name": "YouTube"
+      }
+     ]
+    },
+    {
+     "name": "Ocelol",
+     "role": "Media and Arts",
+     "badgeType": "badge-site",
+     "avatar": "/medias/images/ocelolAvatar.webp",
+     "description": "Create and submit almost every single demonstration videos for the site",
+     "links": []
+    },
+    {
+     "name": "Nukings3D",
+     "role": "Media and Arts",
+     "badgeType": "badge-wip",
+     "avatar": "/medias/images/Nuking3DAvatar.webp",
+     "description": "Draw most of the icons the wiki use",
+     "links": []
+    }
+   ],
+   "specialThanks": [
+    {
+     "name": "FUNNY_NAME_2",
+     "reason": "Suggested the color format for the frame data"
+    },
+    {
+     "name": "Nova",
+     "reason": "I think he helped Nickolas4F right?"
+    },
+    {
+     "name": "Demi",
+     "reason": "I think she helped PositiveHA right?"
+    },
+    {
+     "name": "Boomcat",
+     "reason": "Everything"
+    },
+    {
+     "name": "Icons8",
+     "reason": "Pumpkin icons for the Halloween badges (icons8.com)"
+    }
+   ]
+  }
  },
  "characterColorsRegion": "window.CHARACTER_COLORS = {\n    \"Honored One\": \"hsl(180, 100%, 83%)\",\n    \"Vessel\": \"hsl(0, 100%, 80%)\",\n    \"Restless Gambler\": \"hsl(100, 100%, 75%)\",\n    \"Ten Shadows\": \"hsl(0, 0%, 47%)\",\n    \"Perfection\": \"hsl(300, 100%, 83%)\",\n    \"Blood Manipulator\": \"hsl(0, 39%, 48%)\",\n    \"Switcher\": \"hsl(180, 100%, 83%)\",\n    \"Defense Attorney\": \"hsl(35, 20%, 38%)\",\n    \"Cursed Partners\": \"hsl(300, 100%, 83%)\",\n    \"Puppet Master\": \"hsl(342, 91%, 46%)\",\n    \"Head of the Hei\": \"hsl(241, 100%, 75%)\",\n    \"Salaryman\": \"hsl(204, 100%, 68%)\",\n    \"Disaster Plants\": \"hsl(106, 28%, 72%)\",\n    \"True Cannon\": \"hsl(180, 100%, 83%)\",\n    \"Register\": \"hsl(0, 0%, 100%)\",\n    \"Hired Hunter\": \"hsl(0, 0%, 20%)\",\n    \"Locust Guy\": \"hsl(100, 100%, 75%)\",\n    \"Star Rage\": \"hsl(240, 100%, 83%)\",\n    \"Aspiring Mangaka\": \"hsl(0, 100%, 96%)\",\n    \"Lucky Coward\": \"hsl(272, 43%, 64%)\",\n    \"Crow Charmer\": \"hsl(233, 39%, 23%)\",\n    \"Black Death\": \"hsl(352, 49%, 27%)\",\n    \"Sky Bender\": \"hsl(275, 17%, 60%)\",\n    \"Boomcat\": \"hsl(0, 1%, 75%)\",\n    \"Strongest of History\": \"hsl(0, 100%, 25%)\",\n    \"Monkey Kid\": \"hsl(352, 100%, 54%)\"\n};"
 }
