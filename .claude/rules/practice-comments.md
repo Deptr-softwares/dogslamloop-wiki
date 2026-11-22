@@ -17,7 +17,8 @@ What a comment holds (owner, 2026-11-22: "JSDoc block").
   - `@touches` the data, files and globals it reads, writes or calls,
   - `@watch` what to look out for when editing it,
   - `@see docs/<area>.md` when its area has a docs page.
-- A function another file calls, or one with a trap, gets the same block. A helper whose name says what it does gets none.
+- A function another file calls, or one with a trap, gets the same block, with only the tags that say something. A helper whose name says what it does gets none.
+- `@since` comes from git, never a guess: the first commit that added the file (`git log --follow --diff-filter=A`) or the function (`git log -S`), and the first release on or after that day in `data/updates.json`. A function gets one only when it came later than its file.
 - `@since` and `@see` are JSDoc's own tags; `@touches` and `@watch` are this repo's.
 - Inside a function, a comment says why, in a line or two. Never what the next line does.
 - Never in a comment: a date, the owner's words, who asked, a prompt, a PR or batch number, what the code used to do, or a measurement. They go in the area's `docs/` page, under Decisions (`docs/area-template.md`), and in git.
@@ -45,18 +46,17 @@ After:
 
 ```js
 /**
- * Quote, Trivia and Character Navigation in the profile card under a
- * character's stats.
+ * Quote, Trivia and Character Navigation in the profile card under a character's
+ * stats. The reader page and the editor's preview both draw it here, so the two
+ * cannot drift.
  * @since v1.1
- * @touches desc_data.profile, fillProfilePager, the editor preview (it calls
- *   this too, so the two cannot drift)
- * @watch a Trivia line splits at its FIRST "|": "Label | text"
- * @see docs/character-page.md
+ * @touches desc_data.profile, fillProfilePager
+ * @watch a Trivia line splits at its first "|": "Label | text"
  */
 window.profileDescriptionHTML = function (profile) {
 ```
 
-The two dated decisions move to that page's Decisions list.
+The two dated decisions moved to the Decisions list in `docs/character-page.md`, which the file's own block names with `@see`.
 
 ## What happened
 
@@ -65,7 +65,7 @@ The two dated decisions move to that page's Decisions list.
 ## How it is checked
 
 - A commit that only changes comments is shown to change no code: the file's tokens (espree, ESLint's parser) are the same before and after.
-- Nothing checks the block's shape yet.
+- `tests/comment-rule.spec.js`, on the files trimmed so far: each opens with a block carrying `@since`, no comment holds a date, a PR, batch or item number or the owner's words, and every `docs/` page a comment names exists. A file joins its list when it is trimmed.
 
 ## Read more
 
