@@ -90,6 +90,10 @@ window.setEditorSplit = function (pct, persist) {
     if (!layout) return;
     const clamped = window.clampEditorSplit(pct, layout.getBoundingClientRect().width);
     layout.style.setProperty('--editor-split', clamped.toFixed(3) + '%');
+    // A focusable separator tells a screen reader where it stands: the
+    // workspace's share of the width, in percent.
+    const splitter = document.getElementById('editor-splitter');
+    if (splitter) splitter.setAttribute('aria-valuenow', String(Math.round(clamped)));
     if (persist) editorPrefWriteNum(EDITOR_SPLIT_KEY, Math.round(clamped * 1000) / 1000);
 };
 

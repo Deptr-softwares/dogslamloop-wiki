@@ -68,7 +68,6 @@ const BASELINE = {
         'color-contrast .site-footer-note',
     ],
     '/edit.html?page=crow_charmer': [
-        'aria-required-attr #editor-splitter',
         'color-contrast #editor-subtitle',
         'color-contrast #overview-nav-extra-0',
         'color-contrast #overview-nav-overview',
