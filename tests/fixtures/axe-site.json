@@ -1,0 +1,1018 @@
+{
+ "about": "A frozen copy of the generated data the axe pages read (tests/axe.spec.js), taken 2026-11-22, so an owner edit cannot change what axe finds. Refresh by copying the current files in; the baseline in the spec may move with it.",
+ "data": {
+  "navigation.json": {
+   "Characters": [
+    {
+     "id": "Honored-One",
+     "name": "Honored One",
+     "url": "characters/Honored_one/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "M1 Merchant",
+     "releaseDate": "V1.00",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "honored_one",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Vessel",
+     "name": "Vessel",
+     "url": "characters/Vessel/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "M1 Merchant",
+     "releaseDate": "V1.00",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "vessel",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Restless-Gambler",
+     "name": "Restless Gambler",
+     "url": "characters/Restless_gambler/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "M1 Merchant",
+     "releaseDate": "V1.15",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "restless_gambler",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Ten-Shadows",
+     "name": "Ten Shadows",
+     "url": "characters/Ten_shadows/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Oppressor",
+     "releaseDate": "V1.29",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "ten_shadows",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Perfection",
+     "name": "Perfection",
+     "url": "characters/Perfection/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "M1 Merchant",
+     "releaseDate": "V1.40",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "perfection",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Blood-Manipulator",
+     "name": "Blood Manipulator",
+     "url": "characters/Blood_manipulator/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Oppressor",
+     "releaseDate": "V1.42",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "blood_manipulator",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Switcher",
+     "name": "Switcher",
+     "url": "characters/Switcher/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "In n Out",
+     "releaseDate": "V1.49",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "switcher",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Defense-Attorney",
+     "name": "Defense Attorney",
+     "url": "characters/Defense_attorney/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Oppressor",
+     "releaseDate": "V1.57.1",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "defense_attorney",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Cursed-Partners",
+     "name": "Cursed Partners",
+     "url": "characters/Cursed_partners/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Balance",
+     "releaseDate": "V1.63",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "cursed_partners",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Puppet-Master",
+     "name": "Puppet Master",
+     "url": "characters/Puppet_master/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Balance",
+     "releaseDate": "V1.72",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "puppet_master",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Head-Hei",
+     "name": "Head of the Hei",
+     "url": "characters/Head_hei/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Close In",
+     "releaseDate": "V1.69",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "head_hei",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Salaryman",
+     "name": "Salaryman",
+     "url": "characters/Salaryman/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Reversal",
+     "releaseDate": "V1.73",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "salaryman",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Disaster-Plants",
+     "name": "Disaster Plants",
+     "url": "characters/Disaster_plants/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Fisher",
+     "releaseDate": "V1.82",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "disaster_plants",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "True-Cannon",
+     "name": "True Cannon",
+     "url": "characters/True_cannon/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Fisher",
+     "releaseDate": "V1.76",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "true_cannon",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Register",
+     "name": "Register",
+     "url": "characters/Register/index.html",
+     "isWip": true,
+     "isMissingMedia": true,
+     "archetype": "Balance",
+     "releaseDate": "V1.84",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "register",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Hired-Hunter",
+     "name": "Hired Hunter",
+     "url": "characters/Hired_hunter/index.html",
+     "isWip": true,
+     "isEA": true,
+     "isMissingMedia": true,
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "hired_killer",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Locust",
+     "name": "Locust Guy",
+     "url": "characters/Locust_guy/index.html",
+     "isWip": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "M1 Merchant",
+     "releaseDate": "V1.49",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "locust_guy",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Star-Rage",
+     "name": "Star Rage",
+     "url": "characters/Star_rage/index.html",
+     "isWip": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "M1 Merchant",
+     "releaseDate": "V1.56",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "star_rage",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Mangaka",
+     "name": "Aspiring Mangaka",
+     "url": "characters/Aspiring_mangaka/index.html",
+     "isWip": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "Oppressor",
+     "releaseDate": "V1.58",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "aspiring_mangaka",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Lucky-Coward",
+     "name": "Lucky Coward",
+     "url": "characters/Lucky_coward/index.html",
+     "isWip": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "Reversal",
+     "releaseDate": "V1.73",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "lucky_coward",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Sus-Sister",
+     "name": "Crow Charmer",
+     "url": "characters/Crow_charmer/index.html",
+     "isWip": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "Oppressor",
+     "releaseDate": "V1.75",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "crow_charmer",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Black-Death",
+     "name": "Black Death",
+     "url": "characters/Black_death/index.html",
+     "isWip": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "Balance",
+     "releaseDate": "V1.76",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "black_death",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Sky-Bender",
+     "name": "Sky Bender",
+     "url": "characters/Sky_bender/index.html",
+     "isWip": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "Close In",
+     "releaseDate": "V1.83",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "sky_assassin",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Boomcat",
+     "name": "Boomcat",
+     "url": "characters/Boomcat/index.html",
+     "archetype": "Boomcat",
+     "releaseDate": "V9.99",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "boomcat",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Strongest-of-History",
+     "name": "Strongest of History",
+     "url": "characters/Strongest_of_history/index.html",
+     "isWip": true,
+     "isHidden": true,
+     "isBaseOnly": true,
+     "isMissingMedia": true,
+     "archetype": "Raidboss",
+     "releaseDate": "V1.45",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "strongest_of_history",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Monkey-Kid",
+     "name": "Monkey Kid",
+     "url": "characters/Monkey_kid/index.html",
+     "isWip": true,
+     "isHidden": true,
+     "isMissingMedia": true,
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "monkey_kid",
+      "editRole": "open"
+     }
+    }
+   ],
+   "System Pages": [
+    {
+     "id": "hud",
+     "name": "HUD",
+     "url": "systems/hud/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "hud",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "framedata",
+     "name": "Frame data",
+     "url": "systems/framedata/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "framedata",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "fundamentals",
+     "name": "Fundamentals",
+     "url": "systems/fundamentals/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "fundamentals",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "evasive",
+     "name": "Evasive",
+     "url": "systems/evasive/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "evasive",
+      "editRole": "open"
+     }
+    }
+   ],
+   "Site Info": [
+    {
+     "id": "character-hub",
+     "name": "Character Hub",
+     "url": "characters/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "hub",
+      "pageId": "character-hub",
+      "editRole": "locked"
+     }
+    },
+    {
+     "id": "systems-hub",
+     "name": "Systems Hub",
+     "url": "systems/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "hub",
+      "pageId": "systems-hub",
+      "editRole": "locked"
+     }
+    },
+    {
+     "id": "template",
+     "name": "Template & Guide",
+     "url": "characters/Template/index.html",
+     "cms_config": {
+      "pageType": "character",
+      "pageId": "template",
+      "editRole": "elevated"
+     }
+    },
+    {
+     "id": "writing_guide",
+     "name": "Writing Guide",
+     "url": "systems/writing_guide/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "writing_guide",
+      "editRole": "elevated"
+     }
+    },
+    {
+     "id": "updatelog",
+     "name": "Update Log",
+     "url": "systems/updatelog/index.html",
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "updatelog",
+      "editRole": "locked"
+     }
+    },
+    {
+     "id": "blog",
+     "name": "Blog",
+     "url": "blog.html",
+     "cms_config": {
+      "pageType": "hub",
+      "pageId": "blog",
+      "editRole": "locked"
+     }
+    },
+    {
+     "id": "recent-changes",
+     "name": "Recent Changes",
+     "url": "recent-changes.html",
+     "cms_config": {
+      "pageType": "hub",
+      "pageId": "recent-changes",
+      "editRole": "locked"
+     }
+    },
+    {
+     "id": "collaborators",
+     "name": "Collaborators",
+     "url": "systems/collaborators/index.html",
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "collaborators",
+      "editRole": "elevated"
+     }
+    },
+    {
+     "id": "Forum-Rules",
+     "name": "Forum Rules",
+     "url": "systems/forum-rules/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "forum_rules",
+      "editRole": "open"
+     }
+    }
+   ],
+   "Guides": [
+    {
+     "id": "m1-trading",
+     "name": "M1 Trading",
+     "url": "systems/m1-trading/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "m1_trading",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "starter-guide",
+     "name": "Starter Guide",
+     "url": "systems/starter-guide/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "starter_guide",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "terminologies",
+     "name": "Terminologies",
+     "url": "systems/terminologies/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "terminologies",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "color-codes",
+     "name": "Color Codes",
+     "url": "systems/color-codes/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "color_codes",
+      "editRole": "elevated"
+     }
+    },
+    {
+     "id": "tierlist",
+     "name": "Tier List",
+     "url": "systems/tierlist/index.html",
+     "isSubjective": true,
+     "cms_config": {
+      "pageType": "tierlist",
+      "pageId": "tierlist",
+      "editRole": "elevated"
+     }
+    }
+   ],
+   "Community": [
+    {
+     "id": "Free-Submit-Tier-List",
+     "name": "Free Submit Tier List",
+     "url": "tools/free-submit-tier-list/index.html",
+     "cms_config": {
+      "pageType": "tool",
+      "pageId": "free_submit_tier_list",
+      "editRole": "locked"
+     }
+    },
+    {
+     "id": "Create-Tier-List",
+     "name": "Create Tier List",
+     "url": "tools/create-tier-list/index.html",
+     "cms_config": {
+      "pageType": "tool",
+      "pageId": "create_tier_list",
+      "editRole": "locked"
+     }
+    }
+   ],
+   "Creators": [
+    {
+     "id": "Skill-Builder-ID-Reader",
+     "name": "Skill Builder ID Reader",
+     "url": "tools/skill-builder-id-reader/index.html",
+     "cms_config": {
+      "pageType": "tool",
+      "pageId": "skill_builder_id_reader",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Editor-Playground",
+     "name": "Editor Playground",
+     "url": "tools/editor-playground/index.html",
+     "cms_config": {
+      "pageType": "tool",
+      "pageId": "editor_playground",
+      "editRole": "locked"
+     }
+    }
+   ],
+   "Gamemodes": [
+    {
+     "id": "Roulette",
+     "name": "Roulette",
+     "url": "others/roulette/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "roulette",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Duels",
+     "name": "Duels",
+     "url": "others/duels/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "duels",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Creator-Clash",
+     "name": "Creator Clash",
+     "url": "others/creator-clash/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "creator_clash",
+      "editRole": "open"
+     }
+    }
+   ],
+   "Misc": [
+    {
+     "id": "Awakening-System",
+     "name": "Awakening System",
+     "url": "others/awakening-system/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "awakening_system",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Parkour-System",
+     "name": "Parkour System",
+     "url": "others/parkour-system/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "parkour_system",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Lost-Medias",
+     "name": "Lost Medias",
+     "url": "others/lost-medias/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "lost_medias",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Emotes",
+     "name": "Emotes",
+     "url": "others/emotes/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "gallery",
+      "pageId": "emotes",
+      "editRole": "open"
+     }
+    }
+   ],
+   "Servers": [
+    {
+     "id": "Custom-Servers",
+     "name": "Custom Servers",
+     "url": "others/custom-servers/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "custom_servers",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Private-Servers",
+     "name": "Private Servers",
+     "url": "others/private-servers/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "private_servers",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Game-Settings",
+     "name": "Game Settings",
+     "url": "others/game-settings/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "game_settings",
+      "editRole": "open"
+     }
+    },
+    {
+     "id": "Skill-Builder",
+     "name": "Skill Builder",
+     "url": "others/skill-builder/index.html",
+     "isWip": true,
+     "cms_config": {
+      "pageType": "system",
+      "pageId": "skill_builder",
+      "editRole": "open"
+     }
+    }
+   ]
+  },
+  "site_meta.json": {
+   "version": "Stable v1.2",
+   "tagline": "The Competitive JJS Wiki",
+   "hubs": {
+    "character-hub": {
+     "title": "Character Dashboard",
+     "description": "Every Jujutsu Shenanigans character, with frame data, matchups, and strategy for each.",
+     "headings": {
+      "about": "Roster Overview",
+      "roster": "Select a Character"
+     },
+     "lists": {}
+    },
+    "main-hub": {
+     "title": "Dogslamloop Wiki",
+     "description": "Frame data, and strategy guides for Jujutsu Shenanigans: a community-run competitive wiki.",
+     "headings": {
+      "about": "About Us",
+      "blog": "From the Blog",
+      "credits": "Credits",
+      "faq": "Frequently Asked Questions (FAQ)",
+      "gameinfo": "Game Info",
+      "navigation": "Guides & Such",
+      "roster": "Characters",
+      "updates": "Site Updates"
+     },
+     "lists": {}
+    },
+    "systems-hub": {
+     "title": "Systems & Guides Hub",
+     "description": "Guides to the systems behind Jujutsu Shenanigans - frame data, HUD, evasion, M1 trading, and more.",
+     "headings": {
+      "about": "Info, Guides & Resources",
+      "guides": "System Directories"
+     },
+     "lists": {
+      "contribute": [
+       {
+        "url": "",
+        "title": "Sign in",
+        "description": "Use the button at the bottom of the sidebar."
+       },
+       {
+        "url": "",
+        "title": "Open a page and press EDIT",
+        "description": "Every character and system page has one."
+       },
+       {
+        "url": "writing_guide/index.html",
+        "title": "Follow the Writing Guide",
+        "description": "House style, and how frame data should be recorded."
+       },
+       {
+        "url": "../submissions.html",
+        "title": "Track your submissions",
+        "description": "See what was approved, and what a reviewer asked about."
+       }
+      ],
+      "startHere": [
+       {
+        "url": "hud/index.html",
+        "title": "HUD",
+        "description": "What is going on in the UI."
+       },
+       {
+        "url": "starter-guide/index.html",
+        "title": "Starter Guide",
+        "description": "What the game is, and what you should be doing in a match."
+       },
+       {
+        "url": "fundamentals/index.html",
+        "title": "Fundamentals",
+        "description": "The basic skills that everyone should know."
+       },
+       {
+        "url": "m1-trading/index.html",
+        "title": "M1 Trading",
+        "description": "The 4-frame rule, and kinda everything about M1 trading at high level"
+       },
+       {
+        "url": "evasive/index.html",
+        "title": "Evasive",
+        "description": "How to evasice punish like a pro"
+       },
+       {
+        "url": "framedata/index.html",
+        "title": "Frame Data",
+        "description": "How to interpret frame data on this wiki."
+       }
+      ]
+     }
+    }
+   },
+   "gameInfo": {
+    "title": "Jujutsu\nShenanigans",
+    "fields": [
+     {
+      "label": "Developers",
+      "value": "Tze's Shenanigans",
+      "subtext": "(Tze, Imed, Frost, Fahooey)"
+     },
+     {
+      "label": "Platform",
+      "value": "Roblox (PC, Mobile, Console, VR)"
+     }
+    ],
+    "linksLabel": "Official Links",
+    "links": [
+     {
+      "url": "https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans",
+      "name": "Roblox Game Page"
+     },
+     {
+      "url": "https://discord.gg/nyTYVCDMBF",
+      "name": "Official Discord"
+     }
+    ]
+   }
+  },
+  "faq.json": {
+   "faqs": [
+    {
+     "id": 1,
+     "question": "What is \"Boomcat\"?",
+     "paragraphs": [
+      "Boomcat is my spirit animal."
+     ]
+    },
+    {
+     "id": 2,
+     "question": "How do you measure this frame data?",
+     "paragraphs": [
+      "We record the game at a locked 60 FPS and count the video frames one by one in editing software to determine the numbers.",
+      "There is a set standard for analyzing these. @Mrt1 please expand on this section."
+     ]
+    },
+    {
+     "id": 3,
+     "question": "Can I contribute to the wiki?",
+     "paragraphs": [
+      "Absolutely! You can reach out directly via Discord.",
+      "Contact @.mrt1 for frame data stuff, or contact @deptr4869 for the site and general feedback."
+     ]
+    }
+   ]
+  },
+  "portraits.json": {
+   "aspiring_mangaka": "medias/portraits/aspiring_mangaka.webp",
+   "black_death": "medias/portraits/black_death.webp",
+   "blood_manipulator": "medias/portraits/blood_manipulator.webp",
+   "boomcat": "medias/portraits/boomcat.webp",
+   "crow_charmer": "medias/portraits/crow_charmer.webp",
+   "cursed_partners": "medias/portraits/cursed_partners.webp",
+   "defense_attorney": "medias/portraits/defense_attorney.webp",
+   "disaster_plants": "medias/portraits/disaster_plants.webp",
+   "head_hei": "medias/portraits/head_hei.webp",
+   "hired_killer": "medias/portraits/hired_killer.webp",
+   "honored_one": "medias/portraits/honored_one.webp",
+   "locust_guy": "medias/portraits/locust_guy.webp",
+   "lucky_coward": "medias/portraits/lucky_coward.webp",
+   "perfection": "medias/portraits/perfection.webp",
+   "puppet_master": "medias/portraits/puppet_master.webp",
+   "register": "medias/portraits/register.webp",
+   "restless_gambler": "medias/portraits/restless_gambler.webp",
+   "salaryman": "medias/portraits/salaryman.webp",
+   "sky_assassin": "medias/portraits/sky_assassin.webp",
+   "star_rage": "medias/portraits/star_rage.webp",
+   "strongest_of_history": "medias/portraits/strongest_of_history.webp",
+   "switcher": "medias/portraits/switcher.webp",
+   "template": "medias/portraits/template.webp",
+   "ten_shadows": "medias/portraits/ten_shadows.webp",
+   "true_cannon": "medias/portraits/true_cannon.webp",
+   "vessel": "medias/portraits/vessel.webp"
+  },
+  "archived-pages.json": {
+   "source-code": {
+    "name": "Source Code",
+    "url": "https://github.com/Deptr-softwares/dogslamloop-wiki",
+    "pageType": "external",
+    "navId": "source-code",
+    "hideEntryPoints": false
+   }
+  },
+  "updates.json": {
+   "changelogs": [
+    {
+     "version": "Stable v1.2",
+     "date": "11/20/2026",
+     "type": "site",
+     "title": "The \"Random\" Update",
+     "description": "Everything all at once, hell yeeeee",
+     "changes": [
+      {
+       "heading": "Features"
+      },
+      "Added a Classic look in the Site Settings, larping Wikipedia",
+      "Added a bottom bar on phones that has Search, Ko-fi, Settings and Account shortcuts",
+      "Added Hover Banners for every Characters page, which display on the home page roster",
+      "Added Accolades for Skill Cards",
+      "Added Mini icons in page text",
+      "Certified Tier Lists people can now create copies of a character on certified tier lists, with custom badges",
+      "Added a \"No frame data\" option for Skill Cards",
+      "Added Skill Card media that changes with the Micro Variant on show aka media per Micro Variant",
+      "Updated History pages to show the whole page as it was",
+      "Updated VIEW DIFF in the editor to show the page side by side and compare with a past version of that page (also did the same for Reviewers stuff)",
+      "Added States for base-only characters",
+      "Made Color Codes and Collaborators editable in the editor, restricted to admin and above tho",
+      "Added a warning before editing a restricted page",
+      {
+       "heading": "Fine-tuning"
+      },
+      "Made most text smaller on phones",
+      "Made tables scroll in their own box instead of being compressed on phones",
+      "Made pages load faster",
+      "Videos and clips now show their first frame until they play",
+      "Updated icons across the site",
+      "Made a universal solid line under every title, and one universal heading style on every character tab",
+      "Reworked the Media Library into a list of names with a preview",
+      "Removed Reverse Hitcancel",
+      "Block Endlag is now defined as Block Stun",
+      "\"Variant\" is now \"Micro Variant\" in the frame data editor",
+      "Made Discord previews and search results show a character's Overview line and banner",
+      "Updated the Overseer Panel to be more \"concise\" along with a bunch of QoLs",
+      "Changed a few things under the hood, such as security hole fixes, this and that, don't ask",
+      {
+       "heading": "Bug fixes"
+      },
+      "Fixed a long link in a post stretching the page sideways",
+      "Fixed Micro Variant tabs overflowing their Skill Card",
+      "Fixed History pages showing the current M1s, Skills and Innate tabs instead of the old ones",
+      "Fixed editing inside a Section Box and switching section deleting the rest of it",
+      "Fixed switching state on Techs and Combos swapping cards between the states, causing stuff to tragically disappear",
+      "Fixed move names with a hyphen being only half highlighted in combo routes",
+      "Fixed open dropdown lists cutting their options off",
+      "Fixed panels popping up when tapped on a phone",
+      "Fixed the editor's Workspace Footer jittering on short sections"
+     ]
+    },
+    {
+     "version": "Release v1.1",
+     "date": "10/24/2026",
+     "type": "site",
+     "title": "The 'Halloween' Update",
+     "description": "Ooooooooohhh scary Black Flash chain",
+     "changes": [
+      {
+       "heading": "Features"
+      },
+      "Added colors to the category buttons in the Forum",
+      "Added an early version of user badges with just two badges for now",
+      "Gave the site a new spooky look",
+      "Added toasts to the site",
+      "Added something scary to the site (also available in Site Settings)",
+      {
+       "heading": "Fine-tuning"
+      },
+      "Some buttons on the right sidebar are no longer gray",
+      "Made character navigation cooler",
+      "Slightly reworked Trivia and added a new syntax to it",
+      {
+       "heading": "Bug fixes"
+      },
+      "Fixed a bug where reordering matchup descriptions copied one character's text into every box it passed over",
+      "Changed a few things under the hood"
+     ]
+    }
+   ]
+  },
+  "video-stills.json": {}
+ },
+ "characterColorsRegion": "window.CHARACTER_COLORS = {\n    \"Honored One\": \"hsl(180, 100%, 83%)\",\n    \"Vessel\": \"hsl(0, 100%, 80%)\",\n    \"Restless Gambler\": \"hsl(100, 100%, 75%)\",\n    \"Ten Shadows\": \"hsl(0, 0%, 47%)\",\n    \"Perfection\": \"hsl(300, 100%, 83%)\",\n    \"Blood Manipulator\": \"hsl(0, 39%, 48%)\",\n    \"Switcher\": \"hsl(180, 100%, 83%)\",\n    \"Defense Attorney\": \"hsl(35, 20%, 38%)\",\n    \"Cursed Partners\": \"hsl(300, 100%, 83%)\",\n    \"Puppet Master\": \"hsl(342, 91%, 46%)\",\n    \"Head of the Hei\": \"hsl(241, 100%, 75%)\",\n    \"Salaryman\": \"hsl(204, 100%, 68%)\",\n    \"Disaster Plants\": \"hsl(106, 28%, 72%)\",\n    \"True Cannon\": \"hsl(180, 100%, 83%)\",\n    \"Register\": \"hsl(0, 0%, 100%)\",\n    \"Hired Hunter\": \"hsl(0, 0%, 20%)\",\n    \"Locust Guy\": \"hsl(100, 100%, 75%)\",\n    \"Star Rage\": \"hsl(240, 100%, 83%)\",\n    \"Aspiring Mangaka\": \"hsl(0, 100%, 96%)\",\n    \"Lucky Coward\": \"hsl(272, 43%, 64%)\",\n    \"Crow Charmer\": \"hsl(233, 39%, 23%)\",\n    \"Black Death\": \"hsl(352, 49%, 27%)\",\n    \"Sky Bender\": \"hsl(275, 17%, 60%)\",\n    \"Boomcat\": \"hsl(0, 1%, 75%)\",\n    \"Strongest of History\": \"hsl(0, 100%, 25%)\",\n    \"Monkey Kid\": \"hsl(352, 100%, 54%)\"\n};"
+}
