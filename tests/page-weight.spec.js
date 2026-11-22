@@ -33,12 +33,12 @@ const BUDGET = {
     'admin.html': { js: 317, css: 105 },
     'blog.html': { js: 193, css: 53 },
     'characters/index.html': { js: 205, css: 50 },
-    'edit.html': { js: 462, css: 87 },
+    'edit.html': { js: 438, css: 87 },
     'forum.html': { js: 230, css: 60 },
     'history.html': { js: 232, css: 52 },
     'index.html': { js: 201, css: 53 },
-    'owner.html': { js: 237, css: 102 },
-    'post-editor.html': { js: 254, css: 102 },
+    'owner.html': { js: 219, css: 102 },
+    'post-editor.html': { js: 233, css: 102 },
     'privacy-policy.html': { js: 143, css: 50 },
     'recent-changes.html': { js: 145, css: 46 },
     'search.html': { js: 147, css: 46 },
@@ -47,7 +47,7 @@ const BUDGET = {
     'systems/tierlist/index.html': { js: 210, css: 53 },
     'systems/updatelog/index.html': { js: 197, css: 50 },
     'terms.html': { js: 143, css: 50 },
-    'tier-editor.html': { js: 304, css: 92 },
+    'tier-editor.html': { js: 269, css: 92 },
 };
 
 function generatedKinds() {

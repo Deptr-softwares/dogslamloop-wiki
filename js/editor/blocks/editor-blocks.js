@@ -1,60 +1,39 @@
-
-// Every contributor-authored value below reaches innerHTML, and most of them
-// land in an ATTRIBUTE (`value="..."`), where an unescaped double quote ends
-// the attribute and starts a new one. That was live: a block field of
-// `" onfocus=alert(1) autofocus="` executed when the editor rendered it - and
-// a reviewer intercepting a ticket opens exactly that editor on exactly that
-// contributor's content.
-
 /**
- * Dogslamloop Wiki - Editor: Content Block Builder (add/edit/reorder text,
- * media, and component blocks - the core WYSIWYG-ish editing surface used
- * across overview/strategy/matchups/counterplay/moves/system sections)
- *
- * initStrategyBlockBuilder is kept as one closure rather than split further -
- * its internals (the IntersectionObserver virtualization engine, focus
- * tracking, format/hotkey injection, hover copy/paste, the color popup, and
- * the full pointer-based drag-and-drop physics in computeDropTarget/
- * finishBlockDrop/startBlockPointerDrag+onMove/onUp/onCancel) all close over
- * this function's own local variables - splitting them apart would mean
- * actually refactoring into parameterized functions, not just moving code,
- * matching the precedent already set for admin-preview.js's switchVersionView
- * and editor-framedata.js's initDawEditor.
+ * The Block editor: the Workspace's list of Blocks and their forms, the format
+ * toolbar, the colour popups, selection, copy and paste, and dragging to reorder.
+ * edit.html, owner.html, post-editor.html and tier-editor.html load it.
+ * @since v0.4, as part of editor.js
+ * @touches currentStrategyBlocks, window.activeAccordionPath, blockTemplates,
+ *   updateLivePreview (editor-sync.js), customConfirm (editor-dialogs.js),
+ *   escapeHtml and safeColor (site_utils.js), localStorage dsl_recent_colors
+ * @watch every contributor value here reaches innerHTML, most of them inside an
+ *   attribute, so each one goes through escapeHtml. initStrategyBlockBuilder is
+ *   one closure on purpose: its parts share its local variables.
+ * @see docs/block-editor.md
  */
 
-// --- COLOUR PRESETS ---
-//
-// The picker used to offer seven hardcoded swatches while the site's two real
-// palettes already existed and were used everywhere else, so colouring text to
-// match a character or a frame phase meant reading a hex out of the CSS by
-// hand.
-//
-// Built at render time rather than as a module constant. FRAME_COLORS and
-// WINDOW_COLORS are read out of CSS custom properties by an IIFE in
-// js/utility/site_meta.js, so anything evaluated while this file parses can capture
-// them before ColorCoding.css has been applied - a constant here would be a
-// row of empty strings.
+// Colour presets. Built when drawn, never while this file parses: FRAME_COLORS
+// and WINDOW_COLORS are read from CSS variables that may not be applied yet.
 
-// The original seven. Kept as their own group because they are the neutral
-// choices, and a writer who wants "just red" should not have to find one
-// among two dozen character colours.
+// The neutral choices, apart from two dozen character colours.
 const BASIC_PRESET_COLORS = [
     'hsl(3, 93%, 63%)', 'hsl(217, 91%, 60%)', 'hsl(127, 59%, 58%)', 'hsl(261, 86%, 86%)',
     'hsl(39, 100%, 50%)', 'hsl(180, 100%, 50%)', 'hsl(0, 0%, 50%)',
 ];
 
-// Whitelisted rather than escaped, because these land inside a style
-// attribute where escaping alone would not stop a value closing the
-// declaration and adding its own. Everything here comes from our own
-// dictionaries today; the check costs one line and survives someone editing a
-// CSS custom property later.
+// Allowlisted, not escaped: these land in a style attribute, where an escaped
+// value can still close the declaration and add its own.
 const SAFE_CSS_COLOR = /^(#[0-9a-f]{3,8}|(?:hsla?|rgba?)\([0-9%.,\s/-]+\))$/i;
 
+/**
+ * The colour popup's preset groups: the basic seven, the characters' colours
+ * and the frame-data colours.
+ * @since v0.13
+ */
 function colorPresetGroups() {
     const fromDictionary = (dict) => Object.entries(dict || {}).map(([key, color]) => ({
         color: String(color || '').trim(),
-        // Falls back to the key so a colour added to the dictionary without a
-        // label still appears, rather than silently vanishing from the picker.
+        // A colour with no label still shows, under its key.
         label: (window.FRAME_COLOR_LABELS || {})[key] || key,
     }));
 
@@ -74,28 +53,15 @@ function colorPresetGroups() {
         },
     ];
 
-    // A missing CSS variable reads as an empty string, which would render an
-    // invisible swatch that applies no colour when clicked.
+    // A missing CSS variable reads as "", which would draw a swatch that does nothing.
     return groups
         .map(group => ({ ...group, swatches: group.swatches.filter(s => SAFE_CSS_COLOR.test(s.color)) }))
         .filter(group => group.swatches.length > 0);
 }
 
 
-// --- GRADIENT PRESETS (v0.19, owner's follow-on to C6) ---------------------
-//
-// [multicolor=a,b] sweeps text from one colour to another. Typing that by hand
-// means knowing the shortcode exists, knowing it takes two stops, and knowing
-// two hex codes that look good together - so in practice nobody would.
-//
-// These are two-stop pairs only. The shortcode accepts any number, and the
-// picker deliberately does not: a quick tool that asks how many stops you want
-// is not a quick tool, and the hand-written form is still there for anything
-// more elaborate.
-//
-// Every value is a plain hex so SAFE_CSS_COLOR passes it, the same filter the
-// single-colour swatches go through. Names are the effect rather than the
-// colours, because "red to cyan" is already visible on the swatch.
+// Gradient presets for [multicolor=]: two-stop pairs, plain hex so SAFE_CSS_COLOR
+// passes them. More stops are the custom gradient's job, or typed by hand.
 const GRADIENT_PRESETS = [
     { label: 'Cursed',   from: '#a855f7', to: '#22d3ee' },
     { label: 'Fire',     from: '#fbbf24', to: '#dc2626' },
@@ -107,13 +73,15 @@ const GRADIENT_PRESETS = [
     { label: 'Rainbow',  from: '#ef4444', to: '#3b82f6' },
 ];
 
+/**
+ * The gradient presets' row in a colour popup.
+ * @since v0.19
+ */
 function gradientPresetsHTML() {
     const usable = GRADIENT_PRESETS.filter(g => SAFE_CSS_COLOR.test(g.from) && SAFE_CSS_COLOR.test(g.to));
     if (!usable.length) return '';
 
-    // data-gradient carries the shortcode's own value - "from,to" - so the
-    // click handler passes it straight to applyFormat without re-deriving it,
-    // and what is in the attribute is what ends up in the text.
+    // The attribute holds the tag's own value, so what is clicked is what is written.
     return `
                         <div class="format-color-popup-label">Gradients</div>
                         <div class="format-color-presets-row">
@@ -124,25 +92,17 @@ function gradientPresetsHTML() {
                         </div>`;
 }
 
-// --- A CUSTOM GRADIENT (v1.1, from an editor's feedback) ---
-//
-// "multicolor becomes an option instead of manually typing it out". The
-// presets above are quick picks; this builds any other gradient from two to
-// six colours, each set on the visual picker the popup already has: click a
-// colour chip, and moving the picker changes that colour. Six because that is
-// the most any gradient on the site used when this was built (2026-10-20: 28
-// of 31 use two, 2 use three, 1 uses six).
-//
-// The popup supplies the picker; wireGradientBuilder hands back the hook
-// initColorPicker calls as the picker moves.
-//
-// Shut until its heading is clicked. Open, it is about fifty pixels more on a
-// popup that opens upward inside the Workspace, and on a 720px screen that
-// pushed the preset swatches up under the tab buttons where nothing could
-// click them. Open on a window under about 800px it still does; shut, never.
+// A custom gradient of two to six stops, each set on the popup's picker. Shut
+// until its heading is clicked: open, it pushed the presets under the tab
+// buttons on a short screen.
 const GRADIENT_MAX_STOPS = 6;
 const GRADIENT_START = ['#a855f7', '#22d3ee'];
 
+/**
+ * The custom gradient's markup, and wireGradientBuilder below, which returns
+ * the hook initColorPicker calls as the picker moves.
+ * @since v1.1
+ */
 function gradientBuilderHTML() {
     return `
                         <button type="button" class="cp-label cp-gradient-toggle" data-gradient-toggle aria-expanded="false">Custom gradient <span aria-hidden="true">▸</span></button>
@@ -171,9 +131,8 @@ function wireGradientBuilder(container, onUse) {
     let stops = GRADIENT_START.slice();
     let active = -1;
 
-    // Colours go on through the CSSOM, and only real ones: a stop can come
-    // from page data (Config > Page), and "red), url(...)" would otherwise
-    // be a second background layer.
+    // Through the CSSOM, and only real colours: a stop can come from page data, and
+    // "red), url(...)" would be a second background layer.
     const usable = (c) => !!window.safeColor(c) && CSS.supports('color', c);
 
     function paintStrip() {
@@ -196,7 +155,6 @@ function wireGradientBuilder(container, onUse) {
         paintStrip();
     }
 
-    // The picker moves to the chip's colour, and from here on edits it.
     function edit(i) {
         active = i;
         hexField.value = stops[i];
@@ -205,9 +163,8 @@ function wireGradientBuilder(container, onUse) {
     }
 
     root.addEventListener('click', (e) => {
-        // Kept here. A click below redraws the chips, so by the time it
-        // reached the "clicked outside the popup?" listeners its target would
-        // be out of the page, and they would close the popup.
+        // A click here redraws the chips, so the "clicked outside?" listeners would see
+        // a target no longer in the page and close the popup.
         e.stopPropagation();
         const chip = e.target.closest('[data-stop]');
         if (chip) { edit(Number(chip.getAttribute('data-stop'))); return; }
@@ -235,8 +192,7 @@ function wireGradientBuilder(container, onUse) {
             if (chip) chip.style.background = hex;
             paintStrip();
         },
-        // Start from these colours (a word's own gradient, shown open), or
-        // the default, shut.
+        // A word's own gradient, shown open, or the default, shut.
         load(colors) {
             const good = Array.isArray(colors) ? colors.filter(usable).slice(0, GRADIENT_MAX_STOPS) : [];
             stops = good.length >= 2 ? good : GRADIENT_START.slice();
@@ -247,19 +203,9 @@ function wireGradientBuilder(container, onUse) {
     };
 }
 
-// --- THE VISUAL COLOUR PICKER (owner's fine-tuning item, 2026-08-13) ---
-//
-// Replaces <input type="color">, which opens the OPERATING SYSTEM's colour
-// dialog on top of the wiki: a different palette, different conventions, and
-// on some platforms a modal that steals the text selection the toolbar is
-// about to wrap.
-//
-// A saturation/brightness surface plus a hue slider, drawn with CSS gradients
-// rather than a canvas - the maths is four lines and a canvas would be a
-// second way to draw the same square.
-//
-// The output goes through the same applyFormat('color', hex) path the preset
-// swatches use, so the write side was already built and tested.
+// The visual colour picker, in place of <input type="color">, which opens the
+// system's own dialog and can take the text selection the toolbar is wrapping.
+// Drawn with CSS gradients; its colour goes through applyFormat like a preset's.
 
 function hsvToHex(h, s, v) {
     const f = (n) => {
@@ -292,8 +238,13 @@ function hexToHsv(hex) {
     return { h, s: max === 0 ? 0 : d / max, v: max };
 }
 
-// onChange (optional) hears every colour the picker shows, as it moves: the
-// custom gradient uses it to recolour the chip being edited.
+/**
+ * A saturation and brightness square, a hue slider and a hex field in
+ * `container`. onPick gets the colour chosen; onChange (optional) hears every
+ * colour as the picker moves.
+ * @since v0.14
+ * @watch it looks only inside `container`, so two popups can repeat its ids
+ */
 function initColorPicker(container, onPick, onChange) {
     const surface = container.querySelector('#cp-surface');
     const surfaceThumb = container.querySelector('#cp-surface-thumb');
@@ -323,15 +274,12 @@ function initColorPicker(container, onPick, onChange) {
         if (onChange) onChange(hex);
     }
 
-    // Pointer events rather than mouse events, so a stylus and a finger work
-    // too; setPointerCapture is what keeps a drag alive after the pointer
-    // leaves the small square.
+    // Pointer events, so a stylus and a finger work too. Pointer capture keeps a
+    // drag alive once the pointer leaves the small square.
     function drag(el, onMove) {
         const handle = (event) => {
             const rect = el.getBoundingClientRect();
-            // A hidden popup measures 0x0, and 0/0 is NaN - which would reach
-            // the hex through Math.round and produce "#NaNNaNNaN". Nothing
-            // should move while the surface is not on screen anyway.
+            // A hidden popup measures 0x0, and 0/0 would make the hex "#NaNNaNNaN".
             if (!rect.width || !rect.height) return;
 
             const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
@@ -341,17 +289,13 @@ function initColorPicker(container, onPick, onChange) {
         };
 
         el.addEventListener('pointerdown', (event) => {
-            // The toolbar already suppresses mousedown to protect the text
-            // selection; this is the same guard for the drag itself.
+            // The same guard the toolbar uses to keep the text selection.
             event.preventDefault();
 
-            // The colour is applied FIRST and the capture attempted after.
-            // setPointerCapture throws when the id is not an active pointer,
-            // and doing it first meant that throw aborted the handler before
-            // it had done anything - one click, no colour, and an exception in
-            // the console rather than a visible failure.
+            // The colour first: setPointerCapture throws for a pointer that is not active,
+            // and that would end the handler before any colour was applied.
             handle(event);
-            try { el.setPointerCapture(event.pointerId); } catch (e) { /* drag is click-only */ }
+            try { el.setPointerCapture(event.pointerId); } catch (e) { /* a click, not a drag */ }
         });
         el.addEventListener('pointermove', (event) => {
             if (el.hasPointerCapture && el.hasPointerCapture(event.pointerId)) handle(event);
@@ -364,8 +308,7 @@ function initColorPicker(container, onPick, onChange) {
     drag(surface, (x, y) => { state.s = x; state.v = 1 - y; });
     drag(hue, (x) => { state.h = x * 360; });
 
-    // Keyboard, because a drag surface with no arrow keys is unusable without
-    // a pointer and this is the only way to reach a hue.
+    // Without arrow keys the hue could not be reached without a pointer.
     hue.addEventListener('keydown', (event) => {
         const step = event.shiftKey ? 10 : 1;
         if (event.key === 'ArrowLeft') state.h = (state.h - step + 360) % 360;
@@ -375,8 +318,7 @@ function initColorPicker(container, onPick, onChange) {
         paint();
     });
 
-    // Typing a hex is still allowed - it is how somebody pastes a colour from
-    // somewhere else, and it drives the surface rather than bypassing it.
+    // A pasted hex drives the square rather than going around it.
     hexField.addEventListener('input', () => {
         const parsed = hexToHsv(hexField.value);
         if (!parsed) return;
@@ -398,9 +340,11 @@ function initColorPicker(container, onPick, onChange) {
     paint();
 }
 
-// `afterFirst` is emitted between the first group and the second. The gradient
-// row uses it, and the position is load-bearing rather than aesthetic - see the
-// comment at the call site.
+/**
+ * The colour popup's preset groups as swatches. `afterFirst` goes between the
+ * first group and the second (the gradient row, see its caller).
+ * @since v0.13
+ */
 function colorPresetsHTML(afterFirst = '') {
     return colorPresetGroups().map((group, i) => `
                         <div class="format-color-popup-label">${window.escapeHtml(group.label)}</div>
@@ -409,20 +353,10 @@ function colorPresetsHTML(afterFirst = '') {
                         </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
-// --- RECENT COLOURS (v1.1) ---
-//
-// Owner, 2026-10-20: the last custom colours an editor used, gradients too,
-// "so the editor don't need to go to color everytime and redraw the custom
-// color to get it", leaving out any colour that already has a preset.
-//
-// Every colour a popup applies comes through rememberColors, presets included,
-// and the preset check drops those. That is also what moves a Recent swatch to
-// the front when it is used again. Exact matches only (the owner's pick over
-// near ones), compared once the browser has read both, because the presets
-// are written as hsl() and the picker gives a hex. Ten, newest first, saved
-// per device like Config. One list for the text colour popup, a heading's Side
-// bar, a folder's colour and Config > Page words; a gradient shows only where
-// a gradient can be used.
+// Recent colours: the last ten an editor applied, gradients too, newest first,
+// saved per device. A colour with a preset is left out, and using one again
+// moves it to the front. Compared once the browser has read both, since the
+// presets are hsl() and the picker gives a hex.
 const RECENT_COLORS_KEY = 'dsl_recent_colors';
 const RECENT_COLORS_MAX = 10;
 const STRICT_HEX = /^#[0-9a-f]{6}$/;
@@ -463,6 +397,10 @@ function hasPreset(stops) {
     return GRADIENT_PRESETS.some(g => sameStops([resolveHex(g.from), resolveHex(g.to)], stops));
 }
 
+/**
+ * Records colours a popup applied (an array of stops), for the Recent row.
+ * @since v1.1
+ */
 function rememberColors(colors) {
     const stops = (Array.isArray(colors) ? colors : []).map(resolveHex);
     if (!stops.length || stops.length > GRADIENT_MAX_STOPS || stops.includes(null) || hasPreset(stops)) return;
@@ -475,10 +413,11 @@ function rememberColors(colors) {
     }
 }
 
-// The Recent row, or nothing while nothing is recent. The swatches are the
-// presets' own buttons, so each popup's click handler already applies them.
-// Every value passed STRICT_HEX on its way out of storage, which is what makes
-// it safe in a style attribute.
+/**
+ * The Recent row, or "" while nothing is recent. Every value passed STRICT_HEX
+ * on its way out of storage, so it is safe in a style attribute.
+ * @since v1.1
+ */
 function recentColorsHTML(withGradients) {
     const entries = readRecentColors().filter(entry => withGradients || entry.length === 1);
     if (!entries.length) return '';
@@ -491,17 +430,11 @@ function recentColorsHTML(withGradients) {
                         </div>`;
 }
 
-// --- A HEADING'S SIDE BAR (v1.1) ---
-//
-// Owner, 2026-10-19: every Block renders the same way across the site, and the
-// coloured bar the Matchup, Counterplay and Starter Guide tabs gave their
-// headings becomes an optional style on the Heading Block, in any colour: the
-// text-colour presets plus a custom one. Stored as block.sideBar and drawn by
-// js/pages/core/description.js.
+// A Heading Block's optional side bar, in any colour (block.sideBar, drawn by
+// description.js).
 function headingBarRowHTML(block) {
     const bar = typeof window.safeColor === 'function' ? window.safeColor(block.sideBar) : null;
-    // Whitelisted by safeColor, the same filter the renderer uses, so the
-    // value cannot leave the style attribute.
+    // safeColor, the renderer's own filter, so the value stays in the attribute.
     return `
                 <div class="heading-bar-row">
                     <span class="editor-field-label-sm">Side bar</span>
@@ -510,12 +443,8 @@ function headingBarRowHTML(block) {
                 </div>`;
 }
 
-// The popup behind a colour swatch: a NONE button, the text colour presets and
-// the custom picker. A heading's Side bar and a folder's colour both use it.
-//
-// One popup for the whole list, made when it opens and removed when it closes:
-// its custom picker repeats the toolbar's ids, which initColorPicker tolerates
-// only because it looks inside the container it is handed.
+// The popup behind a colour swatch (a heading's side bar, a folder's colour).
+// Made on open and removed on close: its picker repeats the toolbar's ids.
 let swatchPopup = null;   // { popup, swatch }
 
 function closeSwatchPopup() {
@@ -525,9 +454,8 @@ function closeSwatchPopup() {
     swatchPopup = null;
 }
 
-// Opens below the swatch, in its parent row (which wraps it onto a line of its
-// own). The same swatch again closes it. `onPick` gets a colour, or null for
-// NONE.
+// Below the swatch, in its row. The same swatch again closes it; onPick gets a
+// colour, or null for NONE.
 function openSwatchPopup(swatch, noneLabel, onPick) {
     const reopen = !swatchPopup || swatchPopup.popup.parentElement !== swatch.parentElement;
     closeSwatchPopup();
@@ -588,9 +516,8 @@ function openHeadingBarPopup(swatch) {
     openSwatchPopup(swatch, 'NO BAR', color => setHeadingBar(index, color));
 }
 
-// A folder's colour (see editor-folders.js). The preview is redrawn all the
-// same, though readers never see a folder: that call is what records the
-// change for UNDO and the autosave.
+// Readers never see a folder, but the preview is redrawn anyway: that call is
+// what records the change for UNDO and the autosave.
 function setFolderColor(name, color) {
     const safe = color ? window.safeColor(color) : null;
     if (color && !safe) return;
@@ -603,17 +530,16 @@ function openFolderColorPopup(swatch, name) {
     openSwatchPopup(swatch, 'NO COLOR', color => setFolderColor(name, color));
 }
 
-// --- BLOCK BUILDER STATE ---
 let currentStrategyBlocks = [];
 let blockHistory = [];
 let historyIndex = -1;
 
-// History holds STATES, and UNDO steps to the one before the latest. So a
-// change records the state it starts from (this, which skips a repeat of the
-// latest) and then the one it ends in (updateLivePreview()). Only UNDO and
-// REDO pass updateLivePreview(true): they move between states already saved.
-// Until 2026-10-20 drags, folder changes and +Row skipped the second half, and
-// UNDO after one also took back the edit before it.
+/**
+ * Records the state a change starts from. History holds states, and UNDO steps
+ * back to the one before the latest, so a change saves its start here and its
+ * end through updateLivePreview(). Only UNDO and REDO pass true there.
+ * @watch a change that skips either half makes UNDO take back the edit before it
+ */
 window.saveBlockHistory = function() {
     const newStateStr = JSON.stringify(currentStrategyBlocks);
     
@@ -631,22 +557,18 @@ window.saveBlockHistory = function() {
     if (typeof window.updateHistoryButtons === 'function') window.updateHistoryButtons();
 };
 
-// --- CONFIRM BEFORE DELETING (v1.1) ---
-//
-// Every "delete this?" in the editors asks through here, so the Config
-// panel's switch turns all of them off in one place (owner, 2026-10-18:
-// "All destructive actions in the editor should have a double confirm modal",
-// with "the option to be entirely turns off"). A prompt that asks a real
-// question - restore a draft, someone else's edit was just approved, replace
-// all - calls customConfirm itself and is never switched off.
-//
-// owner.html and tier-editor.html load this file without editor-core.js, so
-// there is no customConfirm there and the browser's own confirm stands in.
-// CLEAR ALL threw on tier-editor.html until this existed.
+/**
+ * Every "delete this?" in the editors asks here, so Config's switch turns them
+ * all off at once. A prompt that asks a real question (restore a draft, replace
+ * all) calls customConfirm itself and is never switched off.
+ * @since v1.1
+ * @watch owner.html and tier-editor.html have no customConfirm: the browser's
+ *   own confirm stands in there
+ */
 window.confirmDelete = function (message, confirmText) {
     if (window.editorConfig && !window.editorConfig.get('confirmDeletes')) return Promise.resolve(true);
-    // One question at a time: the modal is shared, and a second confirm opened
-    // under the first (Delete pressed twice) would be answered by its click.
+    // The modal is shared: a second question under the first would be answered by
+    // its click.
     const modal = document.getElementById('editor-custom-modal');
     if (modal && !modal.classList.contains('hidden')) return Promise.resolve(false);
     if (typeof window.customConfirm === 'function' && modal) return window.customConfirm(message, confirmText || 'DELETE', true);
@@ -668,31 +590,15 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// --- AUTO-AUTHOR INJECTOR ---
 /**
- * A fresh block of `type`, with NO author credit.
- *
- * It used to stamp window.currentGlobalUsername onto any block whose template
- * had an `author` field. Two things were wrong with that, and the owner asked
- * for both to stop (v0.16 fine-tuning 7, pulled forward here because a combo
- * card made it unrecoverable):
- *
- *   Credit is the contributor's CHOICE. Plenty of people would rather not put
- *   their name on the site, and opting out should not require noticing a
- *   pre-filled field and clearing it.
- *
- *   It duplicated the name into the compiled contributor list underneath the
- *   tab, so one person writing four blocks was credited four times.
- *
- * The name is kept as the function's name rather than renamed to something
- * like spawnBlock: every js/ file shares one global lexical scope, four call
- * sites use this, and a rename is churn with a collision risk for no gain.
+ * A fresh Block of `type`, with no author credit: credit is the contributor's
+ * choice. Opened, since it was made to be written in.
+ * @watch the name stays though it no longer adds an author: four callers, and a
+ *   rename risks a clash in the shared global scope
  */
 window.spawnBlockWithAuthor = function(type) {
     const block = JSON.parse(JSON.stringify(blockTemplates[type]));
-    // Open, because the author made it to write in it (v0.16 fine-tuning 2:
-    // everything else starts collapsed). Marked HERE rather than at the four
-    // call sites so a fifth one cannot forget - see markEditorBlockNew.
+    // Here rather than at each caller, so a new caller cannot forget it.
     if (typeof window.markEditorBlockNew === 'function') window.markEditorBlockNew(block);
     return block;
 };
@@ -707,38 +613,26 @@ const blockTemplates = {
     callout: { type: 'callout', intent: 'info', title: 'Note', content: 'Important detail here', align: 'center' },
     combo: { type: 'combo', sequence: ['M1', 'M1', 'Skill'], damage: '0', align: 'left', note: '', author: '' },
     accordion: { type: 'accordion', title: 'Collapsible Section', content: [{ type: 'paragraph', content: ['Hidden text...'] }], align: 'center', author: '' },
-    // A combo card: the route and its numbers, then a write-up about it.
-    // `content` makes it nest exactly like an accordion, which is what lets a
-    // card hold its own clips, sub-variants and explanation - and what makes a
-    // combo GROUP a group rather than a list.
-    // `multiSections` off and `sections` empty by default: a card is one combo
-    // until an author says otherwise, and the switch seeds the first section
-    // from the card's own fields so turning it on strands nothing.
+    // A Combo Card nests Blocks in `content`, like an accordion, so it can hold its
+    // own clips and write-up. One combo until Multiple Sections is switched on.
     theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', practicality: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '', multiSections: false, sections: [] },
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
-    // A box with a title, an introduction, and a row of switchable tabs (v0.19
-    // C3). `{ title, content: [blocks] }` per section deliberately - it is the
-    // shape comboGroups already uses, so the diff walkers and the nested
-    // renderer read it without a fourth container convention being invented.
+    // A Section Box: `{ title, content }` per section, comboGroups' own shape, so the
+    // diff and the renderer read it without a new container shape.
     sectionedbox: { type: 'sectionedbox', title: 'New Section Box', intro: [], sections: [{ title: 'Section 1', content: [] }], align: 'left', author: '' },
-    // Which grid of the site's own colours to draw (js/pages/core/description.js). The
-    // colours are never stored: a character's comes from owner tools.
+    // Which of the site's colour grids to draw. The colours are never stored.
     colorswatches: { type: 'colorswatches', set: 'characters' },
-    // One person on the Collaborators page, as a Card or a Thanks line
-    // (`kind`). The home page's Credits list is built from these.
+    // One person on the Collaborators page, a Card or a Thanks line. The home page's
+    // Credits list is built from these.
     collaborator: { type: 'collaborator', kind: 'card', name: 'New Collaborator', role: '', badge: 'badge-general', avatar: '', description: '', links: [] },
 };
 
-// Blocks drawn from what the site keeps for one page (the character colours
-// for Color Codes, the people the home page credits), offered on that page
-// only. The type dropdown asks the same question, so the two never offer
-// different things.
+// Offered on their own page only. The type dropdown asks the same question.
 const PAGE_ONLY_BLOCKS = { colorswatches: 'color_codes', collaborator: 'collaborators' };
 
-// A Collaborator's links, edited one per line as "Label | address". A line
-// with no bar is an address on its own, labelled by itself.
+// One link per line, "Label | address"; a line with no bar is its own label.
 function parseLinkLines(text) {
     return String(text || '').split('\n').map(line => {
         const bar = line.indexOf('|');
@@ -760,19 +654,8 @@ window.blockOfferedHere = function (type) {
     return !only || only === window.currentEditorCharId;
 };
 
-// What each block type is CALLED, as opposed to what its template key is.
-//
-// v0.16 fine-tuning 1. These two things had drifted: the Add Block menu carried
-// hand-written names, and the type selector on every card built its options from
-// `Object.keys(blockTemplates)` uppercased - so it printed the raw key. The
-// owner went looking in the Add Block menu for the "THEORYBOX" their dropdown
-// kept showing them, did not find it, and filed a request to add a block that
-// has existed since v0.15 under the name "+ Combo Card".
-//
-// Every type had the problem, not just that one: the dropdown read PARAGRAPH,
-// YOUTUBE, THEORYBOX because nothing ever mapped them. One map, read by both
-// surfaces, is what stops them disagreeing again - the menu below is generated
-// from it rather than hand-written.
+// What each Block type is called on screen. The Add Block menu and every card's
+// type dropdown read this one map, so they cannot disagree.
 const BLOCK_TYPE_LABELS = {
     heading: 'Heading',
     paragraph: 'Paragraph',
@@ -792,40 +675,34 @@ const BLOCK_TYPE_LABELS = {
     collaborator: 'Collaborator',
 };
 
-// Falls back to the key rather than dropping the option: a template added
-// without a label here still gets a usable, if ugly, name instead of vanishing
-// from the dropdown that edits it.
+/**
+ * A Block type's name on screen, or its key when the map has none.
+ * @since v0.16
+ */
 window.blockTypeLabel = function (type) {
     return BLOCK_TYPE_LABELS[type] || String(type || '').toUpperCase();
 };
 
-// The Add Block menu's two groups, in the order they are shown. Names come from
-// the map above; only the grouping is editorial.
+// The Add Block menu's groups, in order; only the grouping is chosen here.
 const ADD_BLOCK_GROUPS = [
     { title: 'Text & Media', types: ['heading', 'paragraph', 'table', 'list', 'image', 'video', 'youtube'] },
     { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author', 'colorswatches', 'collaborator'] },
 ];
 
-// A text prompt in the site's own modal, replacing window.prompt() for the
-// hyperlink button (v0.16 fine-tuning 7).
-//
-// It lives here rather than beside customConfirm in js/editor/core/editor-core.js because
-// its only caller is the format toolbar in this file, and post-editor.html
-// loads THIS file without editor-core.js - putting it there would have left the
-// post editor's link button calling a function that does not exist. Both pages
-// carry #editor-custom-modal, so both get the same modal.
-//
-// The input is created and removed around each call rather than added to the
-// markup: that modal is shared with customConfirm on two pages, and a stray
-// text field left in it would show up on every delete confirmation.
+/**
+ * A text prompt in the site's own modal, for the toolbar's link button. It lives
+ * here because post-editor.html loads this file without editor-core.js.
+ * @since v0.16
+ * @watch the input is made and removed per call: the modal is shared with every
+ *   delete confirmation
+ */
 window.customPrompt = function (message, opts = {}) {
     const modal = document.getElementById('editor-custom-modal');
     const textEl = document.getElementById('editor-modal-text');
     const btnCancel = document.getElementById('editor-modal-cancel');
     const btnConfirm = document.getElementById('editor-modal-confirm');
 
-    // Degrade rather than break: a page with the toolbar but no modal still
-    // gets a working link button.
+    // No modal on this page: the link button still works.
     if (!modal || !textEl || !btnCancel || !btnConfirm) {
         return Promise.resolve(window.prompt(message));
     }
@@ -845,8 +722,7 @@ window.customPrompt = function (message, opts = {}) {
     textEl.insertAdjacentElement('afterend', input);
 
     const typed = () => input.value.trim() || null;
-    // Enter to accept, Escape to back out - what window.prompt gave for free
-    // and what anyone typing a URL will reach for.
+    // Enter accepts, Escape backs out, as window.prompt did.
     const answer = window.runDialog(modal, {
         buttons: [[btnCancel, null], [btnConfirm, typed]],
         cancel: null, escape: true, enter: typed, keyTarget: input, focus: input,
@@ -860,33 +736,20 @@ window.customPrompt = function (message, opts = {}) {
     return answer;
 };
 
-// --- RECURSIVE EDITOR PATH TRACKING ---
 window.activeAccordionPath = [];
 
-// WHICH NESTED ARRAY A PATH STEP MEANS (extended for v0.19 C3).
-//
-// A step is either a bare INDEX - a container whose nested blocks live in
-// `.content`, which is every container that existed before the Section Box -
-// or `{ index, field }` for one that holds SEVERAL block arrays. A Section Box
-// holds an `intro` plus one `content` per section, so an index alone cannot say
-// which of them the author asked to edit.
-//
-// The field is matched against a closed set rather than resolved as a path
-// expression: these strings are written by this file, and a general resolver
-// over contributor data is a much larger promise than the feature needs.
-// WHICH SECTION OF A COMBO CARD THE EDITOR IS SHOWING (v0.19 C3b).
-//
-// A WeakMap keyed by the BLOCK, for the reasons expandedBlocks states: it is
-// session state, so it must not be serialised into desc_data and shipped to
-// readers, and it must survive renderBlockList. Undo/redo replaces the blocks
-// wholesale, so the entry falls away and the card opens on its first section,
-// which is correct - that is a different document.
+// Which section of a Combo Card the editor shows. Keyed by the Block and never
+// stored, so readers never get it; UNDO replaces the Blocks and drops it.
 const activeCardSection = new WeakMap();
 
+/**
+ * The Combo Card section on screen, and setEditorCardSection below.
+ * @since v0.19
+ */
 window.editorCardSectionIndex = function (block) {
     const sections = (block && Array.isArray(block.sections)) ? block.sections : [];
     if (!sections.length) return -1;
-    // Clamped rather than trusted: the section it names may have been removed.
+    // The section it names may have been removed.
     return Math.max(0, Math.min(activeCardSection.get(block) || 0, sections.length - 1));
 };
 
@@ -894,9 +757,11 @@ window.setEditorCardSection = function (block, index) {
     if (block && typeof block === 'object') activeCardSection.set(block, index);
 };
 
-// Where a Combo Card's own fields write. In Multiple Sections mode the card has
-// no fields of its own - each tab is a whole variant - so they edit the section
-// on screen. Every other block type gets itself back unchanged.
+/**
+ * Where a Combo Card's fields write: the section on screen in Multiple Sections,
+ * the card itself otherwise. Any other Block gets itself back.
+ * @since v0.19
+ */
 window.editorCardFieldTarget = function (block) {
     if (!block || block.type !== 'theorybox' || !block.multiSections) return block;
     const at = window.editorCardSectionIndex(block);
@@ -904,33 +769,27 @@ window.editorCardFieldTarget = function (block) {
 };
 
 
-// Turning Multiple Sections ON seeds the first section FROM the card, so an
-// author who has already written a combo does not find it stranded behind a
-// switch. Turning it OFF copies the section on screen back up, so what was on
-// screen stays on screen. Between them the switch round-trips without losing
-// anything the author can see.
+// The fields Multiple Sections moves between the card and its first section.
 const CARD_TEXT_FIELDS = ['title', 'oneliner', 'difficulty', 'practicality', 'damage', 'video', 'anchor'];
 
+/**
+ * Multiple Sections on seeds the first section from the card, and off copies
+ * the section on screen back up, so the switch loses nothing on screen. The
+ * Combos and Techs card editor calls it too.
+ * @since v0.19
+ */
 function seedCardSections(card, on) {
     if (!card || typeof card !== 'object') return;
 
     if (on) {
         if (Array.isArray(card.sections) && card.sections.length) return;
-        // The tab label is seeded EMPTY, deliberately (v0.20 bug 1). It is an
-        // optional override for the case the owner's reference shows, a tab
-        // reading "In Corner 6H" over a card headed "Optimized 6H Counterhit
-        // Corner Starter", and `description.js` already falls back to the card
-        // title when it is blank.
-        //
-        // Seeding it from `card.title` planted whatever the title was at the
-        // moment the switch was flipped, which for a card switched on before it
-        // was named is the template default, "New Combo". Renaming the card
-        // afterwards never cleared it, because the label is a separate field.
+        // Empty: an optional override (a short tab name over a long heading), and the
+        // reader falls back to the card's title. Seeded from the title, it kept a
+        // default like "New Combo" for good.
         const seeded = { label: '' };
         CARD_TEXT_FIELDS.forEach(f => { seeded[f] = card[f] || ''; });
         seeded.sequence = Array.isArray(card.sequence) ? card.sequence.slice() : [];
-        // Notation styles live beside the route (v0.20), so they travel with
-        // it, or they would be stranded behind the switch.
+        // Notation styles travel with the route.
         if (Array.isArray(card.notations) && card.notations.length) {
             seeded.notations = cloneComboNotations(card.notations);
         }
@@ -956,19 +815,15 @@ function cloneComboNotations(list) {
     }));
 }
 
-// --- NOTATION STYLE FIELDS (v0.20) ---
-//
-// A combo's extra notation styles, edited on FOUR surfaces: the Combo Block
-// form, the Combo Card block form, the Combos/Techs card editor
-// (editor-tabs.js) and the Combo Row modal (editor-tabs.js). The Combo Card's
-// two editors have drifted three times, so the markup, the writes and the
-// add/remove rules are here once and every surface calls them. Each surface
-// only decides WHICH object is being edited, and re-renders its own form.
-//
-//   item.notations = [{ label, sequence }]   beside item.sequence
-//
-// `lines` follows the surface's own route field: one step per line on the
-// Combo Card and the Combo Row, comma separated on the Combo Block.
+/**
+ * A Combo's notation style fields, item.notations = [{ label, sequence }] beside
+ * item.sequence. Four surfaces edit them (the Combo Block, the Combo Card, the
+ * Combos and Techs card editor, the Combo Row modal), so the markup, the writes
+ * and the add and remove rules are here once; each surface decides only which
+ * item it edits. `lines` follows the surface's own route field: one step a line,
+ * or comma separated on the Combo Block.
+ * @since v0.20
+ */
 window.comboNotationFieldsHTML = function (item, opts) {
     const lines = !!(opts && opts.lines);
     const list = (item && Array.isArray(item.notations)) ? item.notations : [];
@@ -998,9 +853,11 @@ window.comboNotationFieldsHTML = function (item, opts) {
         </div>`;
 };
 
-// Writes one style field into `item`. True when `el` was a style field, so a
-// surface's own handler can stop there. Called on every keystroke, so it never
-// re-renders: that would take the caret out of the field being typed in.
+/**
+ * Writes one style field into `item`, true when `el` was one. Runs on every
+ * keystroke, so it never re-renders: that would take the caret away.
+ * @since v0.20
+ */
 window.applyComboNotationInput = function (item, el) {
     if (!item || !el) return false;
     const labelAt = el.getAttribute('data-nstyle-label');
@@ -1013,17 +870,18 @@ window.applyComboNotationInput = function (item, el) {
     if (labelAt !== null) {
         item.notations[at].label = el.value;
     } else {
-        // Same split as the surface's own route field. Blank steps dropped:
-        // a style is new data, so there is no old behaviour to preserve.
+        // Blank steps are dropped: a style is new data, with nothing older to match.
         const parts = el.tagName === 'TEXTAREA' ? el.value.split('\n') : el.value.split(',');
         item.notations[at].sequence = parts.map(s => s.trim()).filter(Boolean);
     }
     return true;
 };
 
-// Add or remove, from a click on `btn`. Returns the index the surface should
-// focus after re-rendering (the new style's name, the owner's "they have to
-// fill in a new field"), -1 for a removal, or null when `btn` was not ours.
+/**
+ * Adds or removes a style from a click on `btn`. Returns the index to focus
+ * (the new style's name), -1 after a removal, or null when `btn` was not ours.
+ * @since v0.20
+ */
 window.applyComboNotationClick = function (item, btn) {
     if (!item || !btn) return null;
     if (btn.hasAttribute('data-nstyle-add')) {
@@ -1034,8 +892,7 @@ window.applyComboNotationClick = function (item, btn) {
     if (btn.hasAttribute('data-nstyle-remove')) {
         const at = parseInt(btn.getAttribute('data-nstyle-remove'), 10);
         if (Array.isArray(item.notations)) item.notations.splice(at, 1);
-        // An empty list is dropped rather than stored, so a combo that tried a
-        // style and removed it serialises exactly as it did before.
+        // An empty list is dropped, so the combo saves as it did before.
         if (Array.isArray(item.notations) && !item.notations.length) delete item.notations;
         return -1;
     }
@@ -1048,22 +905,10 @@ window.focusComboNotationField = function (root, at) {
     if (field) field.focus();
 };
 
-// --- THE STYLE NAMES THIS PAGE USES (v1.1) ---
-//
-// Owner, 2026-10-20: the helper "was meant to detect the current style name
-// being used on the page itself, and suggest the editor to name the style like
-// that for sync purpose". A reader's choice follows the NAME
-// (window.comboNotationKey), so "Keyboard" on one combo and "KBM" on the next
-// are two styles, and switching one leaves the other behind. While a style name
-// field has focus, the names already on the page sit under it, most used
-// first, and a name no other combo uses says so.
-//
-// Counted from the page's data, every tab and every character state, by
-// looking for `notations` anywhere in it rather than listing the combo shapes:
-// four editors write them, and a fifth would be missed by a list. A Combo Card
-// in Multiple Sections renders its sections and never its own copy of the one
-// on screen, and with the switch off it renders the opposite, so each counts
-// only what renders.
+// The style names this page already uses, under a style name field, most used
+// first. A reader's choice follows the name, so "Keyboard" and "KBM" are two
+// styles. Counted wherever `notations` appears in the page's data, so a new
+// surface is not missed, and only from what renders.
 function pageNotationNames() {
     const names = new Map();   // key -> { label, count }
     const seen = new WeakSet();
@@ -1100,7 +945,7 @@ function notationNameNote(names, typed) {
 // The other styles' names, for `field`: its own name is in the data too, once.
 function showNotationNames(field) {
     const row = field.closest('.nstyle-row');
-    // owner.html loads the block editor without description.js.
+    // owner.html loads this file without description.js.
     if (!row || typeof window.comboNotationKey !== 'function') return;
     const counts = pageNotationNames();
     const own = counts.get(window.comboNotationKey(field.value));
@@ -1127,7 +972,7 @@ document.addEventListener('focusin', (e) => {
     if (e.target.matches && e.target.matches('[data-nstyle-label]')) showNotationNames(e.target);
 });
 
-// Capture, because the Workspace's own handler stops the event at the list.
+// Capture: the Workspace's own handler stops the event at the list.
 document.addEventListener('input', (e) => {
     if (!e.target.matches || !e.target.matches('[data-nstyle-label]')) return;
     const box = e.target.closest('.nstyle-row') && e.target.closest('.nstyle-row').querySelector('[data-nstyle-names]');
@@ -1144,9 +989,7 @@ document.addEventListener('focusout', (e) => {
     if (box) box.remove();
 });
 
-// A chip writes its name into the field through the field's own input
-// handler, so every surface stores it the way it stores typing. Pressing it
-// keeps the focus in the field.
+// Through the field's own input handler, so every surface stores it as typing.
 document.addEventListener('mousedown', (e) => {
     if (e.target.closest && e.target.closest('.nstyle-name-chip')) e.preventDefault();
 });
@@ -1161,23 +1004,15 @@ document.addEventListener('click', (e) => {
     field.dispatchEvent(new Event('input', { bubbles: true }));
     field.focus();
 });
-// Stated rather than left to the fact that this file is not IIFE-wrapped: the
-// Combos/Techs card editor in editor-tabs.js calls it, because a Combo Card has
-// two editors and the switch has to behave identically in both.
+// Said out loud: the Combos and Techs card editor calls it, and the switch must
+// behave the same in both editors.
 window.seedCardSections = seedCardSections;
 
-// WHAT A COMBO CARD IS CALLED IN A LIST OF CARDS (v0.20 bug 1).
-//
-// With Multiple Sections on, the card's own `title` is dead data: the reader
-// never sees it, because `description.js` renders a tab per section and each
-// section carries its own heading. So a list that reads `card.title` shows
-// whatever happened to be there when the switch was flipped, and a card
-// switched on before it was named reads "New Combo" forever while the name
-// field beside it shows the real one.
-//
-// The FIRST section, not the active one. A reader lands on tab 0, so that is
-// what the card is; using the active section would rename the card in the list
-// every time the author clicked a different tab.
+/**
+ * A Combo Card's name in a list of cards. With Multiple Sections on, its own
+ * title is never shown, so the first section's (the tab a reader lands on).
+ * @since v0.20
+ */
 window.comboCardLabel = function (card, fallbackIndex) {
     const nth = `Card ${(fallbackIndex || 0) + 1}`;
     if (!card || typeof card !== 'object') return nth;
@@ -1186,13 +1021,19 @@ window.comboCardLabel = function (card, fallbackIndex) {
     const source = (card.multiSections && sections.length) ? (sections[0] || {}) : card;
 
     const steps = Array.isArray(source.sequence) ? source.sequence : [];
-    // TITLE first, then the tab label. This names a CARD in a list of cards,
-    // and the card's name is its heading; the tab label is a short switcher
-    // that may read "In Corner 6H" over a heading three times as long. The
-    // reader's tab row resolves the other way round, which is correct there.
+    // The heading first: the tab label is a short switcher. The reader's tab row
+    // resolves the other way, which is right there.
     return source.title || source.label || steps.join(' > ') || nth;
 };
 
+/**
+ * The Blocks array a path step means. A step is an index into `.content`, or
+ * `{ index, field }` for a container with several arrays (a Section Box's intro
+ * and sections).
+ * @since v0.19
+ * @watch `field` is matched against a fixed set, never resolved as a path into
+ *   contributor data
+ */
 window.resolveNestedBlocks = function (host, field) {
     if (!host || typeof host !== 'object') return null;
 
@@ -1215,6 +1056,9 @@ window.resolveNestedBlocks = function (host, field) {
     return null;
 };
 
+/**
+ * The Blocks array on screen, following window.activeAccordionPath.
+ */
 window.getActiveBlocks = function() {
     let blocks = currentStrategyBlocks;
     for (let i = 0; i < window.activeAccordionPath.length; i++) {
@@ -1226,9 +1070,7 @@ window.getActiveBlocks = function() {
             break;
         }
 
-        // A section deleted while the author was inside it leaves a path
-        // pointing at nothing, so the path is truncated rather than throwing -
-        // the same recovery the missing-block case above already does.
+        // A section deleted while the author was inside it: cut the path short.
         const nested = window.resolveNestedBlocks(
             blocks[idx], (step && typeof step === 'object') ? step.field : null);
         if (!nested) {
@@ -1240,42 +1082,16 @@ window.getActiveBlocks = function() {
     return blocks;
 };
 
-// Descend into a container's nested blocks. A function rather than more inline
-// onclick, because a Section Box's step carries a field as well as an index.
+// A function, since a Section Box's step carries a field as well as an index.
 window.enterBlockContainer = function (index, field) {
     window.activeAccordionPath.push(field ? { index, field } : index);
     renderBlockList();
 };
 
-// --- WHICH BLOCKS ARE OPEN (v0.16 fine-tuning 2) ---
-//
-// The workspace opens with every block EXPANDED. It opened collapsed from v0.19
-// until v0.20, and the owner reverted it after living with it: "navigating
-// through huge amount of content is easier than navigating through a bunch of
-// boxes that have a tiny preview". Block FOLDERS still open collapsed, which is
-// where the structure now comes from.
-//
-// The set is inverted rather than gaining a "startExpanded" flag: a flag would
-// have to be consulted everywhere the set already is, and the two would
-// disagree the first time somebody added a third state. Same reasoning the
-// folder state in js/editor/blocks/editor-folders.js records for the same decision.
-//
-// A WeakSet keyed by the BLOCK OBJECT, deliberately, and not by index:
-//
-//  - index is what the DOM uses, and it changes under reordering, insertion and
-//    deletion. Collapse state keyed by index would follow the position rather
-//    than the block, so moving one block would appear to move another's state.
-//  - a flag ON the block would be serialised into desc_data with everything
-//    else, putting a piece of one author's scroll position into the page every
-//    reader downloads.
-//
-// The object identity survives renderBlockList, which is the whole point:
-// before this, collapse was pure DOM and any re-render silently reopened
-// everything the author had put away.
-//
-// Blocks are replaced wholesale by undo/redo (JSON round-trip), so state is
-// dropped there. That is correct - those are different objects and the author
-// is looking at a different document.
+// Which Blocks are shut. The Workspace opens every Block, and folders shut.
+// Keyed by the Block, not its index (which moves on reorder) and not a flag on
+// it (which would be saved into the page). Survives renderBlockList; UNDO
+// replaces the Blocks and drops it.
 const collapsedBlocks = new WeakSet();
 
 window.isEditorBlockExpanded = function (block) {
@@ -1288,32 +1104,15 @@ window.setEditorBlockExpanded = function (block, on) {
     else collapsedBlocks.add(block);
 };
 
-// A block the author just created is open. They added it to write in it, and
-// making them click twice for that would be the feature working against the
-// reason it exists. Redundant while expanded is the default, and kept because
-// it states the intent rather than relying on one.
+// A new Block opens. Redundant while open is the default; kept for the intent.
 window.markEditorBlockNew = function (block) {
     window.setEditorBlockExpanded(block, true);
     return block;
 };
 
-// --- WHICH BLOCKS ARE SELECTED (v0.19 C2) ---
-//
-// Keyed by the BLOCK OBJECT, for the same three reasons expandedBlocks above
-// states, and they apply harder here: every action a selection offers - move,
-// delete, paste - CHANGES the indices of the blocks around it, so a selection
-// held as indices would be wrong the instant it was used. A flag on the block
-// would be serialised into desc_data and shipped to every reader.
-//
-// A WeakSet is membership only, so no ORDER is stored anywhere. Order is
-// derived from the live array each time it is needed, which is what makes
-// "copy these five" and "move these five up" still mean the same five blocks
-// after the array has been rewritten under them. There is no second copy of
-// the order to go stale, because there is no copy at all.
-//
-// Undo/redo replaces every block wholesale (a JSON round-trip), so the old
-// objects fall out of the WeakSet on their own and the selection empties.
-// That is right: the author is looking at a different document.
+// Which Blocks are selected, keyed by the Block like the set above: moving,
+// deleting and pasting change the indices around them. No order is stored;
+// it is read from the live array each time, so "these five" stays the same five.
 const selectedBlocks = new WeakSet();
 
 window.isEditorBlockSelected = function (block) {
@@ -1333,10 +1132,10 @@ window.toggleEditorBlockSelected = function (block) {
     return next;
 };
 
-// The selected blocks AT THE LEVEL ON SCREEN, in document order, as indices
-// into that level's array. Everything else reads this rather than the WeakSet,
-// so nothing can act on a block the author cannot currently see - an accordion
-// holds its own list, and "delete the selection" must never reach into one.
+/**
+ * The selected Blocks at the level on screen, as indices in document order,
+ * so nothing acts on a Block inside an accordion that is not open.
+ */
 window.getSelectedBlockIndices = function () {
     const blocks = window.getActiveBlocks();
     const out = [];
@@ -1347,22 +1146,15 @@ window.getSelectedBlockIndices = function () {
 };
 
 window.clearEditorBlockSelection = function () {
-    // Only the visible level, deliberately: descending into an accordion and
-    // coming back should find the outer selection as it was left.
+    // Only this level: an outer selection is there again on the way back out.
     window.getActiveBlocks().forEach(b => selectedBlocks.delete(b));
 };
 
-// --- WHAT A SELECTION CAN DO (v0.19 C2) ---
-//
-// Module scope, because three surfaces reach the same operations: the
-// selection bar, the keyboard, and a card's own up/down/delete buttons, which
-// act on the whole selection when the card they sit on is part of it. One
-// implementation, so those three cannot drift into meaning different things.
+// Module scope: the selection bar, the keyboard and a card's own buttons share
+// these, so the three cannot mean different things.
 
-// Folder membership is POSITIONAL - `reconcileFolderAt` decides it from the
-// blocks either side - so every position an operation disturbed has to be
-// settled, not just the block that moved. Deduped because a swap names two
-// positions and a run of swaps names the same ones repeatedly.
+// Folder membership is decided by the neighbours, so every position an
+// operation touched is settled, once each.
 function reconcileAround(blocks, indices) {
     if (typeof window.reconcileFolderAt !== 'function') return;
     [...new Set(indices)]
@@ -1371,10 +1163,7 @@ function reconcileAround(blocks, indices) {
         .forEach(i => window.reconcileFolderAt(blocks, i));
 }
 
-// An ARRAY, always, even for one block. The previous single-block global meant
-// the paste path had one shape for the hover case and would have needed
-// another for a selection; two shapes for one clipboard is the drift this file
-// has spent several versions removing elsewhere.
+// Always an array, even for one Block, so the clipboard has one shape.
 window.copiedWikiBlocks = window.copiedWikiBlocks || [];
 
 window.copySelectedBlocks = function () {
@@ -1385,9 +1174,8 @@ window.copySelectedBlocks = function () {
     return picked.length;
 };
 
-// `afterIndex` is the block to land under; null or negative appends. Deep
-// cloned on the way OUT as well as in, so pasting the same clipboard twice
-// cannot produce two blocks that share one object and edit as one.
+// After `afterIndex`, or at the end. Cloned on the way out too, so two pastes
+// never share one object.
 window.pasteCopiedBlocks = function (afterIndex) {
     const copied = window.copiedWikiBlocks;
     if (!Array.isArray(copied) || !copied.length) return 0;
@@ -1415,32 +1203,30 @@ window.deleteSelectedBlocks = function () {
         window.setEditorBlockSelected(blocks[picked[k]], false);
         blocks.splice(picked[k], 1);
     }
-    // Taking blocks out can leave two halves of a folder touching.
+    // Taking Blocks out can leave two halves of a folder touching.
     reconcileAround(blocks, [picked[0] - 1, picked[0]]);
     return picked.length;
 };
 
-// One wording for the three ways to delete a selection: the bar, the Delete
-// key, and ✖ on a selected card.
+// One wording for the bar, the Delete key and a selected card's delete button.
 function selectionDeleteMessage() {
     const n = window.getSelectedBlockIndices().length;
     return n === 1 ? 'Delete the selected block?' : `Delete the ${n} selected blocks?`;
 }
 
-// `dir` is -1 or 1. Each selected block steps over an UNSELECTED neighbour;
-// one that would step onto another selected block, or off the end, stays put.
-// That is what moves a run as one piece, and what lets a gapped selection
-// close up against the top instead of refusing to move at all.
+/**
+ * Moves the selection by `dir` (-1 or 1): each selected Block steps over an
+ * unselected neighbour, so a run moves as one and a gapped one closes up.
+ * @since v0.19
+ */
 window.moveSelectedBlocks = function (dir) {
     if (dir !== -1 && dir !== 1) return false;
     const blocks = window.getActiveBlocks();
     const picked = window.getSelectedBlockIndices();
     if (!picked.length) return false;
 
-    // Decided BEFORE anything moves, for two reasons: the history snapshot has
-    // to be of the state being left (see saveBlockHistory's callers), and a
-    // selection already hard against the end must not push an identical state
-    // onto the undo stack.
+    // Decided first: the history snapshot must be of the state being left, and a
+    // selection against the end must not push an identical state.
     const canMove = picked.some(i => (dir === -1
         ? i !== 0 && !window.isEditorBlockSelected(blocks[i - 1])
         : i !== blocks.length - 1 && !window.isEditorBlockSelected(blocks[i + 1])));
@@ -1456,7 +1242,7 @@ window.moveSelectedBlocks = function (dir) {
     };
 
     if (dir === -1) {
-        // Ascending: the topmost decides whether the one behind it can follow.
+        // The topmost decides whether the one behind it can follow.
         for (let k = 0; k < picked.length; k++) {
             const i = picked[k];
             if (i === 0 || window.isEditorBlockSelected(blocks[i - 1])) continue;
@@ -1476,17 +1262,11 @@ window.moveSelectedBlocks = function (dir) {
 };
 
 /**
- * `opts.mode` is 'blocks' by default and 'gallery' for the character Gallery
- * tab (v0.18 F9), which wants this function's FOOTER - the quick styling tools
- * and the Media Library - around a bin of media instead of a list of blocks.
- *
- * Reusing this whole function rather than lifting the footer out of it was the
- * owner's call, and it is the smaller change by a long way: the format
- * toolbar, the colour picker and the section-link picker are ~400 lines of
- * bindings that all resolve through `container`, and moving them would have
- * put the most-used editor path through a refactor to gain a toolbar on one
- * tab. In gallery mode the block list simply renders empty and the caller
- * fills #block-list afterwards.
+ * Draws the Block editor into `containerId` for `initialData`. opts.mode
+ * 'gallery' gives the Gallery tab this footer (the format tools and the Media
+ * Library) around its bin of media; the Block list then stays empty.
+ * @watch the toolbar, colour picker and link picker all resolve through
+ *   `container`, so the footer is reused whole rather than lifted out
  */
 function initStrategyBlockBuilder(containerId, initialData, opts) {
     const container = document.getElementById(containerId);
@@ -1494,20 +1274,15 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     window.editorBuilderMode = mode;
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
-    // Config > Open sections minimized (v1.1, js/editor/core/editor-config.js, which only
-    // edit.html loads). These are fresh copies, so nothing else is shut.
+    // Config > Open sections minimized. These are fresh copies, so nothing else shuts.
     if (window.editorConfig && window.editorConfig.get('openMinimized')) {
         currentStrategyBlocks.forEach(block => window.setEditorBlockExpanded(block, false));
     }
 
     window.activeAccordionPath = [];
 
-    // Which folders are open is per-section view state. Opening a different
-    // section starts them all closed rather than inheriting an expansion the
-    // author set somewhere else, which is also what makes a bare folder name a
-    // safe key for it. (This said "starts everything expanded" until v0.20 and
-    // was simply wrong: resetBlockFolderState empties the EXPANDED set, and
-    // isBlockFolderCollapsed is true for anything not in it.)
+    // Folders open per section: a new section starts with every folder shut, which
+    // is also what makes a bare folder name a safe key.
     if (typeof window.resetBlockFolderState === 'function') window.resetBlockFolderState();
 
     blockHistory = [JSON.parse(JSON.stringify(currentStrategyBlocks))];
@@ -1648,17 +1423,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         </div>
     `;
 
-    // --- GALLERY MODE: keep the footer, drop what only blocks can mean ---
-    //
-    // UNDO / REDO / CLEAR ALL are the block history, which a gallery bin does
-    // not write to - shown, they would be three controls that do nothing. ADD
-    // BLOCK is greyed rather than removed, because the footer's shape is the
-    // thing being reused and a missing button reads as a broken one.
+    // Gallery mode: UNDO, REDO and CLEAR ALL are Block history, which a bin does not
+    // write, so they go. ADD BLOCK is greyed, not removed: a missing button reads as
+    // a broken one.
     if (mode === 'gallery') {
-        // style.display, NOT the `hidden` property: .strategy-toolbar-row sets
-        // `display: flex` (style/editor.css:1239) and a class rule beats the
-        // UA's `[hidden] { display: none }`, so the attribute is applied and
-        // the row stays on screen. Same trap as .block-editor-container.
+        // style.display, not `hidden`: .strategy-toolbar-row sets display, which beats
+        // the browser's own [hidden] rule.
         const blockOnlyRow = container.querySelector('.strategy-toolbar-row');
         if (blockOnlyRow) blockOnlyRow.style.display = 'none';
 
@@ -1669,7 +1439,6 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     }
 
-    // --- HISTORY BINDINGS ---
     const btnUndo = container.querySelector('#btn-undo');
     const btnRedo = container.querySelector('#btn-redo');
     
@@ -1708,8 +1477,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    // An empty folder is session state until a block joins it (editor-folders.js),
-    // so this touches no block and leaves the preview alone.
+    // An empty folder is session state until a Block joins it, so the preview stays.
     const btnCreateFolder = container.querySelector('#btn-create-folder');
     if (btnCreateFolder) {
         btnCreateFolder.addEventListener('click', () => {
@@ -1719,7 +1487,6 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     }
 
-    // --- MEDIA LIBRARY BINDING ---
     const btnMediaLib = container.querySelector('#btn-media-library');
     if (btnMediaLib) {
         btnMediaLib.addEventListener('click', () => {
@@ -1730,20 +1497,10 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     const blockList = document.getElementById('block-list');
 
-    // --- CTRL-CLICK TO SELECT (v0.19 C2) ---
-    //
-    // Registered BEFORE the other two click listeners on this element, and
-    // stopping IMMEDIATE propagation: they are all bound to #block-list, where
-    // plain stopPropagation would leave both of them to run anyway. A
-    // Ctrl-click that toggled a selection AND opened a folder picker would be
-    // one gesture doing two things.
-    //
-    // The header only. It is always on screen - since v0.16 every block opens
-    // collapsed, so for most cards the header IS the card - and it keeps the
-    // gesture away from the body, where Ctrl-click belongs to the textarea.
-    // Controls inside the header are excluded by name rather than by guessing:
-    // the drag handle starts a drag, and the selects and buttons are their own
-    // gestures already.
+    // Ctrl-click on a card's header selects it. Registered first and stopping
+    // immediate propagation: every click listener here is on #block-list, and one
+    // gesture must not also open a folder picker. Controls in the header are left
+    // out by name, and the body's Ctrl-click belongs to the textarea.
     blockList.addEventListener('click', (e) => {
         if (!e.ctrlKey && !e.metaKey) return;
         const header = e.target.closest('.block-header');
@@ -1764,17 +1521,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         renderBlockSelectionBar();
     });
 
-    // The selection bar's own buttons.
-    //
-    // stopIMMEDIATEPropagation, not stopPropagation. All three of this file's
-    // click listeners are on #block-list itself, and stopPropagation only stops
-    // an event reaching OTHER elements - listeners already registered on the
-    // same node still run. The general button handler below resolves every
-    // button through `closest('.block-card').getAttribute(...)`, and its own
-    // comment records that a button outside a card throws exactly there. The
-    // bar is outside every card by design, so it hit that line four times, once
-    // per button, and nothing noticed: the bar's own work had already been done
-    // in this listener and the exception surfaced in a different one.
+    // The selection bar's buttons. stopImmediatePropagation: the general handler
+    // below is on this same element and reads closest('.block-card'), which is null
+    // for the bar, so it would throw once per button.
     blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-selection-action]');
         if (!btn) return;
@@ -1806,19 +1555,15 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    // Copy is the one action with nothing to show for itself - the list does
-    // not change - so it says so on the cards it took. A class rather than an
-    // inline style, which is what the rest of this editor was converted to.
+    // Copy changes nothing on screen, so the cards it took flash.
     function flashSelectedCards() {
         blockList.querySelectorAll('.block-card-selected').forEach(card => {
             card.classList.add('block-card-copied');
             setTimeout(() => card.classList.remove('block-card-copied'), 400);
         });
     }
-    // --- SECTION BOX CONTROLS (v0.19 C3) ---
-    //
-    // Registered before the general button handler further down, which resolves
-    // every button through the card's data-index and would also fire for these.
+    // Section Box controls, ahead of the general handler, which would fire for
+    // these too.
     blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-sbox-intro], [data-sbox-edit], [data-sbox-remove], [data-sbox-add]');
         if (!btn) return;
@@ -1830,9 +1575,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!block || block.type !== 'sectionedbox') return;
 
         e.preventDefault();
-        e.stopImmediatePropagation();  // same element as the general handler - see C2 above
+        e.stopImmediatePropagation(); // the general handler is on this element too
 
-        // Descending changes no data, so it takes no history snapshot.
+        // Going in changes no data, so no history snapshot.
         if (btn.hasAttribute('data-sbox-intro')) {
             window.enterBlockContainer(index, 'intro');
             return;
@@ -1858,11 +1603,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         updateLivePreview();
     });
 
-    // --- COMBO CARD SECTIONS (v0.19 C3b) ---
-    //
-    // Same shape as the Section Box controls above, against the Combo Card's
-    // own `sections`. Which one is on screen is session state in a WeakMap, not
-    // a field - it must not be serialised into desc_data.
+    // Combo Card sections, the same way. The one on screen is never stored.
     blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-cardsec], [data-cardsec-add], [data-cardsec-remove], [data-cardsec-edit]');
         if (!btn) return;
@@ -1874,7 +1615,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!block || block.type !== 'theorybox') return;
 
         e.preventDefault();
-        e.stopImmediatePropagation();  // same element as the general handler - see C2 above
+        e.stopImmediatePropagation(); // the general handler is on this element too
 
         // Descending and switching tab change no data, so neither snapshots.
         if (btn.hasAttribute('data-cardsec-edit')) {
@@ -1895,7 +1636,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (btn.hasAttribute('data-cardsec-add')) {
             if (!Array.isArray(block.sections)) block.sections = [];
             block.sections.push({ label: `Section ${block.sections.length + 1}`, title: '', sequence: [], content: [] });
-            // Opens on the one just added - it was added to write in it.
+            // Open on the new one: it was added to be written in.
             window.setEditorCardSection(block, block.sections.length - 1);
         } else {
             const at = parseInt(btn.getAttribute('data-cardsec-remove'), 10);
@@ -1908,8 +1649,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         updateLivePreview();
     });
 
-    // A section's TAB LABEL. Like the Section Box title below, this must not
-    // re-render the list - that takes the focus out of the field being typed in.
+    // A section's tab label. No re-render while typing: it would take the focus.
     blockList.addEventListener('input', (e) => {
         const field = e.target.closest('[data-cardsec-label]');
         if (!field) return;
@@ -1925,13 +1665,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         updateLivePreview();
     });
 
-    // --- NOTATION STYLES (v0.20) ---
-    //
-    // The Combo Block and the Combo Card forms. The fields and the rules are
-    // window.comboNotationFieldsHTML and its two apply functions, shared with
-    // the card editor and the Combo Row modal in editor-tabs.js. Registered
-    // ahead of the general handlers below and stops there: the general input
-    // handler writes `target[data-field]`, and these fields carry none.
+    // Notation styles on the Combo Block and Combo Card forms. Ahead of the general
+    // input handler, which writes `target[data-field]`, and these fields have none.
     const notationTarget = (el) => {
         const card = el.closest('.block-card');
         if (!card) return null;
@@ -1972,10 +1707,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         notationTypingTimer = setTimeout(() => { notationTypingTimer = null; updateLivePreview(); }, 400);
     });
 
-    // The names under a style name field are counted from the page's data,
-    // which this list only reaches when the wait above runs out: a name typed
-    // a moment ago, one field up, would be missing. Runs before the document's
-    // own focusin listener, which draws them.
+    // The names under a style field are counted from the page's data, which only
+    // gets a just-typed name once the wait above runs out. Runs before the
+    // document's focusin listener draws them.
     blockList.addEventListener('focusin', (e) => {
         if (!notationTypingTimer || !e.target.matches('[data-nstyle-label]')) return;
         clearTimeout(notationTypingTimer);
@@ -1983,9 +1717,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         updateLivePreview();
     });
 
-    // A section's title. Deliberately does NOT call renderBlockList - rebuilding
-    // the list under a field being typed in takes the focus and the caret with
-    // it, which is the bug the whole editor works hard to avoid elsewhere.
+    // A section's title. No renderBlockList: it would take the focus and the caret.
     blockList.addEventListener('input', (e) => {
         const field = e.target.closest('[data-sbox-title]');
         if (!field) return;
@@ -2001,7 +1733,6 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         updateLivePreview();
     });
 
-    // --- VIRTUALIZATION ENGINE ---
     if (window.editorBlockObserver) window.editorBlockObserver.disconnect();
     
     window.editorBlockObserver = new IntersectionObserver((entries) => {
@@ -2019,34 +1750,21 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             }
         });
     }, { 
-        // Whatever scrolls the workspace. The Config panel's sticky settings
-        // move the scroll from #interactive-builder to the workspace itself,
-        // and a root that no longer scrolls counts every card as on screen.
+        // Whatever scrolls the Workspace: Config's sticky settings move the scroll, and
+        // a root that does not scroll counts every card as on screen.
         root: (typeof window.editorScrollBox === 'function' && window.editorScrollBox())
             || document.getElementById('interactive-builder'), 
         rootMargin: '800px 0px' 
     });
 
-    // --- 1. FOCUS TRACKER (For Text Formatting) ---
     let lastFocusedInput = null;
     let lastSelection = { start: 0, end: 0 };
     
-    // Bound to the whole builder rather than to #block-list, because the
-    // Gallery bin (v0.18 F9) renders as a SIBLING of the block list - it has
-    // to, since every delegated listener below reads
-    // `e.target.closest('.block-card').getAttribute(...)` and a bin row inside
-    // #block-list makes that closest() null on the next click. Widening is
-    // safe because the guard below is what actually decides, not the host.
+    // On the whole builder: the Gallery bin is a sibling of #block-list. The guard
+    // below decides, not the host.
     container.addEventListener('focusin', (e) => {
-        // Inside a CARD only. The folder header carries a name input that lives
-        // in this list but is not block content, and the format toolbar writes
-        // shortcodes into whatever was last focused - so Bold on a selected
-        // folder name would have written [b]...[/b] into organisation nobody
-        // reads.
-        // `.gallery-bin-row` joins it for the Gallery tab (v0.18 F9), whose
-        // rows render into this same #block-list. Its two fields ARE the
-        // content - the name and note a reader sees on the card - which is the
-        // test the folder header fails and they pass.
+        // Inside a card or a Gallery bin row only: the toolbar writes into whatever was
+        // last focused, and a folder's name is not content.
         if (!e.target.closest) return;
         if (!e.target.closest('.block-card') && !e.target.closest('.gallery-bin-row')) return;
         if(e.target.tagName === 'TEXTAREA' || (e.target.tagName === 'INPUT' && e.target.type === 'text')) {
@@ -2062,9 +1780,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     container.addEventListener('mouseup', saveSelection);
     container.addEventListener('keyup', saveSelection);
 
-    // --- 2. FORMAT INJECTOR & HOTKEYS ---
-    // Applies a Ctrl+key format to the field the key was pressed in. The
-    // caller has already decided the field is one formatting may touch.
+    // Applies a Ctrl+key format to a field already found to be content.
     const formatHotkey = (e) => {
         let formatTag = null;
         if (e.key.toLowerCase() === 'b') formatTag = 'b';
@@ -2075,9 +1791,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         else if (e.key.toLowerCase() === 'k') formatTag = 'url';
 
         if (formatTag) {
-            e.preventDefault(); // Stop native browser saving/bolding
+            e.preventDefault(); // not the browser's own save or bold
             
-            // Force capture the exact selection range right before injection
             lastFocusedInput = e.target;
             lastSelection.start = e.target.selectionStart;
             lastSelection.end = e.target.selectionEnd;
@@ -2086,32 +1801,20 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     };
 
     container.addEventListener('keydown', (e) => {
-        // We only care about Ctrl or Meta (Cmd on Mac)
         if (!e.ctrlKey && !e.metaKey) return;
 
-        // Formatting strictly targets text areas and inputs
         const isInput = ['INPUT', 'TEXTAREA'].includes(e.target.tagName);
         if (!isInput) return;
-        // Content fields only, the same test the focus tracker applies. This
-        // listener moved from #block-list to the whole builder for the Gallery
-        // bin, and without the guard Ctrl+B in the colour picker's hex field
-        // or the section-link search would write [b][/b] into them.
+        // Content fields only: this listener covers the whole builder, colour hex and
+        // link search included.
         if (!e.target.closest('.block-card') && !e.target.closest('.gallery-bin-row')) return;
 
         formatHotkey(e);
     });
 
-    // --- FIELDS OUTSIDE THIS BUILDER (v1.0 Part 2) ---
-    //
-    // The Combo Card form in a Combos or Techs group (js/editor/tabs/editor-tabs.js) draws
-    // its Name field ABOVE the write-up's builder, not inside it. Every
-    // listener above is on the builder, so they never saw that field: the
-    // toolbar wrote nothing into it, or into whatever builder field had focus
-    // last (owner, 2026-10-08). A field like that carries `data-format-field`.
-    //
-    // On `document`, because the field is outside `container`. Replaced on
-    // every init like the copy/paste handler below, so a tab switch never
-    // leaves one behind holding the previous builder's state.
+    // Fields outside the builder carry `data-format-field` (the Combo Card's Name,
+    // drawn above its write-up). On `document`, and replaced on every init, so a tab
+    // switch never leaves one holding the previous builder.
     const outsideField = (el) => !!(el && el.matches && el.matches('[data-format-field]')
         && !container.contains(el));
     if (window._formatFieldHandlers) {
@@ -2129,8 +1832,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     Object.entries(window._formatFieldHandlers)
         .forEach(([type, fn]) => document.addEventListener(type, fn));
 
-    // --- HOVER BLOCK COPY/PASTE ENGINE ---
-    // Clears any ghost listeners from previous tab switches
+    // Hover copy and paste. The previous tab's listener goes first.
     if (window._blockCopyPasteHandler) {
         document.removeEventListener('keydown', window._blockCopyPasteHandler);
     }
@@ -2138,28 +1840,19 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     window._blockCopyPasteHandler = (e) => {
         if (!e.ctrlKey && !e.metaKey) return;
 
-        // Blocks only. This handler is on `document`, so in gallery mode it is
-        // still live over the bin - and Ctrl+V with a block already copied
-        // from another tab takes the no-card-hovered path, appends to an empty
-        // block array and calls renderBlockList(), which repaints #block-list
-        // over the media rows. The bin disappears and the work with it.
+        // Blocks only: a paste here would redraw #block-list over the Gallery bin.
         if (window.editorBuilderMode === 'gallery') return;
 
         const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
 
-        // If an input is focused, let native text copy/paste happen normally
+        // A focused field keeps the browser's own text copy and paste.
         if (!isInput) {
-            // Scoped to #block-list. `.block-card` is also rendered by
-            // editor-tabs, editor-system and editor-framedata, and an
-            // unscoped :hover match there would index into the wrong array.
+            // #block-list only: other tabs draw .block-card too, and would index the wrong array.
             const hovered = () => document.querySelector('#block-list .block-card:hover');
 
             if (e.key.toLowerCase() === 'c' && !e.shiftKey) {
-                // A SELECTION WINS OVER THE HOVER. Hover copy is what this was
-                // before C2 and still works with nothing selected, so the
-                // gesture people already have keeps working - but once an
-                // author has said which blocks they mean, the mouse happening
-                // to rest on a sixth one must not overrule them.
+                // A selection wins over the hover: once an author has said which Blocks, the
+                // one under the pointer must not overrule them.
                 if (window.copySelectedBlocks()) {
                     e.preventDefault();
                     flashSelectedCards();
@@ -2183,8 +1876,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     e.preventDefault();
 
                     const card = hovered();
-                    // Under the hovered card, or appended when the pointer is
-                    // in empty space - unchanged from before C2.
+                    // Under the hovered card, or at the end.
                     const after = card ? parseInt(card.getAttribute('data-index')) : -1;
                     if (window.pasteCopiedBlocks(after)) {
                         renderBlockList();
@@ -2197,17 +1889,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     
     document.addEventListener('keydown', window._blockCopyPasteHandler);
 
-    // --- DELETE THE SELECTION (v0.19 C2) ---
-    //
-    // Its own handler, because the one above returns immediately unless Ctrl or
-    // Meta is held. Cleared and re-registered on the same discipline, or a tab
-    // switch leaves a listener behind holding the previous tab's array.
-    //
-    // Delete only, not Backspace: outside a text field Backspace still means
-    // "go back" to enough people that binding it to a destructive action is a
-    // trap. It asks first since v1.1, like the ✖ beside it; v0.19 left both
-    // unconfirmed because undo covers them, and the owner wants the question
-    // asked anyway, with the Config panel's switch for anyone who does not.
+    // Delete removes the selection, after asking. Its own handler, cleared and
+    // registered on each init. Never Backspace: to many people it means "go back".
     if (window._blockSelectionKeyHandler) {
         document.removeEventListener('keydown', window._blockSelectionKeyHandler);
     }
@@ -2239,17 +1922,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     const applyFormat = async (tag, value = null, fallbackText = '') => {
         if (!lastFocusedInput) return;
-        // Captured BEFORE the await below. The link prompt is a real modal now,
-        // so there is a gap where focus is elsewhere; everything this function
-        // writes back has to come from the selection as it was when the button
-        // was pressed, not from whatever has focus when the modal closes.
+        // Taken before the await: the link prompt is a modal, and focus moves meanwhile.
         const field = lastFocusedInput;
         const start = lastSelection.start !== undefined ? lastSelection.start : field.selectionStart;
         const end = lastSelection.end !== undefined ? lastSelection.end : field.selectionEnd;
         const text = field.value;
-        // A section link with nothing highlighted names the section it points
-        // at, rather than producing an empty [url=#x][/url] the reader cannot
-        // see or click.
+        // A section link with nothing highlighted is named after its section, never an
+        // empty link nobody can see.
         const selectedText = text.substring(start, end) || fallbackText;
 
         let openTag = `[${tag}]`;
@@ -2270,16 +1949,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
         field.dispatchEvent(new Event('input', { bubbles: true }));
         field.focus();
-        // Measured from the inserted text, not from `end`. They are the same
-        // whenever something was highlighted, and differ exactly when the
-        // fallback above supplied the label - where using `end` would leave
-        // the caret short of the text it just wrote.
+        // From the inserted text, so the caret is right when the fallback gave the label.
         field.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
     };
 
-    // A tag that wraps nothing (a mini icon) goes in where the caret is,
-    // before any highlighted text, which it keeps. The caret ends after it, so
-    // a second icon follows the first.
+    // A tag that wraps nothing (a mini icon) goes in at the caret, before any
+    // highlighted text, and the caret ends after it.
     const insertTag = (tag) => {
         if (!lastFocusedInput) return;
         const field = lastFocusedInput;
@@ -2296,24 +1971,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (btn && btn.hasAttribute('data-tag')) applyFormat(btn.getAttribute('data-tag'));
     });
 
-    // --- COLOR POPUP LOGIC ---
     const colorBtn = container.querySelector('#btn-format-color');
     const colorPopup = container.querySelector('#format-color-popup');
 
-    // Pulls the popup back inside whatever clips it.
-    //
-    // Measured rather than assumed, after a first attempt fixed the wrong
-    // thing: the popup opens at the toolbar button and runs 275px wide, while
-    // the editor pane that clips it is ~383px - so from a button partway
-    // along the toolbar it overflowed by ~108px and the last swatch column
-    // was cut off. It was NOT the popup's own scrollbar, which is what the
-    // earlier CSS change guessed at.
-    //
-    // Done here rather than in CSS because the overflow depends on where the
-    // button sits and how wide the pane is, neither of which a static rule
-    // knows. left is reset first so reopening never compounds a previous
-    // shift, and the clamp is one-directional: it only ever pulls left, so a
-    // popup that already fits is untouched.
+    // Pulls the popup back inside whatever clips it. Measured, since the overflow
+    // depends on where the button sits and how wide the pane is. Left is reset
+    // first, and it only ever pulls left.
     function keepColorPopupOnScreen(popup) {
         popup.style.left = '';
 
@@ -2331,23 +1994,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const overflow = popup.getBoundingClientRect().right - limit;
         if (overflow > 0) popup.style.left = `${-overflow}px`;
 
-        // VERTICAL, added v0.19. This function only ever clamped sideways, and
-        // the popup opens UPWARD (bottom: 100% + 5px) inside a scrolling pane -
-        // so anything taller than the space above the trigger has its top
-        // silently cut off by the clipper found above. Measured 2026-09-20: the
-        // first row sat at y=358 behind a strip ending at y=377, and
-        // elementFromPoint there returned the strip rather than the popup.
-        //
-        // Nobody had noticed because the clipped strip only ever held a LABEL.
-        // Adding one row of buttons pushed real controls into it, and moving
-        // that row lower only pushed a different row in - the height is the
-        // problem, not the order.
-        //
-        // Capping the SCROLL REGION rather than the popup keeps the custom
-        // picker pinned below it visible, which is the whole reason that region
-        // is separate. Derived from measurement rather than a fixed number: the
-        // swatch count grows with the roster, and a hardcoded height would go
-        // wrong the day a character is added.
+        // Upward too: the popup opens above its button in a scrolling pane, so the
+        // presets' scroll region is capped to the room above. Measured, since the
+        // swatches grow with the roster; the custom picker below it stays in view.
         const scroll = popup.querySelector('.format-color-presets-scroll');
         if (!scroll) return;
 
@@ -2356,14 +2005,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const ceiling = Math.max(bounds.top, 0) + 8;
         if (top < ceiling) {
             const room = scroll.getBoundingClientRect().height - (ceiling - top);
-            // Below this it is a scrollbar with nothing beside it; better to
-            // let the popup stay clipped than to render a useless sliver.
+            // Below this it would be a useless sliver: better clipped.
             scroll.style.maxHeight = `${Math.max(room, 80)}px`;
         }
     }
 
     if (colorBtn && colorPopup) {
-        // Filled as it opens, so it is measured with the Recent row in it.
+        // Filled on open, so it is measured with the Recent row in it.
         const recentSlot = colorPopup.querySelector('[data-recent-slot]');
         colorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -2374,15 +2022,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
 
         colorPopup.addEventListener('click', (e) => {
-            // A gradient button deliberately does NOT carry .color-preset-btn.
-            // It did at first, to inherit the size and hover - and that made it
-            // a member of a family whose every other member carries data-color,
-            // which the "every swatch carries a usable colour" invariant in
-            // tests/color-presets.spec.js caught immediately. Sharing the class
-            // also meant this branch had to run first or the plain-colour
-            // handler would wrap a gradient in `[color=]` with no value. Two
-            // separate classes and a few duplicated CSS lines cost less than
-            // both of those, which is the trade CLAUDE.md already prefers.
+            // Not .color-preset-btn: every member of that class carries data-color (a test
+            // checks), and the plain-colour handler would wrap a gradient in an empty [color=].
             const gradient = e.target.closest('.gradient-preset-btn');
             if (gradient) {
                 const value = gradient.getAttribute('data-gradient');
@@ -2400,8 +2041,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             }
         });
 
-        // The popup, not the whole container: a Side bar or folder colour
-        // popup open in the list repeats the picker's ids.
+        // The popup, not the container: a side bar or folder popup repeats the ids.
         const gradientBuilder = wireGradientBuilder(colorPopup, (stops) => {
             rememberColors(stops);
             applyFormat('multicolor', stops.join(','));
@@ -2421,12 +2061,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     }
 
-    // --- SECTION LINK PICKER ---
-    //
-    // The list comes from collectSectionTargets, which reads desc_data rather
-    // than the preview: the editor renders only the tab being edited, so a
-    // DOM-derived list would offer links within the current tab and nowhere
-    // else - the opposite of what an in-page link is for.
+    // The section link picker, from collectSectionTargets over desc_data: the editor
+    // draws only the tab being edited, so a list from the page would stay in that tab.
     const jumpBtn = container.querySelector('#btn-format-jump');
     const jumpPopup = container.querySelector('#format-jump-popup');
     const jumpList = container.querySelector('#format-jump-list');
@@ -2434,8 +2070,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     if (jumpBtn && jumpPopup && jumpList) {
 
-        // data- attributes with a delegated listener throughout: a section
-        // title is contributor-written and must never reach an inline handler.
+        // A section title is contributor-written: data- attributes and a delegated
+        // listener, never an inline handler.
         const itemHTML = (target, cls) =>
             `<button type="button" class="${cls}"
                      data-anchor="${window.escapeHtml(target.id)}"
@@ -2451,9 +2087,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const needle = String(filter || '').trim().toLowerCase();
             const hit = (text) => text.toLowerCase().includes(needle);
 
-            // A major stays when it matches OR one of its sub-headings does -
-            // otherwise searching for a sub-heading returns nothing, because
-            // the thing that matched is nested inside something that did not.
+            // A section stays when one of its headings matches, or the match would vanish
+            // inside it.
             const shown = !needle ? all : all
                 .map(t => {
                     const kids = t.children.filter(c => hit(c.title));
@@ -2470,11 +2105,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 return;
             }
 
-            // Two levels, like the table of contents: a section, and the
-            // headings inside it behind a caret. Collapsed by default, which is
-            // where this departs from the ToC on purpose - a filled-in page has
-            // well over a hundred headings, and the picker exists to find one
-            // quickly rather than to be read through.
+            // Two levels, like the table of contents, but shut by default: a filled-in page
+            // has over a hundred headings, and the picker is for finding one.
             let html = '';
             let lastTab = null;
             shown.forEach(target => {
@@ -2484,8 +2116,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 }
 
                 const children = needle ? (target.matchedChildren || []) : target.children;
-                // Expanded when the search is what surfaced the children -
-                // collapsing the only match would hide the thing found.
+                // Open when the search found the children, or the match would be hidden.
                 const open = !!needle && children.length > 0;
 
                 html += '<div class="format-jump-row">';
@@ -2515,8 +2146,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             keepColorPopupOnScreen(jumpPopup);
         });
 
-        // The toolbar's own mousedown guard covers .format-btn only, and the
-        // selection this is about to wrap dies the moment focus moves.
+        // The toolbar's mousedown guard covers .format-btn only, and the selection this
+        // wraps dies once focus moves.
         jumpPopup.addEventListener('mousedown', (e) => {
             if (!e.target.closest('.format-jump-search')) e.preventDefault();
         });
@@ -2548,12 +2179,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     }
 
-    // --- ICON PICKER (v1.2) ---
-    //
-    // The two groups js/pages/core/internalstyling.js draws for [icon=...]: the owner's
-    // accolades, and every character the roster shows whose icon is uploaded.
-    // A character without one is left out rather than offered as a tag that
-    // would only come back as text. Built like the section-link picker above.
+    // The icon picker: the groups internalstyling.js draws for [icon=]. A character
+    // with no icon uploaded is left out, since its tag would come back as text.
     const iconBtn = container.querySelector('#btn-format-icon');
     const iconPopup = container.querySelector('#format-icon-popup');
     const iconList = container.querySelector('#format-icon-list');
@@ -2603,8 +2230,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     ? '<p class="format-jump-empty">The characters could not be loaded.</p>'
                     : '<p class="loading-msg loading-msg-busy">Loading the characters...</p>');
             }
-            // The owner's site icons (v1.2), [icon=ui/<id>], after the
-            // characters as they asked.
+            // The site's own icons, [icon=ui/<id>], after the characters.
             if (site.length) {
                 html += '<div class="format-jump-group">UI</div>' + site.map(i =>
                     `<button type="button" class="format-jump-item format-icon-item" data-icon="ui/${window.escapeHtml(i.id)}">`
@@ -2631,7 +2257,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             });
         });
 
-        // The selection the icon goes in at dies the moment focus moves.
+        // The selection the icon goes in at dies once focus moves.
         iconPopup.addEventListener('mousedown', (e) => {
             if (!e.target.closest('.format-jump-search')) e.preventDefault();
         });
@@ -2651,7 +2277,6 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     }
 
-    // --- 3. POPUP MENU LOGIC ---
     const btnToggleMenu = container.querySelector('#btn-toggle-add-menu');
     const popupMenu = container.querySelector('#add-block-popup');
     
@@ -2665,13 +2290,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    // --- SMART BLOCK CONVERSION & DROPDOWN SYNC ---
     blockList.addEventListener('change', (e) => {
         if (e.target.classList.contains('block-folder-name-input')
             && typeof window.renameBlockFolder === 'function') {
-            // On change, not input: renaming per keystroke would rewrite every
-            // block in the run on every letter, and re-render the list out
-            // from under the caret.
+            // On change, not input: per keystroke it would rewrite every Block in the run
+            // and redraw the list under the caret.
             const activeBlocks = window.getActiveBlocks();
             const from = e.target.getAttribute('data-folder');
             const to = window.normalizeFolderName(e.target.value);
@@ -2680,12 +2303,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
             window.saveBlockHistory();
             if (!window.renameBlockFolder(activeBlocks, from, to)) {
-                // Guarded, like the same call in editor-find-replace.js: this
-                // file is loaded by owner.html and tier-editor.html, neither of
-                // which loads editor-core.js, so editorAlert is undefined
-                // there. The field snapping back is the feedback that survives
-                // on every host page; the message is the bonus where there is
-                // a modal to put it in.
+                // owner.html and tier-editor.html have no editorAlert; the field snapping back
+                // is the feedback everywhere.
                 if (typeof window.editorAlert === 'function') {
                     window.editorAlert(`This section already has a folder called "${to}". Pick a different name.`);
                 }
@@ -2693,12 +2312,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 return;
             }
 
-            // Carry the open/closed state across, or renaming moves the author
-            // somewhere they did not ask to go. Written as "read it, then set
-            // it" rather than branching on one of the two states: the default
-            // flipped to collapsed in v0.16, and the old version only carried
-            // state in the branch that is now the default - so renaming an
-            // OPEN folder would have quietly shut it.
+            // Read the open state, then set it, so a renamed folder stays as it was.
             const wasOpen = !window.isBlockFolderCollapsed(from);
             window.setBlockFolderCollapsed(from, true);
             window.setBlockFolderCollapsed(to, !wasOpen);
@@ -2745,8 +2359,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const field = e.target.getAttribute('data-field');
             const block = window.getActiveBlocks()[index];
 
-            // A Collaborator's kind decides which fields its form shows, so it
-            // redraws, the same way the Multiple Sections switch does.
+            // A Collaborator's kind decides its form's fields, so it redraws.
             if (field === 'kind' && block.type === 'collaborator') {
                 block.kind = e.target.value === 'line' ? 'line' : 'card';
                 renderBlockList();
@@ -2774,38 +2387,28 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    // --- DRAG AND DROP PHYSICS ---
-    // Pointer Events (not native HTML5 DnD) so the exact same code path
-    // drives mouse and touch - native DnD never fires from a touch gesture
-    // at all. Two sources feed the same drop logic: a toolbar .add-block-btn
-    // (spawns a new block) or a card's .drag-handle (reorders it). The tap
-    // fallback for adding a block (popupMenu 'click' above) and the ▲/▼
-    // move buttons already cover touch without dragging at all - this only
-    // fixes the drag gesture itself.
-    const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
-    // The left-edge grab strip when the handle is hidden, from the card's outer
-    // edge. Must match the width of .block-card::before in style/editor.css.
+    // Dragging, with pointer events so mouse and touch share one path (native drag
+    // and drop never fires from touch). An Add Block button spawns a Block, a card's
+    // handle moves one, and both feed the same drop logic.
+    const DRAG_THRESHOLD = 6; // px of movement before a press is a drag, not a tap
+    // The left-edge grab strip when the handle is hidden. Must match the width of
+    // .block-card::before in style/editor.css.
     const BLOCK_DRAG_EDGE_PX = 12;
 
-    // Three kinds of destination, and the order of the tests is the design:
-    // the nesting zone sits INSIDE a card, so it has to be checked before the
-    // card itself or it could never be aimed at; the folder header sits
-    // outside every card, so it is what the card lookup falls through to.
+    // The order of the tests is the design: the nesting strip is inside a card, so
+    // it comes first; a folder header is outside every card, so it comes last.
     const NO_DROP = {
         card: null, dropIndex: null, isBottom: false,
         folderHead: null, headEl: null, nestInto: null, nestEl: null,
     };
 
-    // allowNest: false when what is being dragged cannot go inside a Block (a
-    // whole folder), so the nesting strip is just part of its card.
+    // allowNest is false for a whole folder, which cannot go inside a Block.
     function computeDropTarget(clientX, clientY, allowNest = true) {
         const under = document.elementFromPoint(clientX, clientY);
         if (!under) return NO_DROP;
 
-        // The "EDIT INNER BLOCKS" strip on an accordion, and the identical one
-        // on a theorybox - both use this class, so both accept a drop without
-        // either being named here. Dropping on it means "put this block INSIDE
-        // that one", which is why it cannot be the card's own reorder target.
+        // An accordion's or a Combo Card's "EDIT INNER BLOCKS" strip: a drop there goes
+        // inside that Block.
         const nest = allowNest && under.closest('.accordion-inner-block-wrapper');
         if (nest) {
             const host = nest.closest('.block-card');
@@ -2819,9 +2422,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
         const card = under.closest('.block-card');
         if (!card) {
-            // A folder header is a real target, not empty space. It is the
-            // only way INTO a collapsed folder, which by definition shows no
-            // cards to drop between.
+            // A folder header is a target: the only way into a shut folder.
             const head = under.closest('.block-folder-head');
             const shell = head ? head.closest('.block-folder') : null;
             return Object.assign({}, NO_DROP, {
@@ -2840,31 +2441,22 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     }
 
-    // Marks where a block landed. Without it a reorder gives no feedback
-    // beyond the list re-rendering, and in a long section that means hunting
-    // for the block you just moved. Applied after a frame so the class lands
-    // on the freshly-rendered card rather than the one it replaced.
-    // wholeFolder: flash the folder the block at `index` sits in, since a
-    // shut folder shows no cards to flash.
+    // Marks where a Block landed, a frame later so it lands on the new card. With
+    // wholeFolder, the folder flashes, since a shut one shows no cards.
     function flashMovedBlock(index, wholeFolder = false) {
         requestAnimationFrame(() => {
             const found = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
             const card = wholeFolder && found ? found.closest('.block-folder') : found;
             if (!card) return;
             card.classList.remove('block-just-moved');
-            void card.offsetWidth; // restart the animation if the same card moves twice
+            void card.offsetWidth; // restarts the animation if the same card moves twice
             card.classList.add('block-just-moved');
             setTimeout(() => card.classList.remove('block-just-moved'), 1400);
         });
     }
 
-    // --- DRAGGING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
-    //
-    // Where a folder dropped under the pointer would land: the insert-before
-    // slot after snapping out of any other folder (folderDropSlot), and the
-    // thing to mark there - whatever starts at the slot gets a line on its top
-    // edge, and at the very end the last thing gets one on its bottom. Null
-    // over nothing, or where the folder already is.
+    // Where a dragged folder would land: the slot before which it goes, out of any
+    // other folder, and what to mark there. Null over nothing, or where it already is.
     function folderDropAt(clientX, clientY, ownRun) {
         const target = computeDropTarget(clientX, clientY, false);
         let raw = null;
@@ -2895,9 +2487,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const activeBlocks = window.getActiveBlocks();
         const run = window.blockFolderRunContaining(activeBlocks, payload.folderFrom);
         if (!run || (slot >= run.start && slot <= run.end + 1)) return;
-        // History holds states: the one before the move (saved here, unless
-        // it is already the latest) and the one after (updateLivePreview), so
-        // UNDO steps back over exactly this move.
+        // The state before the move, so UNDO steps back over exactly this move.
         window.saveBlockHistory();
         const landedAt = window.moveBlockFolder(activeBlocks, payload.folderFrom, slot);
         renderBlockList();
@@ -2905,11 +2495,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         flashMovedBlock(landedAt, true);
     }
 
-    // A drag moves an array element and says nothing about folder membership,
-    // so every landing has to be reconciled: dropped between two members of a
-    // folder a block joins it, dragged clear of one it leaves. Without this a
-    // block can render inside a folder while carrying no `folder` value,
-    // which splits the run into two folders sharing a name.
+    // A drag moves an array element and says nothing of folders, so every landing
+    // is settled: dropped between two members it joins, dragged clear it leaves.
+    // Otherwise the run splits into two folders with one name.
     function settleFolderAt(blocks, index) {
         if (index < 0) return;
         if (typeof window.reconcileFolderAt === 'function') {
@@ -2917,10 +2505,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     }
 
-    // A container block a drop can go inside: an accordion or a theorybox,
-    // both of which hold a `content` array of blocks. Checked on the object
-    // rather than by type name, so a container added later works without
-    // anyone coming back here.
+    // A Block a drop can go inside: one with a `content` array, so a new container
+    // type works here without a change.
     function nestHost(blocks, index) {
         if (index === null || index === undefined || index < 0) return null;
         const host = blocks[index];
@@ -2933,7 +2519,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const activeBlocks = window.getActiveBlocks();
 
         if (payload.blockType) {
-            window.saveBlockHistory(); // Save BEFORE mutating
+            window.saveBlockHistory(); // before the change
             const newBlock = window.spawnBlockWithAuthor(payload.blockType);
             let landedAt;
             if (nestHost(activeBlocks, nestInto)) {
@@ -2961,16 +2547,10 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             updateLivePreview();
             flashMovedBlock(landedAt);
         } else if (nestHost(activeBlocks, nestInto) && payload.fromIndex !== nestInto) {
-            // The same gesture as dropping into a folder, with a different
-            // destination: a folder is a view over THIS level, while an
-            // accordion is a level of its own. Reaching it used to mean
-            // drilling in with "EDIT INNER BLOCKS" and rebuilding the block
-            // by hand.
+            // Into an accordion: a level of its own, unlike a folder.
             window.saveBlockHistory();
             const item = activeBlocks.splice(payload.fromIndex, 1)[0];
-            // Folder membership belongs to the level the block just left.
-            // Carried along it would show up inside the accordion as a folder
-            // of one, named after somewhere the author cannot see.
+            // A folder belongs to the level the Block left.
             delete item.folder;
             delete item.folderColor;
             const hostIndex = payload.fromIndex < nestInto ? nestInto - 1 : nestInto;
@@ -2998,32 +2578,21 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 flashMovedBlock(target);
             }
         }
-        // Reordering onto empty space (no card under the pointer) is a no-op,
-        // same as the previous native-DnD drop handler.
+        // Empty space under the pointer: nothing happens.
     }
 
-    // A drag ends in a click on the element it started from: the pointer was
-    // captured there, so the browser sends the click to it wherever the button
-    // came up. On an Add Block menu button that click is the tap fallback
-    // above, which added a second block at the end of the list after every
-    // drag (found 2026-10-20; there since the drag moved to pointer events in
-    // v0.5). Swallowed for this one gesture only: the click comes in the same
-    // dispatch as the pointerup, so the listener is gone before the next task.
+    // A drag ends in a click on the element it began on (the pointer was captured),
+    // and on an Add Block button that click adds a second Block. Swallowed for this
+    // gesture only: it comes in the same dispatch as the pointerup.
     function swallowClickAfterDrag(el) {
         const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
         el.addEventListener('click', swallow, { capture: true, once: true });
         setTimeout(() => el.removeEventListener('click', swallow, { capture: true }), 0);
     }
 
-    // ghostLabel: text shown in the small pill that follows the pointer.
-    // Runs the full drag lifecycle for one pointerdown. Takes the real,
-    // trusted pointerdown event directly (rather than being an
-    // addEventListener wrapper) so it can be reused both for a direct
-    // listener (add-block-btn) and a delegated one (drag-handle, which only
-    // exists inside re-rendered .block-card elements) without ever
-    // redispatching a synthetic PointerEvent - setPointerCapture() throws on
-    // synthetic/untrusted pointer events, so the capturing element must
-    // receive the browser's own original event.
+    // The whole drag for one pointerdown. It takes the browser's own event, since
+    // setPointerCapture throws on a synthetic one, so the Add Block buttons and the
+    // delegated card handles can share it. ghostLabel is the pill by the pointer.
     function startBlockPointerDrag(e, el, payload, ghostLabel) {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         e.preventDefault();
@@ -3038,8 +2607,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         let lastFolderHead = null;
         let currentNest = null;
         let lastNestInto = null;
-        // A whole folder (payload.folderFrom, any index inside it) has drops
-        // of its own: between Blocks and folders, never into either.
+        // A whole folder drops between Blocks and folders, never into either.
         const movingFolder = payload.folderFrom !== undefined;
         const ownRun = movingFolder ? window.blockFolderRunContaining(window.getActiveBlocks(), payload.folderFrom) : null;
         let currentMark = null;
@@ -3078,8 +2646,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (nestEl !== currentNest) {
                 if (currentNest) currentNest.classList.remove('drag-over-nest');
                 currentNest = nestEl;
-                // Never highlight a block's own nesting zone - dropping it
-                // into itself is refused at the drop, so offering it is a lie.
+                // Never a Block's own nesting strip: that drop is refused.
                 if (currentNest && payload.fromIndex !== nestInto) {
                     currentNest.classList.add('drag-over-nest');
                 }
@@ -3160,18 +2727,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     });
 
-    // Delegated: .drag-handle only exists inside re-rendered .block-card
-    // elements, so this listens on the persistent blockList container
-    // instead of re-binding per card on every render.
-    //
-    // With the handle hidden from the Config panel, the card's own left edge
-    // is the handle (owner, 2026-10-18: "The editor can still move the Blocks
-    // around by grabbing its left edge"). A press there lands on the card
-    // itself, not on anything inside it: the strip is the card's border and
-    // padding, which nothing else occupies.
+    // Delegated: a card's handle is redrawn with it. With handles hidden in Config,
+    // a card's left edge is the handle: the strip is the card's border and padding.
     blockList.addEventListener('pointerdown', (e) => {
-        // A whole folder: the ⠿ on its header, or with handles hidden the
-        // header's left edge, the same strip a card gives up.
+        // A whole folder: the handle on its header, or with handles hidden the
+        // header's left edge.
         const folderHead = e.target.closest('.block-folder-head');
         if (folderHead) {
             const shell = folderHead.closest('.block-folder');
@@ -3195,12 +2755,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         startBlockPointerDrag(e, handle || card, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
     });
 
-    // --- FOLDER PICKER ---
-    //
-    // Its own delegated listener rather than a branch of the big click handler
-    // below, because that one opens with closest('button') and then resolves
-    // .block-card by data-index - this dropdown needs neither, and its rows are
-    // rebuilt on every render so per-element binding would leak.
+    // The folder picker. Its own listener: the big click handler below reads
+    // .block-card by data-index, which this needs neither of.
     blockList.addEventListener('click', (e) => {
         const trigger = e.target.closest('.block-folder-trigger');
         if (trigger) {
@@ -3222,9 +2778,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const index = parseInt(card.getAttribute('data-index'));
         const action = option.getAttribute('data-folder-action');
 
-        // The name is carried in a data attribute rather than read off the
-        // row's text, which is escaped for display and would come back
-        // decoded-but-not-identical for a name containing markup.
+        // From a data attribute: the row's text is escaped for display.
         let name = '';
         if (action === 'pick') name = option.getAttribute('data-folder-name');
         else if (action === 'new') name = window.nextFolderName(activeBlocks, 'New Folder');
@@ -3243,9 +2797,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    // THE PICKED CELL: clicking (or tabbing) into a table cell picks it, and
-    // going into any other field lets it go. Buttons do neither, or pressing
-    // -Row would drop the very pick it is about to act on.
+    // The picked table cell: focusing a cell picks it, and any other field lets it
+    // go. Buttons do neither, or -Row would drop the pick it acts on.
     blockList.addEventListener('focusin', (e) => {
         const cell = e.target.closest('.table-cell-input, .table-header-input');
         if (!cell && !e.target.closest('input, textarea, select')) return;
@@ -3291,10 +2844,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 updateLivePreview(); return;
             }
 
-            // The Multiple Sections switch belongs to the CARD, never to the
-            // section on screen that the routing below points at, so it is
-            // handled first - and it re-renders, because it changes which
-            // fields the form is showing.
+            // The Multiple Sections switch belongs to the card, never to the section on
+            // screen, and it redraws the form.
             if (field === 'multiSections') {
                 const card = activeBlocks[index];
                 card.multiSections = e.target.checked;
@@ -3304,9 +2855,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 return;
             }
 
-            // A Combo Card in Multiple Sections mode edits its ACTIVE SECTION.
-            // Every other block, and that same card with the switch off, gets
-            // itself back - so nothing else changes behaviour.
+            // A Combo Card in Multiple Sections edits the section on screen.
             const target = window.editorCardFieldTarget(activeBlocks[index]);
 
             if (field === 'content-array') target.content = e.target.value.split('\n');
@@ -3315,8 +2864,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 const note = e.target.closest('.block-card').querySelector('[data-links-note]');
                 if (note) { note.textContent = collaboratorLinkNote(target.links); note.hidden = !note.textContent; }
             }
-            // A combo route is an ARRAY of steps, edited one per line. Blank
-            // lines are dropped rather than becoming empty chips in the route.
+            // A route is an array of steps, one a line. Blank lines are dropped.
             else if (field === 'sequence-lines') target.sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
             else if (field === 'list-items') target.items = e.target.value.split('\n').filter(i => i.trim() !== '');
             else if (field === 'combo-sequence') target.sequence = e.target.value.split(',').map(s => s.trim());
@@ -3330,8 +2878,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    // Async for the delete confirmations only; every other branch finishes
-    // before the first await, so it runs exactly as it did.
+    // Async for the delete confirmations only; the rest ends before the first await.
     blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
@@ -3343,12 +2890,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const activeBlocks = window.getActiveBlocks();
         window.saveBlockHistory();
 
-        // Folder controls sit in the shell HEADER, outside any .block-card, so
-        // they have to be handled before the data-index lookup further down -
-        // that line calls .getAttribute on a null closest() and throws. The
-        // second half of the test matters just as much: cards are rendered
-        // INSIDE .block-folder, so a card's own ✖ matches closest('.block-folder')
-        // too.
+        // Folder controls are in the shell's header, outside every card, so they go
+        // before the data-index lookup, which would throw. A card's own button is inside
+        // .block-folder too, hence the second half of the test.
         const folderShell = btn.closest('.block-folder');
         if (folderShell && !btn.closest('.block-card')) {
             const folderName = folderShell.getAttribute('data-folder');
@@ -3374,9 +2918,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 return;
             }
 
-            // Making and discarding an EMPTY folder touches no block, so
-            // neither one refreshes the preview - there is nothing for it to
-            // render differently.
+            // An empty folder touches no Block, so the preview stays.
             if (btn.classList.contains('block-folder-add')
                 && typeof window.addPendingBlockFolder === 'function') {
                 window.addPendingBlockFolder(activeBlocks, folderName);
@@ -3393,8 +2935,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
-        // The four table buttons act at the picked cell, or at the end with
-        // nothing picked (see editorTablePick).
+        // The table buttons act at the picked cell, or at the end with none picked.
         const tableAction = ['add-row', 'add-col', 'del-row', 'del-col']
             .find(kind => btn.classList.contains(`btn-table-${kind}`));
         if (tableAction) {
@@ -3446,17 +2987,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             card.classList.toggle('collapsed');
             btn.textContent = body.classList.contains('minimized') ? '□' : '—';
 
-            // Record it, or the next renderBlockList throws the author's choice
-            // away. This used to be pure DOM, which is why collapsing a block
-            // and then touching anything reopened it.
+            // Recorded, or the next renderBlockList reopens it.
             const collapsedIdx = parseInt(card.getAttribute('data-index'), 10);
             const collapsedBlock = window.getActiveBlocks()[collapsedIdx];
             const nowOpen = !body.classList.contains('minimized');
             window.setEditorBlockExpanded(collapsedBlock, nowOpen);
 
-            // Now that the fields have a layout, size them. They were skipped
-            // at render time because a textarea inside display:none reports a
-            // scrollHeight of 0, which would pin it shut.
+            // Sized now: a textarea inside display:none reports a scrollHeight of 0.
             if (nowOpen) window.autoSizeEditorTextareasIn(card);
             return;
         }
@@ -3478,11 +3015,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
-        // A card that is part of the selection hands its three list actions to
-        // the whole selection (v0.19 C2). The rule a file manager uses, and the
-        // thing that stops ▲ on a selected card meaning something different
-        // from ▲ on the selection bar. A card OUTSIDE the selection keeps
-        // acting on itself, so the single-block behaviour is untouched.
+        // A card in the selection hands its up, down and delete to the whole selection,
+        // as a file manager does. A card outside it acts on itself.
         const wantsUp = btn.classList.contains('btn-up');
         const wantsDown = btn.classList.contains('btn-down');
         const wantsDelete = btn.classList.contains('btn-delete');
@@ -3497,9 +3031,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 renderBlockList();
                 updateLivePreview();
             }
-            // Returns either way: a selection already hard against the end has
-            // nothing to do, and must NOT fall through to moving this one card
-            // out of the run it is part of.
+            // Either way: a selection against the end must not move this card out of its run.
             return;
         }
 
@@ -3518,9 +3050,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
-        // A swap moves BOTH blocks, and either one can have crossed a folder
-        // boundary - stepping a member down past a loose block takes it out of
-        // the folder, and the loose block it traded places with is now inside.
+        // A swap moves both Blocks, and either can have crossed a folder's edge.
         if (movedTo >= 0) {
             settleFolderAt(activeBlocks, movedTo);
             settleFolderAt(activeBlocks, index);
@@ -3533,32 +3063,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     renderBlockList();
 }
 
-// --- TEXTAREA SIZING, IN ONE PLACE ---
-//
-// "Grow to fit, then STOP and scroll" - owner, 2026-08-17, after an uncapped
-// field pushed itself taller than the pane with no way to scroll it. That fix
-// was applied to the `input` handler and NOT to the sizing pass at the end of
-// renderBlockList, so a field arrived on screen uncapped and only started
-// behaving once it was typed in. One function now, called from both.
-//
-// SKIPPING A HIDDEN FIELD IS THE OTHER HALF, and it is the half v0.16 broke.
-// Everything renders collapsed now, `.block-body.minimized` is `display: none`,
-// and scrollHeight inside a display:none ancestor is 0 - so the pass at render
-// time pinned every textarea to nothing, and expanding a block showed a stub of
-// a field with the content unreachable. offsetParent is null exactly when an
-// ancestor is display:none, which is the case to skip; the expand handler sizes
-// it instead, at the moment it can actually be measured.
-//
-// THE GUARD ITSELF IS DEFENSIVE, NOT LOAD-BEARING, and that is worth saying:
-// falsifying it changes no test. Every path that reveals a field re-renders
-// first, so the field is measurable by the time anyone sees it. It is here
-// because writing a height onto something that cannot be measured is wrong on
-// its own terms, and because the next path that reveals without re-rendering
-// would be broken by it.
+// Textarea sizing, in one place for typing and for rendering: grow to fit, then
+// stop at the cap and scroll. A field inside a shut Block (display:none) cannot
+// be measured, so it is skipped and the expand handler sizes it.
 const EDITOR_TEXTAREA_MAX_PX = 260;
 
-// The nearest ancestor that actually scrolls. Used to put the scroll position
-// back after a measurement - see the note on the collapse below.
+// The nearest ancestor that scrolls, to put its position back after measuring.
 function scrollableAncestorOf(el) {
     for (let n = el && el.parentElement; n && n !== document.body; n = n.parentElement) {
         if (n.scrollHeight <= n.clientHeight) continue;
@@ -3568,28 +3078,10 @@ function scrollableAncestorOf(el) {
     return null;
 }
 
-// Measuring a textarea means collapsing it first: `height: auto` on a textarea
-// is its `rows` height, NOT its content height, so scrollHeight only reports the
-// real content once the box is out of the way.
-//
-// That collapse is visible to the scroll container for one layout pass. When the
-// contributor is scrolled to the BOTTOM of the workspace, the container's scroll
-// range shrinks by however much the field just lost, the browser clamps
-// scrollTop to the new maximum - and restoring the height does not restore the
-// scroll. The clamp is permanent, and it happens on every keystroke.
-//
-// That is v0.16 bug 1, from the owner's screen recording: "it will keep
-// rendering/moving me upward, forcing me to manually scroll down, but every
-// single letter type just keep moving me upward". Measured on a 211px field:
-// scrollTop 349 -> 188 on the first character, exactly the 161px the field lost
-// collapsing to its 50px minimum.
-//
-// It took a video to find because it needs the workspace scrolled to its
-// maximum. Eight earlier probes typed into a block with content below it, where
-// there is slack for the range to shrink into and nothing moves at all.
-//
-// Reading and writing scrollTop in the same task means no frame is painted in
-// between, so the restore is invisible rather than a correction the reader sees.
+// Measuring collapses the field first (height:auto is its `rows` height, not its
+// content's). Scrolled to the bottom, that shrinks the scroll range for a layout
+// pass, the browser clamps scrollTop, and every keystroke would push the page up.
+// So the scroll position is put back in the same task, before any frame paints.
 function measureAndSize(ta) {
     const scroller = scrollableAncestorOf(ta);
     const keepTop = scroller ? scroller.scrollTop : 0;
@@ -3602,6 +3094,10 @@ function measureAndSize(ta) {
     if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
 }
 
+/**
+ * Sizes one textarea to its content, up to EDITOR_TEXTAREA_MAX_PX.
+ * @since v0.16
+ */
 window.autoSizeEditorTextarea = function (ta) {
     if (!ta || ta.offsetParent === null) return;
     measureAndSize(ta);
@@ -3611,28 +3107,18 @@ window.autoSizeEditorTextareasIn = function (root) {
     if (!root) return;
     const fields = root.querySelectorAll('.editor-textarea');
     if (!fields.length) return;
-    // One save/restore around the whole sweep rather than one per field: sizing
-    // a list of them collapses each in turn, and the clamp compounds.
+    // One save and restore around the whole sweep: the clamp would add up per field.
     const scroller = scrollableAncestorOf(fields[0]);
     const keepTop = scroller ? scroller.scrollTop : 0;
     fields.forEach(window.autoSizeEditorTextarea);
     if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
 };
 
-// --- LONG ONE-LINE FIELDS GROW OVER THEIR NEIGHBOURS (v1.1) ---
-//
-// A move name, a table cell or a combo's damage is one line, and text longer
-// than the box shows only a slice of itself. While such a field is being
-// edited and its text overflows, it widens to fit and is drawn on top of
-// whatever sits beside it: the owner's call, 2026-10-18, trading neatness for
-// being able to read what you are typing.
-//
-// It takes no layout space doing it. The negative margin gives back exactly the
-// width it adds, so nothing beside it moves, and it is the same element with
-// the same focus throughout, so every handler bound to it keeps working (a
-// floating copy would take focus and fire the blur handlers that commit and
-// redraw). It stays inside the nearest box that clips it, shifting left when
-// there is no room on the right, and goes back to its own size on blur.
+// A one-line field (a move name, a table cell, a combo's damage) widens over its
+// neighbours while being edited and its text overflows, so it can be read. A
+// negative margin gives back the width it adds, so nothing moves, and it is the
+// same element throughout, so its handlers keep working. It stays inside the box
+// that clips it and goes back to its size on blur.
 const GROW_FIELD = 'input.editor-input[type="text"]';
 
 function clipBoundsOf(el) {
@@ -3663,8 +3149,7 @@ window.growEditorField = function (el) {
     const rect = el.getBoundingClientRect();
     const bounds = clipBoundsOf(el);
     const room = bounds.right - bounds.left - 8;
-    // Borders and padding are outside clientWidth; the extra 16px keeps the
-    // caret off the edge while typing at the end.
+    // Borders and padding are outside clientWidth; 16px keeps the caret off the edge.
     const width = Math.min(el.scrollWidth + (rect.width - el.clientWidth) + 16, room);
     if (width <= rect.width) return;
 
@@ -3689,16 +3174,9 @@ document.addEventListener('focusout', (e) => {
     if (e.target.matches && e.target.matches(GROW_FIELD)) shrinkEditorField(e.target);
 });
 
-// A one-line label for a collapsed block.
-//
-// NOT optional decoration. Everything starts collapsed as of v0.16, and a list
-// reading "HEADING / IMAGE / PARAGRAPH / PARAGRAPH / PARAGRAPH" identifies
-// nothing - the author would have to expand every block to find the one they
-// wanted, which is worse than the wall of open blocks this replaced.
-//
-// Reads whichever field the type actually carries its meaning in, rather than
-// assuming `content`: a table's meaning is in its headers, an image's in its
-// caption or filename, a container's in its title.
+// A shut Block's one-line label, from the field its type keeps its meaning in (a
+// table's headers, an image's caption, a container's title): "PARAGRAPH" five
+// times in a row identifies nothing.
 function blockSummary(block) {
     if (!block || typeof block !== 'object') return '';
 
@@ -3743,8 +3221,7 @@ function blockSummary(block) {
     }
 
     text = String(text == null ? '' : text)
-        // Strip the shortcodes rather than render them: this is a label in a
-        // dense list, and [b]...[/b] around a five-word summary is noise.
+        // Tags are stripped: in a dense list they are noise.
         .replace(/\[\/?[a-z][^\]]*\]/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
@@ -3752,19 +3229,11 @@ function blockSummary(block) {
     return text.length > 60 ? text.slice(0, 60) + '…' : text;
 }
 
-// --- TABLE BLOCK: THE PICKED CELL (v1.1, from an editor's feedback) ---
-//
-// -Row and -Col could only take the last row or column, so a mistake in the
-// middle of a table meant retyping everything below it. Clicking a cell now
-// picks its row and column: -Row and -Col remove those and say which
-// ("-Row 3"), +Row and +Col insert below and right of it, and with nothing
-// picked all four act at the end, as they always did.
-//
-// One pick in the whole Workspace, held beside the data rather than in it:
-// which cell an editor last clicked is not page content. It names the block
-// OBJECT, which outlives renderBlockList's markup, so a re-render keeps it;
-// an undo restores copies of the blocks, so it lets go.
-let editorTablePick = null;   // { block, row, col }; row is null for a header cell
+// A Table Block's picked cell: -Row and -Col remove its row and column, +Row and
+// +Col insert below and right of it, and with nothing picked all four act at the
+// end. One pick in the Workspace, kept beside the data: it names the Block, so a
+// re-render keeps it and an UNDO lets it go.
+let editorTablePick = null; // { block, row, col }; row is null for a header cell
 
 function tablePickFor(block) {
     if (!editorTablePick || editorTablePick.block !== block) return null;
@@ -3796,9 +3265,8 @@ function cardForEditorBlock(block) {
         .find(card => blocks[parseInt(card.getAttribute('data-index'), 10)] === block) || null;
 }
 
-// The pick drawn onto a table already on screen. Picking must not re-render
-// the list: that would take the focus, and the caret, out of the cell that
-// was just clicked into.
+// Drawn onto the table on screen. No re-render: it would take the caret out of
+// the cell just clicked.
 function paintTablePick(card, block) {
     const pick = tablePickFor(block);
     card.querySelectorAll('.block-table td').forEach(td => {
@@ -3816,24 +3284,17 @@ function paintTablePick(card, block) {
     });
 }
 
-// The buttons stay under the pointer. A table grows or shrinks above them,
-// so they used to move a row's height with every press, and adding five rows
-// meant chasing +Row down the screen five times (editor feedback,
-// 2026-10-19). Scrolling by however far they moved puts them back, in the
-// same task, so no frame shows them anywhere else. Measured on the row of
-// buttons, not the button: a hovered button is lifted 1px and the one just
-// drawn is not hovered yet, which would creep the table by a pixel a press.
+// The table buttons stay under the pointer: the table grows or shrinks above
+// them, so the page scrolls by however far they moved, in the same task.
+// Measured on the row of buttons, since a hovered button is lifted 1px.
 function tableButtonsTop(index) {
     const row = document.querySelector(`#block-list .block-card[data-index="${index}"] .block-table-actions-row`);
     return row ? row.getBoundingClientRect().top : null;
 }
 
-// Where the last press put the buttons back to. A scroll position is whole
-// pixels and a row need not be (37.4px), so each correction can miss by a
-// fraction. Measuring each press from where the last one landed let those
-// misses add up: 1.2px by the third press with Linux's fonts (CI,
-// 2026-10-20). Aiming every press at the same spot keeps each one within
-// half a pixel. A scroll of a pixel or more in between starts a new aim.
+// Every press aims at the spot the first one did: a scroll position is whole
+// pixels and a row need not be, so aiming from the last landing adds up the
+// misses. A scroll of a pixel or more in between starts a new aim.
 let tableButtonsAim = null;
 
 function keepTableButtonsInPlace(index, before) {
@@ -3847,36 +3308,20 @@ function keepTableButtonsInPlace(index, before) {
     else window.scrollBy(0, after - before);
 }
 
-// The shell drawn around one folder run.
-//
-// The name is an INPUT rather than a label plus a rename button. Renaming is
-// the most common thing done to a folder after making it, and the editor has
-// editorAlert and customConfirm but no text prompt at all - adding one modal
-// for this would make folder naming the only prompt on the site.
-//
-// Every interpolation here is contributor-authored and lands in an attribute,
-// so it is escaped exactly like the block fields below it. `color`
-// arrives already through safeColor (renderBlockList).
+// The shell around one folder run. The name is an input: renaming is the most
+// common thing done to a folder. Every value here is contributor-written and
+// lands in an attribute, so it is escaped; `color` has been through safeColor.
 function folderShellHTML(run, isCollapsed, isEmpty, color) {
     const count = isEmpty ? 'empty' : `${run.count} block${run.count === 1 ? '' : 's'}`;
 
-    // An empty folder has no blocks to carry a colour, so it offers none.
+    // An empty folder has no Blocks to carry a colour.
     const colorSwatch = isEmpty ? '' : `
             <button type="button" class="block-folder-color${color ? '' : ' is-none'}" data-folder-color
                     title="Folder color" aria-label="Folder color" aria-expanded="false"${color ? ` style="background: ${color};"` : ''}></button>`;
 
-    // An empty folder is not in the data, so there is nothing to keep and
-    // nothing to ungroup - removing it is a discard, and saying UNGROUP there
-    // would promise a rescue of blocks that do not exist.
-    // Glyph-only side buttons (v0.16 fine-tuning 3). The words cost more height
-    // than a folder header is worth now that the whole shell is meant to be
-    // slim - and the block cards' own actions have always been glyphs, so the
-    // vocabulary already exists. title AND aria-label, because a glyph with
-    // neither is a button nobody can name.
-    //
-    // Except ＋ FOLDER (v1.1, from an editor's feedback): a bare ＋ beside
-    // the name was taken for the folder's dropdown, so it says what it makes,
-    // and the open/close button is a chevron rather than the folder icon.
+    // An empty folder is not in the data, so removing it is a discard, not an
+    // UNGROUP. Side buttons are glyphs, with title and aria-label so each has a
+    // name; + FOLDER says what it makes, since a bare + was taken for the dropdown.
     const removeBtn = isEmpty
         ? `<button class="btn-sys btn-sys-regular block-folder-discard"
                    title="Discard this empty folder"
@@ -3889,8 +3334,7 @@ function folderShellHTML(run, isCollapsed, isEmpty, color) {
         ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
         : '';
 
-    // Moves the whole folder (v1.1). An empty one is not in the data, so it
-    // has nothing to move; ＋ FOLDER already puts it where it is wanted.
+    // Moves the whole folder. An empty one has nothing to move.
     const handle = isEmpty ? '' : `
             <span class="drag-handle block-folder-handle" title="Drag to move this folder">⠿</span>`;
 
@@ -3912,14 +3356,9 @@ function folderShellHTML(run, isCollapsed, isEmpty, color) {
     `;
 }
 
-// The selection made visible (v0.19 C2). Ctrl-click is not a discoverable
-// gesture, so the bar is what tells an author a selection exists at all, what
-// is in it, and what can be done to it. It draws only while something is
-// selected - an empty toolbar permanently above the list would be chrome
-// nobody asked for.
-//
-// Rebuilt in place rather than through renderBlockList, because toggling one
-// card must not tear down and re-lay-out every other card in the tab.
+// The selection bar, drawn while something is selected: Ctrl-click cannot be
+// discovered, so the bar is what says a selection exists and what it can do.
+// Rebuilt in place, so toggling one card leaves the others alone.
 function renderBlockSelectionBar() {
     const list = document.getElementById('block-list');
     if (!list) return;
@@ -3939,8 +3378,7 @@ function renderBlockSelectionBar() {
         bar.id = 'block-selection-bar';
         bar.className = 'block-selection-bar';
     }
-    // A count, not a name: block titles are contributor-written and this is
-    // rebuilt on every toggle. Numbers need no escaping and cannot be markup.
+    // A count, not names: numbers need no escaping.
     bar.innerHTML = `
         <span class="block-selection-count">${picked.length} SELECTED</span>
         <div class="block-selection-actions">
@@ -3951,11 +3389,16 @@ function renderBlockSelectionBar() {
             <button type="button" class="btn-sys btn-sys-regular" data-selection-action="clear" title="Clear the selection">CLEAR</button>
         </div>
     `;
-    // Always the first row, including after a re-render has rebuilt the list
-    // underneath it.
+    // Always the first row, also after a re-render.
     if (list.firstChild !== bar) list.insertBefore(bar, list.firstChild);
 }
 
+/**
+ * Draws the Blocks on screen into #block-list, inside their folders, with the
+ * selection bar on top.
+ * @watch each card keeps its real array index in data-index, which every handler
+ *   here reads, so folders never renumber Blocks
+ */
 function renderBlockList() {
     const listContainer = document.getElementById('block-list');
     listContainer.innerHTML = '';
@@ -3980,10 +3423,8 @@ function renderBlockList() {
     };
 
     if (window.activeAccordionPath.length > 0) {
-        // Walked through the same resolver getActiveBlocks uses, so the banner
-        // and the list below it cannot disagree about which level is on screen.
-        // The old walk read `.content` directly, which a Section Box step does
-        // not have.
+        // Through getActiveBlocks' own resolver, so the banner and the list agree on
+        // which level is on screen.
         let blocks = currentStrategyBlocks;
         let parentTitle = 'Accordion';
         let partLabel = '';
@@ -3997,17 +3438,13 @@ function renderBlockList() {
             const field = (step && typeof step === 'object') ? step.field : null;
             if (i === window.activeAccordionPath.length - 1) {
                 parentTitle = host.title || 'Accordion';
-                // Which PART of a Section Box, since an index alone names the
-                // box and the author may be in any one of several arrays in it.
+                // Which part of a Section Box: an index alone names only the box.
                 if (field === 'intro') {
                     partLabel = 'Introduction';
                 } else if (field) {
                     const m = /^sections\.(\d+)\.content$/.exec(field);
                     const sec = m && Array.isArray(host.sections) ? host.sections[Number(m[1])] : null;
-                    // `label` first: a Section Box's section is named by its
-                    // title, but a Combo Card's section has BOTH - a tab label
-                    // and a card heading, which the owner's reference has
-                    // differ. The banner should say which TAB you are in.
+                    // The tab label first: the banner says which tab you are in.
                     if (sec) partLabel = sec.label || sec.title || `Section ${Number(m[1]) + 1}`;
                 }
             }
@@ -4017,9 +3454,7 @@ function renderBlockList() {
             blocks = nested;
         }
 
-        // escapeHtml, not raw. The title is contributor-written and this string
-        // goes through insertAdjacentHTML - it was an unescaped innerHTML sink
-        // on every nested edit, found while extending this walk for C3.
+        // Escaped: the title is contributor-written and goes into insertAdjacentHTML.
         const heading = partLabel
             ? `${window.escapeHtml(parentTitle)} <span class="accordion-back-part">${window.escapeHtml(partLabel)}</span>`
             : window.escapeHtml(parentTitle);
@@ -4036,12 +3471,8 @@ function renderBlockList() {
         listContainer.insertAdjacentHTML('beforeend', backBtnHTML);
     }
 
-    // --- BLOCK FOLDERS (v0.15 item 9) ---
-    //
-    // A folder is a contiguous run, so its shell can be opened at run.start and
-    // closed at run.end while each card keeps its REAL array index in
-    // data-index. Every handler in this file reads that attribute, and a
-    // grouping that renumbered blocks would break all of them at once.
+    // Block folders are contiguous runs, so the shell opens at run.start and closes
+    // at run.end while each card keeps its real index.
     const folderRuns = typeof window.collectBlockFolders === 'function'
         ? window.collectBlockFolders(activeBlocks)
         : [];
@@ -4050,11 +3481,9 @@ function renderBlockList() {
     folderRuns.forEach(run => { opensAt.set(run.start, run); closesAt.set(run.end, run); });
     const folderNames = folderRuns.map(run => run.name);
 
-    // Empty folders, which are session state rather than data - a folder with
-    // no blocks has no `folder` string anywhere to be found in. Each is drawn
-    // after the folder it was created from, matched BY NAME so that reordering
-    // blocks cannot strand it; one whose anchor has since been dissolved or
-    // renamed away falls to the end rather than disappearing.
+    // Empty folders are session state, drawn after the folder they came from,
+    // matched by name so a reorder cannot strand one. One whose anchor is gone
+    // falls to the end.
     const pendingFolders = typeof window.pendingBlockFolders === 'function'
         ? window.pendingBlockFolders()
         : [];
@@ -4080,15 +3509,12 @@ function renderBlockList() {
         listContainer.appendChild(shell);
     };
 
-    // Where the next card goes: the list itself, or the open folder's body.
+    // The list itself, or the open folder's body.
     let appendTarget = listContainer;
 
-    // The non-drag path into a folder, and a custom dropdown rather than a
-    // <select> so that "no folder" and "create new folder" can look like what
-    // they are instead of like two more folders - as a native select they were
-    // three near-identical rows (owner, 2026-08-18). Built from the same
-    // .manga-select-* shell every other dropdown on the site uses, with its own
-    // classes on the two rows that are not folders.
+    // The way into a folder without dragging: a custom dropdown, so "no folder" and
+    // "create new folder" do not look like two more folders, on the site's
+    // .manga-select-* shell.
     const folderPickerHTML = (block) => {
         const own = typeof window.blockFolderName === 'function' ? window.blockFolderName(block) : '';
         const choices = [...new Set(folderNames.concat(pendingFolders.map(p => p.name)))];
@@ -4288,13 +3714,9 @@ function renderBlockList() {
                 </div>
             `;
         }
-        // --- THE SECTION BOX (v0.19 C3) ---
-        //
-        // Three things to edit and they are different in kind: a title, one
-        // introduction, and N sections that are add/remove. The introduction
-        // and each section's contents are BLOCKS, reached through the same
-        // descend-and-come-back the accordion uses - the only difference is
-        // that a step has to say WHICH array, because this block has several.
+        // The Section Box: a title, one introduction and N sections. The introduction
+        // and each section hold Blocks, reached the way an accordion's are, with the
+        // step naming which array.
         else if (block.type === 'sectionedbox') {
             const sections = Array.isArray(block.sections) ? block.sections : [];
             const introCount = Array.isArray(block.intro) ? block.intro.length : 0;
@@ -4332,8 +3754,7 @@ function renderBlockList() {
             const multi = !!block.multiSections;
             const sections = Array.isArray(block.sections) ? block.sections : [];
             const secIdx = multi ? window.editorCardSectionIndex(block) : -1;
-            // With the switch on, every field below edits the SECTION on
-            // screen; with it off they edit the card, exactly as before.
+            // With the switch on, the fields edit the section on screen; off, the card.
             const card = (secIdx >= 0) ? sections[secIdx] : block;
 
             const innerCount = card.content ? card.content.length : 0;
@@ -4342,9 +3763,7 @@ function renderBlockList() {
                 .map(d => `<option value="${window.escapeHtml(d)}" ${card.difficulty === d ? 'selected' : ''}>${window.escapeHtml(d || '- none -')}</option>`)
                 .join('');
 
-            // The tab strip, and the LABEL is its own field: the reference the
-            // owner asked this to mimic has a tab reading "In Corner 6H" over a
-            // card headed "Optimized 6H Counterhit Corner Starter".
+            // The tab strip. The label is its own field: a short tab name over a long heading.
             const strip = (multi && sections.length) ? `
                 <div class="cardsec-strip">
                     <div class="cardsec-label">SECTIONS</div>
@@ -4513,8 +3932,7 @@ function renderBlockList() {
                 && window.isBlockFolderCollapsed(opening.name);
             const shell = document.createElement('div');
             shell.className = 'block-folder' + (isCollapsed ? ' is-collapsed' : '');
-            // setAttribute, not innerHTML: no escaping needed, and this is the
-            // value every folder handler reads back.
+            // setAttribute, not innerHTML: no escaping, and every folder handler reads it.
             shell.setAttribute('data-folder', opening.name);
             // The bar down the folder's left edge, in its colour.
             const color = window.safeColor(activeBlocks[opening.start].folderColor);
@@ -4542,8 +3960,7 @@ function renderBlockList() {
 
     pendingOrphans.forEach(emitEmptyFolder);
 
-    // Sizes only what is actually on screen. Anything inside a collapsed block
-    // cannot be measured and is sized by the expand handler instead.
+    // Only what is on screen; a shut Block's fields are sized when it opens.
     window.autoSizeEditorTextareasIn(listContainer);
 
     if (window.editorBlockObserver) {
@@ -4552,9 +3969,8 @@ function renderBlockList() {
         });
     }
 
-    // After the cards, so it can be put back at the top of a list that has
-    // just been rebuilt. A selection survives the re-render (it is keyed by
-    // object), so the bar has to survive it too.
+    // After the cards, so it goes back on top of the rebuilt list. A selection
+    // survives the re-render, so the bar does too.
     renderBlockSelectionBar();
 
     if (typeof window.initializeMangaSelects === 'function') {

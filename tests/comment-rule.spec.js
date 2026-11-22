@@ -57,6 +57,11 @@ const TRIMMED = [
     'style/ColorCoding.css',
     'style/discussions.css',
     'style/Layout.css',
+    'js/editor/blocks/editor-blocks.js',
+    'js/editor/blocks/editor-folders.js',
+    'js/editor/blocks/editor-reorder.js',
+    'js/editor/tools/editor-find-replace.js',
+    'js/editor/tools/editor-media.js',
 ];
 
 // What a comment never holds. A PR number is #NNN on its own, never a colour.
