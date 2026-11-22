@@ -1,25 +1,23 @@
 /**
- * Dogslamloop Wiki - Global Site Metadata & Configurations
+ * Site lookups every page reads: the character colours, the names the community
+ * uses for characters, the Skill Card accolades, the site's icons, character icon
+ * paths, the frame and overlay colours, the site's version line, and the theme a
+ * character page paints itself with.
+ * @since v0.1
+ * @touches site_pages.color (the generated CHARACTER_COLORS region),
+ *   style/ColorCoding.css (frame and overlay colours, read at load),
+ *   data/site_meta.json (the version and tagline)
+ * @watch only CHARACTER_COLORS, between its two markers, is generated
+ *   (scripts/fetch-content.js); the rest is hand-written, and the markers stay
+ *   exactly as they are
+ * @see docs/shared-code.md
  */
 
-// Global Character Color Dictionary.
-//
-// The SOURCE is site_pages.color; this is a copy, rewritten by
-// `npm run refresh-content` and by the regenerate.yml workflow. Edit the colour
-// in the owner tools (Pages -> Page Details -> COLOUR), not here - a hand-edit
-// survives exactly until the next regeneration.
-//
-// It stays a synchronous literal rather than becoming a fetch because ten files
-// read window.CHARACTER_COLORS at script-evaluation time: pagebuilder.js,
-// internalstyling.js (the auto-colouring of names in prose), four tier-list
-// modules, editor-blocks.js, editor-core.js and history.js. Making it async
-// would mean changing all ten and inventing a load-order problem that does not
-// exist today.
-//
-// Only the region between these two markers is generated. Everything else in
-// this file - CHARACTER_ALIASES, ACCOLADES, UI_ICONS, rosterIconPath, applyCharacterTheme -
-// is hand-authored, and scripts/fetch-content.js refuses to write at all if the
-// markers are missing rather than guessing where the boundary was.
+// The character colours, keyed by name: a copy of site_pages.color, rewritten by
+// `npm run refresh-content` and the nightly job. Change a colour in the owner tools
+// (Pages > Page Details > COLOUR), never here. A plain object, not a fetch, because
+// ten files read it as they load. fetch-content.js refuses to write without both
+// markers.
 //
 // --- GENERATED REGION: CHARACTER_COLORS (scripts/fetch-content.js) ---
 window.CHARACTER_COLORS = {
@@ -52,20 +50,12 @@ window.CHARACTER_COLORS = {
 };
 // --- END GENERATED REGION ---
 
-// Every other name the community uses for a character, owner-supplied
-// 2026-08-14. js/pages/core/internalstyling.js highlights and links these exactly as it
-// does the canonical name, using the canonical name's colour.
-//
-// A SEPARATE MAP RATHER THAN MORE KEYS IN CHARACTER_COLORS. "Mangaka" used to
-// live in that dictionary with a comment explaining it was a text fallback,
-// which meant anything iterating the roster saw a character that does not
-// exist. A colour dictionary should describe the roster; this describes how
-// people write about it.
-//
-// Canonical names must match CHARACTER_COLORS exactly - that is the join.
+// Every other name the community uses for a character, highlighted and linked by
+// internalstyling.js in the canonical name's colour. A map of its own, so the colour
+// dictionary describes only the roster. Canonical names match CHARACTER_COLORS
+// exactly: that is the join.
 window.CHARACTER_ALIASES = {
     "Honored One":       ["Gojo", "Gojo Satoru", "Satoru Gojo", "Blue Judas"],
-    // The list as supplied had "Itadori Yuji" twice; read as the two orderings.
     "Vessel":            ["Itadori Yuji", "Yuji Itadori", "Yuji", "Red Judas"],
     "Restless Gambler":  ["Kinji Hakari", "Hakari Kinji", "Hakari", "Tuca Donka"],
     "Ten Shadows":       ["Fushiguro Megumi", "Megumi Fushiguro", "Megumi", "Potential Man"],
@@ -76,9 +66,8 @@ window.CHARACTER_ALIASES = {
     "Cursed Partners":   ["Yuta Okkotsu", "Okkotsu Yuta", "Yuta", "JJK OC"],
     "Puppet Master":     ["Ultimate Mechamaru", "Mechamaru", "Kokichi Muta", "Muta Kokichi", "Kokichi", "Larping Individual"],
     "Head of the Hei":   ["Zenin Naoya", "Naoya Zenin", "Naoya", "Bubble Pop Electric"],
-    // "enjoys beating the life out of" was supplied and then withdrawn: it is
-    // a sentence fragment, so it fired mid-prose - "Nanami enjoys beating the
-    // life out of curses" would colour and link the middle of that sentence.
+    // No sentence fragments: one fires mid-prose ("Nanami enjoys beating the life out
+    // of curses").
     "Salaryman":         ["Kento Nanami", "Nanami Kento", "Nanami"],
     "Disaster Plants":   ["Hanami", "Peaceful Gardener"],
     "True Cannon":       ["Ryu Ishigori", "Ishigori Ryu", "Ryu", "Jane Juliet"],
@@ -89,27 +78,19 @@ window.CHARACTER_ALIASES = {
     "Lucky Coward":      ["Haruta Shigemo", "Shigemo Haruta", "Haruta", "Kind Scholar"],
     "Crow Charmer":      ["Mei Mei"],
     "Black Death":       ["Kurourushi", "Kuro", "I love the taste of iron"],
-    // The names the game used until 2026-10-31, kept so older posts and
-    // Discord messages that say them still link (owner's call).
+    // The names the game used before, so older posts and Discord messages still link.
     "Hired Hunter":      ["Hired Killer"],
     "Sky Bender":        ["Sky Assassin"]
-    // Boomcat has none on purpose - it is the owner's joke character.
+    // Boomcat has none on purpose: a joke character.
 };
 
-// --- SKILL CARD ACCOLADES (v1.2, the owner's Kanban card) ---
-// "a preset amount of accolades that editor can attach to the skill card
-// however they want". The owner's 26, in their order, which is the order a
-// card shows them in, whatever order an editor ticks them. A move stores the
-// ids, so a name can be reworded without touching a move; an id never changes
-// once a move uses it (it is also the icon's file name, medias/icons/
-// accolades/<id>.png, the owner's 16px pixel art). `color` is the owner's
-// pick for the badge's text, border and icon (2026-11-19, on their Accolade
-// Colors page). The text is the owner's, with two grammar fixes ("than",
-// "manage the character's") and their spelling calls (2026-11-18): "cannot",
-// and one L in "canceled" and "Uncancelable".
-// In this file rather than js/pages/core/framedata.js since the mini icons in text (v1.2):
-// [icon=accolade/<id>] can be written on any page, and this file is the one
-// every page loads.
+/**
+ * The Skill Card accolades, in the order a card shows them, whatever order an
+ * editor ticks them in. A move stores the ids, so a name can be reworded; an id
+ * never changes once used, since it is also the icon's file name
+ * (medias/icons/accolades/<id>.png). `color` is the badge's text, border and icon.
+ * @since v1.2
+ */
 window.ACCOLADES = [
     { id: 'blockbreak', name: 'Blockbreak', description: 'This move can break block', color: '#ff5c5c' },
     { id: 'block-bypass', name: 'Block Bypass', description: 'This move ignores block', color: '#a855f7' },
@@ -139,13 +120,12 @@ window.ACCOLADES = [
     { id: 'camera-aimed', name: 'Camera-aimed', description: 'This move is aimed with the camera direction', color: '#f59e0b' },
 ];
 
-// An accolade's icon (.px-icon in style/Common.css). On a badge or a chip it
-// takes the color of what holds it and sits beside the name. In running text
-// (`inText`, [icon=accolade/<id>]) it stands for the word, so it is named, and
-// it keeps the accolade's own color rather than the sentence's.
-// Root-absolute, because the site is always served from the domain root
-// (getRootPath in js/utility/site_utils.js), so one path works at every page depth. The
-// id is checked rather than escaped: it is a file name.
+/**
+ * An accolade's icon. On a badge or a chip it takes its holder's colour; in text
+ * (inText, [icon=accolade/<id>]) it stands for the word, so it is named and keeps
+ * the accolade's colour. Root-absolute, so one path works at every depth.
+ * @since v1.2
+ */
 window.accoladeIconHTML = function (accolade, { inText = false } = {}) {
     if (!accolade || !/^[a-z0-9-]+$/.test(accolade.id)) return '';
     const file = `--px-icon: url('/medias/icons/accolades/${accolade.id}.png')`;
@@ -155,16 +135,14 @@ window.accoladeIconHTML = function (accolade, { inText = false } = {}) {
     return `<span class="px-icon text-icon" role="img" aria-label="${name}" title="${name}" style="${file}${color}"></span>`;
 };
 
-// --- THE SITE'S ICONS (v1.2) ---
-// The owner's pixel art for the site's buttons and badges (medias/icons/
-// <id>.png, 16px; the tick and the dropdown arrow 8px), drawn to replace the
-// SVGs an AI assistant drew and the copies of Feather and Lucide (owner,
-// 2026-10-24). The id is the file name, as the owner named it, and also what
-// [icon=ui/<id>] takes in text (owner, 2026-11-19), so an id never changes
-// once a page uses it. `name` is what a hover and a screen reader say for one
-// in text. The tick and the arrow are drawn by style/editor.css as well, and
-// js/pages/core/page_router.js and the hand-written pages' Ko-fi buttons write this
-// markup out themselves, since they come before this file.
+/**
+ * The site's icons (medias/icons/<id>.png, 16px; the tick and the dropdown arrow
+ * 8px). The id is the file name and what [icon=ui/<id>] takes, so it never changes
+ * once used; `name` is what a hover and a screen reader say for one in text.
+ * @since v1.2
+ * @watch page_router.js, editor.css and the hand-written pages' Ko-fi buttons write
+ *   this markup themselves, since they come before this file
+ */
 window.UI_ICONS = [
     { id: 'edit', name: 'Edit' },
     { id: 'history', name: 'History' },
@@ -189,10 +167,11 @@ window.UI_ICONS = [
     { id: 'role--guest', name: 'Guest' },
 ];
 
-// A site icon. On a button it takes the color of what holds it, as an
-// accolade's does on a chip, and is hidden from screen readers, since the
-// button says what it does. In text ([icon=ui/<id>]) it stands for a word, so
-// it is named. An id that is not in UI_ICONS draws nothing.
+/**
+ * A site icon: on a button it takes the button's colour and is hidden from screen
+ * readers; in text it stands for a word, so it is named. An unknown id draws nothing.
+ * @since v1.2
+ */
 window.uiIconHTML = function (id, { className = '', inText = false } = {}) {
     const icon = window.UI_ICONS.find(i => i.id === id);
     if (!icon) return '';
@@ -203,22 +182,12 @@ window.uiIconHTML = function (id, { className = '', inText = false } = {}) {
     return `<span class="${cls}" role="img" aria-label="${name}" title="${name}" style="${file}"></span>`;
 };
 
-// --- CHARACTER ICONS (v0.16) ---
-//
-// The icon path is DERIVED, not stored. `navigation.json` is generated from
-// site_pages, so an icon column would reach the site only through the nightly
-// regeneration job AND the next release - the same latency that put the Techs
-// flag in page_data rather than site_pages. A convention plus a fallback has
-// neither problem, and it is what the owner asked for: they upload a file and
-// nothing else.
-//
-// pageId -> PascalCase + "Icon.webp": honored_one -> HonoredOneIcon.webp.
-// 22 of 22 characters resolve today; a character added tomorrow resolves to a
-// file that does not exist yet, which is exactly when the fallback should run.
-//
-// In this file rather than js/pages/core/pagebuilder.js since v1.2: text on any page can
-// show a character's icon ([icon=character/<page id>]), and the blog's Post
-// Editor shows text without loading js/pages/core/pagebuilder.js.
+/**
+ * A character's icon path, derived from the page id (honored_one ->
+ * HonoredOneIcon.webp), never stored: the owner uploads a file and nothing else.
+ * A new character's missing file is where the fallback runs.
+ * @since v0.16
+ */
 window.rosterIconPath = function (pageId) {
     if (!pageId) return null;
     const pascal = String(pageId)
@@ -229,11 +198,9 @@ window.rosterIconPath = function (pageId) {
     return pascal ? `medias/images/${pascal}Icon.webp` : null;
 };
 
-// Frame Data & Window/Overlay Color Dictionaries.
-// ColorCoding.css's :root custom properties are the single source of truth;
-// read them once here instead of duplicating literal color values in JS.
-// This relies on ColorCoding.css being loaded (in <head>) before this
-// script runs, which holds true across every page in the site.
+// The frame and overlay colours, read once from ColorCoding.css's custom
+// properties, the one source of colour. ColorCoding.css loads in <head>, before
+// this script, on every page.
 (function populateFrameColorDictionaries() {
     const rootStyle = getComputedStyle(document.documentElement);
     const readVar = (name) => rootStyle.getPropertyValue(name).trim();
@@ -258,11 +225,7 @@ window.rosterIconPath = function (pageId) {
         'iframe-complete': readVar('--window-color-iframe-complete')
     };
 
-    // Display names for the two dictionaries above, so anything offering these
-    // colours as a choice calls them what the frame-data legend calls them.
-    // The wording is taken from that legend (js/pages/core/framedata.js) rather than
-    // invented - "InSkill Stun" and "Melee I-Frames" are the terms the people
-    // maintaining this data actually use.
+    /** The names for the frame and overlay colours, in the frame-data legend's own wording. */
     window.FRAME_COLOR_LABELS = {
         'bg-tick-start': 'Startup',
         'bg-tick-active': 'Active',
@@ -281,9 +244,7 @@ window.rosterIconPath = function (pageId) {
     };
 })();
 
-/**
- * Fetches global site metadata and injects it into the header.
- */
+/** Writes "version | tagline" from data/site_meta.json into the sidebar's subtitle. */
 async function loadSiteMetadata() {
     try {
         if (!window.fetchJson) {
@@ -304,13 +265,8 @@ async function loadSiteMetadata() {
 }
 
 /**
- * A CHARACTER COLOUR AS HUE, SATURATION AND LIGHTNESS
- *
- * Owner tools take a page colour as hsl() or hex (owner.html's COLOUR field),
- * so both are read here, once, for everything that needs the parts. Until
- * 2026-10-29 only hsl() was read: a hex page got no tint and the wrong ink.
- *
- * Returns { h, s, l } with s and l in percent, or null for anything else.
+ * A character colour as { h, s, l } (s and l in percent), from hsl() or hex as the
+ * owner tools take it, or null.
  */
 window.parseCharacterColor = function(color) {
     const text = String(color == null ? '' : color).trim();
@@ -335,25 +291,17 @@ window.parseCharacterColor = function(color) {
 };
 
 /**
- * IS THIS CHARACTER COLOUR A DARK ONE?
- *
- * The <50% lightness test was written out three times before this existed -
- * --character-ink, the title text-shadow engine below, and (from v0.18 FT2) the
- * inline character-name highlighting in js/pages/core/internalstyling.js. They must never
- * disagree about whether a character reads as light or dark, because the
- * treatments they pick are designed to sit next to each other on one page.
- *
- * Returns false for anything unparseable, which is the safe direction: no
- * outline rather than an outline applied on a guess.
+ * Whether a character colour is dark (lightness under 50%): the one test behind
+ * --character-ink, the title's shadows and a dark name's outline in prose, which
+ * sit side by side and must agree. False for anything unparseable: no outline,
+ * rather than one on a guess.
  */
 window.isDarkCharacterColor = function(color) {
     const parts = window.parseCharacterColor(color);
     return parts ? parts.l < 50 : false;
 };
 
-/**
- * Automatically extracts the character's Hue and paints the entire UI.
- */
+/** Paints a character page in its character's colour: the accent, the tint, the ink and the title. */
 window.applyCharacterTheme = function() {
     const titleEl = document.querySelector('.character-title');
     if (!titleEl) return; 
@@ -362,10 +310,8 @@ window.applyCharacterTheme = function() {
     const charColor = window.CHARACTER_COLORS[charName];
 
     if (charColor) {
-        // 1. The Accent Replacement
         document.documentElement.style.setProperty('--accent-blue', charColor);
         
-        // 2. The Universal Tint Engine
         const parts = window.parseCharacterColor(charColor);
         if (parts) {
             const h = parts.h;
@@ -380,23 +326,18 @@ window.applyCharacterTheme = function() {
             document.documentElement.style.setProperty('--bg-main', `hsl(${h}, ${bgSat}%, 7%)`);
             document.documentElement.style.setProperty('--bg-secondary', `hsl(${h}, ${bgSat}%, 11%)`);
 
-            // Ensure global box shadows stay black!
+            // Box shadows stay black on every character's page.
             document.documentElement.style.setProperty('--manga-shadow', '#000000');
 
-            // Text drawn ON TOP of the character colour, for anything that
-            // fills a surface with it rather than tinting text - the combo
-            // block's hover highlight is the first.
+            // Text drawn on a surface filled with the character colour (the combo block's
+            // hover highlight).
             const pageIsDark = window.isDarkCharacterColor(charColor);
             document.documentElement.style.setProperty('--character-ink', pageIsDark ? '#ffffff' : '#000000');
 
-            // v0.18 FT2. Marks the PAGE, so CSS can treat a dark-coded
-            // character page differently from a light one. The outline it gates
-            // is applied to inline character names in prose, and it belongs on
-            // the page rather than on the name: the same name is written on
-            // many pages and only needs the outline on the dark ones.
+            // Marks the page, not the name: one name is on many pages, and needs the outline
+            // only on the dark ones.
             document.documentElement.classList.toggle('page-character-dark', pageIsDark);
 
-            // 3. THE TEXT SHADOW ENGINE
             let dynamicStyle = document.getElementById('persona-dynamic-styles');
             if (!dynamicStyle) {
                 dynamicStyle = document.createElement('style');
@@ -404,7 +345,7 @@ window.applyCharacterTheme = function() {
                 document.head.appendChild(dynamicStyle);
             }
 
-            // If Lightness is below 50% (Ten Shadows, Crow Charmer, Black Death)
+            // A dark colour: headings and the title get a white outline.
             if (pageIsDark) {
                 dynamicStyle.innerHTML = `
                     .section-title, .strategy-title, .card-header-title, .skill-title {
@@ -427,7 +368,6 @@ window.applyCharacterTheme = function() {
                      3px  3px 0px #ffffff
                 `;
             } else {
-                // Normal behavior for bright characters
                 dynamicStyle.innerHTML = ''; 
                 titleEl.style.color = 'var(--text-white)';
                 titleEl.style.textShadow = `
@@ -442,7 +382,6 @@ window.applyCharacterTheme = function() {
     }
 };
 
-// Execute boot sequence
 document.addEventListener('DOMContentLoaded', () => {
     loadSiteMetadata();
     applyCharacterTheme();

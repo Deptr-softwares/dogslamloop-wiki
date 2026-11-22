@@ -1,33 +1,21 @@
 /**
- * Dogslamloop Wiki - Character Text Descriptions Engine
- *
- * EVERY contributor-authored value below is escaped or validated on its way
- * into innerHTML. It was not, and that was a stored XSS: a submitted combo
- * step of `<img src=x onerror=...>` executed for every reader of the page, and
- * - worse - in the reviewer's authenticated session the moment they opened the
- * preview, before approving anything. Proven with a real repro, not inferred.
- *
- * A scan of live content (33 pages, 75 combo blocks) found zero HTML tags in
- * any contributor string, so nothing on the site depended on the old
- * behaviour. Rich text is produced by this renderer - [M1] becomes a <kbd>,
- * a content array becomes <br>-joined lines - not written by contributors, so
- * the order is always: escape the input, THEN add the generated markup.
- *
- * Three contexts, three different rules:
- *   text       -> window.escapeHtml()
- *   attribute  -> window.escapeHtml() as well; it escapes both quote characters
- *   CSS value  -> NEITHER is enough. Escaping quotes stops an attribute
- *                 breakout but still permits `100%; background: url(...)`, so
- *                 align and width are validated against allowlists instead.
+ * The page renderer. Turns a page's Blocks into HTML wherever Blocks show (reader
+ * pages, the editor's preview, the review screens), and draws a character
+ * page's tabs and a system page's tabs and sections. Also the video player, the
+ * clip queue, video stills and the missing-media box.
+ * @since v0.01
+ * @touches page_data.desc_data, data/navigation.json, data/video-stills.json, the
+ *   keyed sections and tab list in character_tabs.js
+ * @watch every value from page data goes through window.escapeHtml, in text and
+ *   in attributes. A CSS value is allowlisted instead (safeBlockAlign,
+ *   safeBlockWidth): escaping does not stop `100%; background: url(...)`.
+ * @watch every file a page loads shares one global scope, so a top-level name used
+ *   twice stops the second file (tests/global-scope-collisions.spec.js). Hence
+ *   the safeBlock prefix.
+ * @see docs/character-page.md
  */
 
-// The safeBlock* names are prefixed on purpose: every js/ file shares one
-// global lexical scope, so a top-level name used by two files on one page
-// aborts the second file (tests/global-scope-collisions.spec.js).
-
-// CSS-value allowlists. Anything unrecognised falls back to the default rather
-// than being passed through - a contributor cannot name a value this does not
-// already know about, so there is nothing legitimate to lose.
+// An unknown CSS value falls back to the default: there is nothing legitimate to lose.
 const BLOCK_ALIGNMENTS = ['left', 'center', 'right', 'justify'];
 const safeBlockAlign = (align) => (BLOCK_ALIGNMENTS.includes(align) ? align : null);
 
@@ -35,24 +23,14 @@ const safeBlockAlign = (align) => (BLOCK_ALIGNMENTS.includes(align) ? align : nu
 const safeBlockWidth = (width) => (/^\d+(\.\d+)?(%|px|rem|em|vw|vh)$/.test(String(width || '').trim())
     ? String(width).trim() : null);
 
-// Blocked so a contributor cannot turn an image or video into script execution
-// via `javascript:` - escaping does nothing about a URL scheme.
+// A javascript:, data: or vbscript: address is dropped: escaping does nothing
+// about a URL scheme.
 const safeBlockUrl = (url) => {
     const raw = String(url === null || url === undefined ? '' : url).trim();
     return /^\s*(javascript|data|vbscript):/i.test(raw.replace(/[\u0000-\u0020]/g, '')) ? '' : raw;
 };
 
-// --- MEDIA PLACEHOLDER (v0.15 item 12) ---
-//
-// An image block with no src used to emit `<img src="">`, which the browser
-// draws as a broken box showing the alt text - the "empty box that says I am
-// broken". A video or youtube block with nothing in it was worse: it emitted
-// no markup at all, so the block vanished and an author editing a page could
-// not see that it was there.
-//
-// Root-absolute because these pages sit at three different depths and the
-// site is served from the domain root - the same assumption 404.html's
-// <base href="/"> already makes.
+// From the site's root: pages sit at three depths.
 const MEDIA_PLACEHOLDER_SRC = '/medias/images/DogslamloopIcon.webp';
 
 window.wikiMediaPlaceholderHTML = function () {
@@ -64,25 +42,18 @@ window.wikiMediaPlaceholderHTML = function () {
     `;
 };
 
-// --- SUPABASE MEDIA LINKS (v0.15 item 11) ---
-//
-// A wiki-media link pasted into a table cell renders as media instead of as a
-// URL. The bucket check is the SECURITY control, not a convenience: a cell
-// that turned any URL into an <img> or <video> would let a contributor embed
-// from anywhere and hotlink someone else's bandwidth through the wiki.
-//
-// The project URL is read rather than hardcoded, and `typeof` rather than a
-// bare reference because SUPABASE_URL is a top-level const in site_utils.js -
-// another file entirely, and one a cache-skewed load can be missing.
+// Only our own wiki-media bucket: a cell that turned any address into media would
+// let a contributor embed, and hotlink, from anywhere.
 const WIKI_MEDIA_BUCKET_PATH = '/storage/v1/object/public/wiki-media/';
 const WIKI_MEDIA_IMAGE_RE = /\.(png|jpe?g|webp|gif|avif|bmp)(\?|#|$)/i;
 const WIKI_MEDIA_VIDEO_RE = /\.(webm|mp4|m4v|mov|ogv)(\?|#|$)/i;
 
-// 'image', 'video', or null for anything that is not one of ours.
+// 'image', 'video', or null for anything that is not in our bucket.
 window.wikiMediaKind = function (value) {
     const raw = String(value === null || value === undefined ? '' : value).trim();
     if (!raw || /\s/.test(raw)) return null;
 
+    // typeof: SUPABASE_URL is site_utils.js's, and a cache-skewed load can lack it.
     const base = typeof SUPABASE_URL === 'string' ? SUPABASE_URL : '';
     if (!base) return null;
     if (raw.indexOf(base + WIKI_MEDIA_BUCKET_PATH) !== 0) return null;
@@ -92,21 +63,9 @@ window.wikiMediaKind = function (value) {
     return null;
 };
 
-// --- THE VIDEO PLAYER (v0.15 item 10) ---
-//
-// Native <video> only, by the owner's call - YouTube's controls cannot be
-// restyled from outside the iframe, and the alternatives were an external API
-// on the busiest pages or a frame that promised more than it delivered.
-//
-// And only when the block asked for controls. A video block with controls OFF
-// renders `autoplay loop muted playsinline`: a silent clip standing in for a
-// GIF, which is a deliberate authoring choice on a lot of existing pages. It
-// keeps that loop and gets no player inline; a small button in its corner
-// opens this player in the video modal instead (wikiClipHTML, below).
-//
-// Painted with var(--accent-blue), which js/utility/site_meta.js overrides on :root
-// per character page - so the player re-themes itself and there is nothing
-// here that knows about characters at all.
+// The native player, for a video Block with controls on and for the video modal.
+// It paints with var(--accent-blue), which site_meta.js sets per character, so it
+// takes the character's colour by itself.
 window.wikiVideoPlayerHTML = function (url, extraClass) {
     const safe = window.escapeHtml(safeBlockUrl(url));
     if (!safe) return '';
@@ -131,11 +90,7 @@ window.wikiVideoPlayerHTML = function (url, extraClass) {
     `;
 };
 
-// A cell or a card has no room for a player, so a video there is a button that
-// opens one. Deliberately NOT a link to the storage URL, which is what the
-// theorybox and the combo table used to do - that navigates the reader off the
-// wiki to a bare video on a Supabase domain, with no way back but the back
-// button (owner, 2026-08-18).
+// A video in a table cell or a card: a button that opens the video modal.
 window.wikiVideoButtonHTML = function (url, label) {
     const safe = window.escapeHtml(safeBlockUrl(url));
     if (!safe) return '';
@@ -144,21 +99,15 @@ window.wikiVideoButtonHTML = function (url, label) {
         + `${window.escapeHtml(label || 'Watch')}</button>`;
 };
 
-// --- THE CLIP AND ITS CORNER BUTTON (v0.20 V1) ---
-//
-// Owner: "On autoplaying video, give the option (as a small play button in the
-// corner of that video) to open up a modal that play the video with controls
-// on". The button opens the same modal as a video in a table cell, with
-// controls and sound, and the clip underneath keeps looping.
-//
-// One helper for all four places a clip renders: the video block, skill-card
-// media (js/pages/core/framedata.js), the character Gallery tab and gallery pages
-// (js/pages/types/gallery.js). Four copies of this markup would drift, the way the
-// notation fields did before they got one.
-//
-// The wrapper is what the corner is measured from, and it is what a failed or
-// moderated clip is replaced by, so the button never outlives its clip
-// (showMissingMedia below, blockedMediaTarget in js/utility/site_media.js).
+/**
+ * An autoplaying muted clip with a corner button that opens it in the video
+ * modal. The video Block, skill-card media, the character Gallery tab and gallery
+ * pages all draw clips with it.
+ * @since v0.20
+ * @watch a failed or moderated clip replaces the whole .wiki-clip wrapper
+ *   (showMissingMedia, blockedMediaTarget in site_media.js), so the button never
+ *   outlives its clip
+ */
 window.wikiClipHTML = function (url, opts) {
     const safe = window.escapeHtml(safeBlockUrl(url));
     if (!safe) return '';
@@ -173,7 +122,7 @@ window.wikiClipHTML = function (url, opts) {
         + `</div>`;
 };
 
-// Helper to assign CSS classes, inline widths, and safe style merging for media
+// extraStyles is CSS written in this file, never page data.
 function getMediaAttributes(align, customWidth, extraStyles = '') {
     let alignClass = 'wiki-media-full';
 
@@ -184,7 +133,10 @@ function getMediaAttributes(align, customWidth, extraStyles = '') {
     return `class="wiki-media ${alignClass}" style="width: ${safeBlockWidth(customWidth) || '100%'}; ${extraStyles}"`;
 }
 
-// --- PLAYSTYLE COMPONENT GENERATOR ---
+/**
+ * The Overview's "Pick if you like" and "Avoid if you dislike" lists.
+ * @since v0.4
+ */
 window.generatePlaystyleHTML = function(playstyle) {
     if (!playstyle || (!playstyle.likes?.length && !playstyle.dislikes?.length)) return '';
     
@@ -213,21 +165,15 @@ window.generatePlaystyleHTML = function(playstyle) {
     `;
 };
 
-// --- COLOR SWATCHES (the Color Codes page, v1.2) ---
-// Drawn from the site's own colours, never from text an editor typed, so the
-// page cannot fall behind them: a character's is the one owner tools sets
-// (window.CHARACTER_COLORS, generated from site_pages.color), and the frame
-// data ones are the legend's (FRAME_COLORS, WINDOW_COLORS and their labels,
-// which js/utility/site_meta.js reads from ColorCoding.css). The hand-written page
-// this replaced listed 21 characters by CSS variable, one of them misspelt.
-//
-// The grids a Block can draw, named the way the Color Codes page always
-// named them. The editor's dropdown reads this list too.
+/**
+ * The grids a Color Swatches Block can draw. The editor's dropdown reads this
+ * list too.
+ * @since v1.2
+ */
 window.COLOR_SWATCH_SETS = { characters: 'Character Themes', frames: 'Frame Data Types', overlays: 'Stackable Overlays' };
 
-// A colour the way an editor types it into [color=#...]. A canvas answers in
-// #rrggbb for any opaque colour, whatever syntax the source used; a value it
-// cannot read leaves the sentinel in place and shows no code.
+// The colour as an editor types it in [color=#...]: a canvas answers #rrggbb for
+// any opaque colour. A value it cannot read leaves the sentinel, and shows no code.
 let swatchCanvas = null;
 function swatchHex(value) {
     if (!value) return '';
@@ -244,8 +190,7 @@ function swatchCardHTML(title, visual, code) {
         + `<span class="swatch-code">${window.escapeHtml(code)}</span></div></div>`;
 }
 
-// The class names below are the dictionaries' own keys, written in
-// js/utility/site_meta.js, never anything from page data.
+// The class names are site_meta.js's own keys, never page data.
 function colorSwatchesHTML(set) {
     const which = Object.prototype.hasOwnProperty.call(window.COLOR_SWATCH_SETS, set) ? set : 'characters';
     const labels = window.FRAME_COLOR_LABELS || {};
@@ -261,9 +206,8 @@ function colorSwatchesHTML(set) {
             `<div class="swatch-overlay-well"><div class="window-overlay span-${key}"></div></div>`, swatchHex(windows[key])));
         return `<div class="color-swatch-grid" data-swatch-set="overlays">${cards.join('')}</div>`;
     }
-    // Which characters to show needs the registry (a hidden one stays off),
-    // and that is fetched, so fillColorSwatches draws them once this is in
-    // the page.
+    // The character grid needs the registry, which is fetched, so fillColorSwatches
+    // draws it once this is on the page.
     return '<div class="color-swatch-grid" data-swatch-set="characters"><p class="loading-msg loading-msg-busy">Loading the character colors...</p></div>';
 }
 
@@ -291,30 +235,27 @@ window.fillColorSwatches = async function (root) {
     });
 };
 
-// --- COLLABORATORS (the Collaborators page, v1.2) ---
-// One Collaborator Block is one person, as a Card (Main Contributors) or a
-// Thanks line (Special Thanks). Cards next to each other share one grid and
-// lines one list, the way the page always drew them; each Block still starts
-// with an element of its own, which is what the editor's Preview follows the
-// Block marks. The home page's Credits list is built from the same Blocks
-// (scripts/fetch-content.js), so the two cannot drift again.
-//
-// The badge colours are the Update Log's badges, by colour: the editor's
-// dropdown reads this list, and nothing outside it reaches the class.
+/**
+ * A Collaborator Block's badge colours (the Update Log's badges). The editor's
+ * dropdown reads this list, and nothing outside it reaches the class.
+ * @since v1.2
+ */
 window.COLLABORATOR_BADGES = { 'badge-general': 'Purple', 'badge-site': 'Green', 'badge-patch': 'Blue', 'badge-wip': 'Yellow', 'badge-ea': 'Orange' };
 
 const collaboratorKind = (b) => (b && b.type === 'collaborator' ? (b.kind === 'line' ? 'line' : 'card') : null);
 
-// Only an http(s) address becomes a link. The editor's form names the lines
-// that fail it, so one is never dropped without a word.
+/**
+ * Only an http(s) address becomes a link. The editor's form names the lines that
+ * fail it, so none is dropped without a word.
+ * @since v1.2
+ */
 window.isCollaboratorLink = (url) => /^https?:\/\/\S+$/i.test(String(url || '').trim());
 
 function collaboratorCardHTML(b) {
     const name = window.escapeHtml(b.name || '');
     const badge = Object.prototype.hasOwnProperty.call(window.COLLABORATOR_BADGES, b.badge) ? b.badge : 'badge-general';
-    // As given, the way an Image Block's address is: the credits' avatars are
-    // paths from the site's root (/medias/images/...), and the site is served
-    // from its root.
+    // As given, like an Image Block's address: an avatar is a path from the site's
+    // root (/medias/images/...).
     const avatar = safeBlockUrl(b.avatar);
     const links = (Array.isArray(b.links) ? b.links : [])
         .filter(l => l && window.isCollaboratorLink(l.url))
@@ -337,14 +278,15 @@ function collaboratorLineHTML(b) {
         + '</li>';
 }
 
-// --- THE RECURSIVE BLOCK ENGINE ---
-// This standalone function can render blocks infinitely deep!
-//
-// The editor's Preview follows the Block setting (js/editor/core/editor-config.js) marks
-// where each Block starts, through window.previewBlockAnchor. Only the
-// outermost list is marked: a Block's place in the Workspace is its place at
-// the top level, and the nested calls below come back through this wrapper.
-// Nothing defines the hook outside edit.html, so a reader page is unchanged.
+/**
+ * Every Block in a list to HTML. Nested Blocks (an accordion, a Section Box, a
+ * Combo Card) come back through this same call.
+ * @since v0.4
+ * @touches window.previewBlockAnchor, defined only on edit.html, which marks where
+ *   each Block starts for the Preview follows the Block setting
+ * @watch only the outermost list is marked (blockRenderDepth): a Block's place in
+ *   the Workspace is its place at the top level
+ */
 let blockRenderDepth = 0;
 window.generateHTMLForBlocks = function (blocks, contextClass = '') {
     const anchor = blockRenderDepth === 0 && typeof window.previewBlockAnchor === 'function' ? window.previewBlockAnchor : null;
@@ -356,9 +298,9 @@ window.generateHTMLForBlocks = function (blocks, contextClass = '') {
     }
 };
 
-function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1: Added contextClass parameter
+function renderBlocksHTML(blocks, contextClass = '', anchor = null) {
     let contentHTML = '';
-    let sectionAuthors = new Set(); // FIXED 2: Initialized the authors array here!
+    let sectionAuthors = new Set();
     
     if (!Array.isArray(blocks) || blocks.length === 0) return '';
 
@@ -366,15 +308,11 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
         if (!block) return;
         const blockStart = contentHTML.length;
         
-        // FIXED 3: Defined the alignment variable inside the loop so every block can use it!
         const alignAttr = getAlignStyle(block.align); 
         
         if (block.type === 'heading') {
-            // The same heading in every tab (owner, 2026-10-19). The coloured
-            // bar the Matchup, Counterplay and Starter Guide tabs used to add
-            // by themselves is now the block's own choice, in any tab.
-            // Whitelisted by safeColor, which admits no quote or semicolon, so
-            // the value cannot leave the style attribute.
+            // safeColor admits no quote or semicolon, so the bar's colour cannot leave the
+            // style attribute.
             const bar = typeof window.safeColor === 'function' ? window.safeColor(block.sideBar) : null;
             const headingClass = bar ? 'wiki-block-heading wiki-block-heading-bar' : 'wiki-block-heading';
 
@@ -385,7 +323,6 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
 
             contentHTML += `<${tag} class="${headingClass}" ${headingStyle}>${window.escapeHtml(block.content)}</${tag}>`;
         }
-        // --- PARAGRAPHS (With Inline Keybinds & URL Links) ---
         else if (block.type === 'paragraph') {
             // Escape FIRST, then join and add the generated markup - the <br>
             // and the <kbd> are this renderer's, not the contributor's.
@@ -393,20 +330,13 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 ? block.content.map(window.escapeHtml).join('<br>')
                 : window.escapeHtml(block.content);
 
-            // Convert keybinds. The pattern only matches A-Z, digits, spaces
-            // and +, none of which escaping alters, so it still finds [M1].
+            // Keybinds. Escaping alters none of A-Z, digits, spaces and +, so [M1] is still found.
             let text = rawText.replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
 
             const pClass = contextClass ? 'strategy-paragraph card-text' : 'strategy-paragraph';
             contentHTML += `<p class="${pClass}" ${alignAttr}>${text}</p>`;
         }
         else if (block.type === 'list') {
-            // BOX-IN A LIST (v0.19 C7) - "visual only, a sleek clean border
-            // around the list", the owner's whole spec for it, carried since
-            // v0.15. Opt-in per list rather than applied to every list on the
-            // site: the wiki already has hundreds of them, and turning them all
-            // into boxes is a decision about existing pages rather than an
-            // option on a new one.
             const lClass = (contextClass ? 'wiki-block-list space-y-2 card-text' : 'wiki-block-list space-y-2 text-gray-300')
                 + (block.boxed ? ' wiki-block-list-boxed' : '');
             contentHTML += `<ul class="${lClass}" ${alignAttr}>`;
@@ -414,9 +344,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             contentHTML += `</ul>`;
         }
         else if (block.type === 'image') {
-            // An empty src reached the browser as `<img src="">`, which draws a
-            // broken box showing the alt text - the "empty box that says I am
-            // broken" (item 12).
+            // No address: the placeholder, never <img src="">, which draws a broken box.
             if (!safeBlockUrl(block.src)) {
                 contentHTML += block.caption
                     ? `<figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')}>`
@@ -438,11 +366,10 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 contentHTML += `<img src="${window.escapeHtml(safeBlockUrl(block.src))}" alt="${window.escapeHtml(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
             }
         }
-        // --- DIVIDERS ---
         else if (block.type === 'divider') {
-            const bData = block.data || block; // SAFE EXTRACTOR
+            const bData = block.data || block;
 
-            // Legacy fallback for old invisible blocks
+            // Older dividers stored invisible: true instead of a style.
             let currentStyle = bData.style || (bData.invisible ? 'invisible' : 'diamond');
             let paddingClass = bData.padding || 'normal';
 
@@ -451,10 +378,9 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
 
             let divHtml = '';
 
-            // Inject the exact HTML for the requested style
             switch (currentStyle) {
                 case 'invisible':
-                    divHtml = ``; // Just the margin container!
+                    divHtml = ``; // only the margin
                     break;
                 case 'solid':
                     divHtml = `<div class="wiki-divider-line-solid"></div>`;
@@ -504,11 +430,9 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
 
             contentHTML += `<div class="wiki-divider ${padClass}">${divHtml}</div>`;
         }
-        // --- STANDALONE AUTHOR BLOCK ---
         else if (block.type === 'author') {
-            // (Handled below in the author aggregation step)
+            // Credited in the footer below.
         }
-        // --- INLINE CALLOUTS ---
         else if (block.type === 'callout') {
             const bData = block.data || block; 
             
@@ -521,8 +445,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 'info': { color: '#22d3ee', icon: '📌', label: 'Info' }
             };
             const config = intentMap[bData.intent] || intentMap['info'];
-            // Same escape-then-join rule as paragraphs. config.color comes from
-            // intentMap above, never from the block, so it needs nothing.
+            // Escape, then join. config.color is intentMap's, never the Block's.
             const text = Array.isArray(bData.content)
                 ? bData.content.map(window.escapeHtml).join('<br>')
                 : window.escapeHtml(bData.content || bData.text || '');
@@ -543,16 +466,14 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 </div>
             `;
         }
-        // --- DATA TABLES ---
         else if (block.type === 'table') {
-            const bData = block.data || block; // SAFE EXTRACTOR
+            const bData = block.data || block;
 
             const headers = bData.headers || [];
             const rows = bData.rows || [];
             
             let tableContent = '<table class="update-table wiki-content-table">';
 
-            // Render Headers
             if (headers.length > 0) {
                 tableContent += `<thead><tr>`;
                 headers.forEach(h => {
@@ -561,17 +482,13 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 tableContent += `</tr></thead>`;
             }
 
-            // Render Rows (alternating background + hover are handled by CSS: nth-child/:hover)
             if (rows.length > 0) {
                 tableContent += `<tbody>`;
                 rows.forEach((row) => {
                     tableContent += `<tr>`;
 
-                    // Parse [M1] keybinds natively inside the cells - unless
-                    // the cell is one of our own storage links, which renders
-                    // as the media itself (item 11). An image is sized down to
-                    // fit the row; a video gets a button, because a player does
-                    // not fit in a table cell.
+                    // A cell holding one of our storage links shows the media: an image sized to the
+                    // row, a video as a button, because a player does not fit in a cell.
                     row.forEach(cell => {
                         const kind = window.wikiMediaKind(cell);
                         if (kind === 'image') {
@@ -596,14 +513,12 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             }
             tableContent += '</table>';
 
-            // Wrapping container provides horizontal scrolling on mobile and the heavy manga shadow
             contentHTML += `
                 <div class="wiki-table-wrapper">
                     ${tableContent}
                 </div>
             `;
         }
-        // --- YOUTUBE & NATIVE VIDEO EMBEDS ---
         else if (block.type === 'youtube' || block.type === 'video' || block.type === 'embed') {
             const bData = block.data || block; 
             let mediaInnerHtml = '';
@@ -613,16 +528,12 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 const ytMatch = videoId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
                 if (ytMatch) videoId = ytMatch[1];
 
-                // A bare id that did not come from the URL pattern above was
-                // previously written into the iframe src untouched. Held to the
-                // same 11-character shape the pattern extracts, so there is no
-                // path where a contributor string reaches that attribute raw.
+                // Held to the 11-character id shape, so no contributor string reaches the src raw.
                 if (!/^[\w-]{11}$/.test(videoId)) videoId = '';
 
                 if (videoId) {
-                    // Injecting data-lazy-src. YouTube's privacy-enhanced address:
-                    // no cookies until the reader presses play (the Privacy
-                    // Policy says so, v1.0).
+                    // The privacy-enhanced address: no cookies until the reader presses play. The
+                    // Privacy Policy says so.
                     mediaInnerHtml = `
                         <iframe data-lazy-src="https://www.youtube-nocookie.com/embed/${videoId}" src="about:blank"
                                 class="wiki-video-embed" title="YouTube video"
@@ -635,18 +546,14 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             else if (block.type === 'video') {
                 const videoUrl = bData.url || bData.src || '';
                 if (videoUrl) {
-                    // Controls ON gets the player (item 10). Controls OFF is an
-                    // autoplaying muted loop - a clip standing in for a GIF -
-                    // with a corner button that opens the player (v0.20 V1).
+                    // Controls on: the player. Off: a muted loop with a corner button (wikiClipHTML).
                     mediaInnerHtml = bData.controls
                         ? window.wikiVideoPlayerHTML(videoUrl)
                         : window.wikiClipHTML(videoUrl);
                 }
             }
 
-            // Nothing to show: a linkless media block used to emit no markup at
-            // all, so it disappeared from the page and the author could not see
-            // it was there to fix (item 12).
+            // No address: the placeholder, so the author can see the Block is there.
             if (!mediaInnerHtml) {
                 mediaInnerHtml = window.wikiMediaPlaceholderHTML();
             }
@@ -670,15 +577,12 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 }
             }
         }
-        // --- ACCORDION  ---
         else if (block.type === 'accordion' || block.type === 'details') {
             const bData = block.data || block; 
             const title = bData.title || bData.summary || 'COLLAPSIBLE SECTION';
 
-            // Recursively generate the inner content
             const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
 
-            // The arrow is pinned via absolute positioning so it doesn't move when the title is centered!
             contentHTML += `
                 <div class="wiki-accordion-wrapper">
                     <details class="manga-accordion">
@@ -693,26 +597,15 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 </div>
             `;
         }
-        // --- THE SECTION BOX (v0.19 C3) ---
-        //
-        // A title, an introduction, and a row of switchable tabs. Introduction
-        // and each tab's contents are BLOCKS, nested through the same recursive
-        // call an accordion uses.
+        // The Section Box: a title, an introduction and switchable tabs, each holding Blocks.
         else if (block.type === 'sectionedbox') {
             const bData = block.data || block;
             const sections = Array.isArray(bData.sections) ? bData.sections : [];
             const introHTML = window.generateHTMLForBlocks(bData.intro || [], contextClass);
 
-            // TWO BEHAVIOURS. Inside a Combos/Techs group the box wears the
-            // wrapper a Combo Card wears; everywhere else it goes without, or it
-            // is a card inside a card.
-            //
-            // Asked as "is this context a document tab" rather than
-            // `contextClass === 'combos' || === 'techs'`, because
-            // renderDocumentTab's own header forbids knowing either tab by
-            // name - every difference between them is a string in
-            // character_tabs.js, and a third document tab added there would
-            // otherwise silently get the wrong one of the two behaviours.
+            // Boxed only inside a Combos or Techs group; anywhere else it would be a card in a
+            // card. Asked of getDocumentSections, never by tab name, so a third document tab
+            // gets the right behaviour.
             const boxed = typeof window.getDocumentSections === 'function'
                 && !!window.getDocumentSections(contextClass);
 
@@ -720,9 +613,8 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 sboxPanelHTML(i, window.generateHTMLForBlocks(sec.content || [], contextClass))
             ).join('');
 
-            // `sbox-tabbed` is what the click listener and the repaint restore
-            // key off. A Combo Card in Multiple Sections mode carries it too,
-            // which is what lets one implementation serve both.
+            // The click listener and the repaint restore key off `sbox-tabbed`. A multi-section
+            // Combo Card carries it too, which is how one implementation serves both.
             contentHTML += `
                 <section class="sbox sbox-tabbed${boxed ? ' sbox-boxed' : ''}" ${alignAttr}>
                     <h4 class="sbox-title">${window.escapeHtml(bData.title || 'Section Box')}</h4>
@@ -732,30 +624,14 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 </section>
             `;
         }
-        // --- THE COMBO CARD (TheoryBox) ---
-        //
-        // A combo and everything known about it: the route, its numbers, and a
-        // write-up that is itself blocks - clips, sub-variants, an explanation
-        // of why the timing is what it is. Nested exactly like an accordion,
-        // which is what makes a combo GROUP a group rather than a list.
+        // The Combo Card (stored as theorybox): a route, its numbers and a write-up in Blocks.
         else if (block.type === 'theorybox') {
             const bData = block.data || block;
             const sections = Array.isArray(bData.sections) ? bData.sections : [];
 
-            // MULTIPLE SECTIONS (owner, 2026-09-20). Each tab is a WHOLE
-            // variant - its own route, damage, difficulty, clip and write-up -
-            // so the row switches cards rather than switching the text inside
-            // one card.
-            //
-            // The tab label and the card heading are separate fields because
-            // the owner's reference has them differ: a tab reading "In Corner
-            // 6H" over a card headed "Optimized 6H Counterhit Corner Starter".
-            // `label` falls back to the card title, so a section that only ever
-            // needed one string still works.
-            //
-            // A section with no route and no damage renders as prose, which is
-            // what makes a "Preface" tab possible without a second block type -
-            // every part of the card below is already conditional.
+            // Multiple Sections: each tab is a whole variant (route, damage, clip, write-up).
+            // The tab label and the card's title are separate fields, and the label falls back
+            // to the title. A section with no route and no damage reads as prose (a Preface).
             if (bData.multiSections && sections.length) {
                 // A label falling back to a styled name shows its plain text:
                 // a tab is a button, and the styling pass never reaches it.
@@ -774,40 +650,20 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 contentHTML += theoryboxCardHTML(bData, contextClass);
             }
         }
-        // --- COMBO STRINGS ---
         else if (block.type === 'combo') {
             if ((block.sequence && block.sequence.length > 0) || window.comboNotationStyles(block).length > 1) {
                 
-                // Determine flex justification based on alignment
                 let justifyClass = 'flex-start';
                 if (block.align === 'center') justifyClass = 'center';
                 if (block.align === 'right') justifyClass = 'flex-end';
 
-                // Restructured, v0.15 item 1. The route and its damage are one
-                // reading unit and now sit on one row; the note goes underneath
-                // it, full width. Previously the damage was pushed to the far
-                // right of the page with `margin-left: auto` and the note sat
-                // beside it, so a reader had to cross the whole column to find
-                // out what a combo did, and the note read as a caption on the
-                // damage rather than on the combo.
                 let comboHTML = `<div class="combo-block">`;
 
-                // The steps are comboRouteHTML's, shared with the Combo Card
-                // and the Combo Row. '>' between them rather than an arrow
-                // glyph or an SVG, matching the notation the community and
-                // Dustloop both already write by hand; aria-hidden because a
-                // screen reader announcing "greater than" between every step
-                // of an eight-step route is noise.
-                //
-                // Damage trails the route directly - a last element of the
-                // sequence rather than a column at the page edge.
                 comboHTML += window.comboRouteHTML(block, {
                     style: `justify-content: ${justifyClass};`,
                     trailing: block.damage ? `<span class="combo-damage">${window.escapeHtml(block.damage)}</span>` : '',
                 });
 
-                // Under the route, full width, so it reads as a condition on
-                // the whole combo.
                 if (block.note) {
                     comboHTML += `<div class="combo-note-row" style="justify-content: ${justifyClass};">`
                         + `<span class="combo-note">${window.escapeHtml(block.note)}</span></div>`;
@@ -832,22 +688,13 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
 
         if (anchor) contentHTML = contentHTML.slice(0, blockStart) + anchor(contentHTML.slice(blockStart), blockIndex, block);
 
-        // --- AUTHOR AGGREGATION ---
         if (block.author && block.author.trim() !== '') {
-            // Split by comma in case multiple authors collaborated on one block
+            // One Block can credit several authors, comma-separated.
             block.author.split(',').forEach(a => sectionAuthors.add(a.trim()));
         }
     });
 
-    // --- AUTHOR FOOTER ---
     if (sectionAuthors.size > 0) {
-        // Escaped, unlike the block content above it. Block content is
-        // deliberately rich HTML - contributors write formatted prose, and
-        // paragraphs even run a keybind substitution over it - but an author
-        // name is an identity label, never markup. It rides along inside
-        // submitted block data as block.author, so it is contributor-reachable
-        // on every character and system page, and it was going into innerHTML
-        // raw.
         const authorBadges = Array.from(sectionAuthors)
             .map(a => `<span class="author-badge">${window.escapeHtml(a)}</span>`)
             .join('');
@@ -868,39 +715,26 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
     return contentHTML;
 }
 
-// Helper to apply dynamic text alignment and prevent long-word overflow
-// --- THE COMBO TABLE (v0.15 item 3) ---
-//
-// Adapted from Dustloop's combo table, in our own chrome. A character's combos
-// are grouped by STARTER - the owner's live pages use True / Simpler /
-// Advanced rather than the reference's Beginner / Core / Specialized, because
-// the group names are the author's - and each group draws one sortable table.
-//
-// Not a block type. `desc_data.combos` is a keyed array exactly like matchups
-// and counterplay (js/utility/character_tabs.js), so submit, merge, diff and the
-// editor's group nav all come from the shared machinery; only the rendering
-// below is bespoke.
-
-// The owner's own scale. ORDER IS MEANING: this array is the sort key, because
-// "Demon Time" sorts FIRST alphabetically and LAST by difficulty.
+/**
+ * The difficulty scale, easiest first. The order is the sort key: "Demon Time"
+ * sorts first alphabetically and last by difficulty.
+ * @since v0.15
+ */
 window.COMBO_DIFFICULTIES = [
     'Very Easy', 'Easy', 'Medium', 'Slightly Hard',
     'Hard', 'Very Hard', 'Extremely Hard', 'Demon Time',
 ];
 
-// Columns, in order. `conditional` ones are dropped unless some row in the
-// group fills them in - the reference does this for Setup, and the owner asked
-// for Controls to ship for console players without costing ten-wide tables any
-// horizontal space until it earns it.
-//
-// `sort: null` means the column has no meaningful order (a link, a version
-// string), which is the reference's behaviour too.
+/**
+ * The Combo List's columns, in order. A `conditional` column shows only when some
+ * row fills it in; `sort: null` is a column with no meaningful order.
+ * @since v0.15
+ */
 window.COMBO_COLUMNS = [
     { field: 'sequence',    label: 'Combo',       sort: 'route' },
     { field: 'damage',      label: 'Damage',      sort: 'leadingNumber' },
     { field: 'position',    label: 'Position',    sort: 'text' },
     { field: 'difficulty',  label: 'Difficulty',  sort: 'difficulty' },
-    // Free text (v1.0 Part 2): the owner's call, "You can enter anything".
     { field: 'practicality', label: 'Practicality', sort: 'text', conditional: true },
     { field: 'worksOn',     label: 'Works On',    sort: 'text' },
     { field: 'setup',       label: 'Setup',       sort: 'text', conditional: true },
@@ -910,9 +744,11 @@ window.COMBO_COLUMNS = [
     { field: 'notes',       label: 'Notes',       sort: 'text' },
 ];
 
-// "38-46" and "4 (2+2)" are both live values. Lexical order puts "4 (2+2)"
-// above "38-46", which is wrong by every reading, so damage sorts on the
-// leading integer and rows with no number sort last rather than as zero.
+/**
+ * The value a Combo List column sorts by. Damage sorts on its leading number
+ * ("4 (2+2)" before "38-46"), and a row with no number sorts last, not as zero.
+ * @since v0.15
+ */
 window.comboSortValue = function (row, column) {
     const raw = row ? row[column.field] : undefined;
 
@@ -930,13 +766,8 @@ window.comboSortValue = function (row, column) {
     return String(raw === null || raw === undefined ? '' : raw).toLowerCase();
 };
 
-// Which optional columns have been earned.
-//
-// Computed across every group in the tab rather than per group. Per group, a
-// reader scrolling down sees columns appear and disappear between two tables
-// that are meant to be read the same way - one group grew a Setup column and
-// the next grew Controls instead, which looks like a bug even though each
-// table was individually correct.
+// The columns a set of rows shows: every column, less the conditional ones no row
+// fills. Called with every row of a tab, so all its tables share one shape.
 window.comboVisibleColumns = function (rows) {
     const list = Array.isArray(rows) ? rows : [];
     return window.COMBO_COLUMNS.filter(col => {
@@ -945,41 +776,33 @@ window.comboVisibleColumns = function (rows) {
     });
 };
 
-// --- NOTATION STYLES (v0.20) ---
-//
-// A combo can carry its route in more than one notation, and the reader
-// switches by clicking the route. Owner, 2026-09-25: the author TYPES each
-// style's label, and a reader's choice applies to EVERY combo and is
-// remembered. So the choice is a label, matched ignoring case and extra
-// spaces: "Keyboard" on one combo and "keyboard " on another are one style.
-//
-//   item.sequence   the first style, unlabelled - every combo written before
-//                   this has exactly this and renders exactly as it did
-//   item.notations  [{ label, sequence }] beside it, on a Combo Block, a
-//                   Combo Card or one of its sections, and a Combo Row
-//
-// Spec and reasoning: V0.20-DEVLOG.md, "notation styles on combo routes".
+// Notation styles. item.sequence is the first style, unlabelled, and
+// item.notations holds [{ label, sequence }] beside it. A reader's choice is a
+// label, matched ignoring case and extra spaces; it applies to every combo and is
+// remembered.
 const COMBO_NOTATION_STORE = 'dsl-combo-notation';
 // Held in memory too, so switching still works for the rest of the visit when
 // storage is blocked (a private window, cleared site data).
 let comboNotationChoice = null;
 
+/**
+ * A notation label as a key: trimmed, spaces collapsed, lower case.
+ * @since v0.20
+ */
 window.comboNotationKey = function (label) {
     return String(label === null || label === undefined ? '' : label)
         .trim().replace(/\s+/g, ' ').toLowerCase();
 };
 
-// The first style's steps exactly as stored, blanks included, so a combo with
-// no styles renders byte-for-byte what it did before. An added style is new
-// data and drops blank steps, which the Combo Block's comma field produces
-// from a trailing comma.
+// The first style's steps exactly as stored, blanks included, so a combo with one
+// style renders as it always has. An added style drops blank steps (a trailing
+// comma in the Combo Block's field makes one).
 function comboFirstSteps(sequence) {
     return Array.isArray(sequence) ? sequence : (sequence ? [sequence] : []);
 }
 
-// The styles a reader can switch between, the first style first. A style
-// counts only with a label AND a step: a half-filled one is an author mid-edit,
-// not an empty route to show a reader. A repeated label keeps its first route.
+// The styles a reader can switch between, the first style first. A style counts
+// only with a label and a step; a repeated label keeps its first route.
 window.comboNotationStyles = function (item) {
     const styles = [{ label: '', key: '', sequence: comboFirstSteps(item && item.sequence) }];
     const seen = new Set();
@@ -1012,18 +835,18 @@ function comboNotationTitle(label, index, count) {
     return `Notation ${index + 1} of ${count}${label ? ': ' + label : ''}. Click the route to switch.`;
 }
 
-// The review screens diff a label with control-character markers that
-// resolveDiffMarkers (js/overseer/admin-diff.js) turns into <ins>/<del> by rewriting the
-// container's innerHTML as a string. That is right for text and wrong inside an
-// ATTRIBUTE, where the tag's own quotes would end the value. So anything a
-// label feeds into an attribute is stripped of them first; the visible name
-// keeps them.
+// The review screens mark a diff with control characters that resolveDiffMarkers
+// (admin-diff.js) turns into <ins> and <del> by rewriting the HTML as a string.
+// Inside an attribute they would break its quotes, so attributes get them
+// stripped; the visible name keeps them.
 const stripDiffMarks = (s) => String(s === null || s === undefined ? '' : s).replace(/[\u0011-\u0014]/g, '');
 
-// Every style's label and steps diffed by position, the way the route beside
-// them already is. Shared by the review queue (js/overseer/admin-preview.js) and the
-// editor's own diff (js/editor/core/editor-sync.js), which each carry a copy of the block
-// diff: one helper, so the two cannot disagree about notation styles.
+/**
+ * Every notation style's label and steps, diffed by position like the route
+ * beside them. The review queue (admin-preview.js) and the editor's diff
+ * (editor-sync.js) both call it, so the two cannot disagree.
+ * @since v0.20
+ */
 window.diffComboNotations = function (oldList, newList) {
     const before = Array.isArray(oldList) ? oldList : [];
     const after = Array.isArray(newList) ? newList : [];
@@ -1042,21 +865,17 @@ window.diffComboNotations = function (oldList, newList) {
     return out;
 };
 
-// The chips, shared by all three surfaces. It used to be the same loop three
-// times, which is how a route would come to read differently in a table than
-// in prose.
+// The chips for every route. '>' as the community writes it by hand, aria-hidden so
+// a screen reader does not say "greater than" between every step.
 function comboStepsHTML(steps) {
     return steps.map((step, i) => `<span class="combo-node">${window.escapeHtml(step)}</span>`
         + (i < steps.length - 1 ? '<span class="combo-sep" aria-hidden="true">&gt;</span>' : '')).join('');
 }
 
-// A whole route row. `className` joins `combo-container`, `style` is already a
-// safe declaration built by the caller, `trailing` is HTML that follows the
-// steps (the damage). Without styles this is exactly the old markup.
-//
-// With styles, EVERY route is in the DOM and one is visible, so switching is a
-// change of `hidden` rather than a re-render, and the colour-coding pass that
-// runs over `.combo-node` has already seen all of them.
+// A route row, for a Combo Block, a Combo Card and a Combo Row. `style` is a
+// declaration the caller built from safe values, `trailing` is HTML after the steps
+// (the damage). With notation styles every route is in the DOM and one is shown,
+// so switching flips `hidden`, and the colour-coding pass has seen them all.
 window.comboRouteHTML = function (item, opts) {
     const o = opts || {};
     const styles = window.comboNotationStyles(item);
@@ -1075,10 +894,8 @@ window.comboRouteHTML = function (item, opts) {
     const mark = '<span class="combo-notation-mark" aria-hidden="true">'
         + styles.map((s, i) => `<i${i === active ? ' class="is-on"' : ''}></i>`).join('')
         + '</span>';
-    // `.combo-notation-name` is hidden on the page and shown in the review
-    // screens, where every style is laid out at once with its name, so a
-    // reviewer never has to click to find a changed route. The first style has
-    // no label of its own, so it is named for what it is.
+    // `.combo-notation-name` is hidden on the page and shown on the review screens,
+    // where every style is laid out with its name. The first style is named Route.
     const routes = styles.map((s, i) =>
         `<span class="combo-notation" data-notation-key="${window.escapeHtml(stripDiffMarks(s.key))}"`
         + ` data-notation-label="${window.escapeHtml(stripDiffMarks(s.label))}"${i === active ? '' : ' hidden'}>`
@@ -1146,19 +963,15 @@ document.addEventListener('keydown', (e) => {
     cycleComboNotation(container);
 });
 
-// One route, rendered as the same chips the legacy combo block uses, so a
-// route reads identically whether it is inline in prose or a row in a table.
-// Takes the whole ROW now, not its sequence, so the row's styles come along.
+// The Combo List's route cell. It takes the whole row, so the row's styles come along.
 function renderComboRoute(row) {
     const styles = window.comboNotationStyles(row);
     if (styles.length === 1 && styles[0].sequence.length === 0) return '<span class="combo-route-empty">-</span>';
     return window.comboRouteHTML(row, { className: 'combo-route-inline' });
 }
 
-// Ult Gain and Evasive Gain are the owner's two resources, replacing the
-// reference's Tension/Blood/Stamina. They are bold prefixes above the notes
-// rather than columns of their own - two more columns on a ten-wide table for
-// two values that are usually blank is a bad trade.
+// Ult Gain and Evasive Gain are bold lines above the notes: two more columns on a
+// ten-wide table, for two values that are usually blank, is a bad trade.
 function renderComboNotes(row) {
     let html = '';
     [['ultGain', 'Ult Gain'], ['evasiveGain', 'Evasive Gain']].forEach(([field, label]) => {
@@ -1180,8 +993,6 @@ function renderComboCell(row, column) {
     if (column.field === 'video') {
         const href = safeBlockUrl(value);
         if (!href) return '<span class="combo-cell-empty">-</span>';
-        // Same change as the theorybox above, and the same reason: a combo
-        // table cell is the cramped-space case item 11 was written for.
         return window.wikiVideoButtonHTML(href, 'Watch');
     }
     if (column.field === 'difficulty') {
@@ -1194,9 +1005,11 @@ function renderComboCell(row, column) {
     return window.escapeHtml(value);
 }
 
-// Sorting is applied by re-rendering the body rather than by moving nodes:
-// each cell is generated markup, and re-generating is both simpler and immune
-// to a half-sorted DOM if a row is malformed.
+/**
+ * Fills a Combo List table's body, sorted. Sorting draws the rows again rather
+ * than moving nodes, so a malformed row cannot leave the table half sorted.
+ * @since v0.15
+ */
 window.renderComboTableBody = function (tbody, rows, columns, sort) {
     const list = (Array.isArray(rows) ? rows : []).slice();
 
@@ -1227,7 +1040,7 @@ window.renderComboTableBody = function (tbody, rows, columns, sort) {
     }).join('');
 };
 
-// One captioned table in the Combo List.
+// One captioned, sortable table in the Combo List.
 window.renderComboListTable = function (group, section) {
     const wrapper = document.createElement('section');
     wrapper.className = 'wiki-section wiki-section-clip combo-list-table';
@@ -1250,10 +1063,8 @@ window.renderComboListTable = function (group, section) {
 
     const columns = section.__columns || window.comboVisibleColumns(rows);
 
-    // The table scrolls inside its own container rather than pushing the page
-    // sideways. Below the breakpoint CSS turns each row into a card - the same
-    // treatment matchups already get on mobile - because ten columns cannot fit
-    // a phone and the route is the part that must stay readable.
+    // It scrolls inside its own box. Below the breakpoint, CSS turns each row into a
+    // card, as it does for matchups: ten columns cannot fit a phone.
     const scroller = document.createElement('div');
     scroller.className = 'combo-table-scroll';
 
@@ -1274,9 +1085,6 @@ window.renderComboListTable = function (group, section) {
     let sort = { column: null, dir: 'asc' };
     window.renderComboTableBody(tbody, rows, columns, sort);
 
-    // One delegated listener, never an inline onclick - the field names are
-    // ours, but the pattern is the site's rule and this markup sits beside
-    // contributor content.
     table.querySelector('thead').addEventListener('click', (e) => {
         const th = e.target.closest('.combo-th-sortable');
         if (!th) return;
@@ -1298,13 +1106,11 @@ window.renderComboListTable = function (group, section) {
     scroller.appendChild(table);
     wrapper.appendChild(scroller);
 
-    // Prose and TheoryBoxes under the table, if the group carries any.
+    // Prose and Combo Cards under the table, if the group has any.
     if (Array.isArray(group.content) && group.content.length > 0) {
         const prose = document.createElement('div');
         prose.className = 'combos-content';
-        // Prefixed with the tab, because Combos and Techs can both be on the
-        // same character and both draw a table called "5H Starters". Without
-        // it the second one's prose renders into the first one's container.
+        // Prefixed with the tab: Combos and Techs can both have a table called "5H Starters".
         prose.id = `${section.tab}-content-${String(name).replace(/\s+/g, '-')}`;
         wrapper.appendChild(prose);
         populateTextSection(prose.id, '', group.content, section.tab);
@@ -1315,41 +1121,12 @@ window.renderComboListTable = function (group, section) {
     return wrapper;
 };
 
-// A DOCUMENT TAB, in the order the reference reads:
-//
-//   Read First          comboIntro   prose, methodology, notation legend
-//   <Group Title>       comboGroups  TheoryBox cards, prose, inline combos
-//   Combo List          comboList    one captioned sortable table per starter
-//
-// ...and Techs, which is the same three parts under the owner's other
-// vocabulary - Technical Overview, Tech Groups, Tech List (keyed by theory
-// rather than by starter). Every difference between the two tabs is a string in
-// js/utility/character_tabs.js; this function does not know either tab by name.
-//
-// Composed here rather than by the shared keyed renderer, because the tab is a
-// DOCUMENT of three parts - the same decomposition the Overview tab already
-// has (overview + strategy + extras), not one keyed array.
-//
-// The first attempt made the table a group's content, which left nowhere for
-// the cards to live and put the reference index in the middle of the prose.
-// WHAT A REPAINT MUST NOT THROW AWAY.
-//
-// Two things a reader sets by clicking live ONLY in the DOM: whether an
-// accordion is open, and which tab a Section Box or a multi-section Combo Card
-// is showing. The editor repaints the preview on every keystroke, so without
-// this the author watches their accordion shut and their tab snap back to the
-// first one, once per character typed.
-//
-// ONE implementation, called from both repaint paths. It was inline in
-// populateTextSection when v0.19 shipped, which left renderDocumentTab - the
-// Combos and Techs preview - without it, and that is exactly where the owner
-// found it broken: the form kept editing section 2 while the preview beside it
-// showed section 1.
-//
-// MATCHED BY POSITION, never by title. The title is the thing being typed when
-// somebody renames a section, so keying on it would lose the state on the
-// keystroke that matters most. A reorder at worst hands one box its
-// neighbour's tab, which the next click corrects.
+// What a reader set by clicking that only the DOM holds: which accordions are open,
+// and which tab each Section Box or multi-section Combo Card shows. The editor
+// repaints its preview on every keystroke, so both repaint paths
+// (populateTextSection, renderDocumentTab) carry it over. Matched by position,
+// never by title: the title is what changes while a section is renamed. A reorder
+// at worst hands a box its neighbour's tab, which the next click corrects.
 window.captureNestedViewState = function (container) {
     if (!container) return { open: [], tabs: [] };
     return {
@@ -1364,9 +1141,7 @@ window.captureNestedViewState = function (container) {
 window.restoreNestedViewState = function (container, state) {
     if (!container || !state) return;
 
-    // Only ever re-OPENS: a details element the author had closed stays closed,
-    // so this cannot override the markup's own default for a section that has
-    // just appeared.
+    // Only ever re-opens: a details element the author closed stays closed.
     if (state.open && state.open.length) {
         container.querySelectorAll('details').forEach((d, i) => {
             if (state.open[i]) d.open = true;
@@ -1390,6 +1165,10 @@ window.restoreNestedViewState = function (container, state) {
     }
 };
 
+// A document tab (Combos, Techs), in three parts: the introduction (Read First),
+// the author's groups (Combo Cards and prose), and the list (one sortable table per
+// group). Every difference between the two tabs is a string in character_tabs.js;
+// this function knows neither by name.
 window.renderDocumentTab = function (tabId, data) {
     const sections = window.getDocumentSections ? window.getDocumentSections(tabId) : null;
     if (!sections) return;
@@ -1399,9 +1178,6 @@ window.renderDocumentTab = function (tabId, data) {
 
     const { intro, groups, list } = sections;
 
-    // Captured before the clear, restored at the end. This is the editor's
-    // Combos/Techs preview as well as the live tab, and it repaints on every
-    // keystroke.
     const viewState = window.captureNestedViewState(container);
 
     container.innerHTML = '';
@@ -1418,11 +1194,7 @@ window.renderDocumentTab = function (tabId, data) {
         return;
     }
 
-    // The three parts are DOCUMENT SECTIONS, so each gets a heading rather
-    // than a card. Owner, 2026-08-16: a group wrapped in .wiki-section makes
-    // every TheoryBox inside it a card within a card, when the cards are
-    // supposed to BE the sections. The reference agrees - `==Beginner Combos==`
-    // is a heading, and the boxes under it are the combos.
+    // Each part is a heading, not a card: the Combo Cards under it are the sections.
     const addHeading = (text, extraClass) => {
         const h = document.createElement('h3');
         h.className = `section-title section-title-clean combo-section-title${extraClass ? ` ${extraClass}` : ''}`;
@@ -1431,22 +1203,15 @@ window.renderDocumentTab = function (tabId, data) {
         return h;
     };
 
-    // --- Read First ---
-    //
-    // Stays a CARD, unlike the groups. It is a mandatory prose section like
-    // Overview or General Strategy - it holds paragraphs, not combo cards, so
-    // there is nothing inside it that needs to be its own section. Owner,
-    // 2026-08-16: only the groups needed the wrapper removed.
+    // Read First stays a card: it holds prose, like Overview.
     if (introBlocks && introBlocks.length) {
         const section = document.createElement('section');
         section.className = 'wiki-section wiki-section-clip combo-intro';
         section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${window.escapeHtml(intro.label)}</h3></div>`;
         const body = document.createElement('div');
         body.className = 'combos-content';
-        // Every id below carries the tab, because a character can have both
-        // Combos and Techs open in the same document and populateTextSection
-        // resolves its target by getElementById. Sharing 'combo-intro-content'
-        // between them would render the second tab's prose into the first's.
+        // Every id carries the tab: a character can have Combos and Techs open in one
+        // document, and populateTextSection finds its target by id.
         body.id = `${tabId}-intro-content`;
         section.appendChild(body);
         container.appendChild(section);
@@ -1455,7 +1220,6 @@ window.renderDocumentTab = function (tabId, data) {
         if (injected) injected.classList.remove('wiki-section');
     }
 
-    // --- The author's groups ---
     (groupList || []).forEach((group, idx) => {
         if (!group) return;
         addHeading(group[groups.keyField] || 'Untitled', 'combo-group-title');
@@ -1477,15 +1241,11 @@ window.renderDocumentTab = function (tabId, data) {
         }
     });
 
-    // --- Combo List / Tech List, last ---
     if (list && tables && tables.length) {
         const host = document.createElement('div');
         host.className = 'combo-list-section space-y-6';
         host.innerHTML = `<h3 class="section-title section-title-clean combo-section-title combo-list-title">${window.escapeHtml(list.label)}</h3>`;
 
-        // Every row in the SECTION decides the columns, so all its tables share
-        // a shape. Per table, one grows a Setup column and the next grows
-        // Controls, which reads as a bug even though each is individually right.
         const allRows = tables.reduce((acc, t) => acc.concat((t && t[list.rowsField]) || []), []);
         const shared = { ...list, __columns: window.comboVisibleColumns(allRows) };
 
@@ -1500,11 +1260,12 @@ window.renderDocumentTab = function (tabId, data) {
     }
 };
 
-// The registry's rendererFn for each document tab's list section, so the
-// editor's live preview and description.js's own boot can redraw the whole tab
-// from one entry point. Named per tab rather than passed a tab id, because
-// rendererFn is looked up by NAME off window and called with the data alone -
-// see js/editor/tools/editor-previews.js and the self-rendered loop below.
+/**
+ * A document tab's rendererFn for its keyed sections. One per tab, because a
+ * rendererFn is looked up by name off window and called with the data alone
+ * (editor-previews.js and loadPageDescriptions).
+ * @since v0.15
+ */
 window.renderCombosTab = function (data) {
     window.renderDocumentTab('combos', data);
 };
@@ -1513,23 +1274,13 @@ window.renderTechsTab = function (data) {
     window.renderDocumentTab('techs', data);
 };
 
-// --- THE CHARACTER GALLERY TAB (v0.18 F9) ---
-//
-// The tab existed as a placeholder from v0.12 to v0.18 and rendered nothing.
-// Its data is declared in js/utility/character_tabs.js as the `charGalleryItem` keyed
-// section, which is what gives it submit, merge, diff and apply for free; this
-// is the half that had to be written.
-//
-// A DELIBERATE COPY of js/pages/types/gallery.js's card, not a call into it. That file is
-// the `gallery` PAGE TYPE and is not loaded on a character page - wiring it in
-// would mean a new script tag on all 24 generated character stubs and a
-// generator change, to share about thirty lines. This project prefers small
-// per-file duplication to new cross-file coupling (CLAUDE.md), and the two
-// galleries are free to diverge: a page-type gallery is ~100 searchable emotes,
-// a character's is a handful of clips.
-//
-// No search box for the same reason. Search is what a hundred emotes need; a
-// character with eight clips needs a grid.
+/**
+ * A character's Gallery tab, from desc_data.gallery (the charGalleryItem keyed
+ * section in character_tabs.js, which gives it submit, merge, diff and apply).
+ * @since v0.18
+ * @watch its card is a deliberate copy of gallery.js's, which is the gallery page
+ *   type and is not loaded on a character page
+ */
 window.renderCharacterGalleryTab = function (data) {
     const container = document.getElementById('tab-gallery');
     if (!container) return;
@@ -1566,9 +1317,8 @@ window.renderCharacterGalleryTab = function (data) {
     }
 };
 
-// Extension read off the PATH, not the whole URL, so a query string or fragment
-// cannot make a video look like an image. Same rule as js/pages/core/framedata.js and
-// js/pages/types/gallery.js:40.
+// The extension from the path, so a query or a fragment cannot make a video look
+// like an image. The same rule as framedata.js and gallery.js.
 function isCharacterGalleryVideo(src) {
     const path = String(src || '').split(/[?#]/)[0].toLowerCase();
     return ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
@@ -1583,10 +1333,7 @@ function buildCharacterGalleryCard(item) {
 
     if (item.src) {
         if (isCharacterGalleryVideo(item.src)) {
-            // The shared clip: lazy (initLazyMedia swaps the source in on
-            // approach) and carrying the corner button. aria-label because
-            // <video> has no alt attribute - the trap that made skill-card alt
-            // text look like it was not saving.
+            // The shared clip. An aria-label, because <video> has no alt.
             media.innerHTML = window.wikiClipHTML(item.src, {
                 className: 'gallery-media', label: item.alt || item.name || '',
             });
@@ -1607,8 +1354,7 @@ function buildCharacterGalleryCard(item) {
     const caption = document.createElement('figcaption');
     caption.className = 'gallery-card-caption';
 
-    // textContent throughout. Every field here is contributor-submitted and
-    // this is the reader page.
+    // textContent throughout: every field here is contributor-written.
     const title = document.createElement('span');
     title.className = 'gallery-card-name';
     title.textContent = item.name || 'Untitled';
@@ -1625,16 +1371,11 @@ function buildCharacterGalleryCard(item) {
     return card;
 }
 
-// A Combo Card's markup, lifted out of the render branch so that a card in
-// Multiple Sections mode draws each of its sections with the SAME function
-// rather than a second copy of this markup (v0.19 C3b). `card` is either the
-// block itself or one of its sections - they carry the same fields.
+// A Combo Card, or one section of a multi-section card: they carry the same fields.
 function theoryboxCardHTML(bData, contextClass) {
 
-            // Derived from the title when blank, so a card is linkable without
-            // anyone having to think about anchors. Everything that is not a
-            // word character is dropped: a raw title in an id breaks the
-            // selector that would scroll to it.
+            // Derived from the title when blank, so every card can be linked to. Anything that
+            // is not a word character is dropped, or the selector that scrolls to it breaks.
             const anchor = window.stripStyleShortcodes(bData.anchor || bData.title || '')
                 .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -1651,10 +1392,8 @@ function theoryboxCardHTML(bData, contextClass) {
                 ? `<span class="theorybox-practicality">Practicality: ${window.escapeHtml(practicality)}</span>`
                 : '';
 
-            // Same chips and separators as the legacy combo block and the
-            // Combo List, so a route reads identically wherever it appears.
-            // A card with no route of its own but a notation style still gets
-            // the row, or the style would have nowhere to be switched to.
+            // The same chips as everywhere else. A card with only a notation style still gets
+            // the row, or the style has nowhere to switch.
             const steps = Array.isArray(bData.sequence) ? bData.sequence : [];
             const routeHTML = (steps.length || window.comboNotationStyles(bData).length > 1)
                 ? window.comboRouteHTML(bData, {
@@ -1663,9 +1402,6 @@ function theoryboxCardHTML(bData, contextClass) {
                 })
                 : '';
 
-            // Opens the modal player rather than navigating to the file. The
-            // link sent the reader off the wiki to a bare video on a Supabase
-            // domain with no way back but the back button (owner, 2026-08-18).
             const videoUrl = safeBlockUrl(bData.video || '');
             const videoHTML = videoUrl
                 ? window.wikiVideoButtonHTML(videoUrl, 'Watch')
@@ -1673,10 +1409,9 @@ function theoryboxCardHTML(bData, contextClass) {
 
             const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
 
-            // The name is a heading (v1.0 Part 2): the anchor sweep and the
-            // contents pick it up. "Combo" stands in for a missing name and
-            // names nothing, so it is marked to be left out, the same rule
-            // collectSectionTargets applies to the data.
+            // The name is a heading, so the anchor sweep and the contents pick it up. "Combo"
+            // stands in for no name and is marked to be left out, as collectSectionTargets
+            // leaves it out of the data.
             const untitled = !window.stripStyleShortcodes(bData.title).trim();
 
             return `
@@ -1694,11 +1429,8 @@ function theoryboxCardHTML(bData, contextClass) {
             `;
 }
 
-// The tab row and panels, shared by the Section Box and by a Combo Card in
-// Multiple Sections mode. Shared rather than copied because the behaviour
-// around them is already written once: the delegated click listener and the
-// repaint restore in populateTextSection both key off `.sbox-tabbed`, so a
-// second tab implementation would need both of those written again.
+// The tab row and panels, shared by the Section Box and a multi-section Combo Card:
+// the click listener and the repaint restore both key off `.sbox-tabbed`.
 function sboxTabRowHTML(labels) {
     return '<div class="sbox-tabs">' + labels.map((label, i) =>
         `<button type="button" class="sbox-tab${i === 0 ? ' is-active' : ''}"`
@@ -1722,36 +1454,16 @@ function getAlignStyle(align, extra = '') {
     return `style="${styleStr}"`;
 }
 
-// Raises contributor credit from per-section to per-tab.
-//
-// generateHTMLForBlocks already aggregates authors, but only within one call -
-// so a tab built from several sections got a footer per section, and an
-// accordion got another one nested inside it, since the recursive call starts
-// its own author set. Five badges partway down the Overview tab is noise, and
-// the same name repeated in three footers is worse.
-//
-// Done as a DOM pass over the finished tab rather than by threading an author
-// set through every caller: the sections are built by four different code
-// paths (overview, matchups, counterplay, move strategies), some of them
-// asynchronously, and this way each one only has to say "I'm done" rather than
-// hand its authors back. It also picks up the nested accordion footers, which
-// a caller-level version would miss.
-//
-// Deliberately not applied to blog posts (js/pages/community/posts.js) - a post has one author
-// and its footer belongs where it is.
+// One Contributors footer per tab. Each section and nested accordion makes its own;
+// this collects their authors, removes them, and adds one list at the end, sorted,
+// because a nested accordion's footer comes before its section's. Each tab's
+// renderer calls it once it is done. Blog posts keep their own footer.
 window.consolidateTabContributors = function(root) {
     if (!root) return;
 
     const footers = root.querySelectorAll('.aggregated-contributors-footer');
     if (footers.length === 0) return;
 
-    // Set, because the same person usually wrote several sections of a tab.
-    //
-    // Sorted rather than left in document order: a nested accordion emits its
-    // footer inside the accordion body, which lands *before* the enclosing
-    // section's own footer, so document order does not match authoring order
-    // and never can. Alphabetical is at least honest about being a credits
-    // list rather than a sequence.
     const authors = new Set();
     footers.forEach(footer => {
         footer.querySelectorAll('.author-badge').forEach(badge => {
@@ -1767,8 +1479,7 @@ window.consolidateTabContributors = function(root) {
 
     const footer = document.createElement('div');
     footer.className = 'aggregated-contributors-footer tab-contributors-footer';
-    // textContent per badge, so a contributor name is never parsed as markup -
-    // same reason generateHTMLForBlocks escapes them.
+    // textContent per badge: a name is never markup.
     const header = document.createElement('div');
     header.className = 'contributors-header';
     header.innerHTML = `<span class="contributors-icon">👥</span><span class="contributors-text">Contributors</span>`;
@@ -1785,27 +1496,17 @@ window.consolidateTabContributors = function(root) {
     root.appendChild(footer);
 };
 
+/**
+ * Draws a list of Blocks into the element with that id, under an optional title,
+ * then binds callout tooltips, lazy media and colour swatches in it.
+ * @since v0.01
+ * @watch the editor repaints this on every keystroke; captureNestedViewState keeps
+ *   the reader's open accordions and tabs
+ */
 function populateTextSection(containerId, sectionTitle, blocks, contextClass = '') {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // WHICH ACCORDIONS WERE OPEN (owner bug, 2026-09-20).
-    //
-    // `<details>` keeps `open` in the DOM and nowhere else, and the editor
-    // repaints this container on every keystroke - so an author writing inside
-    // an accordion had it shut in their face on each character typed. The
-    // repaint itself is intended and stays; what was missing is that the reader
-    // state around it was never carried over.
-    //
-    // Matched BY POSITION, not by title: the title is the very thing being
-    // typed when an author is renaming a section, and a key that changes on
-    // every keystroke preserves nothing. Position is stable for the case this
-    // exists to fix - editing content - and a reorder at worst hands one
-    // accordion its neighbour's state, which the next click corrects.
-    //
-    // Anything else that nests blocks and remembers open/closed - SectionedBox
-    // in C3 - needs this too, and for the same reason: state that lives only in
-    // the DOM does not survive the thing that rebuilds the DOM.
     const viewState = window.captureNestedViewState(container);
 
     container.innerHTML = '';
@@ -1825,17 +1526,9 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         }
         
         if (sectionTitle) {
-            // escapeHtml, not raw. Reached with `extraItem.title` at the
-            // "extras" call below, which is contributor-authored through the
-            // editor (js/editor/tabs/editor-tabs.js:107) - so this was an innerHTML sink
-            // with attacker-reachable input on every character page carrying
-            // an extra section. Confirmed live before fixing: a title of
-            // `<img src=x onerror=...>` produced a REAL img element with a
-            // real handler, not escaped text.
             section.innerHTML = `<h3 class="strategy-title">${window.escapeHtml(sectionTitle)}</h3>`;
         }
 
-        // 1. Generate the HTML using our recursive engine
         const bodyDiv = document.createElement('div');
         bodyDiv.innerHTML = window.generateHTMLForBlocks(blocks, contextClass);
         section.appendChild(bodyDiv);
@@ -1843,20 +1536,16 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
 
         window.restoreNestedViewState(container, viewState);
 
-        // 2. Bind the tooltips (shared engine, see site_utils.js)
         const callouts = section.querySelectorAll('.inline-callout-btn');
         callouts.forEach(btn => {
             const decodedTooltip = decodeURIComponent(btn.getAttribute('data-tooltip'));
             window.bindTooltip(btn, decodedTooltip);
         });
 
-        // 3. Initialize Lazy Loading for newly injected videos
         if (typeof window.initLazyMedia === 'function') {
             window.initLazyMedia(container);
         }
 
-        // 4. A Color Swatches Block's character colours need the registry,
-        // which is fetched (colorSwatchesHTML, above).
         if (typeof window.fillColorSwatches === 'function') window.fillColorSwatches(container);
 
     } else {
@@ -1868,13 +1557,10 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     }
 }
 
-// Which non-mode-scoped tabs have already been drawn, and for which page.
-//
-// A tab that is not mode-scoped is drawn ONCE per page load, from whatever data
-// the page opened with, and every later call for the same page leaves it alone.
-// Keyed by page so navigating to another character draws it again; the editor's
-// live preview calls its renderer directly rather than through this loop, so
-// editing a gallery still redraws on every keystroke.
+// A tab that is not mode-scoped (Gallery) is drawn once per page load, and a mode
+// switch leaves it alone. Keyed by page, so another character draws it again. The
+// editor's preview calls its renderer directly, so it still redraws on every
+// keystroke.
 let unscopedDrawnFor = null;
 const unscopedDrawn = new Set();
 
@@ -1895,21 +1581,8 @@ function modeScopedTabIsDrawable(section, pageId) {
     return false;
 }
 
-// --- PROFILE DESCRIPTION (v1.1) ---
-//
-// Owner's list: "Add Profile Description (have: Quote, Trivia, Next, and
-// Previous) to a Character Page". It fills the profile card under the stats,
-// the way a wiki infobox ends in its Character Navigation rows (owner,
-// 2026-10-20, after a first version spanned the page under the overview and
-// "looks really awkward"). Quote and Trivia are the page's own
-// (desc_data.profile). Built here for the reader page and the editor's
-// preview alike, so the two cannot drift.
-//
-// Trivia is listed in the card, one fact a line (owner, 2026-10-23, replacing
-// the one "2 facts" row whose facts opened on hover). "Label | text" shows the
-// label underlined, with the text on hover, or on a tap, which focuses it.
-// Only the first "|" splits, so the text can hold more; a line with nothing on
-// one side of it is shown as written.
+// "Label | text": the label underlined, the text on hover or on a tap (focus). Only
+// the first "|" splits; a line empty on one side of it shows as written.
 function triviaItemHTML(line) {
     const at = line.indexOf('|');
     const label = at < 0 ? '' : line.slice(0, at).trim();
@@ -1919,6 +1592,14 @@ function triviaItemHTML(line) {
         + `<span class="profile-trivia-tip" role="tooltip">${window.escapeHtmlKeepBreaks(tip)}</span></span></li>`;
 }
 
+/**
+ * Quote, Trivia and Character Navigation in the profile card under a character's
+ * stats. The reader page and the editor's preview both draw it here, so the two
+ * cannot drift.
+ * @since v1.1
+ * @touches desc_data.profile, fillProfilePager
+ * @watch a Trivia line splits at its first "|": "Label | text"
+ */
 window.profileDescriptionHTML = function (profile) {
     const p = profile || {};
     const quote = String(p.quote || '').trim();
@@ -1941,15 +1622,20 @@ window.profileDescriptionHTML = function (profile) {
         + `<nav class="profile-pager" aria-label="Character navigation" data-profile-pager hidden></nav></div>`;
 };
 
-// The Characters page's order, without the characters it does not show, and
-// with base-only characters moved to the end (owner, 2026-10-19). A hidden
-// character's own page is not in it, so it gets no Previous or Next.
+// The Characters page's order, without the characters it does not show, base-only
+// characters last. A hidden character's own page gets no Previous or Next.
 function profilePagerOrder(characters) {
     const shown = (Array.isArray(characters) ? characters : [])
         .filter(c => c && c.published !== false && !c.isHidden);
     return shown.filter(c => !c.isBaseOnly).concat(shown.filter(c => c.isBaseOnly));
 }
 
+/**
+ * Fills Character Navigation (Previous and Next) in a profile card.
+ * @since v1.1
+ * @touches data/navigation.json, window.CHARACTER_COLORS, rosterIconPath
+ * @watch fails quietly (the console only): the rest of the profile has drawn
+ */
 window.fillProfilePager = async function (root, pageId) {
     const box = root && root.querySelector('.profile-desc');
     const nav = box && box.querySelector('[data-profile-pager]');
@@ -1970,11 +1656,9 @@ window.fillProfilePager = async function (root, pageId) {
     const at = order.findIndex(c => String((c.cms_config || {}).pageId || '').toLowerCase() === String(pageId || '').toLowerCase());
     if (at < 0) return;
 
-    // Two tiles, each the character's icon framed in their colour and their
-    // name in it (owner's pick from mockups, 2026-10-23). A dark colour gets
-    // the white outline the [outline] tag draws, since the card behind it is
-    // dark on every page. A tile only for a side that has someone: the first
-    // character has no Previous and the last has no Next.
+    // Two tiles, each the character's icon framed in their colour, with their name. A
+    // dark colour gets the [outline] tag's white outline, since the card behind it is
+    // dark. No tile for a side with nobody.
     const tile = (c, dir, label) => {
         if (!c) return '';
         const color = (window.CHARACTER_COLORS || {})[c.name];
@@ -1992,9 +1676,8 @@ window.fillProfilePager = async function (root, pageId) {
 
     nav.innerHTML = `<div class="profile-pager-title">Character Navigation</div>`
         + `<div class="profile-pager-tiles">${tile(prev, 'prev', '&#8249; Previous')}${tile(next, 'next', 'Next &#8250;')}</div>`;
-    // A character without an icon yet keeps just the name. Listeners rather
-    // than inline handlers, as markLoadedRosterIcons (js/pages/core/pagebuilder.js) does;
-    // a cached broken image has already failed before they attach.
+    // A character with no icon yet keeps just the name. Listeners, not inline handlers;
+    // a cached broken image has failed before they attach.
     nav.querySelectorAll('img.profile-pager-icon').forEach(img => {
         if (img.complete && img.naturalWidth === 0) { img.remove(); return; }
         img.addEventListener('error', () => img.remove(), { once: true });
@@ -2003,32 +1686,33 @@ window.fillProfilePager = async function (root, pageId) {
     box.hidden = false;
 };
 
+/**
+ * Draws a page's content: a system page's tabs and sections, or a character page's
+ * tabs for the active mode.
+ * @since v0.4
+ * @touches window.currentEditorDescData (the editor's data, already narrowed to a
+ *   mode), fetchCloudCharacterData, applyOptionalTabsFromPageRow, resolveModeDesc;
+ *   sets window.moveStrategiesDrawn and window.profilePagerFilled
+ * @watch an error is only logged (the catch at the end), and the page stays empty
+ */
 async function loadPageDescriptions(pageId, pageType = 'character', modeId = null) {
     try {
         let data = null;
 
-        // Set when the object came from the editor, which has already narrowed
-        // it to the state being edited (js/editor/core/editor-modes.js). Resolving it a
-        // second time below would look for a modeData bucket inside a bucket
-        // and render the preview empty.
+        // Set when the data came from the editor, which has narrowed it to the state being
+        // edited (editor-modes.js). Narrowing it again would find nothing.
         let dataIsPreScoped = false;
 
-        // 1. Check Editor Cache (For Live Preview pane)
         if (window.currentEditorDescData) {
             data = window.currentEditorDescData;
             dataIsPreScoped = true;
         }
         else {
-            // 2. Check Supabase Cloud Database
             if (typeof window.fetchCloudCharacterData === 'function') {
                 const cloudData = await window.fetchCloudCharacterData(pageId);
 
-                // Which optional tabs this page has, before anything renders.
-                // Outside the desc_data guard on purpose: a page with no
-                // descriptions still has a tab strip, and leaving the flag
-                // unset there would leave a previous page's answer in place on
-                // any surface that loads two pages in one session (the admin
-                // preview does exactly that).
+                // Outside the desc_data guard: a page with no content still has a tab strip, and
+                // the Overseer's preview loads two pages in one session.
                 if (typeof window.applyOptionalTabsFromPageRow === 'function') {
                     window.applyOptionalTabsFromPageRow(cloudData);
                 }
@@ -2038,22 +1722,8 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                     console.log(`[Cloud] Loaded ${pageId} descriptions.`);
                 }
             }
-            
-            // 3. NO LOCAL FALLBACK. There used to be one here, reading
-            // <dir>/<pageId>_descriptions.json, from before content moved to
-            // Supabase. Not one of those files has existed in this repo since,
-            // so the only thing it could do was issue a request that 404s on
-            // every page with no page_data row yet - and it built the path from
-            // page_type, which stopped deciding the directory when others/ and
-            // tools/ arrived, so it asked for systems/custom_servers/... for a
-            // page that lives in others/. A wrong URL for a file that is not at
-            // the right one either.
-            //
-            // `data` stays null and the caller renders the page empty, which is
-            // what the try/catch around the fetch already produced.
         }
 
-        // --- PREVENT FATAL CRASH IF NO DATA EXISTS ---
         if (!data) {
             if (pageType === 'system') {
                 console.log(`[System] Initializing blank schema for new system page.`);
@@ -2063,14 +1733,12 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             }
         }
 
-        // =====================================================================
-        // THE SYSTEM PAGE ENGINE (Dynamic Tabs & Sections)
-        // =====================================================================
+        // A system page: tabs of sections, each a list of Blocks.
         if (pageType === 'system') {
             const mainArea = document.querySelector('.main-content-area');
             if (!mainArea) return;
 
-            // --- AUTO-MIGRATION: Initialize default tab or rescue old corrupted data ---
+            // No tabs: one Overview tab, holding any old overview and strategy Blocks.
             if (!data.tabs || data.tabs.length === 0) {
                 let rescuedBlocks = [];
                 if (data.overview && data.overview.length > 0) rescuedBlocks.push(...data.overview);
@@ -2089,34 +1757,24 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 };
             }
 
-            // 1. Wipe out any hardcoded legacy containers and old dynamic navs
+            // The stub's own #tab-overview and any strip from an earlier draw go first.
             const oldTarget = document.getElementById('tab-overview');
             if (oldTarget) oldTarget.remove();
             const oldNav = document.getElementById('system-dynamic-nav');
             if (oldNav) oldNav.remove();
 
-            // 2. Build the interactive Manga Tab Navigation Bar
             const isEditor = !!document.getElementById('interactive-builder');
             let navHTML = `<nav id="system-dynamic-nav" class="character-nav" style="display: ${isEditor ? 'none' : 'flex'}; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">`;
             
-            const tabIdsForPageBuilder = []; // Passed to setupTabs()
+            const tabIdsForPageBuilder = [];
 
             data.tabs.forEach((tab, idx) => {
                 const isActive = idx === 0 ? 'active' : '';
-                // Both escaped: tabId and tabLabel are contributor-submitted,
-                // and this is the renderer a READER loads. The identical bug in
-                // the admin preview was found and fixed in v0.15 (see
-                // admin-preview-states.spec.js, "a state label cannot inject
-                // markup into the toggle or the popup") and this twin was left
-                // alone - a payload in a tab label executed here until
-                // 2026-09-06. Fixing a class in one renderer and not its pair
-                // is the shape worth looking for.
                 navHTML += `<button id="nav-${window.escapeHtml(tab.tabId)}" class="btn-manga btn-manga-slanted ${isActive}"><div class="btn-manga-content"><span class="btn-manga-text">${window.escapeHtml(tab.tabLabel)}</span></div></button>`;
                 tabIdsForPageBuilder.push(tab.tabId);
             });
             navHTML += `</nav>`;
 
-            // Inject the nav directly beneath the page header
             const header = mainArea.querySelector('.home-main-header');
             if (header) {
                 header.insertAdjacentHTML('afterend', navHTML);
@@ -2124,13 +1782,11 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 mainArea.insertAdjacentHTML('afterbegin', navHTML);
             }
 
-            // 3. Generate the Tab Containers and Content
             data.tabs.forEach((tab, idx) => {
                 let tabContainer = document.getElementById(`tab-${tab.tabId}`);
                 if (!tabContainer) {
                     tabContainer = document.createElement('div');
                     tabContainer.id = `tab-${tab.tabId}`;
-                    // Removed space-y-6 so Flexbox can properly control vertical margins
                     tabContainer.className = 'tab-content wiki-tab-content';
                     if (idx !== 0) tabContainer.classList.add('hidden'); 
                     mainArea.appendChild(tabContainer);
@@ -2141,12 +1797,11 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 if (tab.sections && tab.sections.length > 0) {
                     tab.sections.forEach((section, sIdx) => {
                         
-                        // --- MIGRATION & CALCULATION ENGINE ---
                         let sWidth = section.width;
                         let sAlign = section.alignment;
                         let sBreak = section.forceBreak;
 
-                        // Seamlessly converts old database data to the new dynamic schema
+                        // Older sections stored a layout name instead of a width, alignment and break.
                         if (sWidth === undefined) {
                             if (section.layout === 'centered') { sWidth = 80; sAlign = 'center'; sBreak = true; }
                             else if (section.layout === 'split-left') { sWidth = 48; sAlign = 'left'; sBreak = false; }
@@ -2156,7 +1811,6 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                             section.width = sWidth; section.alignment = sAlign; section.forceBreak = sBreak;
                         }
 
-                        // --- THE ROW BREAKER ---
                         if (sBreak && sIdx !== 0) {
                             const flexBreak = document.createElement('div');
                             flexBreak.className = 'flex-row-break';
@@ -2166,11 +1820,9 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         const sectionNode = document.createElement('section');
                         sectionNode.className = 'wiki-section system-content-grid-section';
 
-                        // --- DYNAMIC GEOMETRY APPLICATION ---
                         sectionNode.style.flex = `0 0 ${sWidth}%`;
                         sectionNode.style.maxWidth = `${sWidth}%`;
 
-                        // Auto-Margin alignment physics 
                         if (sAlign === 'center') {
                             sectionNode.style.marginLeft = 'auto';
                             sectionNode.style.marginRight = 'auto';
@@ -2181,9 +1833,6 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         }
                         
                         if (section.sectionTitle) {
-                            // Same sink, same reason: a system page's section
-                            // title is contributor-authored through
-                            // updateSystemMeta('sectionTitle', ...).
                             sectionNode.innerHTML = `<h2 class="section-title mb-4">${window.escapeHtml(section.sectionTitle)}</h2>`;
                         }
                         
@@ -2195,7 +1844,6 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         populateTextSection(contentDiv.id, '', section.blocks, 'system-content');
                     });
                     
-                    // Flexbox safe clear-fix
                     const clearFix = document.createElement('div');
                     clearFix.className = 'flex-row-break';
                     tabContainer.appendChild(clearFix);
@@ -2208,7 +1856,6 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 }
             });
 
-            // --- 4. NATIVE PAGEBUILDER DELEGATION ---
             if (typeof window.setupTabs === 'function') {
                 // The address only on the reader's page: the editor renders
                 // this strip too, hidden, and its address is its own.
@@ -2220,25 +1867,17 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             window.renderMathIfAny(document.body);
 
             if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
-            return; // EXIT EARLY to guarantee Character logic never runs
+            return;
         }
-        // =====================================================================
-        // THE CHARACTER PAGE ENGINE (Legacy Strict Architecture)
-        // =====================================================================
         else {
-            // Narrow `data` to the active character mode before anything below
-            // reads it. A full character's ultimate modes carry their own
-            // overview, matchups and counterplay, and every reference in this
-            // branch should see that state's write-up rather than the base
-            // kit's. resolveModeDesc hands `data` straight back for the base
-            // mode - which is every character that declares no modes - so this
-            // is a no-op for all 22 pages that exist today.
+            // Narrowed to the active mode first: an ultimate mode carries its own overview,
+            // matchups and counterplay. The base mode gets the data back unchanged.
             const activeMode = dataIsPreScoped ? null : (modeId || window.activeCharacterMode || null);
             if (typeof window.resolveModeDesc === 'function') {
                 data = window.resolveModeDesc(data, activeMode);
             }
 
-            // --- 1. OVERVIEW & STRATEGY TAB ---
+            // Overview tab.
             const overviewContainer = document.getElementById('tab-overview');
             if (overviewContainer) {
                 overviewContainer.innerHTML = '';
@@ -2260,13 +1899,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         });
                     }
 
-                    // The portrait is a fixed square, so the crop has to be
-                    // aimable - imageFocus is the nine-point choice made in the
-                    // editor, fed to object-position through a custom property.
-                    // Whitelisted rather than escaped: this string lands inside
-                    // a style attribute, where escaping alone does not stop a
-                    // crafted value from closing the declaration and adding its
-                    // own.
+                    // imageFocus is allowlisted, not escaped: it lands in a style attribute.
                     const focus = (window.PORTRAIT_FOCUS_VALUES || []).includes(data.profile.imageFocus)
                         ? data.profile.imageFocus
                         : null;
@@ -2329,7 +1962,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 window.consolidateTabContributors(overviewContainer);
             }
 
-            // --- 2. MATCHUPS TAB ---
+            // Matchups tab.
             const matchupsContainer = document.getElementById('tab-matchups');
             if (matchupsContainer) {
                 matchupsContainer.innerHTML = '';
@@ -2338,19 +1971,14 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 if (data.matchups && data.matchups.length > 0) {
                     data.matchups.forEach(mu => {
 
-                        // window.MATCHUP_TIERS (js/utility/site_data.js) is the one
-                        // definition; resolveMatchupTier also maps the two
-                        // words v0.13 renamed, so history replay and anything
-                        // submitted before the rename still renders.
+                        // resolveMatchupTier (site_data.js) also maps the two renamed tier words, so older
+                        // data still renders.
                         const tier = window.resolveMatchupTier(mu.tier);
 
                         const muSection = document.createElement('section');
                         muSection.className = 'wiki-section wiki-section-clip';
 
-                        // The colour comes from the tier table, never from the
-                        // stored string, so nothing contributor-written lands
-                        // inside a style attribute. The two visible strings are
-                        // escaped - both are contributor-submitted.
+                        // The colour comes from the tier table, never from the stored string.
                         let muHTML = `
                             <div class="card-header-flex">
                                 <h3 class="card-header-title">vs. ${window.escapeHtml(mu.opponent || 'Unknown')}</h3>
@@ -2383,34 +2011,18 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 }
             }
 
-            // --- 3a. SECTIONS THAT RENDER THEMSELVES ---
-            // Resolved from the vocabulary, so adding one is a registry entry
-            // rather than another branch here. De-duplicated by function,
-            // because several sections of one tab share a composer.
+            // Tabs that draw themselves (a rendererFn in the keyed sections), once per renderer.
             const selfRendered = new Set();
-            // Filtered by the tab list, not by the section list: an OPTIONAL
-            // tab switched off still has its sections in the vocabulary - the
-            // pipeline needs them so an already-queued delta still applies -
-            // but nothing should draw it. getCharacterTabIds is where that
-            // decision lives (js/utility/character_tabs.js).
+            // Filtered by the tab list: a tab switched off keeps its sections, so a queued
+            // delta still applies, but is not drawn (getCharacterTabIds, character_tabs.js).
             const drawableTabs = window.getCharacterTabIds
                 ? window.getCharacterTabIds({ includeInjected: true })
                 : null;
             (window.getKeyedSections ? window.getKeyedSections() : [])
                 .filter(s => s.rendererFn && typeof window[s.rendererFn] === 'function')
                 .filter(s => !drawableTabs || drawableTabs.includes(s.tab))
-                // A tab declared modeScoped:false belongs to the CHARACTER, not
-                // to one state, so a mode switch must leave it alone. Until
-                // v0.18 that flag had no consumer in js/ at all - Gallery
-                // "stayed put" only because nothing rendered it, and the moment
-                // F9 gave it a renderer the flag had to start meaning
-                // something.
-                //
-                // This is not cosmetic. switchCharacterMode calls
-                // loadPageDescriptions with a modeId, which resolves to THAT
-                // MODE's desc_data; a gallery stored at base level is simply
-                // absent from it, so re-rendering would blank the tab on every
-                // switch and refill it on the way back to base.
+                // A modeScoped: false tab (Gallery) belongs to the character. A mode's desc_data
+                // does not hold it, so drawing it again on a mode switch would blank it.
                 .filter(s => modeScopedTabIsDrawable(s, pageId))
                 .forEach(s => {
                     if (selfRendered.has(s.rendererFn)) return;
@@ -2418,17 +2030,8 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                     window[s.rendererFn](data);
                 });
 
-            // --- 3. KEYED SECTIONS (Counterplay, Starter Guide) ---
-            //
-            // One renderer for every tab whose data is an array of keyed
-            // entries (js/utility/character_tabs.js). Counterplay was this code with
-            // 'counterplay' written through it; Starter Guide is the same
-            // shape, so it renders here rather than as a second copy.
-            //
-            // MATCHUPS IS DELIBERATELY NOT HERE. Its card carries a tier
-            // colour and links to the opponent's own page - that is a
-            // different card, not this one with different words, and folding
-            // it in would mean a renderer full of `if (section.tab === ...)`.
+            // Keyed tabs (Counterplay, Starter Guide): one renderer for every array of keyed
+            // entries. Matchups is drawn above, because its card carries a tier colour.
             (window.getKeyedSections ? window.getKeyedSections() : [])
                 .filter(section => !section.customRenderer)
                 .forEach(section => {
@@ -2452,16 +2055,8 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         const entrySection = document.createElement('section');
                         entrySection.className = 'wiki-section wiki-section-clip';
 
-                        // Escaped, 2026-08-15. Both values are
-                        // contributor-submitted and land in an innerHTML sink,
-                        // so "<img src=x onerror=...>" as a topic executed on
-                        // the live page.
-                        //
-                        // The meta colour is not escaped because it is not
-                        // interpolated: it comes from the fixed metaColors map
-                        // in the vocabulary with a fixed fallback, so the
-                        // contributor's value SELECTS a colour rather than
-                        // supplying one.
+                        // The meta colour comes from the section's fixed metaColors, so a contributor's
+                        // value selects a colour and never supplies one.
                         const title = window.escapeHtml(entry[section.keyField] || 'Unknown');
                         let metaHTML = '';
                         if (section.metaField) {
@@ -2499,19 +2094,17 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                     window.consolidateTabContributors(container);
                 });
 
-            // --- 4. MOVE STRATEGIES (M1s, Skills, Specials) ---
+            // Move strategies (M1s, Skills, Specials).
             if (data.moveStrategies) {
-                // Kept as a promise for the Overseer's side-by-side
-                // (js/overseer/admin-preview.js), which draws a page twice and has to
-                // know this one is in before it moves the first drawing aside.
+                // A promise for the Overseer's side-by-side (admin-preview.js), which waits for
+                // this drawing before it moves it aside.
                 window.moveStrategiesDrawn = new Promise(resolve => setTimeout(() => {
                     try {
                         for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
                             populateTextSection(`strategy-${moveId}`, 'Move Overview and Strategy', blocks, 'move-strategy');
                         }
-                        // Deferred behind the same 300ms wait as the sections
-                        // themselves, since the move cards these render into are
-                        // built by js/pages/core/framedata.js on its own schedule.
+                        // After the same 300ms as the sections: framedata.js builds the move cards on its
+                        // own schedule.
                         window.FRAME_MOVE_CATEGORIES.forEach(tab => {
                             window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
                         });
@@ -2522,11 +2115,10 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                     }
                 }, 300));
             }
-        } // End of else block (Character Engine)
+        }
 
         window.renderMathIfAny(document.body);
         
-        // --- Auto-Refresh ToC when rendering finishes ---
         if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
 
     } catch (error) {
@@ -2534,37 +2126,14 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
     }
 }
 
-// --- LAZY MEDIA, AND THE CLIP QUEUE (v0.20 V2 fix 3) ---
-//
-// Measured on Puppet Master's Overview on 2026-09-28: clips started loading
-// only 300px ahead of the screen, a grid of them started together and shared
-// the connection, and a 0.31 MB clip waited 4.9s behind a 4.24 MB one. 11 of
-// 26 were still blank two seconds after scrolling into view, on desktop too.
-//
-// So an autoplaying clip now joins a queue one screen ahead of the reader,
-// two start at a time, the clip nearest the screen always goes next, and a
-// loop plays only while it is on screen. A clip hands its turn on once it can
-// play through, not once its last byte lands, so the browser may still be
-// fetching the tail of one while the next starts: re-measured on 2026-09-29,
-// the most requests in flight fell from 9 to 7 on a phone profile, and no clip
-// was blank for over 2 seconds after coming into view (8 before).
-//
-// Everything else keeps the old rule, its source swapped in 300px ahead: a
-// player with controls downloads nothing until it is pressed
-// (preload="none"), and a YouTube embed is not ours to meter.
-//
-// The observers are shared and built once. initLazyMedia is called on every
-// render, the editor's preview renders on every keystroke, and observing an
-// element twice is a no-op, so a second call costs nothing.
+// The clip queue. An autoplaying clip joins it one screen ahead of the reader, two
+// start at a time, the one nearest the screen goes next, and a loop plays only
+// while it is on screen. A clip frees its slot once it can play through. Other
+// media keeps the simple rule: its source swapped in 300px ahead.
 const CLIP_SLOTS = 2;
-// Two screens until 2026-11-19, when cached egress stood at 155 of the plan's
-// 250 GB 16 days into the month. Clips are the heaviest thing a page fetches
-// from Storage, and a clip two screens down is often one the reader never
-// scrolls to.
 const CLIP_AHEAD_MARGIN = '100% 0px';
-// A slot is freed when the browser can play the clip through, stops fetching
-// it, or fails. A clip that does none of those in this long stops holding the
-// queue up, so one stalled download cannot stop every clip below it.
+// A clip that neither plays through, stops fetching nor fails in this long frees
+// its slot, so one stalled download cannot hold up every clip below it.
 const CLIP_SLOT_TIMEOUT_MS = 8000;
 
 const clipWaiting = new Set();
@@ -2575,8 +2144,7 @@ let clipScreenObserver = null;
 let lazyMediaObserver = null;
 
 // 0 on screen, otherwise how many pixels away. A clip with no box (its tab is
-// hidden) is never picked; its tab showing again brings it back through the
-// ahead observer.
+// hidden) is never picked.
 function clipDistance(video) {
     const r = video.getBoundingClientRect();
     if (!r.width && !r.height) return Infinity;
@@ -2642,9 +2210,8 @@ function pumpClipQueue() {
     }
 }
 
-// Membership of the queue is "within a screen and not started". A clip the
-// reader scrolled far past leaves it, rather than downloading later for
-// nobody.
+// The queue holds clips within a screen and not started. A clip the reader
+// scrolled far past leaves it, rather than downloading later for nobody.
 function onClipAhead(entries) {
     entries.forEach(({ target: video, isIntersecting }) => {
         if (!video.hasAttribute('data-lazy-src')) return;
@@ -2667,20 +2234,9 @@ function onClipScreen(entries) {
     });
 }
 
-// --- VIDEO STILLS (v1.2; the owner's performance card) ---
-//
-// Owner: "For videos that takes time to load, there should be a thumbnail that
-// stands in place for those videos with the exact dimension it has." A clip in
-// a skill card showed an empty box until its first frame came, and a video
-// block had no height at all until its metadata did, so the page jumped. The
-// nightly job (scripts/fetch-video-stills.js) saves each video's first frame
-// (the owner's pick: nothing jumps when it starts) and its size.
-//
-// A video gets its size as soon as the list is here, so its box is right
-// before any of the video arrives, and its still once it is within three
-// screens: a page with 33 clips does not fetch 33 pictures for a reader who
-// reads the top. The list can arrive after the page has drawn, so it is
-// applied to whatever is on the page then, and to every render after.
+// Video stills (data/video-stills.json, from scripts/fetch-video-stills.js). A
+// video gets its shape as soon as the list is here, and its first frame once it is
+// within three screens. The list can arrive after the page has drawn.
 const STILL_AHEAD_MARGIN = '300% 0px';
 const STILL_PATH_RE = /^medias\/stills\/[0-9a-f]{16}\.webp$/;
 let videoStills = null;
@@ -2716,21 +2272,16 @@ function applyStills(root) {
     root.querySelectorAll('video').forEach((video) => {
         const entry = stillFor(video);
         if (!entry) return;
-        // The shape before a byte of the video arrives: this ratio until the
-        // video has its own ("auto"), so a list a night out of date corrects
-        // itself. A ratio, not width and height attributes: those become a
-        // height in pixels, and a video block sets only its width. A skill
-        // card or a gallery tile sets its clip's height in CSS, which a ratio
-        // does not change.
+        // A ratio, not width and height attributes, which set a pixel height when a video
+        // Block sets only its width. "auto" lets the video's own ratio win once it has one.
         video.style.aspectRatio = `auto ${entry.w} / ${entry.h}`;
         if (stillObserver) stillObserver.observe(video);
         else showStill(video);
     });
 }
 
-// Only a page showing one of the wiki's own videos asks for the list: the
-// home page draws its posts through initLazyMedia too, and has a speed target
-// of its own.
+// Only a page showing one of our videos asks for the list: the home page draws its
+// posts through initLazyMedia too.
 function hasWikiVideo(root) {
     return Array.from(root.querySelectorAll('video'))
         .some((video) => wikiMediaFileOf(video.getAttribute('data-lazy-src') || video.getAttribute('src')));
@@ -2740,8 +2291,8 @@ function askForVideoStills() {
     // Both from site_utils.js, which a cache-skewed load can be missing.
     if (videoStillsAsked || typeof window.fetchJson !== 'function' || typeof window.getRootPath !== 'function') return;
     videoStillsAsked = true;
-    // Deliberately quiet past the console: a still is an extra, and without
-    // the list every video draws exactly as it did before v1.2.
+    // Deliberately quiet past the console: without the list, a video draws without
+    // its still.
     window.fetchJson(`${window.getRootPath()}data/video-stills.json`, { cache: true })
         .then((list) => {
             videoStills = list && typeof list === 'object' ? list : {};
@@ -2750,6 +2301,13 @@ function askForVideoStills() {
         .catch((err) => console.warn('[Media] No video stills this time:', err.message));
 }
 
+/**
+ * Starts the media under rootElement: clips join the clip queue, other videos and
+ * iframes get their source 300px ahead, and videos get their stills.
+ * @since v0.4
+ * @watch called on every render, and the editor renders on every keystroke. The
+ *   observers are built once, and observing an element twice is a no-op.
+ */
 window.initLazyMedia = function(rootElement = document) {
     const lazyMedia = rootElement.querySelectorAll('video[data-lazy-src], iframe[data-lazy-src]');
 
@@ -2766,7 +2324,7 @@ window.initLazyMedia = function(rootElement = document) {
     applyStills(rootElement);
 
     if (!('IntersectionObserver' in window)) {
-        // Fallback for ancient browsers: everything at once, as before.
+        // No IntersectionObserver: everything at once.
         lazyMedia.forEach(media => {
             media.src = media.getAttribute('data-lazy-src');
             media.removeAttribute('data-lazy-src');
@@ -2799,22 +2357,10 @@ window.initLazyMedia = function(rootElement = document) {
     });
 };
 
-// --- MEDIA THAT FAILS TO LOAD (v0.20 batch 3) ---
-//
-// A link to a file that does not exist used to draw a broken-image icon, or,
-// for a video, an empty black box that reads as "still loading" forever. On
-// 2026-09-28, 86 of the 466 files the wiki links to did not exist, on 15
-// pages. Now the same "[ Missing Media ]" box a skill card with no media has
-// always shown takes the failed element's place, so a reader can tell missing
-// from slow.
-//
-// One capture-phase listener on the document: `error` does not bubble, but it
-// does pass through capture, and this catches media drawn by any renderer at
-// any time, including the editor's live preview and the review screen.
-//
-// OPT-IN BY CLASS. Portraits, roster icons and tier-list art have their own
-// deliberate fallbacks (a portrait that 404s hides and leaves the name), and
-// replacing them would break those.
+// Media that fails to load becomes the "[ Missing Media ]" box, so a reader can
+// tell missing from slow. One capture-phase listener catches every renderer's
+// media: error does not bubble, but it does pass through capture. Opt-in by class,
+// because portraits, roster icons and tier-list art have their own fallbacks.
 const MISSING_MEDIA_TARGETS = [
     'img.wiki-block-image', 'img.wiki-media', 'img.wiki-cell-media',
     'video.wiki-video-native',
@@ -2858,12 +2404,9 @@ document.addEventListener('error', (e) => {
     showMissingMedia(t.tagName === 'SOURCE' ? t.parentElement : t);
 }, true);
 
-// --- VIDEO PLAYER BEHAVIOUR (v0.15 item 10) ---
-//
-// One delegated listener on the document rather than per-player wiring: these
-// players are rendered into innerHTML by a dozen callers, re-rendered on every
-// editor keystroke, and created inside a modal that does not exist yet at load
-// time. Binding per element would leak a listener on each of those.
+// The player's controls: listeners on the document, because players are drawn into
+// innerHTML by many callers, drawn again on every editor keystroke, and created
+// inside a modal.
 
 function playerOf(el) {
     return el ? el.closest('[data-wiki-player]') : null;
@@ -3019,11 +2562,7 @@ document.addEventListener('volumechange', (e) => {
     }, true);
 });
 
-// --- THE VIDEO MODAL (v0.15 item 11) ---
-//
-// Built on first use and reused after, rather than shipped in the markup of
-// every page: forty-odd generated stubs would each need it, and most readers
-// never open one.
+// Built on first use and reused: most readers never open one.
 function wikiVideoModal() {
     let modal = document.getElementById('wiki-video-modal');
     if (modal) return modal;
@@ -3080,16 +2619,8 @@ window.closeWikiVideoModal = function () {
 window.loadPageDescriptions = loadPageDescriptions;
 window.populateTextSection = populateTextSection;
 
-// --- SECTION BOX TABS (v0.19 C3) ---
-//
-// One delegated listener for every SectionedBox anywhere on the page, bound
-// once. Delegated rather than bound per button for the reason this whole block
-// type has to be careful about: the editor repaints the preview wholesale on
-// every keystroke, so a handler attached to a button is a handler on a detached
-// node a moment later.
-//
-// A data attribute and a delegated listener rather than an inline onclick,
-// which is a standing rule here: the tab's label is contributor-written.
+// Section Box tabs: one listener, bound once, because the editor's preview replaces
+// the buttons on every keystroke.
 if (!window.__sboxTabsBound) {
     window.__sboxTabsBound = true;
     document.addEventListener('click', (e) => {

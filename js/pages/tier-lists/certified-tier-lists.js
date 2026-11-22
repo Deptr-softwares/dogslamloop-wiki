@@ -1,29 +1,14 @@
 /**
- * Dogslamloop Wiki - Certified Tier Lists (v0.14 item 3)
- *
- * The page held 22 tabs - one Overall plus 21 "vs <character>" tabs - and now
- * holds one tier list per assigned individual, credited by name. The model is
- * in supabase/migrations/20260813000005_certified_tier_lists.sql.
- *
- * WHY A NAMED LIST. Frame data is measurable and a tier list is opinion, and a
- * single unattributed ranking quietly presents the second as the first -
- * "the wiki says this character is S tier" is an argument nobody can win. A
- * named list is a claim somebody is accountable for, which is both more honest
- * and less brigade-able than an official-looking consensus.
- *
- * WHICH IS WHY A READER LANDS ON NOBODY. No list loads until a name is
- * clicked. That is the feature, not a loading state: there is no unattributed
- * default to mistake for the wiki's own opinion.
- *
- * A separate file from js/pages/tier-lists/tierlist.js on purpose. That one still renders the
- * old desc_data.tabs shape for the admin preview and the existing editor, and
- * the old data is deliberately left in page_data rather than migrated away -
- * so both renderers have to keep working, and merging them would mean one
- * function with two data models and two permission stories.
- *
- * Lazy by construction: the picker needs a name and a timestamp per list, and
- * the placements are fetched only when a name is clicked. That falls out of
- * landing on nobody rather than being an optimisation on top of it.
+ * Certified Tier Lists, the Tier List page: one tier list per assigned person,
+ * credited by name. A reader picks a name and nothing loads until then, so there is
+ * no unattributed list to mistake for the wiki's own opinion. Each list's
+ * placements are fetched when its name is clicked.
+ * @since v0.14
+ * @touches tier_lists, tier_list_changes, tier_page_settings, loadCharacterRoster
+ *   (site_data.js)
+ * @watch kept apart from tierlist.js, which renders the older desc_data.tabs shape
+ *   still in page_data: two data models and two permission stories
+ * @see docs/tier-lists.md
  */
 
 (function () {
@@ -32,7 +17,7 @@
         roster: new Map(),   // page_id -> { name, url, image }
         activeSlug: null,
         loaded: new Map(),   // slug -> full row
-        entryByKey: new Map(), // the open list's entries by key (copies, v1.2)
+        entryByKey: new Map(), // the open list's entries by key
     };
 
     const client = () => window.supabaseClient;
@@ -55,34 +40,17 @@
         return `updated ${new Date(iso).toLocaleDateString()}`;
     }
 
-    // --- ROSTER ---
-    //
-    // Keyed by page_id, which is what the new tiers store. The old tabs stored
-    // navigation display slugs and relied on a normalizer that lowercased and
-    // stripped punctuation; three entries only matched because the display
-    // slug happened to agree. The migration rewrote them to the canonical key,
-    // so this lookup is exact. The roster itself is site_utils.js's
-    // loadCharacterRoster, shared with every other tier list.
+    // Keyed by page_id, which the tiers store, through loadCharacterRoster, shared by
+    // every tier list.
     async function loadRoster() {
         if (state.roster.size) return;
         state.roster = await window.loadCharacterRoster();
     }
 
-    // v0.18 FT4. `style` is the list's own art_style - 'portrait' or 'icon'.
-    //
-    // A portrait is a tall crop of a full-body render; the roster icon added in
-    // v0.16 is square and flat, and far more legible twenty-across on a tier
-    // row. Which one a list uses is its author's call, so it arrives per call
-    // rather than being read from a global here: two lists rendered in the same
-    // session can legitimately differ, and a module-level variable would make
-    // whichever rendered last win.
-    //
-    // Unknown values fall back to the portrait rather than throwing. The
-    // database CHECK is what keeps them out; this is the second line, for a row
-    // written before the column existed.
-    // `raw` is one entry of tiers[].characters: a page_id, or since v1.2 a
-    // badged character or a copy (window.tierListEntry, js/utility/site_data.js). An
-    // entry that is neither is not drawn (null).
+    // `style` is the list's own art_style, 'portrait' or 'icon', passed per call since
+    // two lists in one session can differ. An unknown value draws the portrait (the
+    // database CHECK keeps them out). `raw` is one tiers[].characters entry: a page_id,
+    // a badged character or a copy (tierListEntry); anything else is not drawn.
     function portrait(raw, style) {
         const entry = window.tierListEntry(raw);
         if (!entry) return null;
@@ -95,18 +63,12 @@
         if (useIcon) wrap.classList.add('tier-portrait-icon');
         wrap.href = meta.url ? rootPath + meta.url : '#';
         wrap.title = meta.name;
-        // So the changelog can find this portrait again once it has loaded.
-        // The board is drawn first and the changes are fetched after it, which
-        // is the right order - the icons are what the reader came for. The
-        // entry's key, so each copy carries its own last move.
+        // So the changelog can find this portrait once it has loaded, by key, so each copy
+        // carries its own last move.
         wrap.dataset.ctlChar = entry.key;
 
-        // In ICON mode the character's colour moves from the fill to the
-        // border, which is the whole of the roster-card treatment this is
-        // mimicking (batch 3.5). It goes out as a custom property rather than
-        // as an inline background, because an inline style would beat the rule
-        // in style/Layout.css that needs to read it - the same reasoning
-        // js/pages/core/pagebuilder.js gives for the roster grid.
+        // In icon mode the colour moves from the fill to the border, as on the roster
+        // cards, as a custom property, since an inline style would beat Layout.css.
         const charColor = window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name];
         if (charColor) {
             if (useIcon) wrap.style.setProperty('--char-color', charColor);
@@ -124,12 +86,8 @@
         img.alt = '';
         img.addEventListener('error', () => { img.style.display = 'none'; });
 
-        // The icon path is DERIVED from the pageId by the same function the
-        // roster grid uses (js/pages/core/pagebuilder.js), not looked up in a second
-        // manifest - so an icon the owner drops in appears here the moment it
-        // appears on the roster, with nothing to regenerate. A character with
-        // no icon yet hides its img and shows the name underneath, which is the
-        // same designed fallback a missing portrait already had.
+        // The icon path from rosterIconPath, as on the roster, so an icon the owner adds
+        // shows here at once. No icon: the img hides and the name shows.
         const iconPath = useIcon && typeof window.rosterIconPath === 'function'
             ? window.rosterIconPath(pageId)
             : null;
@@ -162,29 +120,17 @@
         return String(key).includes('#') ? `${name} (copy)` : name;
     }
 
-    // How one move reads, in one place. The changelog list and the portrait
-    // tooltip both say it, and a second copy of the phrasing is how "added to
-    // S" in one and "moved to S" in the other happens.
-    //
-    // A NULL from_tier means newly placed and a NULL to_tier means removed -
-    // both are real events, which is why the schema allows either.
+    // How one move reads, in one place, for the changelog and the portrait tooltip. A
+    // NULL from_tier is newly placed, a NULL to_tier removed.
     function moveLabel(change) {
         if (change.from_tier && change.to_tier) return `${change.from_tier} → ${change.to_tier}`;
         if (change.to_tier) return `added to ${change.to_tier}`;
         return `removed from ${change.from_tier || '—'}`;
     }
 
-    // --- HOVER A PORTRAIT, SEE WHY IT MOVED (owner, 2026-09-20) ---
-    //
-    // The most recent change for each character, hung on that character's
-    // portrait. Built from the changelog rows already in hand rather than a
-    // query per icon, and the rows arrive newest-first, so the first one seen
-    // for a character IS its most recent by construction - no sorting, and no
-    // second definition of "most recent" to disagree with the list below.
-    //
-    // A character with nothing recorded gets no tooltip and keeps the browser's
-    // own name tooltip, which is the honest thing to show when there is no
-    // history to report.
+    // Hovering a portrait shows its character's most recent move, from the changelog
+    // rows in hand: they arrive newest first, so the first one seen is the latest. No
+    // change recorded: no tooltip.
     function attachPortraitChangeTooltips(changes) {
         const ui = document.getElementById('tier-list-ui');
         if (!ui || typeof window.bindTooltip !== 'function') return;
@@ -218,30 +164,21 @@
         });
     }
 
-    // --- THE PAGE INTRODUCTION ---
-    //
-    // Owner-editable, and hidden the moment a person is picked. That hiding is
-    // the point rather than a tidy-up: while somebody's list is open, the
-    // introduction above it should be theirs, not the page's. Two introductions
-    // stacked would make every list read as a subsection of the owner's page,
-    // which is the opposite of what attributing them was for.
+    // The page's introduction, hidden while a person's list is open: the introduction
+    // above a list should be theirs.
     function setPageIntroVisible(visible) {
         const section = document.getElementById('tier-page-intro');
         if (section) section.classList.toggle('hidden', !visible);
     }
 
-    // The sidebar's contents, after every change to what is showing: the
-    // page's introduction, or one person's list and its changelog. Nothing
-    // called this before v1.1 batch 10, so it said "Loading contents...".
+    // The sidebar's contents, after every change to what is showing.
     function refreshContents() {
         if (typeof window.refreshTOC === 'function') window.refreshTOC();
     }
 
-    // tier_page_settings is the only copy (v1.0 Part 3). The page used to ship
-    // the seeded introduction as a fallback; the owner rewrote theirs and had
-    // the old one removed, so the page ships "Loading..." and this always
-    // replaces it: with the introduction, with nothing when there is none, or
-    // with a line when it could not be read.
+    // The introduction lives only in tier_page_settings. The page ships "Loading...",
+    // and this always replaces it: the introduction, nothing, or a line when it cannot
+    // be read.
     async function loadPageIntro() {
         const body = document.getElementById('tier-page-intro-body');
         if (!body) return;
@@ -264,7 +201,6 @@
         }
     }
 
-    // --- THE PICKER ---
     function renderPicker() {
         const nav = document.getElementById('tier-tabs-container');
         if (!nav) return;
@@ -305,12 +241,6 @@
 
         ui.innerHTML = '';
         const box = el('div', 'ctl-nobody');
-        // The instruction, and nothing else. A paragraph explaining WHY there is
-        // no combined ranking used to sit under it; the owner removed it on
-        // 2026-09-09 as flavour text. The page already makes the point without
-        // arguing it - every list in the picker carries a name, and there is no
-        // combined option to look for - and the owner-editable introduction
-        // above this says it once already.
         box.appendChild(el('p', 'ctl-nobody-title', 'Pick someone to read their list.'));
         ui.appendChild(box);
 
@@ -322,7 +252,6 @@
         refreshContents();
     }
 
-    // --- ONE LIST ---
     async function showList(slug) {
         const ui = document.getElementById('tier-list-ui');
         if (!ui) return;
@@ -360,20 +289,17 @@
 
         const stamp = el('div', 'ctl-stamp');
         stamp.appendChild(el('span', 'ctl-updated', timeAgo(row.updated_at)));
-        // Beside "updated 3 weeks ago" on purpose: those two facts answer the
-        // same question, and a reader deciding whether a ranking still holds
-        // needs the patch it was written against more than the date (v0.15
-        // item 13). Absent when the author has not said, because inventing one
-        // would be worse than the gap.
+        // The game version beside "updated 3 weeks ago": a reader deciding whether a
+        // ranking holds needs the patch it was written against. Absent when the author has
+        // not said.
         if (row.game_version) {
             stamp.appendChild(el('span', 'ctl-game-version', row.game_version));
         }
         header.appendChild(stamp);
         ui.appendChild(header);
 
-        // Their introduction, above the tiers. Written by them and nobody
-        // else - it never passes through the reviewer queue, because a signed
-        // tier list is opinion rather than wiki content somebody approves.
+        // Their introduction, above the tiers, written by them alone: a signed tier list is
+        // opinion, so it never passes through the review queue.
         const intro = Array.isArray(row.intro) ? row.intro : [];
         if (intro.length && typeof window.generateHTMLForBlocks === 'function') {
             const box = el('section', 'ctl-intro');
@@ -423,23 +349,9 @@
         refreshContents();
     }
 
-    // --- TIER NAMES THAT ARE NOT ONE LETTER ---
-    //
-    // The twin of the same function in js/pages/tier-lists/tier-editor.js, and duplicated on
-    // purpose: these two files share no dependency, the editor page does not
-    // load this one, and the alternative is putting twenty lines into
-    // site_utils.js - which every page on the site loads and which re-stamps
-    // all 62 of them on every edit. Same precedent as history.js keeping its
-    // own escapeHtml.
-    //
-    // It has to exist BOTH sides or the feature is half-built: an author names
-    // a tier "God Tier" in the editor, it fits there, and readers get the same
-    // 92px box with none of the fitting.
-    //
-    // "Fits" means on one line. .ctl-label already wraps, so a long name never
-    // overflows - it just reads as two cramped lines. And ONE size for every
-    // tier, not one per tier: these labels are a scale, and a scale whose
-    // marks disagree about their own importance is not one.
+    // Long tier names fit on one line, one size for every tier, since the labels are a
+    // scale. A deliberate twin of tier-editor.js's: the two files share no dependency,
+    // and site_utils.js, which every page loads, is no place for it.
     const TIER_LABEL_MAX_REM = 1.5;
     const TIER_LABEL_MIN_REM = 0.6;
 
@@ -485,10 +397,8 @@
         }
     }
 
-    // Re-fit once the web font is really in, and again on resize. Measured
-    // against the fallback before CC-Wild-Words loads, a long name settles on a
-    // size that is wrong the moment the real typeface arrives; and the mobile
-    // rule takes .ctl-label from 92px to 64px.
+    // Fitted again once the web font is in, and on resize: measured against the
+    // fallback font, a long name settles on the wrong size.
     if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
         document.fonts.ready.then(() => fitTierLabels());
     }
@@ -522,13 +432,9 @@
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
         }
 
-        // Hovering a portrait shows that character's most recent move (owner,
-        // 2026-09-20). One query for the whole board rather than a query per
-        // icon: the rows arrive newest first, so the first one seen for a
-        // character is its most recent by construction. Its own query since
-        // the changelog went to pages (Part 3), so a character whose last move
-        // is on page 3 still gets its tooltip. Only the columns the tooltip
-        // shows, and the same 100-move reach it always had.
+        // One query for the whole board's tooltips, newest first, of its own since the
+        // changelog went to pages, so a character whose last move is on page 3 still gets
+        // one.
         const { data: recent } = await client()
             .from('tier_list_changes')
             .select('character_id, from_tier, to_tier, note, author_name, created_at')
@@ -543,10 +449,7 @@
         await drawChangelogPage(box, row.id, 0);
     }
 
-    // --- THE CHANGELOG, 20 MOVES A PAGE (v1.0 Part 3, owner, 2026-10-10) ---
-    //
-    // Newest first. It used to load the latest 100 at once and show nothing
-    // older; each page now asks for its own 20, and every move is reachable.
+    // The changelog, 20 moves a page, newest first.
     const CHANGELOG_PAGE_SIZE = 20;
 
     async function drawChangelogPage(box, listId, page) {
@@ -610,7 +513,6 @@
         box.appendChild(pager);
     }
 
-    // --- BOOT ---
     window.loadCertifiedTierLists = async function () {
         const ui = document.getElementById('tier-list-ui');
         if (!ui) return;

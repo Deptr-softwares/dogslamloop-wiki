@@ -1,17 +1,18 @@
 /**
- * Dogslamloop Wiki - Isolated Tier List Engine
- * Handles both Live Rendering and the Editor Drag-and-Drop Builder.
+ * The original tier list engine: renders a page's desc_data.tabs (an Overall tab and
+ * "vs <character>" tabs) and the editor's drag-and-drop builder for it. The Tier
+ * List page itself is certified-tier-lists.js; this one serves the older data in
+ * the Overseer's preview and the editor.
+ * @since v0.4
+ * @touches desc_data.tabs (tiers, changelog), data/navigation.json,
+ *   data/portraits.json
+ * @watch tier names and changelog notes are contributor text written into
+ *   innerHTML: escaped, and upper-cased before escaping (the other order turns
+ *   &amp; into &AMP;)
+ * @see docs/tier-lists.md
  */
 
 window.tierRoster = [];
-
-// Tier names and changelog notes are contributor-submitted and this file writes
-// them straight into innerHTML on a page any reader can load. Until 2026-09-06
-// an <img onerror> in a tier name EXECUTED - confirmed by a test that watched
-// the payload fire, not by reading the code.
-//
-// Uppercase BEFORE escaping where a label is upper-cased. The other order
-// turns &amp; into &AMP;, which no browser resolves.
 
 // A tier's colour goes inside a style attribute, where escaping stops it
 // closing the attribute but not adding declarations of its own. So only a
@@ -20,8 +21,7 @@ window.tierRoster = [];
 const TIER_COLOR = /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s.,%/+-]+\)|[a-z]+)$/i;
 const tierColor = (value, fallback) => (typeof value === 'string' && TIER_COLOR.test(value.trim()) ? value : fallback);
 
-// --- CORE ROSTER MATCHER ---
-// Fetches navigation.json to link Character IDs to their official names and colors
+// The roster from navigation.json, for the names and colours.
 async function fetchTierRoster() {
     if (window.tierRoster.length > 0) return window.tierRoster;
     
@@ -33,16 +33,8 @@ async function fetchTierRoster() {
         
         const roster = navData["Characters"] || [];
 
-        // Attach the mirrored portrait, so buildPortrait below takes its
-        // `charMeta.image` path instead of guessing a Supabase URL from the
-        // display name. The guess was wrong for five characters - Disaster
-        // Plants, Locust Guy, Black Death, Boomcat and the template - whose
-        // files end in "Portrait2.webp" or drop the suffix entirely, and the
-        // <img> hides itself on error, so they rendered nothing at all.
-        //
-        // These are same-origin, which is also what makes the tier list
-        // exportable: a cross-origin image taints a canvas and makes both
-        // toBlob() and the clipboard write throw.
+        // The mirrored portrait (data/portraits.json), not a guessed Supabase address: the
+        // guess missed several files, and a same-origin image keeps the canvas exportable.
         try {
             const portraits = window.fetchJson
                 ? await window.fetchJson(`${rootPath}data/portraits.json`, { cache: true })
@@ -53,9 +45,7 @@ async function fetchTierRoster() {
                 if (pageId && portraits[pageId]) entry.image = portraits[pageId];
             }
         } catch (e) {
-            // Non-fatal on purpose. Without the manifest every portrait falls
-            // back to the guessed cloud URL, which is what shipped before -
-            // degraded, not broken.
+            // Non-fatal: without the manifest, portraits fall back to the guessed address.
             console.warn("Portrait manifest unavailable, falling back to guessed URLs:", e);
         }
 
@@ -67,12 +57,9 @@ async function fetchTierRoster() {
     }
 }
 
-// --- PORTRAIT ENGINE ---
-// Generates a standardized Character Portrait icon
 function getCharPortraitHTML(charId, isDraggable = false) {
     const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
     
-    // Normalize the ID for matching
     const normalizedSearchId = charId.toLowerCase().replace(/[-_ ]/g, '');
     const charMeta = window.tierRoster.find(c => c.id.toLowerCase().replace(/[-_ ]/g, '') === normalizedSearchId) 
                      || { name: charId.replace(/[-_]/g, ' ') };
@@ -82,24 +69,17 @@ function getCharPortraitHTML(charId, isDraggable = false) {
         charColor = window.CHARACTER_COLORS[charMeta.name];
     }
 
-    // AUTO-GENERATE SUPABASE CLOUD URL
     const cleanNameForUrl = charMeta.name.replace(/[^a-zA-Z0-9]/g, '');
     const cloudImageUrl = `https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/${cleanNameForUrl}Portrait.webp`;
     
     const finalImgSrc = charMeta.image ? `${rootPath}${charMeta.image}` : cloudImageUrl;
 
-    // Image is layered on top. If it fails to load, it hides itself revealing the text!
+    // If the image fails, it hides itself and the name under it shows.
     const imgHTML = `<img src="${window.escapeHtml(finalImgSrc)}" onerror="this.style.display='none'" class="tier-portrait-img">`;
 
-    // charId comes from the tier list's own `characters` array, which is
-    // contributor-submitted, and charMeta.name falls back to it whenever the id
-    // is not in the roster - so a character that has been renamed or never
-    // existed carries the submitted string straight into these attributes.
-    //
-    // The onclick below is left as-is deliberately: charMeta.url is only set
-    // when the id WAS found in navigation.json, so it is generated data, and
-    // HTML-escaping a value inside a JS string inside an attribute is a
-    // different (and easier to get wrong) problem than escaping text.
+    // charId comes from the list's own data and can carry a submitted string, so it is
+    // escaped in these attributes. The onclick stays: charMeta.url is set only for an
+    // id found in navigation.json, so it is generated data.
     return `
         <div class="tier-portrait ${isDraggable ? 'draggable-portrait' : ''}"
              data-char-id="${window.escapeHtml(charId)}"
@@ -114,21 +94,15 @@ function getCharPortraitHTML(charId, isDraggable = false) {
     `;
 }
 
-// ==========================================
-// 1. LIVE RENDERER
-// ==========================================
-
 window.loadTierList = async function() {
     await fetchTierRoster();
 
     let data = null;
     const pageId = 'tierlist';
 
-    // 1. Check Editor Cache first! (Critical for Live Preview Pane)
     if (window.currentEditorDescData) {
         data = window.currentEditorDescData;
     } else {
-        // 2. Fetch from Cloud or Fallback
         if (typeof window.fetchCloudCharacterData === 'function') {
             const cloudData = await window.fetchCloudCharacterData(pageId);
             if (cloudData && cloudData.desc_data) data = cloudData.desc_data;
@@ -150,15 +124,13 @@ window.loadTierList = async function() {
         return;
     }
 
-    // Render Navigation Tabs (Hierarchical Layout)
     const navContainer = document.getElementById('tier-tabs-container');
     
-    // Override the HTML flex wrapper so we can stack the big button on top
+    // Block, not flex, so the Overall button stacks above the others.
     navContainer.style.display = 'block';
     navContainer.style.borderBottom = 'none';
     navContainer.style.paddingBottom = '0';
 
-    // Find the Overall tab to pin to the top
     let overallTab = data.tabs.find(t => t.id === 'overall' || t.label.toLowerCase() === 'overall');
     let overallIdx = data.tabs.indexOf(overallTab);
     if (overallIdx === -1) { overallTab = data.tabs[0]; overallIdx = 0; }
@@ -175,9 +147,8 @@ window.loadTierList = async function() {
         <div class="tier-nav-matchup-row">
     `;
 
-    // Render the Matchup Tabs with Character Colors
     data.tabs.forEach((tab, idx) => {
-        if (idx === overallIdx) return; // Skip the overall tab we already rendered
+        if (idx === overallIdx) return;
 
         // Extract the character name (e.g. "vs Honored One" -> "Honored One") to find their color
         let charName = tab.label.replace(/^vs\.?\s+/i, '').trim();
@@ -195,7 +166,6 @@ window.loadTierList = async function() {
     navHTML += `</div>`;
     navContainer.innerHTML = navHTML;
 
-    // Attach data globally for the tab switcher
     window.liveTierData = data;
     window.switchLiveTierTab(0);
 };
@@ -204,7 +174,6 @@ window.switchLiveTierTab = function(tabIndex) {
     const data = window.liveTierData;
     if (!data || !data.tabs[tabIndex]) return;
 
-    // Update Nav UI via exact IDs
     document.querySelectorAll('#tier-tabs-container .btn-manga').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`nav-tier-${data.tabs[tabIndex].id}`);
     if (activeBtn) activeBtn.classList.add('active');
@@ -213,7 +182,6 @@ window.switchLiveTierTab = function(tabIndex) {
     const listContainer = document.getElementById('tier-list-ui');
     const logContainer = document.getElementById('changelog-container');
 
-    // 1. Render Tiers
     let listHTML = `<div class="tier-list-inner">`;
 
     if (!activeTab.tiers || activeTab.tiers.length === 0) {
@@ -244,7 +212,6 @@ window.switchLiveTierTab = function(tabIndex) {
     listHTML += `</div>`;
     listContainer.innerHTML = listHTML;
 
-    // 2. Render Changelog
     let logHTML = '';
     if (activeTab.changelog && activeTab.changelog.length > 0) {
         activeTab.changelog.forEach(log => {
@@ -262,24 +229,18 @@ window.switchLiveTierTab = function(tabIndex) {
     }
     logContainer.innerHTML = logHTML;
 
-    // Attach ToC hook
     if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
 };
-
-// ==========================================
-// 2. EDITOR BUILDER
-// ==========================================
 
 window.initTierListEditor = async function(containerId, descData) {
     await fetchTierRoster();
     
-    // Auto-Migrate or Initialize
     if (!descData.tabs) {
         descData.tabs = [{ id: 'overall', label: 'Overall', tiers: [], changelog: [] }];
     }
     
     window.currentEditorDescData = descData;
-    window.currentSystemTabIdx = window.currentSystemTabIdx || 0; // Reusing system tab tracker for state
+    window.currentSystemTabIdx = window.currentSystemTabIdx || 0; // shared with the system page editor
     if (window.currentSystemTabIdx >= descData.tabs.length) window.currentSystemTabIdx = 0;
 
     const container = document.getElementById(containerId);
@@ -293,7 +254,6 @@ window.renderTierEditorUI = function(container) {
     const activeIdx = window.currentSystemTabIdx;
     const activeTab = descData.tabs[activeIdx];
 
-    // 1. TABS NAVIGATION (Styled to match screenshot)
     let tabHTML = `<div class="daw-variant-tabs tier-editor-tabs-row">`;
     descData.tabs.forEach((tab, tIdx) => {
         let activeClass = tIdx === activeIdx ? 'active' : '';
@@ -312,7 +272,6 @@ window.renderTierEditorUI = function(container) {
         return;
     }
 
-    // 2. CALCULATE UNASSIGNED POOL
     let assignedIds = [];
     if (activeTab.tiers) {
         activeTab.tiers.forEach(t => { if (t.characters) assignedIds.push(...t.characters); });
@@ -322,7 +281,6 @@ window.renderTierEditorUI = function(container) {
     let poolHTML = '';
     unassignedChars.forEach(c => { poolHTML += getCharPortraitHTML(c.id, true); });
 
-    // 3. RENDER TIERS (STACKED LAYOUT FROM SCREENSHOT)
     let tiersHTML = '';
     if (!activeTab.tiers) activeTab.tiers = [];
     
@@ -352,7 +310,6 @@ window.renderTierEditorUI = function(container) {
         `;
     });
 
-    // 4. RENDER CHANGELOGS (Max 5)
     let changelogHTML = '';
     if (!activeTab.changelog) activeTab.changelog = [];
     
@@ -382,7 +339,6 @@ window.renderTierEditorUI = function(container) {
         ? `<button class="btn-sys btn-sys-green" onclick="window.addTierChangelog()">+ ADD LOG</button>`
         : `<span class="tier-max-logs-msg">MAX 5 LOGS REACHED</span>`;
 
-    // 5. ASSEMBLE FULL EDITOR
     container.innerHTML = `
         ${tabHTML}
 
@@ -424,14 +380,13 @@ window.renderTierEditorUI = function(container) {
         </div>
     `;
 
-    // 6. BIND DRAG AND DROP PHYSICS
     window.bindTierDragAndDrop(container);
 };
 
-// --- DRAG AND DROP PHYSICS ENGINE ---
-// Pointer Events (not native HTML5 DnD) so the exact same code path drives
-// mouse and touch - native DnD never fires from a touch gesture at all, which
-// made this editor unusable on phones/tablets prior to this rewrite.
+/**
+ * Drag and drop for the builder, on Pointer Events, so mouse and touch share one
+ * path: native drag and drop never fires from a touch.
+ */
 window.bindTierDragAndDrop = function(container) {
     const draggables = container.querySelectorAll('.draggable-portrait');
     const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
@@ -469,18 +424,10 @@ window.bindTierDragAndDrop = function(container) {
                 }
             }
 
-            // The unassigned pool + tier rows can easily be taller than one
-            // screen, especially on mobile - without this, dragging a
-            // character from the top of the page down into a tier row (or
-            // vice versa) is impossible if both ends aren't visible at once.
-            // Re-checks the dropzone under the (stationary) pointer every
-            // frame while scrolling, since the page moves under it even
-            // though the pointer itself doesn't.
-            //
-            // edit.html uses an app-shell layout (body has overflow-y:
-            // hidden; an inner panel does the actual scrolling), so this
-            // walks up for the real scrollable ancestor instead of assuming
-            // window/document scroll.
+            // The pool and the tier rows are often taller than a screen, so a drag near an
+            // edge scrolls, re-checking the drop zone under the still pointer each frame.
+            // edit.html scrolls an inner panel, not the window, so this finds the real
+            // scrolling ancestor.
             function getScrollParent(node) {
                 let ancestor = node.parentElement;
                 while (ancestor) {
@@ -569,7 +516,7 @@ window.bindTierDragAndDrop = function(container) {
 window.moveCharToTier = async function(charId, targetTierIdx) {
     const activeTab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
     
-    // Remove from ALL existing tiers in this tab first
+    // A character sits in one tier: out of every other first.
     if (activeTab.tiers) {
         activeTab.tiers.forEach(t => {
             if (t.characters) {
@@ -578,7 +525,6 @@ window.moveCharToTier = async function(charId, targetTierIdx) {
         });
     }
 
-    // Add to target tier (if not dropped in 'unassigned')
     if (targetTierIdx !== 'unassigned') {
         const targetTier = activeTab.tiers[parseInt(targetTierIdx)];
         if (!targetTier.characters) targetTier.characters = [];
@@ -589,7 +535,6 @@ window.moveCharToTier = async function(charId, targetTierIdx) {
     window.renderTierEditorUI(document.getElementById('interactive-builder'));
 };
 
-// --- TAB MUTATIONS ---
 window.switchEditorTierTab = function(idx) {
     window.currentSystemTabIdx = idx;
     window.renderTierEditorUI(document.getElementById('interactive-builder'));
@@ -628,7 +573,6 @@ window.updateTierTabLabel = function(val) {
     }, 500);
 };
 
-// --- TIER ROW MUTATIONS ---
 window.addTier = async function() {
     const activeTab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
     if (!activeTab.tiers) activeTab.tiers = [];
@@ -662,9 +606,7 @@ window.updateTierMeta = function(idx, field, val) {
     const activeTab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
     activeTab.tiers[idx][field] = val;
     
-    // INSTANT DOM UPDATE FOR COLOR BORDERS
     if (field === 'color') {
-        // Find the specific card to update its border color immediately
         const allCards = document.getElementById('tier-rows-container').querySelectorAll('.block-card');
         if (allCards[idx]) allCards[idx].style.borderLeftColor = val;
     }
@@ -675,7 +617,6 @@ window.updateTierMeta = function(idx, field, val) {
     }, 400);
 };
 
-// --- CHANGELOG MUTATIONS ---
 window.addTierChangelog = async function() {
     const activeTab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
     if (!activeTab.changelog) activeTab.changelog = [];

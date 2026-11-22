@@ -25,14 +25,14 @@ What each thing is called on screen, in the code and in the data, where those di
 
 ## Renames
 
-Picked by the owner (2026-11-22). They happen in B-3, when every page's script tags are rewritten anyway, and this table follows.
+Picked by the owner (2026-11-22). They happen in B-4, when every page's script tags are rewritten anyway, and this table follows.
 
 - `description.js` becomes `page_render.js`, beside `page_router.js` and `page_boot.js`.
 - `framedata.js` becomes `skill_card.js`.
 - `internalstyling.js` becomes `format_tags.js`. It also colours character names, frame terms and timings on its own.
 - `site_meta.js` becomes `site_lookups.js`. `scripts/fetch-content.js` writes its `CHARACTER_COLORS` region, and the content gate's list in `tests/content-gate.spec.js` names it, so both change with it.
 - `admin.html` becomes `overseer.html`. The old address forwards, and robots.txt and the sitemap's exclusions move with it. 92 files name `admin.html`, 60 of them tests.
-- `pagebuilder.js` is named in B-3, once it is decided how it splits: it builds the sidebar, roster, tabs, table of contents and footer, and also the data grids and their filters.
+- `pagebuilder.js` is named in B-4, once it is decided how it splits: it builds the sidebar, roster, tabs, table of contents and footer, and also the data grids and their filters.
 
 ## Kept
 

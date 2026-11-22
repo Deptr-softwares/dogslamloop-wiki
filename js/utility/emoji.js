@@ -1,25 +1,19 @@
 /**
- * Dogslamloop Wiki - Emojis in posts (v1.1, batch 8.5)
- *
- * Two kinds, both drawn as pictures in a post's text (owner, 2026-10-21):
- *
- *   - The wiki's own, :HmmCat: and the rest, named exactly as the emojis on
- *     the Discord server, so the relay can turn one into the other. A post
- *     stores the name; the relay's CUSTOM_EMOJI
- *     (supabase/functions/_shared/discord-relay-core.mjs) lists the same ones.
- *   - Every standard emoji, in Discord's look: Twemoji's art, pinned, from
- *     jsDelivr. A post stores the character itself, so it reaches Discord as
- *     it is, and a device without the art still shows its own.
- *
- * Post text is the most attacker-reachable string on the site
- * (js/pages/community/discussions.js), so nothing here uses innerHTML: words go in as text
- * nodes, and each picture is an <img> whose address comes from the list
- * below or from code points, never from the text as written.
+ * Emojis in posts, drawn as pictures in a post's text: the wiki's own (:HmmCat: and
+ * the rest, named as on the Discord server, so the relay can turn one into the
+ * other) and every standard emoji in Discord's look (Twemoji's art, pinned, from
+ * jsDelivr). Also the emoji picker.
+ * @since v1.1
+ * @touches data/emoji.json (the picker's list), the Twemoji CDN; CUSTOM_EMOJI in
+ *   supabase/functions/_shared/discord-relay-core.mjs lists the same custom ones
+ * @watch post text is the most attacker-reachable string on the site, so nothing
+ *   here uses innerHTML: words go in as text nodes, and a picture's address comes
+ *   from the list or from code points, never from the text as written
+ * @see docs/discussions.md
  */
 
 (function () {
-    // Named exactly as on the Discord server, none animated (owner,
-    // 2026-10-21).
+    // Named exactly as on the Discord server, none animated.
     const CUSTOM = [
         { name: 'HmmCat', file: 'medias/images/HmmCat.webp' },
         { name: 'darkCat', file: 'medias/images/darkCat.webp' },
@@ -125,12 +119,9 @@
         node.classList.toggle('emoji-jumbo', count > 0 && !words && count <= JUMBO_MAX);
     }
 
-    // --- THE PICKER ---
-    //
-    // The wiki's own first, then Unicode's groups, with a search over names.
-    // A picture gets its address only when it scrolls into the picker's own
-    // view. loading="lazy" alone is not enough inside a scrolling box: opening
-    // the picker fetched 744 pictures with it (measured 2026-10-21).
+    // The picker: the wiki's own first, then Unicode's groups, with a search over
+    // names. A picture gets its address only when it scrolls into the picker's view:
+    // loading="lazy" alone, inside a scrolling box, fetched every picture on opening.
 
     const SEARCH_MAX = 120;
 
@@ -165,12 +156,9 @@
         return box;
     }
 
-    // Where the next pick goes in each box, kept here rather than read off the
-    // box: after a real click writes into a box that is not focused, Chrome
-    // moves its caret back to the start a moment later (seen 2026-10-21; a
-    // write inside one script task keeps it). Kept from when the picker opens
-    // and whenever the box loses focus, moved on by each pick, and handed back
-    // to the browser when the box is focused again.
+    // Where the next pick goes in each box, kept here rather than read off the box:
+    // after a click writes into an unfocused box, Chrome moves its caret back to the
+    // start a moment later. Handed back to the browser when the box is focused again.
     const carets = new WeakMap();
 
     function keepCaret(area) {

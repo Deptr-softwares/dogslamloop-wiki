@@ -1,46 +1,19 @@
 /**
- * Dogslamloop Wiki - The input slot vocabulary, and how a move name gets one
- *
- * JJS has ten inputs, and the community writes combos NAME-FIRST - "MURMURATE
- * > R↑ > AIR UPDRAFT", not "2 > R > 1". So colouring a route by input means
- * knowing which slot each move NAME belongs to, per character.
- *
- * DERIVED, NOT AUTHORED
- *
- * That mapping already exists: every move in frame_data carries an `input`
- * ("1", "2 Key", "Air + 1 Key", "Space + M1"). A hand-written map beside it
- * would be a second copy of the same fact, and the moment someone edits a
- * move's input the two disagree and the colouring goes quietly wrong - the
- * failure this project has already paid for with tab lists and keyed sections.
- *
- * So the map is derived from frame data, and `desc_data.characterSettings` is
- * a thin OVERRIDE layer on top for the two things derivation cannot do:
- *
- *   aliases   community shorthand - "Garuda" for "Garuda Stab"
- *   slots     moves whose `input` is blank or genuinely ambiguous
- *
- * Measured against the live roster on 2026-08-17: 519 moves, 396 (76%) resolve
- * from `input` alone, 33 are multi-key, and 90 have no input at all. The
- * modifier rule below takes the multi-key ones; the 90 blanks are a frame-data
- * gap - filling `input` fixes the frame-data page AND the colouring at once,
- * which is why the override exists but is not the primary path.
+ * The ten input slots (M1, 1 to 4, R, Q, F, Space, Shift), and which slot each
+ * move name belongs to, for colouring combo routes by input. JJS combos are
+ * written name-first ("MURMURATE > R^ > AIR UPDRAFT"), so colouring needs each
+ * name's slot.
+ * @since v0.15
+ * @touches frame_data (each move's `input`), desc_data.characterSettings (slots and
+ *   aliases); the slot colours are custom properties in style/ColorCoding.css
+ * @watch the map is derived from each move's `input`, never written by hand, so
+ *   fixing a move's input fixes its colour too; characterSettings only overrides
+ * @see docs/format-tags.md
  */
 
 (function () {
-    // The ten, in the order the owner listed them (2026-08-16).
-    //
-    // The colours themselves live in style/ColorCoding.css as custom
-    // properties, the same way FRAME_COLORS does - CSS is the single source of
-    // truth for colour on this site, and the color-codes page reads it.
-    //
-    // THERE WAS AN `outline: 'light' | 'dark'` FIELD HERE, AND IT IS GONE
-    // (v0.18 FT1). Every slot is now outlined in black, so the field said the
-    // same thing ten times - and nothing ever read it except a test asserting
-    // it held one of two values. A constant that describes CSS from a second
-    // file is a place for the two to drift with nothing gained, which is
-    // exactly what happened: the moment the outline rule changed, this field
-    // was wrong and no code could notice. The invariant is asserted against
-    // ColorCoding.css directly in tests/input-slots.spec.js instead.
+    // The ten slots, in order. Their colours are custom properties in
+    // style/ColorCoding.css, where the site's colours live.
     const SLOTS = [
         { id: 'M1',    label: 'Basic Attack', cls: 'is-m1' },
         { id: '1',     label: 'Skill 1',      cls: 'is-1' },
@@ -55,10 +28,12 @@
     ];
 
     SLOTS.forEach(Object.freeze);
+    /** The ten slots, and their ids, for patterns that match a bare key. */
     window.INPUT_SLOTS = Object.freeze(SLOTS);
     window.INPUT_SLOT_IDS = Object.freeze(SLOTS.map(s => s.id));
 
     const BY_ID = new Map(SLOTS.map(s => [s.id.toUpperCase(), s]));
+    /** A slot by its id, in any case, or null. */
     window.getInputSlot = function (id) {
         return BY_ID.get(String(id === null || id === undefined ? '' : id).toUpperCase()) || null;
     };
@@ -106,16 +81,13 @@
     };
 
     // Move names are matched against what a contributor typed, so a hyphen and
-    // a space are the same separator: frame data says "Dive-Bomb" and the
-    // owner writes "Dive Bomb". Without this, every hyphenated move on the
+    // a space are the same separator: frame data says "Dive-Bomb" and
+    // people write "Dive Bomb". Without this, every hyphenated move on the
     // roster would need an alias to colour at all.
     const normalise = (name) => String(name === null || name === undefined ? '' : name)
         .trim().replace(/[\s‐-―-]+/g, ' ').toLowerCase();
 
-    // From the tab vocabulary, not listed here: these are exactly the tabs
-    // that hold a frame-data move array, and a second copy of that list is
-    // what tests/character-tab-vocabulary.spec.js exists to prevent. Resolved
-    // at call time because character_tabs.js loads just before this file.
+    // The tabs that hold a move array, from the tab list, resolved at call time.
     const moveCategories = () => (window.getCharacterTabIds
         ? window.getCharacterTabIds({ includeInjected: true, frameMovesOnly: true })
         : (window.FRAME_MOVE_CATEGORIES || []));
@@ -162,25 +134,10 @@
         return map;
     };
 
-    // Mechanics every character shares, which therefore appear in no
-    // character's frame data - so derivation can never find them, and a route
-    // that says "Side Dash" or "Block" came out uncoloured next to the moves
-    // around it (owner, 2026-08-17).
-    //
-    // Names are what people WRITE, not what a menu calls them: nobody types
-    // "Dash Input", they type "Side Dash".
-    //
-    // F (Block / Blocking / Guard) was here and was REMOVED at the owner's
-    // request, 2026-08-20: redundant. Unlike a dash or a jump, "block" is a
-    // word combo prose uses constantly as an ordinary verb - "block the
-    // follow-up", "they can block here" - so colouring it tinted running text
-    // rather than marking an input, which is the opposite of what the slot
-    // colours are for.
-    //
-    // Not a blanket ban: a character whose own kit has a move named Block
-    // still gets it from deriveMoveSlots, and an author can name it explicitly
-    // through desc_data.characterSettings.slots. This only stops the universal
-    // fallback assuming it.
+    // Mechanics every character shares, which no character's frame data holds, named
+    // the way people write them ("Side Dash"). Not Block: combo prose uses it as an
+    // ordinary verb ("block the follow-up"). A kit with a move named Block still gets
+    // it from deriveMoveSlots, or through characterSettings.slots.
     const UNIVERSAL_MECHANICS = {
         Q: ['Dash', 'Side Dash', 'Front Dash', 'Forward Dash', 'Back Dash', 'Backward Dash', 'Air Dash'],
         Space: ['Jump', 'Jumping', 'Double Jump'],
@@ -227,5 +184,6 @@
     };
 
     window.UNIVERSAL_MECHANICS = Object.freeze(UNIVERSAL_MECHANICS);
+    /** A move name as matched: hyphens and spaces are one separator, lower case. */
     window.normaliseMoveName = normalise;
 })();

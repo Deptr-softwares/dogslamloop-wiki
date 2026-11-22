@@ -1,63 +1,34 @@
 /**
- * Dogslamloop Wiki - Tool pages (page_type 'tool')
- *
- * A host, not a renderer. `tools/` holds the owner's own tools, and a tool is
- * an application rather than a document - the two planned ones have almost
- * nothing in common:
- *
- *   Certified Tier List - accepts every submission and averages them into a
- *                         community ranking. Its own data model, its own
- *                         submission flow, its own anti-brigading rules.
- *   Skill Builder ID Reader
- *                       - already built and hosted elsewhere; genuinely just
- *                         a link.
- *
- * Forums are deliberately not here. That scope was downscaled to per-character
- * discussion threads, which belong on a character page rather than in a
- * site-wide tool.
- *
- * So each tool registers its own renderer against its page id, and this file
- * only builds the frame around it and picks who fills it. The link/embed
- * shell below is the fallback, not the model - it exists because the ID
- * Reader really is only a link, and because a tool that has not been written
- * yet should say so rather than render nothing.
- *
- * Registering a tool:
- *
- *   window.registerWikiTool('certified_tierlist', async (mount, ctx) => { ... });
- *
- * `mount` is an empty div inside the page shell. `ctx` carries { pageId,
- * config } where config is page_data.desc_data.tool, so a tool can be
- * configured from the owner tools without a code change.
- *
- * The registry is deliberately a plain object rather than a build-time import
- * map: this codebase has no bundler, and a tool's script is loaded by its own
- * generated stub. A tool that fails to load leaves its page with the fallback
- * rather than a blank screen.
+ * Tool pages (page_type 'tool'): a host, not a renderer. A tool registers its own
+ * renderer against its page id (window.registerWikiTool), and this file builds the
+ * frame around it with the page's intro and notes Blocks. A tool with no renderer
+ * gets a launch link, with an embed above it when the page asks for one.
+ * @since v0.12
+ * @touches page_data.desc_data.tool (the tool's settings), desc_data.intro and notes
+ * @watch a tool that fails to load or throws leaves its page with the link and the
+ *   prose, never a blank screen
+ * @see docs/page-shell.md
  */
 
 window.WIKI_TOOLS = window.WIKI_TOOLS || {};
 
+/**
+ * Registers a tool's renderer for a page id: renderer(mount, { pageId, config }),
+ * where config is page_data.desc_data.tool.
+ */
 window.registerWikiTool = function(pageId, renderer) {
     window.WIKI_TOOLS[pageId] = renderer;
 };
 
-// The fallback: a link, optionally with an embed above it.
-//
-// Embedding is opt-in rather than automatic. A tool served with
-// X-Frame-Options renders as a permanently blank box that the page has no way
-// to detect, so the launch link renders either way - with an embed it is the
-// escape hatch for anyone whose browser blocks third-party frames, and
-// without one it is the page's entire point.
+// The fallback: a launch link, with an embed above it only when asked. A tool sent
+// with X-Frame-Options draws a blank box the page cannot detect, so the link always
+// shows.
 function renderLinkedTool(mount, config) {
     if (!config.url) {
         mount.innerHTML = `<p class="empty-tab-msg">No tool linked yet. Press EDIT PAGE to add one.</p>`;
         return;
     }
 
-    // Built as nodes rather than innerHTML: the URL is owner-authored, but it
-    // goes into an href and a src, and the rule here is to escape at every
-    // interpolation rather than reason about who typed what.
     if (config.embed) {
         const iframe = document.createElement('iframe');
         iframe.src = config.url;
@@ -80,6 +51,7 @@ function renderLinkedTool(mount, config) {
     mount.appendChild(launch);
 }
 
+/** Draws a tool page: its intro, the tool or the fallback, and its notes. */
 window.renderToolPage = async function(pageId) {
     const main = document.querySelector('.main-content-area');
     if (!main) return;
@@ -98,9 +70,8 @@ window.renderToolPage = async function(pageId) {
     `;
     main.appendChild(shell);
 
-    // The editor's own object wins, same convention as description.js and
-    // framedata.js - that is what makes the live preview pane show unsaved
-    // work rather than whatever is currently in the database.
+    // The editor's own object wins, as in description.js and framedata.js, so the
+    // preview shows unsaved work.
     let data = window.currentEditorDescData || null;
     if (!data && window.supabaseClient) {
         const { data: row } = await window.supabaseClient

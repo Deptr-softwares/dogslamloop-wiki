@@ -1,8 +1,13 @@
-/* =========================================
-   DESIGN SYSTEM: COLOR CODING (ColorCoding.css)
-   ========================================= */
+/* The site's colours as custom properties: each character's, the ten input slots,
+   the frame-data phases, the overlays and the track colours, with the classes that
+   apply them.
+   Since v0.01.
+   Watch: site_meta.js reads the frame and overlay colours from here at runtime
+   (FRAME_COLORS, WINDOW_COLORS), so this file is their one source. A comment here
+   closes exactly once: an early close dropped --input-color-m1 for months.
+   See: docs/looks.md */
 
-/* --- 1. CHARACTER IDENTITY COLORS (CSS Variables) --- */
+/* Character colours */
 :root {
     --color-vessel: hsl(0, 100%, 80%);
     --color-honored-one: hsl(180, 100%, 83%);
@@ -30,37 +35,20 @@
 
     /* Frame data timing colors - single source of truth, also read at runtime
        via getComputedStyle by site_meta.js (window.FRAME_COLORS/WINDOW_COLORS) */
-    /* --- THE TEN INPUT SLOTS (v0.15) ---
-       JJS's inputs, owner-specified 2026-08-16. Used to colour combo notation:
-       a move name is resolved to its slot from frame_data's `input` field
-       (js/utility/input_slots.js) and coloured with the matching token here.
-
-       CATEGORICAL, not ordinal - M1 and Skill 1 have no order between them, so
-       they want distinct hues rather than a ramp. That is the opposite of
-       combo difficulty, which is ordinal and gets a green-to-red ramp.
-
-       v0.18 FT1: FOUR OF THESE WERE DARK, AND WERE BRIGHTENED.
-       Every slot now carries a BLACK outline (owner, 2026-09-08), and a dark
-       fill inside a black outline is a dark smudge - so 4, R, Q and Shift had
-       to move up with the outline change rather than after it. The old values
-       are kept in the comments because they are what the owner picked in
-       v0.15 and what the pages were authored against.
-
-       THE THREE NEUTRALS ARE THE CONSTRAINT, not the hues. Shift was near
-       black, Q was mid grey and Space was light; brightening the first two
-       pushes all three toward each other, and these slots are CATEGORICAL, so
-       collapsing them loses information rather than nuance. They are spread
-       deliberately at roughly 45 / 62 / 82 to keep three steps apart. */
+    /* The ten input slots, for combo notation: a move name's slot comes from
+       frame_data's input (input_slots.js). Categorical, so distinct hues, not a ramp.
+       Every slot has a black outline, so the fills are bright; the three neutrals
+       (Space, Q, Shift) sit at about 82, 62 and 45 lightness, three steps apart. */
     --input-color-m1: hsl(0, 100%, 72%);        /* Light Red */
     --input-color-1: hsl(52, 100%, 68%);        /* Light Yellow */
     --input-color-2: hsl(205, 100%, 72%);       /* Light Blue */
     --input-color-3: hsl(158, 55%, 55%);        /* Jade Green */
-    --input-color-4: hsl(25, 100%, 62%);        /* Orange      - was 25 90% 48% */
-    --input-color-r: hsl(295, 75%, 68%);        /* Magenta     - was 295 60% 48% */
-    --input-color-q: hsl(0, 0%, 62%);           /* Mid Grey    - was 0 0% 40% */
+    --input-color-4: hsl(25, 100%, 62%);        /* Orange */
+    --input-color-r: hsl(295, 75%, 68%);        /* Magenta */
+    --input-color-q: hsl(0, 0%, 62%);           /* Mid Grey */
     --input-color-f: hsl(185, 90%, 62%);        /* Cyan */
-    --input-color-space: hsl(0, 0%, 82%);       /* Light Grey  - was 0 0% 80% */
-    --input-color-shift: hsl(0, 0%, 45%);       /* Dark Grey   - was 0 0% 12% */
+    --input-color-space: hsl(0, 0%, 82%);       /* Light Grey */
+    --input-color-shift: hsl(0, 0%, 45%);       /* Dark Grey */
 
     --frame-color-start: hsl(217.18, 100%, 50%);
     --frame-color-active: hsl(0, 100%, 45%);
@@ -78,9 +66,8 @@
     --window-color-iframe-swarm: hsl(330, 81%, 60%);
     --window-color-iframe-complete: hsl(0, 0%, 100%);
 
-    /* DAW track header/footer color markers (js/editor/tabs/editor-framedata.js bar.headerClass) -
-       single source of truth shared by the editor's .daw-option-* dropdown
-       preview and the live page's .text-* rendering in js/pages/core/framedata.js. */
+    /* Track colours for a Frame Track bar's header and footer (bar.headerClass): one
+       source for the editor's dropdown and the live page. */
     --track-color-red-400: hsl(3, 93%, 63%);
     --track-color-red-600: hsl(0, 100%, 50%);
     --track-color-blue-400: #3b82f6;
@@ -92,28 +79,9 @@
     --track-color-gray-400: hsl(0, 0%, 50%);
 }
 
-/* --- 2. FRAME DATA TIMING COLORS ---
-   Each rule matches three things for the same reason - one definition of a
-   colour, reused rather than duplicated:
-
-     .bg-tick-X .frame-tick   the divisions of a counted phase
-     .phase-solid             the whole block of a phase that has NO divisions
-                              to colour (js/pages/core/framedata.js appends no ticks for
-                              one). Without this such a phase rendered at the
-                              correct width and completely transparent -
-                              reported as "the qualitative frame data did not
-                              show up at all".
-
-                              Two phases have no divisions, for two different
-                              reasons: an ESTIMATE, which nobody frame-counted,
-                              and a SECONDS phase (v0.19 C4), which is measured
-                              in a unit that has no frames to divide. They keep
-                              their own semantic classes - .phase-estimated and
-                              .phase-seconds - and share this one, because the
-                              colour is the same question and was worth asking
-                              once. It used to be spelled .phase-estimated,
-                              which said why rather than what.
-     .legend-swatch           the frame-data legend */
+/* Frame-data phase colours. Each rule matches three things, so a colour is defined
+   once: .bg-tick-X .frame-tick (a counted phase's divisions), .phase-solid (a phase
+   with no divisions: an estimate, or a timed phase) and .legend-swatch (the legend). */
 .bg-tick-start .frame-tick, .phase-solid.bg-tick-start, .legend-swatch.bg-tick-start { background-color: var(--frame-color-start); }   /* Startup */
 .bg-tick-active .frame-tick, .phase-solid.bg-tick-active, .legend-swatch.bg-tick-active { background-color: var(--frame-color-active); }       /* Active Frames */
 .bg-tick-recov .frame-tick, .phase-solid.bg-tick-recov, .legend-swatch.bg-tick-recov { background-color: var(--frame-color-recov); }  /* Recovery / Whiff Endlag */
@@ -124,8 +92,7 @@
 .bg-tick-blockendlag .frame-tick, .phase-solid.bg-tick-blockendlag, .legend-swatch.bg-tick-blockendlag { background-color: var(--frame-color-blockendlag); } /* Block Endlag */
 .bg-tick-inactive .frame-tick, .phase-solid.bg-tick-inactive, .legend-swatch.bg-tick-inactive { background-color: var(--frame-color-inactive); }    /* Inactive Frames */
 
-/* --- 3. STACKABLE WINDOW OVERLAYS ---
-   Each rule also matches .legend-swatch for the same reason as above. */
+/* Stackable overlays; each rule matches .legend-swatch too. */
 .window-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -140,9 +107,7 @@
 .span-iframe-swarm, .legend-swatch.span-iframe-swarm { border: 2px solid var(--window-color-iframe-swarm); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
 .span-iframe-complete, .legend-swatch.span-iframe-complete { border: 2px solid var(--window-color-iframe-complete); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
 
-/* --- 4. DAW TRACK HEADER/FOOTER TEXT COLORS ---
-   bar.headerClass (js/editor/tabs/editor-framedata.js, js/pages/core/framedata.js) applies one of these
-   directly to the header/footer <span> around a track's frame-data bar. */
+/* Track text colours, applied by bar.headerClass to a bar's header and footer. */
 .text-red-400 { color: var(--track-color-red-400); }
 .text-red-600 { color: var(--track-color-red-600); }
 .text-blue-400 { color: var(--track-color-blue-400); }
@@ -153,43 +118,16 @@
 .text-cyan-400 { color: var(--track-color-cyan-400); }
 .text-gray-400 { color: var(--track-color-gray-400); }
 
-/* --- INPUT SLOT COLOURING (v0.15) ---
-   Applied to a move name in prose and to a step inside a combo route, so the
-   same move is the same colour wherever it is written.
-
-   THE OUTLINE IS ALWAYS ON, per slot - owner's call, 2026-08-17. An outline's
-   whole job is to keep the text readable against whatever is behind it, and a
-   light slot on a light character page is exactly as unreadable as a dark slot
-   on a dark one. Deriving it per page would re-compute what the slot already
-   knows about itself.
-
-   Drawn with text-shadow rather than -webkit-text-stroke: the stroke property
-   thins the glyph from the inside, which on 0.75rem monospace notation costs
-   more legibility than it buys. */
+/* Input slot colouring, on a move name in prose and a step in a route, so a move is
+   one colour wherever it is written. The outline is always on, per slot: a light
+   slot on a light page is as unreadable as a dark one on a dark page. */
 .is-m1, .is-1, .is-2, .is-3, .is-4,
 .is-r, .is-q, .is-f, .is-space, .is-shift { font-weight: bold; }
 
-/* Outlines are HARD, never blurred. A blurred bright halo on a dark page
-   reads as the text GLOWING rather than as an outline - owner, 2026-08-17.
-
-   ONE OUTLINE COLOUR FOR ALL TEN SLOTS, AND IT IS BLACK (v0.18 FT1, owner
-   2026-09-08). Four of them - 4, R, Q and Shift - were outlined in white
-   because their fills were dark. That split is gone, and the fills were
-   brightened in the same change: an outline colour and the fill it surrounds
-   are one decision, and changing the outline alone would have left four slots
-   as dark text in a dark ring.
-
-   What the split cost was consistency across two backgrounds. A white outline
-   reads as an outline on a dark page and as a glow on a light one, so the same
-   notation looked like two different treatments depending on which character
-   page it was written on.
-
-   Drawn with a stroke painted BEHIND the fill (paint-order), not with
-   text-shadow. Combo notation is 0.75rem bold monospace, and a 1px shadow on
-   each side is a large fraction of a glyph that small - a stroke behind the
-   fill leaves the letter at full weight and puts the outline entirely outside
-   it. text-shadow stays as the fallback for anything without paint-order; it
-   is legible, just heavier. */
+/* The outline is hard, never blurred (a blurred halo reads as a glow), and black for
+   all ten slots, so notation looks the same on light and dark pages. A stroke
+   painted behind the fill (paint-order), so small bold monospace keeps its weight;
+   text-shadow is the fallback. */
 .is-m1, .is-1, .is-2, .is-3, .is-4,
 .is-r, .is-q, .is-f, .is-space, .is-shift {
     text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
@@ -205,15 +143,10 @@
     }
 }
 
-/* THE CLASS IS DOUBLED DELIBERATELY, and it is not a typo.
-   `.combo-node` sets `color: var(--text-white)` in style/Layout.css, which
-   loads AFTER this file - so at equal specificity it won, and a slot class
-   sitting ON a chip applied its font-weight but not its colour. The symptom
-   was exact: "thickened but not orange" (owner, 2026-08-17). A span nested
-   INSIDE a chip coloured fine, because nothing competed with it - which is
-   why compound steps looked right and plain ones did not.
-   Repeating the class takes it to (0,2,0) without naming another component
-   here, so this file does not have to know what else might set a colour. */
+/* The class is doubled on purpose: .combo-node sets color in Layout.css, which loads
+   after this file, so at equal specificity it won and a slot on a chip got its
+   weight but not its colour. Doubled, it reaches (0,2,0) without naming another
+   component. */
 .is-m1.is-m1       { color: var(--input-color-m1); }
 .is-1.is-1         { color: var(--input-color-1); }
 .is-2.is-2         { color: var(--input-color-2); }
@@ -225,12 +158,8 @@
 .is-space.is-space { color: var(--input-color-space); }
 .is-shift.is-shift { color: var(--input-color-shift); }
 
-/* Inside a combo chip the hover fills the background with the character
-   colour, so the slot colour would fight it. The chip wins - it is the
-   interaction the reader started. */
-/* The chip's hover fill wins over the slot colour - it is the interaction the
-   reader started. Written against the doubled classes above so it still
-   outranks them, and covering the class both ON the chip and inside it. */
+/* The chip's hover fill wins over the slot colour: it is the interaction the reader
+   started. Written against the doubled classes, on the chip and inside it. */
 .combo-node:hover.is-m1.is-m1, .combo-node:hover .is-m1.is-m1,
 .combo-node:hover.is-1.is-1, .combo-node:hover .is-1.is-1,
 .combo-node:hover.is-2.is-2, .combo-node:hover .is-2.is-2,
@@ -244,10 +173,8 @@
     color: var(--character-ink, #000); text-shadow: none; -webkit-text-stroke-width: 0;
 }
 
-/* --- COLOR SWATCHES ---
-   The Color Codes page's Color Swatches Block (js/pages/core/description.js), moved
-   here from the page's own <style> when it became a page edited in the
-   editor: the editor preview, the Overseer and history.html draw it too. */
+/* Color Swatches: the Color Codes page's Block (description.js), here since the
+   editor's preview, the Overseer and history.html draw it too. */
 .color-swatch-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

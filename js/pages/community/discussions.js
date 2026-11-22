@@ -1,49 +1,36 @@
 /**
- * Dogslamloop Wiki - Per-character discussion threads (v0.14 item 1)
- *
- * The first feature on this site with an open write path. Everything before it
- * reaches the public only after a reviewer agrees; a post here is live the
- * moment it is sent, on a page a 1.4M-member Discord is pointed at.
- *
- * The rules that matter are in the database, not here
- * (supabase/migrations/20260813000000_page_discussions.sql): authorship, the
- * rate limit, the one-level reply shape and the viewer ban are all enforced
- * server-side. Everything in this file is the courtesy layer - telling someone
- * they cannot post before they type three paragraphs, rather than after.
- *
- * Two things this deliberately does NOT do:
- *
- *   - It never renders a post body with innerHTML. Post text is the most
- *     attacker-reachable string on the site: unreviewed, public immediately,
- *     and written by anyone with an account. It goes through textContent, and
- *     line breaks are built as real <br> nodes rather than by interpolating
- *     the text and hoping escapeHtml was called.
- *   - It never blocks the page. A character page renders its frame data
- *     whether or not the thread loads, so every failure here degrades to a
- *     quiet message under the tabs.
+ * Discussion threads: a character page's thread under its tabs, and a Forum post's
+ * conversation. Posts, replies, images, KLIPY GIFs and the GIF picker, emojis,
+ * editing, reporting, moderation, and the jump-to-discussion button.
+ * @since v0.14
+ * @touches page_discussions, page_discussion_edits, user_roles, the
+ *   discussion-media and discord-media buckets, the RPCs for reporting, moderating,
+ *   editing and removing a post, get_page_experts, get_public_profiles, and KLIPY's
+ *   API (only when a post is made, or from the GIF picker)
+ * @watch the rules live in the database (authorship, the rate limit, the reply
+ *   shape, the viewer ban); this file is the courtesy layer. A post is live the
+ *   moment it is sent, so its text is never put in innerHTML: text nodes and real
+ *   <br> nodes only.
+ * @watch it never blocks the page: every failure here is a quiet message under the
+ *   tabs
+ * @see docs/discussions.md
  */
 
 (function () {
-    // Top-level posts a page, each with all its replies (after v1.0, owner
-    // 2026-10-12: pages of 100 kept from Part 3's channel layout, which was
-    // otherwise taken back).
+    // Top-level posts a page, each with all its replies.
     const PAGE_SIZE = 100;
     const MAX_BODY = 4000;
 
-    // Posts one person sends within this long of each other share one name
-    // line (owner, 2026-10-12): people on Discord send a thought as several
-    // short messages, and each arriving as its own card read as a wall.
+    // Posts one person sends within this long of each other share one name line:
+    // people send a thought as several short messages, and each as its own card reads
+    // as a wall.
     const GROUP_WINDOW_MS = 7 * 60 * 1000;
 
-    // Mirrors the migration's own limit. Client-side only as a courtesy - the
-    // trigger is what actually enforces it.
+    // The database's own limit, mirrored as a courtesy; the trigger enforces it.
     const POST_COOLDOWN_MS = 20000;
 
-    // --- IMAGES AND GIFS (v0.20) ---
-    //
-    // Both limits mirror the database, where the real rules live: the count is
-    // page_discussions_images_check, the size is discussion-media's own
-    // file_size_limit (supabase/migrations/20260928000000).
+    // Both limits mirror the database: the count is page_discussions_images_check, the
+    // size is discussion-media's own file_size_limit.
     const MAX_IMAGES = 4;
     const IMAGE_MAX_EDGE = 1600;
     const IMAGE_MAX_BYTES = 1024 * 1024;
@@ -53,38 +40,27 @@
     // the trigger's, so a row that somehow breaks it is not drawn at all.
     const IMAGE_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/;
 
-    // A picture copied off Discord by the relay (v1.0 batch 1): its own
-    // bucket, named after the message. Same rule as the shape trigger's and
-    // supabase/functions/_shared/discord-relay-core.mjs's COPIED_IMAGE_PATH.
+    // A picture the relay copied off Discord: its own bucket, named after the message.
+    // The same rule as the shape trigger's and discord-relay-core.mjs's
+    // COPIED_IMAGE_PATH.
     const DISCORD_IMAGE_PATH = /^discord\/[0-9]{5,20}-[0-3]\.(png|jpg|webp|gif)$/;
     const DISCORD_BUCKET = 'discord-media';
 
-    // KLIPY's media servers, read off klipy.com on 2026-09-28: every GIF, WebP
-    // and MP4 on its home page was served from these two hosts, under /ii/.
-    // Exact hosts and path, so a post can never point a reader's browser
-    // anywhere else.
+    // KLIPY's media hosts and path, exactly, so a post can never point a reader's
+    // browser anywhere else.
     const KLIPY_MEDIA = /https:\/\/static2?\.klipy\.com\/ii\/[A-Za-z0-9/_-]+\.(gif|webp|mp4)(?![\w./-])/g;
     const KLIPY_MEDIA_EXACT = new RegExp(`^${KLIPY_MEDIA.source}$`);
     const MAX_GIFS = 4;
 
-    // A KLIPY PAGE link, klipy.com/gifs/<slug>, which is what Discord's GIF
-    // picker copies (owner, 2026-10-01). The page itself answers only crawlers,
-    // so the GIF is found through KLIPY's API instead, ONCE, when the post is
-    // made: the page link in the text is swapped for the GIF's own address
-    // before it is saved. Readers never call KLIPY, so a thread of forty GIFs
-    // costs no lookups at all.
-    //
-    // The key is the owner's, and a browser calls the API, so it is visible to
-    // anyone reading the site's traffic: the owner's choice, made 2026-10-02,
-    // the same standing as the Supabase anon key. A test key allows 100
-    // lookups an hour, the GIF picker's searches included; the owner is
-    // applying for a production key (2026-10-21), which goes here and only
-    // here.
+    // A KLIPY page link (klipy.com/gifs/<slug>, what Discord's GIF picker copies). The
+    // page answers only crawlers, so the GIF is found through KLIPY's API once, when
+    // the post is made, and the link is swapped for the GIF's own address before it is
+    // saved: readers never call KLIPY. The key is visible in the page, like the anon
+    // key (CLAUDE.md); a production key goes here and only here.
     const KLIPY_PAGE = /https?:\/\/(?:www\.)?klipy\.com\/gifs\/([A-Za-z0-9-]{1,120})[^\s]*/g;
     const KLIPY_API = 'https://api.klipy.com/api/v1/xdjct5ccuBWrbiAxgyaEgQdKcnFW5LIpjd1glWvPLALxPE6bNDPGsXXJaMPg9Xv7/gifs/';
-    // MP4 first: on 2026-10-02 one GIF's HD .gif was 22.6 MB and its MP4
-    // 0.58 MB, and MP4 plays everywhere, iPhones included. Then smaller sizes,
-    // then the still-heavier formats.
+    // MP4 first: far fewer bytes than the GIF, and it plays everywhere, iPhones
+    // included. Then smaller sizes, then the heavier formats.
     const KLIPY_PICK = [['md', 'mp4'], ['hd', 'mp4'], ['sm', 'mp4'], ['md', 'webp'], ['sm', 'webp'], ['md', 'gif']];
 
     const state = {
@@ -102,14 +78,14 @@
         // post id -> its image paths, as drawn. Removing your own post empties
         // the column server-side, so the paths to delete are read from here.
         imagesByPost: new Map(),
-        // post id -> the row, as drawn (batch 3): a reply's quote reads the
+        // post id -> the row, as drawn: a reply's quote reads the
         // reply it answers from here, and the edit box starts from the words.
         postsById: new Map(),
         // How this page shows its thread. A character page keeps the defaults;
-        // a forum post (v1.0 batch 2) reads oldest first, with the reply box
+        // a forum post reads oldest first, with the reply box
         // after the conversation, the way a forum reads.
         opts: null,
-        // The Rules page's address, or null while it does not exist (batch 4).
+        // The Rules page's address, or null while it does not exist.
         rulesUrl: null,
     };
 
@@ -124,12 +100,10 @@
     // Images picked in a composer and prepared, waiting for POST. Keyed by the
     // form, so a reply's attachments never leak into the top-level composer.
     const pendingImages = new WeakMap();
-    // GIFs picked from KLIPY (batch 8.5), the same way.
+    // GIFs picked from KLIPY, the same way.
     const pendingGifs = new WeakMap();
 
     const client = () => window.supabaseClient;
-
-    // --- SMALL HELPERS ---
 
     function timeAgo(iso) {
         const then = new Date(iso).getTime();
@@ -145,11 +119,9 @@
         return new Date(iso).toLocaleDateString();
     }
 
-    // Text into an element as text, with line breaks preserved. Not
-    // `window.escapeHtml(body).replace(/\n/g, '<br>')` - that works, but it puts an
-    // attacker-authored string back into an innerHTML sink, and the next person
-    // to touch this file has to notice the escape to know it is safe. Nodes
-    // cannot be got wrong the same way.
+    // Text into an element as text, line breaks as <br> nodes: escapeHtml plus
+    // innerHTML would work, but puts an attacker-written string back in a sink, and
+    // nodes cannot be got wrong the same way.
     function setTextWithBreaks(el, text) {
         el.textContent = '';
         String(text == null ? '' : text).split('\n').forEach((line, i) => {
@@ -158,8 +130,7 @@
         });
     }
 
-    // A post's words, with its emojis drawn (js/utility/emoji.js, batch 8.5). Without
-    // that script, the same text as plain text.
+    // A post's words with its emojis drawn (emoji.js); without that script, plain text.
     function setPostText(node, text) {
         if (window.DslEmoji) window.DslEmoji.renderText(node, text);
         else setTextWithBreaks(node, text);
@@ -172,26 +143,15 @@
         return node;
     }
 
-    // The author's name, clickable when there is somebody to open.
-    //
-    // A button rather than a span with a handler: it is a real control, so it
-    // should be reachable by keyboard and announced as one. The id goes in a
-    // data attribute and is read by the delegated listener already on root -
-    // never built into an inline onclick, because author_id sits next to
-    // author_name and the habit is what matters.
-    //
-    // Falls back to a plain span in the two cases where there is nothing to
-    // open: a removed post (whose author is deliberately not named) and a post
-    // whose author_id is NULL, which is what page_discussions' ON DELETE SET
-    // NULL leaves behind after an account is deleted.
+    // The author's name: a button when there is somebody to open, with the id in a
+    // data attribute for the delegated listener. A plain span for a removed post (its
+    // author is not named) and for a deleted account (author_id NULL).
     function authorNode(entry) {
         const removed = entry.status !== 'visible';
         const name = removed ? '—' : (entry.author_name || 'Unknown');
 
-        // A message copied in from the Discord forum (v1.0 batch 1). There is
-        // no wiki account to open, so the name is plain text, followed by
-        // where it came from and the person's Discord handle. Every part is
-        // set as text: all of it was typed by somebody on Discord.
+        // A message copied in from Discord: no wiki account to open, so the name is text,
+        // then where it came from and the Discord handle, all set as text.
         if (!removed && entry.source === 'discord') {
             const span = el('span', 'discussion-author discussion-author-discord', name);
             span.appendChild(el('span', 'discussion-discord', 'DISCORD'));
@@ -211,18 +171,15 @@
         return btn;
     }
 
-    // Draws each author's flair beside their name, after the thread is on
-    // screen. Deliberately a second pass rather than part of the render: the
-    // posts are already in hand, and blocking the whole thread on a profile
-    // request would trade something people came for against decoration.
+    // Each author's flair beside their name, after the thread is on screen: blocking
+    // the thread on a profile request would trade what people came for for decoration.
     async function decorateFlairs(root) {
         if (typeof window.fetchPublicProfiles !== 'function') return;
 
         const slots = [...root.querySelectorAll('[data-profile-user]')];
         if (!slots.length) return;
 
-        // Two requests, both for the whole thread rather than per post, and
-        // both allowed to fail independently. Neither is worth a blank section.
+        // Two requests for the whole thread, not per post, each allowed to fail alone.
         const [profiles, expertIds] = await Promise.all([
             window.fetchPublicProfiles(slots.map(s => s.dataset.profileUser)),
             fetchExpertIds(),
@@ -231,11 +188,9 @@
         slots.forEach(slot => {
             const userId = slot.dataset.profileUser;
 
-            // The EXPERT chip goes FIRST, before the flair. It is the site
-            // vouching for somebody on this specific page; the flair is what
-            // they wrote about themselves, and the two should not read as one
-            // label. It appears only in threads on a page they actually cover -
-            // an expert of Crow Charmer is an ordinary poster on Sukuna.
+            // The EXPERT chip first, before the flair: the site vouching for somebody on this
+            // page, apart from what they wrote about themselves. Only in threads on a page they
+            // cover.
             if (expertIds.has(userId) && !slot.querySelector('.discussion-expert')) {
                 slot.appendChild(el('span', 'discussion-expert', 'EXPERT'));
             }
@@ -243,22 +198,18 @@
             const p = profiles.get(userId);
             if (!p) return;
             if (p.flair && !slot.querySelector('.discussion-flair')) {
-                // textContent, via el(): the flair is contributor-written and
-                // this renders on every thread on the site.
                 slot.appendChild(el('span', 'discussion-flair', p.flair));
             }
 
-            // The badges they show, after the flair: the flair is what they
-            // wrote, a badge is what they did. Hover names one; a tap opens
-            // the profile, which names them all.
+            // The badges they show, after the flair: the flair is what they wrote, a badge is
+            // what they did.
             if (typeof window.knownBadges === 'function' && !slot.querySelector('.user-badge')) {
                 window.knownBadges(p.badges).forEach(id => slot.appendChild(window.badgeSlot(id, { named: true })));
             }
         });
     }
 
-    // Who is an expert of THIS page. The thread already knows its page_id, so
-    // this is the cheap direction - one call, no per-author lookup.
+    // Who is an expert of this page: one call, since the thread knows its page_id.
     async function fetchExpertIds() {
         if (!client() || !state.pageId) return new Set();
         try {
@@ -267,15 +218,13 @@
             if (error || !Array.isArray(data)) return new Set();
             return new Set(data.map(r => r.user_id));
         } catch (e) {
-            // Before the release this RPC does not exist. No chips, same thread.
+            // No RPC on this database: no chips, the same thread.
             return new Set();
         }
     }
 
-    // The GIF a KLIPY page link points at, as an address the renderer will
-    // draw, or null. KLIPY's answer is checked against KLIPY_MEDIA exactly like
-    // a pasted link: a third party's response gets no more trust than a post.
-    // No referrer, so KLIPY is not told which page the poster was on.
+    // The GIF a KLIPY page link points at, or null. KLIPY's answer is checked against
+    // KLIPY_MEDIA like a pasted link, and no referrer tells KLIPY which page it was.
     async function klipyMediaFor(slug) {
         try {
             const res = await fetch(KLIPY_API + encodeURIComponent(slug),
@@ -297,10 +246,8 @@
         return null;
     }
 
-    // Swaps each KLIPY page link in a post for its GIF, the first MAX_GIFS of
-    // them, one lookup at a time. A link that cannot be resolved stays as it
-    // is, and the post still goes up: a GIF is never worth losing what was
-    // written around it.
+    // Each KLIPY page link becomes its GIF, the first MAX_GIFS, one lookup at a time.
+    // A link that cannot be resolved stays a link, and the post still goes up.
     async function resolveKlipyPages(body) {
         const found = [...String(body || '').matchAll(KLIPY_PAGE)].slice(0, MAX_GIFS);
         let out = body;
@@ -329,10 +276,9 @@
         return out.replace(/[ \t]+$/gm, '').trim();
     }
 
-    // What a post carries besides words: its uploaded images, then its KLIPY
-    // GIFs. Every node is built with createElement and every address is set as
-    // a property, never interpolated, and each one has passed an exact pattern
-    // above: this renders unreviewed input on every character page.
+    // What a post carries besides words: its images, then its KLIPY GIFs. Built with
+    // createElement, every address set as a property after an exact pattern: this
+    // draws unreviewed input on every character page.
     function renderPostMedia(entry) {
         // Each path is drawn from the bucket its own pattern names, and a path
         // matching neither is not drawn at all.
@@ -365,8 +311,7 @@
         gifs.forEach(url => {
             let node;
             if (url.endsWith('.mp4')) {
-                // KLIPY's MP4 of a GIF is a fraction of the GIF's bytes. Muted,
-                // looping and inline: it plays the part of a GIF, nothing more.
+                // KLIPY's MP4 plays the part of a GIF: muted, looping, inline.
                 node = document.createElement('video');
                 node.muted = true;
                 node.loop = true;
@@ -374,12 +319,9 @@
                 node.playsInline = true;
                 node.setAttribute('playsinline', '');
                 node.setAttribute('aria-label', 'GIF from KLIPY');
-                // Into the clip queue, not straight to its source (owner,
-                // 2026-10-02: a thread full of GIFs must not load them all at
-                // once). draw() hands the list to initLazyMedia: two at a
-                // time, nearest first, paused off screen. A <video> has no
-                // referrerPolicy; the browser's default sends KLIPY the site's
-                // origin and never the page.
+                // Into the clip queue (initLazyMedia), so a thread full of GIFs does not load them
+                // all at once. A <video> has no referrerPolicy; the default sends KLIPY the site's
+                // origin, never the page.
                 if (typeof window.initLazyMedia === 'function') {
                     node.preload = 'none';
                     node.setAttribute('data-lazy-src', url);
@@ -404,13 +346,9 @@
         return box;
     }
 
-    // --- PREPARING AN IMAGE FOR UPLOAD ---
-    //
-    // Shrunk to IMAGE_MAX_EDGE on its long side and re-encoded in the browser,
-    // so a 12-megapixel phone photo arrives as a few hundred KB. WebP where the
-    // browser can encode it; JPEG where it cannot, which is Safari and so every
-    // browser on iOS: asked for WebP, Safari's canvas silently returns a PNG.
-    // Probed once, by asking for a 1px WebP and reading back what came out.
+    // An image is shrunk to IMAGE_MAX_EDGE on its long side and re-encoded in the
+    // browser: WebP where the browser can encode it, JPEG where not (Safari, so every
+    // browser on iOS, returns a PNG when asked for WebP). Probed once with a 1px WebP.
     let webpEncodes = null;
 
     function canvasToBlob(canvas, type, quality) {
@@ -473,8 +411,8 @@
         return Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
     }
 
-    // Best effort, and never awaited into anything a reader waits on: a file
-    // left behind costs a few hundred KB, not a broken post.
+    // Best effort, never awaited by anything a reader waits on: a file left behind
+    // costs a few hundred KB, not a broken post.
     async function discardImages(paths) {
         if (!paths || !paths.length || !client()) return;
         try { await client().storage.from(IMAGE_BUCKET).remove(paths); } catch (e) { /* see above */ }
@@ -547,19 +485,11 @@
         setStatus(problem || note, !!problem);
     }
 
-    // --- THE GIF PICKER (v1.1 batch 8.5) ---
-    //
-    // KLIPY's own search, built to its production rules (docs.klipy.com,
-    // read 2026-10-21): the box says "Search KLIPY", their one required
-    // credit; every request and picture goes straight from the reader's
-    // browser to KLIPY, never through a server; results show in KLIPY's order
-    // in a grid of their own, nothing added or taken out. Their strictest
-    // content filter, since a lot of the community are kids, and no user id is
-    // sent. Ads come only if the owner switches them on for the key, which
-    // this picker does not draw.
-    //
-    // A picked GIF is posted as its own address, exactly as a pasted KLIPY
-    // link is, so Discord and every older post read it unchanged.
+    // The GIF picker, KLIPY's own search, to its production rules: the box says
+    // "Search KLIPY", every request and picture goes straight from the reader's
+    // browser to KLIPY, results show in KLIPY's order with nothing added or taken out.
+    // Its strictest content filter, since many readers are children, and no user id.
+    // A picked GIF is posted as its own address, like a pasted KLIPY link.
     const GIF_PAGE = 24;
     const GIF_SEARCH_DELAY_MS = 350;
     // Small and moving, for the grid and the attachment strip.
@@ -577,10 +507,8 @@
         return { items: Array.isArray(data.data) ? data.data : [], more: data.has_next === true };
     }
 
-    // KLIPY counts a GIF as shared when it is posted, which is how its search
-    // learns what people use. With the words that found it, and nothing that
-    // says who. Deliberately quiet: a share KLIPY never hears of costs the
-    // poster nothing.
+    // KLIPY counts a GIF as shared when it is posted, with the words that found it and
+    // nothing that says who. Deliberately quiet: a lost share costs the poster nothing.
     function reportShares(gifs) {
         gifs.forEach(gif => {
             fetch(`${KLIPY_API}share/${encodeURIComponent(gif.slug)}`, {
@@ -625,8 +553,8 @@
         panel.append(search, scroll, note, el('p', 'gif-credit', 'Powered by KLIPY'));
         const showNote = (text) => { note.textContent = text || ''; note.hidden = !text; };
 
-        // A picture's address is set as it scrolls into the picker's view:
-        // loading="lazy" does not hold inside a scrolling box (js/utility/emoji.js).
+        // A picture's address is set as it scrolls into the picker's view: loading="lazy"
+        // does not hold inside a scrolling box.
         const seen = new IntersectionObserver(entries => entries.forEach(entry => {
             if (!entry.isIntersecting) return;
             const target = entry.target;
@@ -738,11 +666,9 @@
         if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) search.focus();
     }
 
-    // --- THE RULES PAGE (v1.0 batch 4, D1) ---
-    //
-    // A CMS page the owner made, "Forum Rules", so its id is `forum_rules`. Its
-    // address is read from navigation.json, which lists live pages only: until
-    // the page is live there is no link, rather than a link to nothing.
+    // The Rules page (forum_rules), linked from the box that starts a conversation.
+    // Its address comes from navigation.json, which lists live pages only, so there is
+    // no link until the page is live.
     const RULES_PAGE_ID = 'forum_rules';
     let rulesLinkLoad = null;
 
@@ -764,8 +690,6 @@
         return rulesLinkLoad;
     }
 
-    // --- WHO IS READING ---
-
     async function loadViewer() {
         if (!client()) return;
         try {
@@ -778,28 +702,21 @@
         if (!state.session) { state.role = undefined; state.canModerate = false; state.canUploadMedia = false; return; }
 
         try {
-            // select('*') rather than naming columns: this row gains a column
-            // every time a capability is added, and an explicit list would
-            // break the whole thread render on any deploy where the client is
-            // newer than the database.
+            // select('*'): this row gains a column with each capability, and a named list
+            // would break the thread on a client newer than its database.
             const { data } = await client()
                 .from('user_roles').select('*')
                 .eq('user_id', state.session.user.id).maybeSingle();
-            // null is a real answer and a common one: signed in, no role, which
-            // is every ordinary contributor. Distinct from `undefined`, which
-            // means nobody is signed in.
+            // null is signed in with no role, the ordinary contributor; undefined is nobody
+            // signed in.
             state.role = data ? data.role : null;
-            // Mirrors public.can_moderate() in the migration. The client copy
-            // only decides which buttons to draw; the RPC is what refuses.
-            // Admin and above, or the owner's tick: a reviewer no longer
-            // moderates by role (20261116000000).
+            // Mirrors can_moderate() in SQL: admin and above, or the owner's tick. It only
+            // decides which buttons to draw; the RPC refuses.
             state.canModerate = !!data && (
                 window.roleMeets(data.role, 'admin') || data.can_moderate === true
             );
-            // Mirrors public.can_upload_media(): Trusted Editor and up, or the
-            // owner's tick, and never a viewer, who is banned by name because a
-            // ban is not a rung. Decides only whether the composer offers
-            // images; the bucket and the trigger are what refuse.
+            // Mirrors can_upload_media(): Trusted Editor and up, or the owner's tick, and never
+            // a viewer (a ban, so by name). It only decides whether the composer offers images.
             state.canUploadMedia = !!data && data.role !== 'viewer' && (
                 window.roleMeets(data.role, 'trusted_editor') || data.can_upload_media === true
             );
@@ -810,22 +727,14 @@
         }
     }
 
-    // The soft ban. 'viewer' is documented as "signed in, can read, cannot
-    // submit", and if threads do not honour it the ban stops meaning anything
-    // the moment they ship.
+    // The soft ban: a viewer can read and cannot post.
     const isBanned = () => state.role === 'viewer';
     const isSignedIn = () => !!state.session;
 
-    // --- DATA ---
-
     async function fetchTopLevel(page) {
-        // Ordered by created_at AND id. range() needs a total order to
-        // paginate correctly, and two posts sharing a timestamp would
-        // otherwise be able to swap places between pages - showing one twice
-        // and hiding the other.
-        //
-        // The count rides on the same request, under the reader's own RLS, so
-        // a moderator's pages include hidden posts and everyone else's do not.
+        // Ordered by created_at and id: range() needs a total order, or two posts with one
+        // timestamp can swap places between pages. The count rides on the same request,
+        // under the reader's own RLS, so a moderator's pages include hidden posts.
         const offset = page * PAGE_SIZE;
         const { data, error, count } = await client()
             .from('page_discussions')
@@ -889,18 +798,10 @@
         return data || [];
     }
 
-    // --- RENDERING ---
-
-    // --- REPORTING ---
-    //
-    // Moderators removing posts they happen to see does not scale to 1.4M
-    // people. This is what turns moderation from patrolling into a queue.
-    //
-    // Deliberately no "incorrect" category. On a frame-data wiki "this is
-    // wrong" is the most common complaint and the least actionable by
-    // moderation - a thread is exactly where being wrong should be argued
-    // with. Offering it would fill the queue with disagreements and train
-    // moderators to skim, which is how a real harassment report gets missed.
+    // Reporting turns moderation from patrolling into a queue. No "incorrect" reason:
+    // on a frame-data wiki that is the commonest complaint and the least actionable, a
+    // thread is where being wrong is argued, and a queue full of disagreements trains
+    // moderators to skim past real harassment.
     const REPORT_REASONS = [
         { id: 'spam', label: 'Spam or advertising' },
         { id: 'harassment', label: 'Harassment or abuse' },
@@ -910,11 +811,8 @@
 
     function renderReportForm(postId) {
         const form = el('form', 'discussion-report-form');
-        // Deliberately NOT data-report-post: that is the trigger button's
-        // attribute, and the delegated click handler matches the nearest
-        // ancestor carrying it. With the same name on both, clicking Send
-        // inside the form matched the form and re-opened it instead of
-        // submitting - the submit event never fired at all.
+        // Not data-report-post: the delegated handler matches the nearest ancestor with
+        // the trigger's attribute, so the same name on the form reopened it on Send.
         form.dataset.reportFor = postId;
         form.noValidate = true;
 
@@ -992,21 +890,15 @@
 
         if (error) { setStatus(error.message || 'Could not send that report.', true); return; }
 
-        // Replaced rather than left open, so nobody sits there wondering
-        // whether it went. The message is the same whether this was a new
-        // report or a duplicate - see the RPC's comment on why.
+        // Replaced, so nobody wonders whether it went. The same message for a new report
+        // and a duplicate (the RPC's comment says why).
         form.replaceWith(el('div', 'discussion-report-sent', data || 'Thanks — a moderator will take a look.'));
     }
 
-    // --- MODERATION CONTROLS ---
-    //
-    // One builder for posts and replies. They diverged once already on the
-    // delete button and the two copies have to say the same thing about who
-    // may do what, so there is only one copy of it.
-    // Offered on anything still visible that is not yours, to anyone signed in
-    // who is not soft-banned. Not offered to moderators on posts they can
-    // already act on directly - reporting something to yourself is a queue
-    // entry nobody needs.
+    // One builder for the moderation controls on posts and replies, so the two say the
+    // same thing about who may do what. Report is offered on anything still visible
+    // that is not yours, to anyone signed in and not banned, and not to a moderator on
+    // a post they can act on directly.
     function appendReportControl(actions, entry) {
         if (!isSignedIn() || isBanned() || state.canModerate) return;
         if (entry.status !== 'visible') return;
@@ -1050,21 +942,15 @@
         }
     }
 
-    // A reason is required by the RPC for hide and remove, so it is asked for
-    // inline rather than through a dialog. Native prompt() is the only
-    // alternative available on a character page - editor-core.js's modal
-    // helpers are not loaded here - and a required field somebody can dismiss
-    // with Escape is not really required.
+    // The reason hide and remove require is asked inline, not by prompt(): a required
+    // field Escape can dismiss is not required.
     function renderModerationForm(postId, action) {
         const form = el('form', 'discussion-mod-form');
         form.dataset.modPost = postId;
         form.dataset.modAction = action;
 
-        // The input below is marked required for assistive technology, but
-        // native validation would swallow the submit event before the handler
-        // runs - so the "reason is required" message would appear in a browser
-        // bubble while every other message in this file appears in the status
-        // line. One error channel, so the field is validated by hand.
+        // Validated by hand: native validation would show its own bubble instead of this
+        // file's one status line.
         form.noValidate = true;
 
         const label = action === 'restore'
@@ -1180,7 +1066,7 @@
         return node;
     }
 
-    // Whether it changed since: edited by its author on the wiki (batch 3),
+    // Whether it changed since: edited by its author on the wiki,
     // or on Discord. A moderator's mark is a button that opens what it said
     // before; everyone else only learns that it changed.
     function editedMark(entry) {
@@ -1207,10 +1093,9 @@
         return head;
     }
 
-    // Batch 3: a reply to a reply says which one it answers. Replies stay one
-    // step in (owner, 2026-10-04), so this line is what keeps a conversation
-    // inside a conversation readable. Every part is text. Under a stack of
-    // posts, a reply to one of them quotes which (`quoteParent`).
+    // A reply to a reply says which one it answers: replies stay one step in, so this
+    // line keeps a conversation inside a conversation readable. Under a stack, a reply
+    // to one of its posts quotes which.
     function replyQuote(reply, quoteParent) {
         const answeredId = reply.reply_to || (quoteParent ? reply.parent_id : null);
         if (!answeredId) return null;
@@ -1237,9 +1122,7 @@
         if (isSignedIn() && !isBanned()) {
             const replyBtn = el('button', 'discussion-action-btn', 'Reply');
             replyBtn.type = 'button';
-            // data- attribute plus a delegated listener, never an inline
-            // onclick: post ids and author names are user-influenced and an
-            // onclick would put them in an executable position.
+            // data- attribute and a delegated listener: post ids and names are user-influenced.
             replyBtn.dataset.replyTo = entry.id;
             actions.appendChild(replyBtn);
         }
@@ -1333,13 +1216,9 @@
 
         const body = el('div', 'discussion-body');
         if (post.status === 'hidden') {
-            // Only a moderator can see this at all - the SELECT policy filters
-            // the row out for everyone else - so the body is shown intact
-            // under a marker rather than replaced by a placeholder.
-            //
-            // Appended, not insertBefore(badge, body): body is not a child of
-            // wrap yet at this point, and insertBefore against a non-child
-            // throws - taking the whole thread render down with it.
+            // Only a moderator can see this at all (the SELECT policy filters it out for
+            // everyone else), so the body is shown under a marker. Appended, not
+            // insertBefore(badge, body): body is not a child of wrap yet, and that throws.
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
             setPostText(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         } else if (removed) {
@@ -1401,9 +1280,8 @@
         return wrap;
     }
 
-    // An empty thread is the state most readers will meet first, and it is the
-    // one that decides whether the feature looks alive or broken. "No posts
-    // yet" reads like an error; an invitation reads like a place to write.
+    // An empty thread is what most readers meet first: an invitation reads like a
+    // place to write, "No posts yet" like an error.
     function renderEmptyState() {
         const box = el('div', 'discussion-empty');
         box.appendChild(el('p', 'discussion-empty-title', 'No discussion here yet.'));
@@ -1426,8 +1304,7 @@
         form.dataset.parentId = parentId || '';
 
         if (parentId) {
-            // A reply to a reply names the person (batch 3); the name is set as
-            // text, like every name on the page.
+            // A reply to a reply names the person, as text.
             const heading = el('div', 'discussion-composer-heading',
                 overrides.replyingTo ? `Replying to ${overrides.replyingTo}` : 'Replying to this post');
             form.appendChild(heading);
@@ -1441,15 +1318,13 @@
         area.setAttribute('aria-label', parentId ? 'Reply' : 'New post');
         form.appendChild(area);
 
-        // What goes with the words: images and picked GIFs (batch 8.5), so
-        // the strip is there for anyone who can post.
+        // What goes with the words: images and picked GIFs, for anyone who can post.
         const strip = el('div', 'discussion-attachments');
         strip.hidden = true;
         form.appendChild(strip);
 
-        // Images, for whoever has the upload media permission. Nobody else sees
-        // a button: offering one that the bucket then refuses would be a
-        // control that only ever fails.
+        // Images only for whoever may upload: a button the bucket then refuses would only
+        // ever fail.
         if (state.canUploadMedia) {
             const input = document.createElement('input');
             input.type = 'file';
@@ -1507,8 +1382,7 @@
         return form;
     }
 
-    // Opens the picker under the box it sits in (js/utility/emoji.js). No script, no
-    // button: a control that can only fail is worse than none.
+    // Opens the emoji picker under its box (emoji.js). No script, no button.
     function emojiButton() {
         if (!window.DslEmoji) return null;
         const btn = el('button', 'btn-sys btn-sys-regular discussion-emoji-btn', 'EMOJI');
@@ -1541,8 +1415,6 @@
         });
     }
 
-    // --- THE MAIN DRAW ---
-
     // Older and newer pages, above and below the list, only when there is more
     // than one. "Next" is older posts on a character page and newer ones on a
     // forum post, since each opens on its own first page.
@@ -1570,9 +1442,8 @@
         try {
             ({ posts, count } = await fetchTopLevel(state.page));
         } catch (e) {
-            // The normal state between pushing this branch and merging it -
-            // migrations apply on merge, so the table genuinely does not exist
-            // yet. Says so plainly rather than rendering a broken section.
+            // A database without the table yet (migrations apply on merge): said plainly,
+            // rather than a broken section.
             root.innerHTML = '';
             root.appendChild(el('h2', 'section-title discussion-title', state.opts.title));
             const msg = (e && (e.code === 'PGRST205' || e.code === '42P01'))
@@ -1626,14 +1497,9 @@
         // KLIPY clips join the page's clip queue (renderPostMedia).
         if (typeof window.initLazyMedia === 'function') window.initLazyMedia(list);
 
-        // Not awaited: the thread is already on screen and the flairs arrive
-        // when they arrive. Awaiting here would hold the render open on a
-        // request that is decoration, and before the release this RPC does not
-        // exist in production at all.
+        // Not awaited: the thread is on screen, and the flairs are decoration.
         decorateFlairs(root);
     }
-
-    // --- ACTIONS ---
 
     async function submitPost(form) {
         const area = form.querySelector('.discussion-textarea');
@@ -1679,9 +1545,9 @@
             postBody = withGifs;
         }
 
-        // Images go up FIRST, into the poster's own folder, and the post names
-        // them. If anything after that fails, the files are taken back down,
-        // so a refused post never leaves orphans in the bucket.
+        // Images go up first, into the poster's own folder, and the post names them. If
+        // anything after fails, the files are taken down again, so a refused post leaves
+        // no orphans.
         const paths = [];
         if (attachments.length && state.session) {
             setStatus('Uploading images…');
@@ -1705,15 +1571,9 @@
 
         const parentId = form.dataset.parentId || null;
 
-        // author_id and author_name are deliberately not sent. A BEFORE INSERT
-        // trigger overwrites both from auth.uid(), so sending them would be
-        // decoration that looks like it matters - and the day someone removes
-        // the trigger, code that never claimed authorship keeps being safe.
-        //
-        // `images` only when there are some, so a words-only post is the same
-        // request it always was.
-        // A composer mounted by another page (the forum's NEW POST) carries its
-        // own insert; the images, KLIPY links and the limits above are the same.
+        // author_id and author_name are not sent: a BEFORE INSERT trigger sets both from
+        // auth.uid(). `images` only when there are some. A composer another page mounts
+        // (the Forum's NEW POST) carries its own insert, with the same limits.
         const custom = typeof form.discussionInsert === 'function' ? form.discussionInsert : null;
         let error;
         if (custom) {
@@ -1766,9 +1626,8 @@
         const { error } = await client().rpc('remove_my_discussion_post', { p_post_id: postId });
         if (error) { setStatus(error.message || 'Could not remove that post.', true); return; }
 
-        // An author's removal is final, so the files go with the words. Only
-        // YOUR posts have a Delete button, and the bucket only lets you delete
-        // from your own folder, so this can never reach anyone else's image.
+        // An author's removal is final, so the files go with the words. Only your own posts
+        // have Delete, and the bucket deletes only from your own folder.
         discardImages(images);
 
         await draw();
@@ -1799,9 +1658,8 @@
         const input = form.querySelector('.discussion-mod-reason');
         const reason = input ? input.value.trim() : null;
 
-        // Checked here so the message arrives beside the field rather than as
-        // a database error. The RPC refuses an empty reason regardless - this
-        // is the courtesy copy, not the rule.
+        // Checked here so the message sits beside the field; the RPC refuses an empty
+        // reason regardless.
         if (action !== 'restore' && !reason) {
             setStatus('A reason is required — it goes in the moderation log.', true);
             return;
@@ -1835,7 +1693,7 @@
         const target = document.getElementById(`post-${postId}`);
         if (!target) return;
 
-        // A reply to a reply (batch 3) goes at the end of the same
+        // A reply to a reply goes at the end of the same
         // conversation; the database records which reply it answers. A reply
         // to a post in a stack goes at the end of the stack's card, since the
         // replies to all of them are listed there, each quoting its post.
@@ -1859,11 +1717,8 @@
         if (area) area.focus();
     }
 
-    // --- EDITING (batch 3) ---
-    //
-    // The words only (owner, 2026-10-04). The rules are edit_my_discussion_post's:
-    // the author, a visible post, the same limits as posting, one edit every
-    // 10 seconds. This only draws the box.
+    // Editing: the words only, under edit_my_discussion_post's rules (the author, a
+    // visible post, the posting limits, one edit every 10 seconds). This draws the box.
     function openEdit(postId) {
         const target = document.getElementById(`post-${postId}`);
         const entry = state.postsById.get(postId);
@@ -1943,8 +1798,8 @@
             : '');
     }
 
-    // What a post said before, for a moderator (batch 3). Read straight from
-    // page_discussion_edits, which only a moderator can read at all.
+    // What a post said before, for a moderator, from page_discussion_edits, which only
+    // a moderator can read.
     async function toggleEdits(postId) {
         const target = document.getElementById(`post-${postId}`);
         if (!target) return;
@@ -2162,11 +2017,8 @@
         if (id) jumpTo(id);
     }
 
-    // --- THE JUMP BUTTON ---
-    //
-    // Wired before anything is fetched, so scrolling works even when the
-    // thread itself fails to load. A control that does nothing because a query
-    // failed is worse than no control.
+    // The jump button is wired before anything is fetched, so it scrolls even when the
+    // thread fails to load.
     function wireJumpButton() {
         const btn = document.getElementById('btn-jump-discussion');
         if (!btn || btn.dataset.wired === 'true') return;
@@ -2179,12 +2031,9 @@
         });
     }
 
-    // A bare icon gives nobody a reason to press it. The count is the whole
-    // argument for going down there, so the button carries it - and says
-    // nothing at all rather than "0" when the thread is empty, because an
-    // explicit zero reads as a dead feature. The button's name is its own
-    // text (a hidden "Jump to the discussion", then the count), so what a
-    // screen reader says always holds what is on screen.
+    // The button carries the post count, the reason to press it, and shows nothing for
+    // an empty thread, since a zero reads as a dead feature. Its name is its own text
+    // (a hidden "Jump to the discussion", then the count).
     async function updateJumpCount() {
         const label = document.getElementById('jump-discussion-count');
         if (!label) return;
@@ -2204,11 +2053,13 @@
         label.textContent = typeof count === 'number' && count > 0 ? String(count) : '';
     }
 
-    // A composer outside a thread: the forum's NEW POST (v1.0 batch 2). The
-    // caller adds its own fields with `leading` and receives the prepared
-    // message in `insert({ body, images })`, which returns { error }. Images,
-    // paste, KLIPY links and the limits work as in a thread. Returns the form,
-    // or null when the reader cannot post (a prompt is drawn instead).
+    /**
+     * A composer outside a thread (the Forum's NEW POST). `leading` adds the caller's
+     * fields; `insert({ body, images })` receives the prepared message and returns
+     * { error }. Images, paste, KLIPY links and the limits work as in a thread.
+     * Returns the form, or null when the reader cannot post (a prompt is drawn).
+     * @since v1.0
+     */
     window.mountDiscussionComposer = async function (container, { placeholder, submitLabel, leading = [], insert } = {}) {
         if (!container || !client()) return null;
         await Promise.all([loadViewer(), loadRulesLink()]);
@@ -2224,8 +2075,7 @@
         return form;
     };
 
-    // Who is reading, for a page that draws its own controls around a thread.
-    // Only decides what to draw; every action is refused server-side.
+    /** Who is reading, for a page that draws its own controls around a thread; every action is refused server-side. */
     window.discussionViewer = function () {
         return {
             signedIn: isSignedIn(),

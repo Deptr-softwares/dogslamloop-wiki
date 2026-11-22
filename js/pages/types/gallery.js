@@ -1,45 +1,28 @@
 /**
- * Dogslamloop Wiki - Gallery pages (page_type 'gallery')
- *
- * A deliberately simpler thing than a system page. A system page is tabs of
- * authored blocks; a gallery is one flat, searchable list of media items. The
- * first is Emotes, where the content is ~100 short clips and the only
- * navigation anyone wants is "type the name".
- *
- * Data shape, stored in page_data.desc_data:
- *
- *   {
- *     intro: [ ...blocks ],          // optional, rendered by description.js
- *     items: [
- *       { name, src, alt, tags: [], note }
- *     ]
- *   }
- *
- * `items` is flat on purpose. Tabs would mean deciding categories up front for
- * something people search rather than browse, and a category that holds three
- * emotes is worse than no category.
- *
- * Everything here assumes "massive amount of gif/video" as the normal case:
- * media is lazy, filtering is done against a prebuilt index rather than the
- * DOM, and the grid is rebuilt from a document fragment rather than by
- * innerHTML concatenation.
+ * Gallery pages (page_type 'gallery'): one flat, searchable list of media, like
+ * Emotes, where the only navigation anyone wants is typing the name.
+ * desc_data is { intro: [blocks], items: [{ name, src, alt, tags: [], note }] }.
+ * @since v0.12
+ * @touches page_data.desc_data.items and intro, wikiClipHTML and initLazyMedia
+ *   (description.js)
+ * @watch built for hundreds of clips: media is lazy, the filter reads a prebuilt
+ *   index rather than the DOM, and the grid is rebuilt from a fragment
+ * @see docs/page-shell.md
  */
 
-// Kept module-level so filtering never re-reads the network or re-parses the
-// payload - the search box fires on every keystroke.
+// Kept at file level, so filtering never refetches or reparses: the search box
+// fires on every keystroke.
 let galleryItems = [];
 let galleryPageId = null;
 
-// Matches the detection js/pages/core/framedata.js uses: read the extension off the path,
-// not the whole URL, so a query string or fragment does not make a video look
-// like an image.
+// The extension from the path, as framedata.js reads it, so a query or a fragment
+// cannot make a video look like an image.
 function isVideoSrc(src) {
     const path = String(src || '').split(/[?#]/)[0].toLowerCase();
     return ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
 }
 
-// One searchable string per item, built once. Searching re-reads this rather
-// than touching the DOM, which is what keeps typing responsive at a few
+// One searchable string per item, built once, so typing stays responsive at a few
 // hundred items.
 function indexItems(items) {
     return items.map(item => ({
@@ -58,12 +41,8 @@ function buildGalleryCard(item) {
 
     if (item.src) {
         if (isVideoSrc(item.src)) {
-            // The shared clip (js/pages/core/description.js wikiClipHTML): lazy, because
-            // a gallery is the one page where loading every clip at once
-            // genuinely matters, and carrying the corner button that opens the
-            // player. aria-label because <video> has no alt attribute - the
-            // same trap that made skill-card alt text look like it was not
-            // saving.
+            // The shared clip (wikiClipHTML): lazy, since a gallery is where loading every clip
+            // at once matters most. An aria-label, because <video> has no alt.
             media.innerHTML = window.wikiClipHTML(item.src, {
                 className: 'gallery-media', label: item.alt || item.name || '',
             });
@@ -114,8 +93,7 @@ function renderGrid(items) {
         return;
     }
 
-    // One fragment, one reflow - the difference is visible at a few hundred
-    // cards.
+    // One fragment, one reflow: the difference shows at a few hundred cards.
     const fragment = document.createDocumentFragment();
     items.forEach(item => fragment.appendChild(buildGalleryCard(item)));
     grid.appendChild(fragment);
@@ -136,6 +114,7 @@ function applyGalleryFilter(query) {
     renderGrid(q ? galleryItems.filter(item => item._haystack.includes(q)) : galleryItems);
 }
 
+/** Draws a gallery page: its intro Blocks, the search box and the grid. */
 window.renderGalleryPage = async function(pageId) {
     galleryPageId = pageId;
 
