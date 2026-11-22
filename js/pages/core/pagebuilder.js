@@ -1,22 +1,21 @@
 /**
- * Dogslamloop Wiki - Page Builder & Navigation Module
- * V0.4 DSL Standardized Engine
+ * The page builder: what surrounds a page's content. The skip link, the left
+ * sidebar's menu and account dock, the phone drawers and bottom bar, the Edit and
+ * History buttons, the roster grid with its icons and hover banners, the
+ * dashboard columns and systems directory, the tab strips (setupTabs), section
+ * anchors and in-page jumps, the table of contents, page alerts and the footer.
+ * @since v0.01
+ * @touches data/navigation.json, data/banners.json, user_roles, page_experts,
+ *   user_notifications, cms_config.editRole, ?tab= and #sec- in the address
+ * @watch the dock's OVERSEER button and admin.html's own gate (admin-core.js) let
+ *   in the same people: change the two together
+ * @see docs/page-shell.md
  */
 
-// ==========================================
-// 1. SIDEBAR & NAVIGATION BUILDERS
-// ==========================================
-
 /**
- * Skip-to-content link, injected on every page.
- *
- * Done here rather than in each page's markup because every page loads this
- * file, and there are 30 generated stubs plus a dozen hand-authored pages -
- * a link that exists on 41 of 42 pages is worse than useless, because a
- * keyboard user learns to expect it.
- *
- * Without it, reaching the first paragraph of a character page means tabbing
- * through the whole sidebar menu - roughly 40 links - on every single page.
+ * The skip-to-content link, added on every page by this file, which every page
+ * loads. Without it, reaching a character page's first paragraph by keyboard means
+ * tabbing through about 40 menu links.
  */
 window.initSkipLink = function() {
     if (document.querySelector('.skip-link')) return;
@@ -43,13 +42,13 @@ window.initSkipLink = function() {
     document.body.insertBefore(link, document.body.firstChild);
 };
 
+/** The left sidebar's collapse button, with its label kept true to what it does. */
 window.initSidebarToggle = function() {
     const toggleBtn = document.querySelector('.sidebar-toggle-btn');
     const sidebar = document.getElementById('master-sidebar');
 
     if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', () => {
-            // The True Despawn Toggle
             const collapsed = sidebar.classList.toggle('collapsed');
             // The button's label is "Collapse sidebar" in the markup; once it
             // has collapsed the sidebar it does the opposite, and a screen
@@ -61,21 +60,11 @@ window.initSidebarToggle = function() {
     }
 };
 
-// TWO DRAWERS, ONE BACKDROP.
-//
-// The mobile bar used to be a link home plus a burger that opened the left
-// sidebar, and the table of contents was display:none below 1024px - simply
-// unreachable on a phone, on a wiki whose longest pages are the ones a phone
-// reader most needs to jump around inside.
-//
-// Owner's call, 2026-08-14: the site name opens the LEFT drawer and the burger
-// opens the RIGHT one. Nothing is lost by dropping the link home, because the
-// left drawer carries its own "dogslamloop wiki" link to the Main Dashboard -
-// the bar was the site's second route to the same place, and it was spending
-// the control a reader needed for the contents.
-//
-// The mapping is spatial on purpose: the control on the left opens the drawer
-// on the left. Anything else is a coin toss for a thumb.
+/**
+ * The phone's two drawers over one backdrop: the site name opens the navigation
+ * (left), the menu button the table of contents (right), so the control on each
+ * side opens the drawer on that side. Also builds the bottom bar.
+ */
 window.initMobileNav = function() {
     const navBtn = document.getElementById('mobile-nav-toggle');
     const tocBtn = document.getElementById('mobile-menu-toggle');
@@ -85,18 +74,16 @@ window.initMobileNav = function() {
 
     if (!backdrop) return;
 
-    // A page with no right sidebar hides the button: one that opens an empty
-    // drawer is worse than none, and the left drawer is still reachable from
-    // the site name. Since v1.0 Part 2 every page with the bar has one.
+    // A page with no right sidebar hides the button: one that opens an empty drawer is
+    // worse than none.
     if (tocBtn && !right) tocBtn.hidden = true;
 
-    // Eight pages have a right sidebar with no contents in it, only Ko-fi and
-    // the Sitewide links (v1.0 Part 2), so their button is not called that.
+    // A right sidebar with no contents (only Ko-fi and the Sitewide links) is called
+    // the sidebar, not the table of contents.
     const drawerName = right && !right.querySelector('#dynamic-toc') ? 'sidebar' : 'table of contents';
     if (tocBtn) tocBtn.setAttribute('aria-label', `Open ${drawerName}`);
 
-    // aria-controls needs a target that exists, and the right sidebar has no
-    // id of its own on any page. Given one here rather than in fourteen files.
+    // aria-controls needs a target with an id, and the right sidebar has none on any page.
     if (right) {
         if (!right.id) right.id = 'mobile-toc-drawer';
         if (tocBtn) tocBtn.setAttribute('aria-controls', right.id);
@@ -152,18 +139,9 @@ window.initMobileNav = function() {
     buildMobileBottomBar(navPanel ? () => setOpen(navPanel, true) : null);
 };
 
-// THE BOTTOM BAR (owner's mobile card, v1.2).
-//
-// On a phone, search, the account, Site Settings and Ko-fi all sat inside a
-// drawer: "No quick way to start searching the wiki on mobile (need to press
-// on the burger first in order to search)", and the same for the other three.
-// The owner's pick (2026-11-16) was one bar fixed to the bottom of the screen
-// with all four, on every page that starts the phone navigation. The editor
-// and the review queue never do, so they get no bottom bar.
-//
-// Nothing here is a second copy of a feature. Search opens the navigation
-// drawer with its search box focused, Settings and Account call what the dock
-// buttons call, and Ko-fi takes its address from the page's own Ko-fi link.
+// The bottom bar on a phone: search, the account, Site Settings and Ko-fi, on every
+// page that starts the phone navigation (the editor and the review queue do not).
+// Nothing in it is a second copy: each button calls what its desktop twin calls.
 function buildMobileBottomBar(openNavDrawer) {
     if (document.getElementById('mobile-bottom-bar')) return;
 
@@ -215,6 +193,7 @@ function buildMobileBottomBar(openNavDrawer) {
 // icon, and LOGIN for a guest. The dock learns that from a request, and may
 // finish before or after the bar is built, so both ends call this.
 let mobileBottomAccount = { icon: null, signedIn: false };
+/** Shows the signed-in state on the bottom bar's account button; the dock calls it too. */
 window.syncMobileBottomAccount = function(state) {
     if (state) mobileBottomAccount = state;
     const btn = document.querySelector('#mobile-bottom-bar [data-bottom="account"]');
@@ -225,6 +204,10 @@ window.syncMobileBottomAccount = function(state) {
     btn.querySelector('.mobile-bottom-label').textContent = mobileBottomAccount.signedIn ? 'Account' : 'Login';
 };
 
+/**
+ * The left sidebar's navigation menu from data/navigation.json, grouped by
+ * category, with the search box above it.
+ */
 window.buildGlobalSidebarMenu = async function(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -245,20 +228,13 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
         if (!navData) throw new Error("Navigation configuration missing.");
 
-        // navigation.json is owner-editable via site_pages as of v0.10, and
-        // this menu renders on every page on the site - the widest reach of
-        // the three consumers of that file. Escaped at every interpolation.
-        //
-        // The header's onclick stays: it interpolates nothing, so it is static
-        // markup rather than the user-influenced-handler pattern CLAUDE.md
-        // rules out.
+        // navigation.json comes from site_pages, and this menu is on every page: escaped at
+        // every interpolation.
 
         let html = '';
         for (const [category, items] of Object.entries(navData)) {
-            // A <button> rather than a <div>: it is operated by click, so it
-            // has to be reachable by keyboard and announced as a control.
-            // aria-expanded carries the open/closed state, which the caret
-            // conveys visually and conveyed to nobody else.
+            // A <button>, so it is reachable by keyboard and announced as a control.
+            // aria-expanded carries what the caret shows.
             html += `<div class="sidebar-group-wrapper">`;
             html += `<button type="button" class="sidebar-nav-title sidebar-group-header" aria-expanded="false">
                         ${window.escapeHtml(category)} <span class="sidebar-group-caret" aria-hidden="true">▼</span>
@@ -288,7 +264,6 @@ window.buildGlobalSidebarMenu = async function(containerId) {
         }
         container.innerHTML = html;
 
-        // Delegated, replacing the inline onclick these headers used to carry.
         container.querySelectorAll('.sidebar-group-header').forEach(header => {
             header.addEventListener('click', () => {
                 const list = header.nextElementSibling;
@@ -298,14 +273,8 @@ window.buildGlobalSidebarMenu = async function(containerId) {
             });
         });
 
-        // v0.19 F1a. Injected here rather than shipped in markup: 19 pages are
-        // hand-authored and 45 come from three templates, so a searchbar in the
-        // markup would be the same block in 22 places. This function is the one
-        // hook every page on the site already calls.
-        //
-        // After the menu, so a failure to build the search cannot cost the
-        // navigation - and inside the try, so it is reported like anything else
-        // that goes wrong here.
+        // The search box goes in after the menu, so failing to build it cannot cost the
+        // navigation, and inside the try, so it is reported like the rest.
         if (typeof window.initSiteSearch === 'function') window.initSiteSearch(containerId);
     } catch (e) {
         console.error("Sidebar Menu Error:", e);
@@ -313,23 +282,18 @@ window.buildGlobalSidebarMenu = async function(containerId) {
     }
 };
 
-// The per-page Edit and History buttons, built into the table of contents.
-//
-// One pair, not two. They used to be duplicated into the page body for phones
-// because the contents sidebar was display:none below 1024px; it is a drawer
-// now, and it goes everywhere the reader does.
+/**
+ * The page's Edit and History buttons, in the table of contents (a drawer on a
+ * phone, so one pair serves every width).
+ * @touches navigation.json (cms_config.editRole), ?mode=
+ * @watch a 'locked' page shows no Edit button; an 'elevated' one shows it and is
+ *   gated at submit (editor-core.js's page_permissions check)
+ */
 window.initTabEditorButtons = async function(pageId, pageType = 'character') {
     const sidebarBtn = document.getElementById('btn-edit-current-tab');
 
     if (!pageId) return;
 
-    // Pages with cms_config.editRole === 'locked' have no editing pathway at
-    // all (e.g. the changelog/collaborators pages aren't wired to the CMS) -
-    // don't show a button that leads nowhere. 'open'/'elevated' pages still
-    // show it; elevated ones are blocked at submit time instead (see
-    // js/editor/core/editor-core.js's page_permissions check, in its submit-pipeline
-    // DOMContentLoaded handler), matching how staff-only pages
-    // work in most CMSes - browsable, gated on save.
     try {
         const navData = typeof window.fetchNavigationData === 'function' ? await window.fetchNavigationData() : null;
         if (navData) {
@@ -347,18 +311,9 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
             activeTabId = activeTabEl.id.replace('nav-', '');
         }
 
-        // Carry the character state across too. js/editor/core/editor-modes.js chooses
-        // which state to open by reading `?mode=` off this URL, and this link
-        // never sent it - so pressing Edit while reading an ultimate state
-        // dropped you into the base kit, every time.
-        //
-        // js/pages/core/character_modes.js keeps ?mode= on the reading page's own URL as
-        // the state changes, and sets window.activeCharacterMode alongside it;
-        // the in-memory value is preferred because it is correct before the
-        // first switchCharacterMode call writes the parameter.
-        //
-        // Base drops the parameter rather than sending ?mode=base, matching
-        // what character_modes.js does to the canonical URL.
+        // The character state goes along (?mode=), so Edit opens the state being read. The
+        // in-memory value first: it is right before the first switch writes the
+        // parameter. Base sends none, as character_modes.js does.
         const mode = window.activeCharacterMode
             || new URLSearchParams(window.location.search).get('mode');
         const onBase = typeof window.isBaseMode === 'function'
@@ -373,14 +328,12 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
         window.location.href = `../../history.html?page=${pageId}`;
     };
 
-    // 1. Hook up the Desktop Right Sidebar Buttons (Stacked Layout)
     if (sidebarBtn) {
         sidebarBtn.classList.add('is-active');
         sidebarBtn.onclick = handleEditClick;
 
         const parentDiv = sidebarBtn.parentNode;
 
-        // Restructure the parent container so the title sits on top of the buttons
         parentDiv.classList.add('sidebar-tab-header-stacked');
 
         let btnGroup = document.getElementById('sidebar-btn-group');
@@ -388,16 +341,11 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
             btnGroup = document.createElement('div');
             btnGroup.id = 'sidebar-btn-group';
 
-            // Move the Edit button into the new wrapper
             parentDiv.insertBefore(btnGroup, sidebarBtn);
             btnGroup.appendChild(sidebarBtn);
 
-            // Create the History button. Shares .tab-editor-btn-sidebar
-            // with the Edit button directly (style/Layout.css) instead of
-            // cloning sidebarBtn.style.cssText at creation time - that
-            // clone was fragile and, on system pages, actually carried a
-            // stale display: none onto this button permanently (see the
-            // matching fix in the mobile block below for the same bug).
+            // History shares .tab-editor-btn-sidebar with Edit (style/Layout.css), never a
+            // copy of Edit's inline style.
             const histBtn = document.createElement('button');
             histBtn.id = 'btn-history-current-tab';
             histBtn.className = 'btn-sys btn-sys-regular tab-editor-btn-sidebar is-active';
@@ -407,31 +355,11 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
             btnGroup.insertBefore(histBtn, sidebarBtn);
         }
     }
-
-    // There is no mobile pair any more. Both buttons used to be duplicated
-    // into the page body for phones, because the right sidebar they live in
-    // was display:none below 1024px and there was no other way to reach them.
-    //
-    // The table of contents became a drawer on 2026-08-14, and it carries this
-    // same button group - so the copies in the body were a second set of the
-    // same two controls, one tap further from the reader's thumb than the
-    // drawer they now sit in, and taking up the width of a tab row on the
-    // narrowest screen the site serves. Owner's call: they go.
 };
 
-// Builds the sidebar's auth/profile dock (login state, role icon, OVERSEER
-// link, INBOX button, Ko-fi restore) - NOT an "edit this page" button,
-// despite this function's former name (initSidebarEditButton). That's
-// initTabEditorButtons above, which builds the actual per-page Edit/History
-// buttons into a separate DOM container. Renamed 2026-08-02 after the two
-// were confused for each other - see project memory for the backstory.
-// The Ko-fi button sits at the top of the right sidebar on every page that has
-// one (owner, 2026-10-06: under the left sidebar's categories and the dock it
-// was buried). A page with no right sidebar - the Forum, the legal pages,
-// search, the hubs - keeps it on the left, so no page loses it. The page's own
-// link is moved, not rebuilt, so its address stays written in one place per
-// page. Below 1024px the right sidebar is the drawer behind the top-right menu
-// button, so the button is reachable at every width.
+// Ko-fi sits at the top of the right sidebar where a page has one, and stays on
+// the left where it has not (the Forum, the legal pages, search, the hubs). The
+// page's own link is moved, not rebuilt, so its address is written once per page.
 function placeKofiOnTheRight() {
     const right = document.querySelector('.local-sidebar-right');
     if (!right || right.querySelector('.kofi-btn-wrapper')) return;
@@ -447,6 +375,11 @@ function placeKofiOnTheRight() {
     if (left && !left.querySelector('a')) left.remove();
 }
 
+/**
+ * The left sidebar's account dock: the sign-in state and role badge, OVERSEER,
+ * the inbox, My Submissions, Site Settings and Ko-fi.
+ * @touches user_roles, page_experts, user_notifications, claimPendingBadges
+ */
 window.initAuthDock = async function() {
     // First, before any request: the button never shows on the left and then
     // jumps.
@@ -460,12 +393,7 @@ window.initAuthDock = async function() {
 
     let existingKofi = container.querySelector('.kofi-btn-wrapper, a[href*="Ko-fi"]');
 
-    // --- AUTHENTICATION & SIDEBAR DOCK ---
-    // 'none' rather than 'viewer' as the logged-out default: as of v0.11
-    // 'viewer' is a real role meaning "signed in but cannot submit", so using
-    // it as the anonymous placeholder would label every visitor with the ban
-    // role. Only drives the dock icon today, but it is the kind of default
-    // that quietly becomes a real bug the first time something gates on it.
+    // 'none', not 'viewer', for a guest: viewer is a real role, a soft ban.
     let userRole = 'none'; let username = 'LOGIN'; let unreadCount = 0;
     // A capability, not a role - see the OVERSEER button below.
     let canModerate = false;
@@ -474,14 +402,12 @@ window.initAuthDock = async function() {
     let isExpert = false;
     if (window.supabaseClient) {
         try {
-            // Fetch the FULL session so we can pass it to our universal name extractor
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             if (session && session.user) {
                 // A badge won signed out is kept the moment its winner is
                 // signed in. Not awaited: the dock does not wait on it.
                 if (typeof window.claimPendingBadges === 'function') window.claimPendingBadges();
 
-                // Uses the unified Site Utils function to grab your exact Profile Name
                 username = typeof window.getDisplayName === 'function' ? window.getDisplayName(session) : session.user.email.split('@')[0];
                 
                 // select('*'): the OVERSEER button below is gated on a
@@ -492,69 +418,41 @@ window.initAuthDock = async function() {
                 if (roleData) userRole = roleData.role;
                 if (roleData && roleData.can_moderate === true) canModerate = true;
 
-                // Asked only when the role has not already earned the button,
-                // so this costs staff nothing. Mirrors js/overseer/admin-core.js, which
-                // skips it for the same reason.
+                // Asked only when the role has not earned the button already, so staff pay
+                // nothing for it; admin-core.js skips it the same way.
                 if (!window.roleMeets(userRole, 'reviewer') && !canModerate) {
                     const { data: expertPages } = await window.supabaseClient
                         .rpc('get_user_expert_pages', { target_user_id: session.user.id });
                     isExpert = Array.isArray(expertPages) && expertPages.length > 0;
                 }
                 
-                // user_notifications, not system_inbox - the latter has no
-                // migration and has never existed, so this count was always 0
-                // and the badge never appeared no matter how many real
-                // notifications were waiting.
+                // user_notifications is the inbox's table.
                 const { count } = await window.supabaseClient.from('user_notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('is_read', false);
                 unreadCount = count || 0;
             }
         } catch (e) { console.warn("Auth sync skipped."); }
     }
 
-    // --- ICONS ---
-    // The owner's pixel art (v1.2, window.UI_ICONS in js/utility/site_meta.js). A
-    // role's badge is window.ROLE_BADGES (js/utility/site_account.js), shared with the
-    // profile modal so the two cannot drift.
+    // The site's icons (window.UI_ICONS, site_meta.js). A role's badge is
+    // window.ROLE_BADGES (site_account.js), shared with the profile modal.
     const svgGear = window.uiIconHTML('dock-overseer');
     const svgMail = window.uiIconHTML('dock-inbox');
 
-    // --- ASSIGN ROLES & COLORS ---
-    // Matched by NAME, not by rank, and this is one of the two places in the
-    // codebase where that is correct: an icon is an identity, not a bar somebody
-    // clears. Everywhere else - who may open a page, who may delete a file - is
-    // a rank test, because those questions are about "at least this senior".
-    // "Which badge is mine" is not that question, and answering it with
-    // roleMeets would give the owner the admin's shield, since the owner does
-    // indeed meet the admin bar. window.roleBadge does the same by name, and
-    // falls through to the signed-in badge for anything unrecognised rather than
-    // borrowing a senior one.
+    // The badge is matched by role name, not rank: an icon is an identity, not a bar
+    // somebody clears, and roleMeets would give the owner the admin's shield.
+    // window.roleBadge falls back to the signed-in badge for anything unknown.
     const dockBadge = window.roleBadge(username === 'LOGIN' ? 'guest' : userRole);
     const loginIcon = window.roleIconHTML(username === 'LOGIN' ? 'guest' : userRole);
     const dynamicColorClass = `btn-sys-${dockBadge.color}`;
 
-    // --- CRITICAL DOM STRUCTURE FIX ---
-    // Uses .btn-manga-icon and .btn-manga-text span wrappers so Layout.css knows how to collapse it natively
+    // .btn-manga-icon and .btn-manga-text spans let Layout.css collapse the dock.
     const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
     let html = '';
 
-    // 1. OVERSEER PANEL (Pathing Fixed)
-    // Must match admin.html's own RBAC gate (js/overseer/admin-core.js) exactly.
-    // Previously this also listed contributor/trusted_editor, which showed a
-    // working-looking button that dead-ended at admin.html's access-denied
-    // screen - so the two lists drifting apart has cost this project once
-    // already, and they are changed together or not at all.
-    //
-    // can_moderate joined the list on 2026-08-13. It is a capability rather
-    // than a role: user_roles has UNIQUE(user_id) because a second row broke
-    // get_my_role() for that user everywhere, so "let this person moderate"
-    // must never become a second role. admin-core.js scopes what they see once
-    // they arrive - reports only, no revision or media queue.
-    //
-    // A page expert joined the list on 2026-09-04, and is the third thing that
-    // is not a role. v0.17 gave them review rights over their own pages in SQL
-    // (can_review_page, 20260903000001) but neither gate here nor in
-    // admin-core.js was taught the word, so an expert saw their badge and no
-    // way to act on it. Both were changed together, as the note above requires.
+    // OVERSEER, for exactly the people admin.html's own gate (admin-core.js) lets in:
+    // a reviewer or above, a moderator (can_moderate) or a page expert. The two lists
+    // change together, or the button dead-ends at access denied. can_moderate is a
+    // capability, never a second role: user_roles holds one row per user.
     if (window.roleMeets(userRole, 'reviewer') || canModerate || isExpert) {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
@@ -563,7 +461,6 @@ window.initAuthDock = async function() {
             </button>`;
     }
 
-    // 2. SYSTEM INBOX
     if (username !== 'LOGIN') {
         let badgeHtml = unreadCount > 0 ? `<div class="dock-badge"></div>` : ``;
         html += `
@@ -574,7 +471,7 @@ window.initAuthDock = async function() {
             </button>`;
     }
 
-    // 3. MY SUBMISSIONS (self-service - any logged-in user, not role-gated)
+    // My Submissions: any signed-in user.
     if (username !== 'LOGIN') {
         const svgSubmissions = window.uiIconHTML('dock-submissions');
         html += `
@@ -584,10 +481,8 @@ window.initAuthDock = async function() {
             </button>`;
     }
 
-    // 4. PROFILE / LOGIN, sharing its row with SITE SETTINGS (v1.1). A row of
-    // its own above it would push the account button further down, out of
-    // sight on a short screen, which is how Ko-fi ended up leaving this dock
-    // (owner, 2026-10-20). Sliders rather than a gear: OVERSEER is the gear.
+    // The account button shares its row with Site Settings: a row of its own would push
+    // the account out of sight on a short screen. Sliders, because OVERSEER is the gear.
     const svgSliders = window.uiIconHTML('dock-site-settings');
     html += `
         <div class="dock-auth-row">
@@ -602,7 +497,6 @@ window.initAuthDock = async function() {
 
     container.innerHTML = html;
 
-    // --- RESTORE KO-FI ---
     if (existingKofi) {
         let targetNode = existingKofi.tagName === 'A' ? existingKofi : existingKofi.querySelector('a');
         if (targetNode) {
@@ -618,18 +512,13 @@ window.initAuthDock = async function() {
         container.appendChild(existingKofi);
     }
     
-    // Bind click events (unchanged logic)
     const btnAuth = document.getElementById('dock-btn-auth');
     if (btnAuth && typeof window.openAuthModal === 'function') btnAuth.onclick = window.openAuthModal;
     const btnSettings = document.getElementById('dock-btn-settings');
     if (btnSettings) btnSettings.onclick = () => window.openSiteSettings();
     window.syncMobileBottomAccount({ icon: loginIcon, signedIn: username !== 'LOGIN' });
 
-    // Opens the real inbox modal built by js/utility/site_account.js's initNotifications.
-    // This used to build a second modal here, with the same literal
-    // id="site-notification-modal", reading the nonexistent system_inbox table -
-    // so the bell always reported an empty inbox while the working
-    // user_notifications data sat behind a modal nothing ever opened.
+    // Opens the inbox modal site_account.js builds (initNotifications).
     const btnInbox = document.getElementById('dock-btn-inbox');
     if (btnInbox) {
         btnInbox.onclick = () => {
@@ -638,20 +527,12 @@ window.initAuthDock = async function() {
     }
 };
 
-// ==========================================
-// 2. DATA GRID BUILDERS & FILTERS
-// ==========================================
-
 let masterRosterData = [];
-// showHidden replaces hideWip (v0.16 feature 3). "Hide WIP" was removed rather
-// than kept alongside it: every one of the 44 character entries is currently
-// isWip, so that button emptied the roster completely, and the flag it reads is
-// about whether a page is FINISHED - which is the owner's business, not a thing
-// a reader filters on.
-// No tier filter since v1.0 Part 3: the owner had the tier column dropped,
-// as it was "TBD" on every character and the filter offered only "All".
+// showHidden lets hidden characters in. WIP is not a filter: it says whether a
+// page is finished, which is not a thing a reader filters on.
 let currentFilters = { archetype: 'All', eaOnly: false, baseOnly: false, showHidden: false };
 
+/** Loads the roster from data/navigation.json and wires its filters. */
 window.initRosterFilters = async function() {
     const filterContainer = document.getElementById('roster-filter-bar');
     if (!filterContainer) return;
@@ -662,7 +543,6 @@ window.initRosterFilters = async function() {
         if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
         else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
         
-        // ACCESSED CORRECTLY FROM NAVIGATION.JSON
         masterRosterData = navData["Characters"] || [];
     } catch(e) { console.error("Roster Data Error:", e); return; }
 
@@ -699,22 +579,13 @@ window.initRosterFilters = async function() {
     renderFilteredRoster();
 };
 
-// --- ROSTER ICONS (v0.16) ---
-//
-// The icon's path is window.rosterIconPath, in js/utility/site_meta.js since v1.2,
-// where text on any page can reach it too. This is the roster card's half.
+// The roster card's icon: its path is window.rosterIconPath (site_meta.js), where
+// text on any page can reach it too.
 
-// Marks the cards whose icon actually loaded, and drops the ones that did not.
-//
-// The class is added on LOAD rather than written into the markup, so a missing
-// or broken icon leaves the card exactly as it was before v0.16 - solid colour,
-// name centred and always visible. That is the whole fallback: it is the
-// absence of an opt-in, not a second code path that has to be kept working.
-//
-// Listeners rather than inline onload/onerror attributes: this project's
-// convention is that nothing user-influenced goes in an inline handler, and a
-// page id is owner-editable. A cached image can already be complete before this
-// runs, hence the naturalWidth check.
+// Marks the cards whose icon loaded, and drops the ones that did not. The class is
+// added on load, never written into the markup, so a missing icon leaves the plain
+// card (its colour, the name centred): the fallback is the absence of an opt-in.
+// Listeners, not inline handlers, and a cached image may be complete already.
 window.markLoadedRosterIcons = function (root) {
     const scope = root || document;
     scope.querySelectorAll('.roster-card-icon').forEach(img => {
@@ -731,18 +602,11 @@ window.markLoadedRosterIcons = function (root) {
     });
 };
 
-// --- HOVER BANNERS (v1.2, the owner's Kanban card) ---
-//
-// "When hovering above a character box icon in the roster selection section
-// for about 0.25s, a banner pop up that have a custom wide stretch image
-// (different from the portrait) with a cut-off Overview." The banner is the
-// one editors set in the Profile tab, mirrored with the Overview's first line
-// into data/banners.json each night (scripts/fetch-banners.js), so a hover
-// asks Supabase for nothing. A character with no banner yet gets its line over
-// its colour; one with neither gets no popup.
-//
-// A mouse or a keyboard only. A finger has no hover, and a tap opens the page,
-// as it always did.
+// Hover banners: about 0.25s over a roster card opens the character's banner with
+// the first line of their Overview, from data/banners.json (mirrored nightly by
+// scripts/fetch-banners.js), so a hover asks Supabase for nothing. A line with no
+// banner shows over the character's colour; neither shows no popup. A mouse or a
+// keyboard only: a tap opens the page.
 const ROSTER_BANNER_DELAY_MS = 250;
 let rosterBanners = null;   // the promise of data/banners.json, fetched on the first hover
 let rosterBannerFor = null; // the card a popup is coming for, or showing
@@ -864,23 +728,22 @@ function bindRosterBanners(grid) {
     grid.addEventListener('focusout', (e) => {
         if (e.target.closest('.roster-card')) hideRosterBanner();
     });
-    // A popup that is showing follows its card when the page scrolls. One
-    // still to come is placed when it opens, so a scroll must not cancel it:
-    // reaching a card often IS a scroll, and its last event lands after the
-    // pointer has (the home page roster sits below the fold).
+    // A popup that is showing follows its card when the page scrolls. One still to
+    // come is not cancelled by a scroll: reaching a card often is a scroll, and its
+    // last event lands after the pointer has.
     window.addEventListener('scroll', () => {
         const el = document.getElementById('roster-banner');
         if (el && !el.hidden && rosterBannerFor) placeRosterBanner(el, rosterBannerFor);
     }, { passive: true });
 }
 
+/** Draws the roster grid for the filters set. */
 window.renderFilteredRoster = function() {
     const rosterGrid = document.getElementById('roster-grid') || document.querySelector('.roster-grid');
     if (!rosterGrid) return;
     hideRosterBanner();
     rosterGrid.innerHTML = '';
 
-    // --- Grab the root path to prevent duplicate directory stacking ---
     const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../';
 
     const filteredChars = masterRosterData.filter(char => {
@@ -888,11 +751,8 @@ window.renderFilteredRoster = function() {
         if (currentFilters.archetype !== 'All' && char.archetype !== currentFilters.archetype) return false;
         if (currentFilters.eaOnly && !char.isEA) return false;
         if (currentFilters.baseOnly && !char.isBaseOnly) return false;
-        // Hidden characters are OUT by default and the toggle lets them in -
-        // the opposite polarity to the filters above, which is why the button
-        // reads "Show Hidden" rather than "Hide" anything. `isHidden` is absent
-        // rather than false on every ordinary entry (fetch-registry omits false
-        // flags), so this is a truthiness test on purpose.
+        // Hidden characters are out unless the toggle lets them in. `isHidden` is absent on
+        // an ordinary entry (fetch-registry omits false flags), so this tests truthiness.
         if (!currentFilters.showHidden && char.isHidden) return false;
         return true;
     });
@@ -915,22 +775,16 @@ window.renderFilteredRoster = function() {
             textColor = '#a1a1aa';
         }
 
-        // --- Prepend the rootPath to the href ---
-        // Names, URLs and image paths are all owner-editable through
-        // owner.html as of v0.10, so they are escaped at every interpolation
-        // rather than trusted for being "internal" data.
+        // Names, addresses and image paths come from site_pages: escaped at every
+        // interpolation.
 
-        // WIP moved out of the name and into its own corner marker, beside the
-        // Early Access star (owner, 2026-08-24). It has to survive the name
-        // being hidden at rest, and "(WIP)" inside a slit nobody has hovered
-        // yet tells the reader nothing.
+        // WIP is its own corner marker, beside the Early Access star, not part of the
+        // name: the name is hidden until hover.
         const iconSrc = window.rosterIconPath((char.cms_config || {}).pageId);
 
-        // The character's colour goes out as a CUSTOM PROPERTY rather than as
-        // `background-color` directly. It has three jobs now - the card's own
-        // background when there is no icon, the border when there is one, and
-        // the name slit's fill - and an inline background-color would beat every
-        // stylesheet rule that needs to change one of them without !important.
+        // The colour goes out as a custom property, not background-color: it is the
+        // card's background without an icon, the border with one, and the name slit's
+        // fill, and an inline background-color would beat every rule that changes one.
         html += `
             <a href="${window.escapeHtml(rootPath + char.url)}" class="roster-card" data-page-id="${window.escapeHtml((char.cms_config || {}).pageId || '')}" style="--char-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
@@ -946,42 +800,21 @@ window.renderFilteredRoster = function() {
     bindRosterBanners(rosterGrid);
 };
 
-// Categories that get their own Main Dashboard column, so they are not also
-// listed inside the "Guides & Such" box. Named here rather than in index.html
-// because both consumers - that box and the columns themselves - have to agree
-// on the same list.
-//
-// The Others column is sub-grouped: one column, several labelled groups, each
-// group a `site_pages.category`. There is no separate "Others" category -
-// a page belongs to Gamemodes, Servers or Misc directly, which is why the one
-// page created so far was already filed correctly.
-//
-// Adding a group here is the whole change: it appears in the column and
-// disappears from the Side Dashboard's directory in one move. That second half
-// is the part that bites - a category the column renders but this list omits
-// would appear twice on the same screen.
+// Categories with their own Main Dashboard column, so the "Guides & Such" box
+// leaves them out. The Others column is sub-grouped by site_pages.category
+// (Gamemodes, Servers, Misc). A group added here appears in the column and leaves
+// the directory in one move; a category in one list and not the other shows twice.
 window.OTHERS_SUBGROUPS = ['Gamemodes', 'Servers', 'Misc'];
-// Sub-grouped by who the tool is for, the same mechanism the Others column
-// uses. 'Tools' stays first for anything general; 'Creators' is for tools that
-// operate on things people build (the Skill Builder ID Reader decodes moveset
-// ids), and 'Community' for tools anyone visiting the site can just use.
-//
-// These have to match the categories on the rows, not the other way round: a
-// category the column does not list falls through to the Side Dashboard's
-// generic directory, which is where both tool pages landed before this.
+// The Tools column, by who a tool is for: Tools for anything general, Creators for
+// tools on what people build, Community for tools anyone can just use. They match
+// the rows' categories; one the column does not list falls into the directory.
 window.TOOLS_SUBGROUPS = ['Tools', 'Creators', 'Community'];
 
 window.OWN_COLUMN_CATEGORIES = [...window.OTHERS_SUBGROUPS, ...window.TOOLS_SUBGROUPS];
 
 /**
- * Renders one category's pages as a column of buttons.
- *
- * Same shape as the buttons inside buildSystemsDirectory, because these are
- * the same thing - a link to a page - just grouped into their own dashboard
- * column instead of a shared box.
- *
- * A category with no pages yet renders a short line rather than an empty box,
- * so a column that is coming but not filled reads as deliberate.
+ * One or more categories' pages as a column of buttons, the same links the systems
+ * directory draws. A category with no pages yet shows a short line, not an empty box.
  */
 window.buildCategoryColumn = async function(containerId, categories) {
     const container = document.getElementById(containerId);
@@ -1004,28 +837,19 @@ window.buildCategoryColumn = async function(containerId, categories) {
             return;
         }
 
-        // A heading only when there is more than one group to tell apart. A
-        // lone "Tools" heading inside a section already titled Tools is noise.
-        //
-        // Counted on what is POPULATED, not what is declared. Declaring three
-        // Tools sub-groups while only one has pages would otherwise put that
-        // redundant heading back - which is the state this column is in
-        // whenever a category exists but nobody has filed a page under it yet.
+        // A heading only when there is more than one populated group to tell apart: a lone
+        // "Tools" heading in a section titled Tools is noise.
         const showHeadings = populated.length > 1;
 
-        // An empty group renders nothing at all rather than a bare heading -
-        // a promise of content is worse than silence.
-        // data-href + a delegated listener, not an inline onclick: these names
-        // and URLs come from site_pages, which an admin edits.
+        // An empty group draws nothing, not a bare heading. data-href and a delegated
+        // listener: the names and addresses come from site_pages.
         container.innerHTML = populated.map(group => {
             const heading = showHeadings
                 ? `<h3 class="column-subgroup-title">${window.escapeHtml(group.name)}</h3>`
                 : '';
 
-            // No WIP badge here (owner, 2026-09-03: "kinda off and not fitting.
-            // The WIP tag being on the left sidebar navigation is good
-            // enough"). buildGlobalSidebarMenu still draws it, which is the one
-            // place a reader is choosing what to open from a full list.
+            // No WIP badge in the columns; the sidebar menu, where a reader picks from the full
+            // list, still has it.
             const buttons = group.items.map(item => `
                 <button class="btn-manga btn-manga-box system-directory-btn" data-href="${window.escapeHtml(rootPath + item.url)}">
                     <div class="btn-manga-content">
@@ -1048,26 +872,12 @@ window.buildCategoryColumn = async function(containerId, categories) {
     }
 };
 
-/**
- * @param {string} containerId
- * @param {{compact?: boolean}} [options] - compact is the two-column, unslanted
- *   layout the home page's narrow dashboard columns need. It is opted into
- *   rather than default because this function has TWO consumers: that column,
- *   and the full-width Systems Hub (systems/index.html), where forcing two
- *   columns would leave a wide page mostly empty.
- */
-// Display order for the systems directory, both in the home page's "Guides &
-// Such" box and on the Systems Hub it links to.
-//
-// navigation.json's key order follows site_pages.sort_order, which is the
-// owner's ordering of the REGISTRY rather than of this box. Only the two ends
-// that matter are pinned; everything between keeps its natural position, so a
-// category created next month appears without a code change.
-//
-// Owner, 2026-09-03: Guides to the top, System Pages to the bottom.
+// The directory's order: Guides first and System Pages last, everything between in
+// navigation.json's order (site_pages.sort_order), so a new category needs no code.
 window.SYSTEMS_CATEGORY_FIRST = ['Guides'];
 window.SYSTEMS_CATEGORY_LAST = ['System Pages'];
 
+/** Category names in the directory's order (SYSTEMS_CATEGORY_FIRST and _LAST). */
 window.orderSystemsCategories = function (names) {
     const rank = (name) => {
         const first = window.SYSTEMS_CATEGORY_FIRST.indexOf(name);
@@ -1081,6 +891,13 @@ window.orderSystemsCategories = function (names) {
     return [...names].sort((a, b) => rank(a) - rank(b));
 };
 
+/**
+ * Draws the systems directory.
+ * @param {string} containerId
+ * @param {{compact?: boolean}} [options] compact: two columns, unslanted, for the
+ *   home page's narrow column. Opt-in, because the full-width Systems Hub draws it
+ *   too.
+ */
 window.buildSystemsDirectory = async function(containerId, options) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -1095,12 +912,10 @@ window.buildSystemsDirectory = async function(containerId, options) {
         if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
         else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
 
-        // Category names are owner-authored too - they come straight from
-        // site_pages.category - so they get the same treatment as page names.
+        // Category names come from site_pages.category too: escaped like page names.
 
         let html = `<div class="systems-grid-container${compact ? ' systems-grid-container-compact' : ''}">`;
-        // Others and Tools have their own Main Dashboard columns, so they are
-        // excluded here rather than being listed twice on the same page.
+        // Others and Tools have their own Main Dashboard columns, so they are left out here.
         const categories = window.orderSystemsCategories(
             Object.keys(navData)
                 .filter(k => k !== 'Characters' && !window.OWN_COLUMN_CATEGORIES.includes(k)));
@@ -1114,14 +929,7 @@ window.buildSystemsDirectory = async function(containerId, options) {
                     <div class="${gridClass}">
             `;
             items.forEach(sys => {
-                // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow.
-                //
-                // data-href + a delegated listener rather than an inline
-                // onclick: since v0.10 these names and URLs come from
-                // site_pages, which an admin edits through owner.html, so a
-                // page named with an apostrophe used to break the handler
-                // outright. Building owner-supplied values into an inline
-                // onclick is the pattern CLAUDE.md rules out.
+                // data-href and a delegated listener: the names and addresses come from site_pages.
                 html += `
                     <button class="btn-manga ${shapeClass} system-directory-btn" data-href="${window.escapeHtml(rootPath + sys.url)}">
                         <div class="btn-manga-content">
@@ -1146,33 +954,17 @@ window.buildSystemsDirectory = async function(containerId, options) {
     }
 };
 
-// ==========================================
-// 3. UTILITIES & CHARACTER PAGE ENGINES
-// ==========================================
-
-// Restored: Tab switching logic for the Character Pages
-// Tab groups are registered rather than closed over, because a tab can now
-// arrive after the group is first wired: the Ultimate tab is injected at
-// runtime by js/pages/core/character_modes.js once the data says the character is
-// base-only, which is long after page_boot.js set the strip up. Re-calling
-// setupTabs with the fuller list extends the group in place - the click
-// handler reads the live id list, so the buttons bound first still know to
-// hide the tab added later.
-//
-// Boundness is marked on the button element, not held in a set here, so that
-// a rebuilt strip (admin.html replaces its whole tab DOM per revision) gets
-// fresh listeners on its fresh nodes instead of being wrongly skipped.
+// Tab groups are registered, not closed over, because a tab can arrive after its
+// group is wired (the Ultimate tab, character_modes.js). Calling setupTabs again
+// with the longer list extends the group, and the click handler reads the live
+// list. Boundness is marked on the button, so a rebuilt strip (admin.html's, per
+// revision) gets fresh listeners.
 const tabGroupRegistry = new Map();
 
-// THE TAB IN THE ADDRESS (v1.1 batch 9). Owner: "I can't click go back on my
-// browser and conveniently go back to the last tab I clicked on". A reader
-// page's main strip writes ?tab=<id> on every switch, so Back, a refresh and a
-// shared link all reopen it. Replaced, never pushed: Back leaves the page
-// rather than stepping through every tab the reader opened, which is what the
-// owner picked. The first tab writes nothing, so a bare address is still it.
-//
-// Opt-in through setupTabs' `address`, because the editor and admin.html wire
-// their own strips through the same function and their addresses are theirs.
+// The tab in the address: a reader page's main strip writes ?tab=<id> on every
+// switch, so Back, a refresh and a shared link reopen it. Replaced, never pushed,
+// so Back leaves the page. The first tab writes nothing. Opt-in through `address`:
+// the editor's and admin.html's strips are theirs.
 const TAB_PARAM = 'tab';
 const TAB_FIND_POLL_MS = 100;
 const TAB_FIND_MS = 15000;
@@ -1213,6 +1005,11 @@ function openTabFromAddress(group, buttonGroupType) {
     tryOpen();
 }
 
+/**
+ * Wires a tab strip: buttons `<buttonGroupType>-<id>`, panels `<contentPrefix>-<id>`.
+ * Calling it again with more ids extends the group. opts.address writes the open
+ * tab to ?tab= (reader pages only).
+ */
 window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = 'minor', opts = {}) {
     const groupKey = `${buttonGroupType}|${contentPrefix}`;
 
@@ -1235,8 +1032,8 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
         button.addEventListener('click', (event) => {
             if (event.isTrusted) group.readerChoseTab = true;
             if (group.address) writeTabToAddress(group, tabId, event.isTrusted);
-            // Hide all tabs. Read from the group, not the tabIds this call was
-            // given - a later registration may have added more.
+            // Read from the group, not this call's tabIds: a later registration may have
+            // added more.
             group.ids.forEach(id => {
                 const btn = document.getElementById(`${buttonGroupType}-${id}`);
                 const content = document.getElementById(`${contentPrefix}-${id}`);
@@ -1245,13 +1042,12 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
                 if (content) content.classList.add('hidden');
             });
 
-            // Activate clicked tab
             button.classList.add('active');
             const targetContent = document.getElementById(`${contentPrefix}-${tabId}`);
             if (targetContent) {
                 targetContent.classList.remove('hidden');
                 
-                // Refresh the ToC for the new tab after a tiny delay so the DOM un-hides first
+                // The contents for the new tab, after a moment, so the panel is showing first.
                 if (tabLevel === 'major' && typeof window.refreshTOC === 'function') {
                     setTimeout(window.refreshTOC, 50);
                 }
@@ -1262,27 +1058,14 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
     if (group.address) openTabFromAddress(group, buttonGroupType);
 };
 
-// --- SECTION ANCHORS ---
-//
-// Every indexable heading gets a STABLE id derived from its own text, so a
-// link written into page content still points at the same section after
-// somebody inserts a section above it.
-//
-// This replaces refreshTOC's old `toc-<slug>-<index>` ids, which were
-// POSITIONAL: the index was the heading's place in the active tab's list, so
-// inserting one section renumbered every id below it and any stored link
-// silently rotted. v0.15 item 8 makes reordering sections a feature, which
-// would have broken those links on purpose.
-//
-// It also sweeps the whole content area rather than the active tab. The old
-// code only gave ids to VISIBLE headings, so a link from Skills to a section
-// in Overview pointed at an element that had no id until the reader happened
-// to open Overview first - precisely the case in-page links exist for.
+// Section anchors: every indexable heading gets a stable id from its own text, so a
+// link still points at its section after another is inserted above it. The sweep
+// covers every tab, not only the visible one, so a link from Skills to an Overview
+// section finds an id before Overview is opened.
 const ANCHOR_PREFIX = 'sec-';
-// A Combo Card's name is a heading too (v1.0 Part 2, owner: "so you can link
-// sections to a combo card within a page"), and so is each section's name on a
-// Multiple Sections card. A card with no name renders "Combo", which names
-// nothing, so it is marked `is-untitled` and left out.
+// A Combo Card's name is a heading too, and each section's name on a multi-section
+// card. A card with no name shows "Combo", which names nothing: marked is-untitled
+// and left out.
 const ANCHOR_HEADING_SELECTOR =
     '.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading,'
     + ' .theorybox-title:not(.is-untitled)';
@@ -1293,8 +1076,8 @@ const ANCHOR_MINOR_CLASSES = ['wiki-block-heading', 'theorybox-title'];
 // by the arrival follower below, which have to agree on where "landed" is.
 const ANCHOR_SCROLL_OFFSET = 40;
 
-// Shortcodes out first (js/utility/character_tabs.js, v1.0 Part 2): the walk that
-// feeds the picker and the search index reads text that still has them.
+// Format tags out first: the walk behind the picker and the search index reads text
+// that still has them.
 window.sectionAnchorSlug = function(text) {
     return window.stripStyleShortcodes(text)
         .trim()
@@ -1303,19 +1086,9 @@ window.sectionAnchorSlug = function(text) {
         .replace(/^-+|-+$/g, '');
 };
 
-// A heading can contain CONTROLS - the dashboards nest a "View More" link
-// inside their section titles - and their text is not part of the heading.
-// Shared with the ToC below so the label it displays and the slug it links to
-// are derived from the same string; deriving them separately is how they would
-// come to disagree.
-//
-// Controls, not every anchor. This used to strip `a, button` outright, which
-// was fine until js/pages/core/internalstyling.js started wrapping character mentions in
-// a link (v0.14): every matchup heading is "vs. <a>Honored One</a>", so the
-// whole ToC indexed as a column of "vs." with no names.
-//
-// A link the AUTHOR wrote into a heading is prose and its text belongs in the
-// label; a button-styled one is furniture and does not.
+// A heading's label leaves out its controls (a dashboard's "View More" link), but
+// not a link the author wrote, nor a character mention's link: "vs. Honored One"
+// keeps the name. Shared with the contents, so its label and the slug agree.
 function anchorLabel(header) {
     const labelSource = header.cloneNode(true);
     labelSource.querySelectorAll('button, a[class*="btn-"]').forEach(el => el.remove());
@@ -1324,6 +1097,7 @@ function anchorLabel(header) {
         || window.stripStyleShortcodes(header.textContent).trim();
 }
 
+/** Gives every indexable heading under root (the content area by default) its sec- id. */
 window.assignSectionAnchors = function(root) {
     const scope = root
         || document.querySelector('.main-content-area')
@@ -1340,19 +1114,15 @@ window.assignSectionAnchors = function(root) {
         if (header.id) return;
 
         const label = anchorLabel(header);
-        // "Move Overview and Strategy" is rendered above every move's write-up,
-        // so on a tab with four M1s it appears four times and names nothing.
-        // The ToC has always skipped it; skipping it here too keeps it from
-        // consuming ids that a real duplicate would otherwise be numbered by.
+        // "Move Overview and Strategy" is above every move's write-up and names nothing;
+        // skipped here as in the contents, so it uses up no ids.
         if (generic.includes(label)) return;
 
         const slug = window.sectionAnchorSlug(label);
         if (!slug) return;
 
-        // Two sections can legitimately share a name - "Notes" under two
-        // different skills. The first keeps the clean id and the rest are
-        // numbered in document order, so a rename elsewhere on the page does
-        // not disturb them.
+        // Two sections can share a name ("Notes" under two skills): the first keeps the
+        // clean id, and the rest are numbered in page order.
         let id = ANCHOR_PREFIX + slug;
         let n = 2;
         while (used.has(id) || document.getElementById(id)) {
@@ -1389,11 +1159,9 @@ function anchorIdOf(rawId) {
     return String(rawId == null ? '' : rawId).replace(/^#/, '').trim();
 }
 
-// Makes a heading showable where it is: opens every closed accordion above
-// it, and switches every Section Box or Multiple Sections card above it to the
-// tab it is on (v1.0 Part 2). Without the second half a link to a card's third
-// section scrolled to a panel with no height. Clicks the tab's own button, so
-// the box's bookkeeping runs as it does for a reader.
+// Makes a heading showable where it is: opens every closed accordion above it, and
+// switches every Section Box or multi-section card above it to its tab, by
+// clicking the tab's own button.
 function revealAnchorTarget(target) {
     let node = target.parentElement;
     while (node) {
@@ -1408,18 +1176,9 @@ function revealAnchorTarget(target) {
     }
 }
 
-// Resolve a fragment to a section and go there, crossing a tab boundary and
-// opening a collapsed accordion on the way if it has to.
-//
-// Returns false rather than throwing when the target is not on the page. A
-// link into a character's other STATE is the case that returns false: modes
-// re-render the tabs rather than hiding a parallel copy, so the target does
-// not exist in the DOM at all and cannot be reached by unhiding anything.
-//
-// Returns true, not the element: tests and callers read it as a boolean.
-// Runs `run` once the window stops scrolling: on scrollend where the browser
-// has it, after 150ms without a scroll event where it does not, and after
-// those 150ms when nothing scrolled at all.
+// Runs `run` once the window stops scrolling: on scrollend where the browser has
+// it, after 150ms without a scroll event where it does not, and after 150ms when
+// nothing scrolled.
 function afterScrollSettles(run) {
     let done = false;
     let timer = null;
@@ -1437,6 +1196,11 @@ function afterScrollSettles(run) {
     timer = setTimeout(finish, 150);
 }
 
+/**
+ * Goes to a fragment's section, switching tab and opening accordions on the way.
+ * Returns true or false, never the element: false when the target is not on the
+ * page, as for a link into another character state, which is not in the DOM.
+ */
 window.jumpToAnchor = function(rawId, options) {
     const opts = options || {};
     const id = anchorIdOf(rawId);
@@ -1447,9 +1211,8 @@ window.jumpToAnchor = function(rawId, options) {
     const target = findAnchorTarget(id);
     if (!target) return false;
 
-    // Click the real tab button rather than un-hiding the panel, so the strip's
-    // own bookkeeping - active states, the ToC refresh - runs exactly as it
-    // does for a reader who clicked it.
+    // The real tab button, not an unhidden panel, so the strip's own bookkeeping runs
+    // as for a reader's click.
     const panel = target.closest('[id^="tab-"]');
     const switchedTab = !!(panel && panel.classList.contains('hidden'));
     if (switchedTab) {
@@ -1469,10 +1232,8 @@ window.jumpToAnchor = function(rawId, options) {
         if (opts.updateHash !== false) {
             history.pushState(null, null, `#${id}`);
         }
-        // Briefly marks where the reader landed. Without it a jump into a long
-        // tab drops you at a heading with no sense of which one was the target.
-        // Once the scroll has stopped (v1.1): the wipe lasts 0.7s, and started
-        // with a smooth scroll it was over before the heading arrived.
+        // Marks where the reader landed, once the scroll has stopped: the wipe lasts 0.7s,
+        // and a smooth scroll outlasted it.
         afterScrollSettles(() => {
             // The wipe covers the words, wherever they sit in the heading
             // (style/Common.css, .anchor-flash::before).
@@ -1495,19 +1256,14 @@ window.jumpToAnchor = function(rawId, options) {
     return true;
 };
 
-// Context-Aware, Expansive & Collapsible Table of Contents Generator
+/** Builds the table of contents for the active tab, or for the content area. */
 window.refreshTOC = function() {
     const tocContainer = document.getElementById('dynamic-toc');
     if (!tocContainer) return;
 
-    // 1. Target the active tab (Character Pages) OR the main content area (Dashboards)
-    // Scoped to .main-content-area rather than assuming it's <main> itself -
-    // true on character/system pages, but on admin.html .main-content-area
-    // (#preview-content-area) sits three levels deep inside a differently-
-    // classed <main> (.live-preview-pane), so the old "main > ..." selector
-    // never matched there and silently fell through to indexing every tab
-    // at once (hidden ones included), rendering every heading on the page
-    // as a TOC entry instead of just the active tab's.
+    // The active tab on a character page, or the content area. Scoped to
+    // .main-content-area, because on admin.html it sits deep inside a differently
+    // classed <main>.
     let targetArea = document.querySelector('.main-content-area > div[id^="tab-"]:not(.hidden)');
 
     if (!targetArea) {
@@ -1519,10 +1275,7 @@ window.refreshTOC = function() {
         return;
     }
 
-    // 2. The Expansive Header System
-    // Added '.section-title' so it can index Dashboard headers!
-    // The anchor sweep's own list, so the contents can never index a heading
-    // that has no id or skip one that has.
+    // The anchor sweep's own selector, so the contents never list a heading with no id.
     const headers = targetArea.querySelectorAll(ANCHOR_HEADING_SELECTOR);
 
     if (headers.length === 0) {
@@ -1530,34 +1283,21 @@ window.refreshTOC = function() {
         return;
     }
 
-    // 3. Build the Hierarchical Tree
-    //
-    // Labels are read with textContent and written back with innerHTML below,
-    // which is a double-decode: a heading whose text is the literal string
-    // "<img src=x onerror=...>" would be inert in the heading and live in the
-    // ToC. Headings reach this from two directions - CMS block content, and
-    // (as of v0.11) owner-set section titles from site_meta - so the label is
-    // escaped here. A ToC entry is a label, not markup; a heading containing
-    // <b>Bold</b> already arrives as "Bold" via textContent, so this changes
-    // nothing for legitimate content.
+    // Labels are read with textContent and written with innerHTML, so they are escaped:
+    // a heading whose text is "<img src=x onerror=...>" is inert there and would be
+    // live here.
 
     let tocStructure = [];
     let currentGroup = null;
 
-    // Ids come from assignSectionAnchors, which sweeps every tab rather than
-    // just this one. The ToC used to mint its own here, positionally - see the
-    // note on that function for why that could not stay.
     window.assignSectionAnchors();
 
     headers.forEach((header) => {
         if (header.textContent.trim() === 'Move Overview and Strategy') return;
         if (!header.id) return;
-        // A section the page itself has hidden (the Tier List's changelog
-        // while nobody is picked, the Systems hub's Terminology and Matchup
-        // Chart while they have nothing to show) is not there for the reader,
-        // and a link to it scrolls nowhere. Only the .hidden class and the
-        // hidden attribute: a closed accordion or a box's other tab is opened
-        // by the jump (revealAnchorTarget) and stays.
+        // A section the page has hidden (.hidden, or the hidden attribute) is not listed: a
+        // link to it scrolls nowhere. A closed accordion or a box's other tab is opened by
+        // the jump, so it stays.
         const hiddenBy = header.closest('.hidden, [hidden]');
         if (hiddenBy && targetArea.contains(hiddenBy)) return;
 
@@ -1565,11 +1305,10 @@ window.refreshTOC = function() {
         const itemData = { id: header.id, text: anchorLabel(header) };
 
         if (!isMinor) {
-            // Create a new major group
             currentGroup = { ...itemData, children: [] };
             tocStructure.push(currentGroup);
         } else {
-            // Add to the current major group, or create an orphan if it's floating alone
+            // Into the current major group, or alone as an orphan.
             if (currentGroup) {
                 currentGroup.children.push(itemData);
             } else {
@@ -1578,11 +1317,9 @@ window.refreshTOC = function() {
         }
     });
 
-    // 4. Render the Tree to HTML with Collapsible Accordions
     let tocHtml = '';
     tocStructure.forEach(group => {
         if (group.isOrphan) {
-            // Fallback for orphaned minor headers
             tocHtml += `
                 <li>
                     <a href="#${window.escapeHtml(group.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${window.escapeHtml(group.id)}')">
@@ -1592,7 +1329,6 @@ window.refreshTOC = function() {
             `;
         } else {
             if (group.children.length > 0) {
-                // Parent Header WITH a Toggle Button
                 tocHtml += `
                     <li>
                         <div class="toc-group-row">
@@ -1607,7 +1343,6 @@ window.refreshTOC = function() {
                         <ul class="toc-sublist">
                 `;
 
-                // Render the Nested Children
                 group.children.forEach(child => {
                     tocHtml += `
                         <li>
@@ -1620,7 +1355,6 @@ window.refreshTOC = function() {
 
                 tocHtml += `</ul></li>`;
             } else {
-                // Standard Parent Header (No Children, No Toggle Arrow)
                 tocHtml += `
                     <li>
                         <a href="#${window.escapeHtml(group.id)}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${window.escapeHtml(group.id)}')">
@@ -1634,8 +1368,7 @@ window.refreshTOC = function() {
     
     tocContainer.innerHTML = tocHtml;
 
-    // Delegated, replacing the inline onclick these toggles used to carry, and
-    // keeping aria-expanded in step with the caret.
+    // Delegated, keeping aria-expanded in step with the caret.
     tocContainer.querySelectorAll('.toc-toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const sublist = btn.parentElement && btn.parentElement.nextElementSibling;
@@ -1646,45 +1379,17 @@ window.refreshTOC = function() {
     });
 };
 
-// Smooth scroll with offset to prevent headers from hiding under the top of the screen.
-// Delegates to jumpToAnchor so a ToC entry and a contributor's in-page link
-// behave identically - same offset, same accordion handling, same highlight.
+// A contents entry goes through jumpToAnchor, so it behaves like an in-page link.
 window.smoothScroll = function(e, targetId) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
     window.jumpToAnchor(targetId);
 };
 
-// --- ARRIVING BY LINK ---
-//
-// Nothing on the site read location.hash before this, so a section link
-// pasted into Discord landed at the top of the page and the reader had to
-// find the section by hand.
-//
-// Polled rather than run once, because the target usually does not exist yet.
-// Page content is fetched after boot and the two boot branches deliberately
-// differ in their timing (character pages fire concurrently with a 500ms ToC
-// delay, system pages await in order with 150ms), so a single attempt at
-// DOMContentLoaded would resolve on neither.
-//
-// LOOK, LAND, THEN FOLLOW (v0.20). The owner's report: a search hit for
-// Murmurate on Crow Charmer, opened from the Main Dashboard, stopped at
-// Circling. Measured: the target first exists while the Skills tab is half
-// built, at 4,035px on a 6,662px page. The jump fires, and 180ms later the
-// skills above it finish rendering and push it to 6,679px. One smooth scroll
-// aimed at the first position ends two sections short. From the page itself
-// everything is already built, which is why it only failed on arrival.
-//
-// So there are two phases, and both used to be missing:
-//   - LOOK until the target exists, for up to HASH_FIND_MS. The old retries
-//     stopped 2.5s after DOMContentLoaded, so on a slow connection the content
-//     came after the last one and the page never moved at all.
-//   - FOLLOW it after landing, for up to HASH_HOLD_MS: whenever content above
-//     it grows, move with it. Instantly, never smoothly, because a smooth
-//     scroll aimed at a moving target is the bug itself.
-//
-// The reader's own scroll, key, click or touch ends it at once. A page that
-// pulls somebody back after they have started reading elsewhere is worse than
-// one that lands short.
+// Arriving by link (#sec-... in the address). Look, land, then follow: poll until
+// the target exists (content is fetched after boot, at different times per page
+// kind), jump, then keep it at its mark while content above it grows, moving
+// instantly, never smoothly. The reader's own scroll, key, click or touch ends it:
+// pulling someone back after they started reading is worse than landing short.
 const HASH_POLL_MS = 100;
 const HASH_FIND_MS = 15000;
 const HASH_HOLD_MS = 10000;
@@ -1778,11 +1483,8 @@ window.addEventListener('hashchange', () => {
     window.jumpToAnchor(window.location.hash, { updateHash: false });
 });
 
-// Contributor-written in-page links, marked by js/pages/core/internalstyling.js.
-//
-// Delegated on the class rather than on `a[href^="#"]`, so this does not also
-// fire for the ToC's links - those already carry an inline smoothScroll and
-// would be handled twice, pushing two history entries for one click.
+// Contributor-written in-page links, marked by internalstyling.js. Delegated on
+// the class, so the contents' links, which call smoothScroll, are not handled twice.
 document.addEventListener('click', (e) => {
     const link = e.target.closest && e.target.closest('a.wiki-link-jump');
     if (!link) return;
@@ -1791,11 +1493,9 @@ document.addEventListener('click', (e) => {
     window.jumpToAnchor(link.getAttribute('href'));
 });
 
-// Where a jump link goes, shown on hover (owner, 2026-10-19: "Hover over will
-// tell which section it is heading to"). Read when hovered rather than when
-// the link is rendered: the ids are minted after the render, and a tab that
-// re-renders mints them again. The tab is named only when the section is on
-// another one.
+// Where a jump link goes, shown on hover. Read on hover, because the ids are
+// minted after the render and minted again when a tab redraws. The tab is named
+// only when the section is on another one.
 function jumpLinkDestination(link) {
     const target = findAnchorTarget(anchorIdOf(link.getAttribute('href')));
     if (!target) return '';
@@ -1827,7 +1527,7 @@ document.addEventListener('mouseout', (e) => {
     window.hideTooltip();
 });
 
-// Restored: Wiki Alert Generator
+/** Adds an alert box (wip, ea and the like) to a container. */
 window.showWikiAlert = function(containerId, type, message) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -1843,7 +1543,6 @@ window.showWikiAlert = function(containerId, type, message) {
 
     const config = alertMap[type] || alertMap['wip'];
 
-    // Uses += so multiple alerts stack perfectly
     container.innerHTML += `
         <div class="wiki-alert ${config.class}">
             <div class="wiki-alert-icon">${config.icon}</div>
@@ -1855,7 +1554,7 @@ window.showWikiAlert = function(containerId, type, message) {
     `;
 };
 
-// Restored: Auto-fetching Alerts based on Navigation.json
+/** The page's alerts from its navigation.json flags (WIP, Early Access, missing media). */
 window.loadPageAlerts = async function(pageId) {
     const container = document.getElementById('character-alerts-container');
     if (!container) return;
@@ -1875,7 +1574,6 @@ window.loadPageAlerts = async function(pageId) {
         
         if (!targetEntry) return;
 
-        // Triggers the UI components automatically based on the JSON booleans
         if (targetEntry.isWip) window.showWikiAlert('character-alerts-container', 'wip', 'This page is actively being drafted. Data may be incomplete or subject to change.');
         if (targetEntry.isEA) window.showWikiAlert('character-alerts-container', 'ea', 'This character is currently in Early Access. Strategies and frame data will likely change constantly.');
         if (targetEntry.isMissingMedia) window.showWikiAlert('character-alerts-container', 'medialess', 'Some videos or images are missing from this page. We are working on recording them!');
@@ -1884,22 +1582,14 @@ window.loadPageAlerts = async function(pageId) {
     }
 };
 
-// ==========================================
-// 6. SITEWIDE FOOTER
-// ==========================================
-
-// Injected rather than duplicated into 41 HTML files. The .site-layout guard
-// is what keeps it off edit.html/admin.html/owner.html: those three are the
-// only pages without that wrapper, and they load editor.css, whose
-// unconditional `body { overflow: hidden }` means anything appended to <body>
-// there could never be scrolled to anyway.
-// The skip link is injected here rather than from each page's own boot block,
-// so it cannot be present on 41 pages and missing from the 42nd - which is
-// worse than not having one, because a keyboard user learns to expect it.
+// The footer, added by script rather than copied into every page. The .site-layout
+// guard keeps it off edit.html, admin.html and owner.html, whose editor.css sets
+// body { overflow: hidden }. The skip link is added here too, so no page lacks it.
 document.addEventListener('DOMContentLoaded', () => {
     if (window.initSkipLink) window.initSkipLink();
 });
 
+/** The sitewide footer, on every page with .site-layout. */
 window.buildSiteFooter = function() {
     if (document.getElementById('site-footer')) return;
     if (!document.querySelector('.site-layout')) return;
@@ -1926,9 +1616,8 @@ window.buildSiteFooter = function() {
     document.body.appendChild(footer);
 };
 
-// This file's functions are otherwise all called explicitly by each page's own
-// inline script. The footer self-fires instead, matching site_utils.js's own
-// listener, so it lands everywhere without editing every page.
+// The footer fires itself on DOMContentLoaded, as site_utils.js's listener does,
+// so it lands everywhere without a line on every page.
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.buildSiteFooter === 'function') window.buildSiteFooter();
 });

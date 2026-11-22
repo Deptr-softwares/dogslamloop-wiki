@@ -22,21 +22,21 @@ const ROOT = path.join(__dirname, '..');
 
 // KB gzipped, per page: { js, css }.
 const BUDGET = {
-    'a character page': { js: 279, css: 79 },
+    'a character page': { js: 258, css: 79 },
     'a system page': { js: 219, css: 68 },
     'a gallery page': { js: 221, css: 68 },
     'a tool page': { js: 221, css: 68 },
     'the create_tier_list tool page': { js: 234, css: 71 },
-    'the editor_playground tool page': { js: 225, css: 68 },
+    'the editor_playground tool page': { js: 213, css: 68 },
     'the free_submit_tier_list tool page': { js: 227, css: 71 },
     '404.html': { js: 238, css: 72 },
-    'admin.html': { js: 334, css: 123 },
-    'blog.html': { js: 224, css: 72 },
+    'admin.html': { js: 317, css: 123 },
+    'blog.html': { js: 207, css: 72 },
     'characters/index.html': { js: 227, css: 68 },
     'edit.html': { js: 487, css: 105 },
-    'forum.html': { js: 261, css: 80 },
-    'history.html': { js: 266, css: 71 },
-    'index.html': { js: 232, css: 72 },
+    'forum.html': { js: 244, css: 80 },
+    'history.html': { js: 246, css: 71 },
+    'index.html': { js: 215, css: 72 },
     'owner.html': { js: 260, css: 119 },
     'post-editor.html': { js: 277, css: 119 },
     'privacy-policy.html': { js: 165, css: 68 },
@@ -44,10 +44,10 @@ const BUDGET = {
     'search.html': { js: 169, css: 61 },
     'submissions.html': { js: 170, css: 63 },
     'systems/index.html': { js: 227, css: 68 },
-    'systems/tierlist/index.html': { js: 241, css: 71 },
+    'systems/tierlist/index.html': { js: 224, css: 71 },
     'systems/updatelog/index.html': { js: 219, css: 68 },
     'terms.html': { js: 165, css: 68 },
-    'tier-editor.html': { js: 321, css: 111 },
+    'tier-editor.html': { js: 304, css: 111 },
 };
 
 function generatedKinds() {
