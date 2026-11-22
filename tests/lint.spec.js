@@ -29,6 +29,32 @@ test('a top-level name is not an error, because another file may use it', async 
     expect(await lint('function sharedWithAnotherFile() {}\nconst ALSO_SHARED = 1;\n')).toEqual([]);
 });
 
+test('an HTML write the lint cannot see escaped is an error', async () => {
+    expect(await lint([
+        "document.body.innerHTML = '<b>' + location.hash + '</b>';",
+        'document.body.insertAdjacentHTML("beforeend", `<i>${location.hash}</i>`);',
+    ].join('\n'))).toEqual(['no-unsanitized/method:2', 'no-unsanitized/property:1']);
+});
+
+test('the same writes through the site\'s escaper, or with no value at all, are not', async () => {
+    expect(await lint([
+        'document.body.innerHTML = `<b>${window.escapeHtml(location.hash)}</b>`;',
+        'document.body.insertAdjacentHTML("beforeend", `<i>${window.escapeHtmlKeepBreaks(location.hash)}</i>`);',
+        "document.body.innerHTML = '<hr>';",
+    ].join('\n'))).toEqual([]);
+});
+
+test('the writes found when the rule arrived are recorded by path, the same on every OS', () => {
+    const recorded = JSON.parse(fs.readFileSync(path.join(ROOT, 'eslint-suppressions.json'), 'utf8'));
+    const files = Object.keys(recorded);
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+        expect(file, 'a path with a backslash matches nothing on CI\'s Linux runner').toMatch(/^js\/[\w./-]+\.js$/);
+        expect(fs.existsSync(path.join(ROOT, file)), `${file} is recorded but not in the repo`).toBe(true);
+        expect(Object.keys(recorded[file]).every(rule => rule.startsWith('no-unsanitized/'))).toBe(true);
+    }
+});
+
 test('CI runs it, and the regeneration job does not', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     expect(pkg.scripts.lint).toBe('eslint js/');

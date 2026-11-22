@@ -1,0 +1,303 @@
+{
+  "js/dashboards/dashboards.js": {
+    "no-unsanitized/property": {
+      "count": 6
+    }
+  },
+  "js/dashboards/home_widgets.js": {
+    "no-unsanitized/property": {
+      "count": 3
+    }
+  },
+  "js/dashboards/hub_content.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/editor/blocks/editor-blocks.js": {
+    "no-unsanitized/method": {
+      "count": 1
+    },
+    "no-unsanitized/property": {
+      "count": 12
+    }
+  },
+  "js/editor/core/editor-config.js": {
+    "no-unsanitized/property": {
+      "count": 6
+    }
+  },
+  "js/editor/core/editor-core.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/core/editor-drafts.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/core/editor-modes.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/core/editor-sync.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/tabs/editor-framedata.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/tabs/editor-system.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/editor/tabs/editor-tabs.js": {
+    "no-unsanitized/property": {
+      "count": 19
+    }
+  },
+  "js/editor/tabs/editor-tool.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/tools/editor-find-replace.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/tools/editor-media.js": {
+    "no-unsanitized/property": {
+      "count": 6
+    }
+  },
+  "js/editor/tools/editor-notices.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/editor/tools/editor-previews.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/editor/tools/editor-tutorial.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/editor/tools/editor-writing-checks.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/overseer/admin-history.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/overseer/admin-media-queue.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/overseer/admin-merge-compiler.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/overseer/admin-modes.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/overseer/admin-preview.js": {
+    "no-unsanitized/property": {
+      "count": 7
+    }
+  },
+  "js/overseer/admin-queue.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/overseer/admin-reports.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/overseer/admin-tickets.js": {
+    "no-unsanitized/property": {
+      "count": 6
+    }
+  },
+  "js/owner/owner-hub-lists.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/owner/owner-hub-text.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/owner/owner-page-experts.js": {
+    "no-unsanitized/property": {
+      "count": 5
+    }
+  },
+  "js/owner/owner-page-meta.js": {
+    "no-unsanitized/property": {
+      "count": 5
+    }
+  },
+  "js/owner/owner-site-meta.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/owner/owner-staff-perks.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/owner/owner-tier-lists.js": {
+    "no-unsanitized/property": {
+      "count": 3
+    }
+  },
+  "js/owner/owner.js": {
+    "no-unsanitized/property": {
+      "count": 20
+    }
+  },
+  "js/owner/post-editor.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/pages/community/posts.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/pages/community/submissions.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/pages/core/character_modes.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/pages/core/description.js": {
+    "no-unsanitized/method": {
+      "count": 2
+    },
+    "no-unsanitized/property": {
+      "count": 11
+    }
+  },
+  "js/pages/core/framedata.js": {
+    "no-unsanitized/property": {
+      "count": 8
+    }
+  },
+  "js/pages/core/internalstyling.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/pages/core/page_rescue.js": {
+    "no-unsanitized/method": {
+      "count": 1
+    }
+  },
+  "js/pages/core/page_router.js": {
+    "no-unsanitized/method": {
+      "count": 1
+    }
+  },
+  "js/pages/core/pagebuilder.js": {
+    "no-unsanitized/property": {
+      "count": 12
+    }
+  },
+  "js/pages/records/history.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/pages/records/recent-changes.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/pages/records/search-page.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/pages/tier-lists/certified-tier-lists.js": {
+    "no-unsanitized/property": {
+      "count": 3
+    }
+  },
+  "js/pages/tier-lists/tier-editor.js": {
+    "no-unsanitized/property": {
+      "count": 3
+    }
+  },
+  "js/pages/tier-lists/tierlist.js": {
+    "no-unsanitized/property": {
+      "count": 5
+    }
+  },
+  "js/pages/tools/create_tier_list.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/pages/types/gallery.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/pages/types/tool_page.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/utility/diff-markers.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  },
+  "js/utility/search.js": {
+    "no-unsanitized/property": {
+      "count": 2
+    }
+  },
+  "js/utility/site_account.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/utility/site_media.js": {
+    "no-unsanitized/property": {
+      "count": 3
+    }
+  },
+  "js/utility/site_meta.js": {
+    "no-unsanitized/property": {
+      "count": 1
+    }
+  }
+}

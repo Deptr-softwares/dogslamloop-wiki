@@ -29,7 +29,7 @@ Anything a page shows that came from a user, a contributor, Discord, the URL or 
 - `tests/block-fuzz-escaping.spec.js`: every Block type the editor can create, with markup in every text field, through the reader's renderer and the editor's Block list. The Blocks come from the editor's own templates, so a new type is covered without editing the test.
 - `tests/shortcode-safety.spec.js`: hostile format tags through the real renderer.
 - `tests/one-escape-helper.spec.js`: no copy, alias, wrapper or fallback of the escaper.
-- Planned for A-3: `eslint-plugin-no-unsanitized`, so a new unescaped `innerHTML` write fails the lint.
+- `npm run lint` (`eslint-plugin-no-unsanitized`): an HTML write whose value the lint cannot see go through `window.escapeHtml` fails. The 221 writes found when it arrived (2026-11-22) are recorded in `eslint-suppressions.json`. Fixing one means taking it out of the file with `npx eslint js/ --prune-suppressions`; a new one is never added there, it is escaped where the lint can see it, or rewritten with `textContent`.
 
 ## Read more
 
