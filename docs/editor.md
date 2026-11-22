@@ -19,6 +19,7 @@ edit.html: where editors write a page and send it for review. The header and its
 - `js/editor/tools/editor-notices.js`: the first-visit notices.
 - `js/editor/tools/editor-tutorial.js`: the tour and the Manual of Style.
 - `js/editor/tools/editor-writing-checks.js`: the writing checks.
+- `style/editor.css`: the editor's look, which the Overseer, the owner tools, the Post editor and the tier editor load too.
 - `js/utility/diff-markers.js`: the inline text diff, shared with the review queue.
 - `js/utility/side-by-side.js`: the side-by-side diff, shared with the Overseer.
 
@@ -74,14 +75,15 @@ Newest first. One entry per decision.
 - **2026-08-27, v0.17, #141.** An intercepted ticket with no single scope (a batch, or a whole-page upload) is scanned like a submission instead of rebuilt: the rebuild sent an empty delta, and the reviewer's edits vanished while the button said UPDATED (the "nothing changed" the owner reported).
 - **2026-08-25, v0.16, #135.** The editor's role check compares by rank, like the policy: a reviewer saw the Edit button, wrote a whole edit and was refused at Submit.
 - **2026-08-25, v0.16, #134.** A draggable splitter between the Workspace and the preview, at 30/70 by default so the preview shows a reader's proportions, snapping onto the default within 2% (owner, 2026-08-25). Its floors are in pixels.
+- **2026-08-25, v0.16, #130.** HUB stays beside Submit when the header collapses: leaving the editor should not need the header opened first. The format toolbar is two rows at every width, and MEDIA LIBRARY and ADD BLOCK sit together at the end of the footer row.
 - **2026-08-20, v0.15, #121.** A list whose entries only moved is a change: Submit sends its order, and the change summary reports it.
 - **2026-08-20, v0.15, #120.** The editor offers only the tabs a character has: Techs was "not visible even in the editor and the admin preview".
 - **2026-08-20, v0.15, #120.** The Techs tab is edited with the Combos editor, its words taken from the tab vocabulary, rather than a second copy of the same 500 lines.
 - **2026-08-17, v0.15, #111.** A system or tier list page sends one delta per section, tab metadata and tier table, never the whole document: approving two tickets for one page reverted the first. A tab in the cloud keeps its id when renamed. A tier list is not split per tier, since one move changes two tiers.
-- **2026-08-17, v0.15, #108.** In a Combos group, the Block editor edits the open card's write-up: "you should not be able to Add Blocks when you haven't selected a TheoryBox" (owner, 2026-08-16). A combo row is edited in a modal, live on every keystroke, since twelve fields do not fit beside a preview.
+- **2026-08-17, v0.15, #108.** In a Combos group, the Block editor edits the open card's write-up: "you should not be able to Add Blocks when you haven't selected a TheoryBox" (owner, 2026-08-16). A combo row is edited in a modal (the owner's call, 2026-08-16), live on every keystroke, since twelve fields do not fit beside a preview.
 - **2026-08-16, v0.15, #106.** One preview renderer for every keyed section, mirroring the reader's: a second copy per section is how the two drift.
 - **2026-08-16, v0.15, #101.** Submit scans every character state, not only the one on screen.
-- **2026-08-14, v0.14, #89.** The editor's header collapses, remembered per browser: a preference about a screen, read before the editor draws (the owner's fine-tuning item).
+- **2026-08-14, v0.14, #89.** The editor's header collapses, remembered per browser: a preference about a screen, read before the editor draws (the owner's fine-tuning item). Submit never folds away, and the tab strip stays, since tabs are switched while writing.
 - **2026-08-12, v0.13, #69.** Submit sends every edited tab, not only the open one, from the data the editor already holds.
 - **2026-08-11, v0.12, #44.** A tool page's config and prose are separate scopes: the config is the owner's and the prose everyone's.
 - **2026-08-10, v0.12, #43.** Character states in the editor: the same toggle as the page, with the editor's data pointed at the active state's slice, so no writer had to learn about states.

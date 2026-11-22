@@ -29,6 +29,7 @@ Newest first. One entry per decision.
 - **2026-11-18, v1.2, #280.** A move's accolades are chips under its stats, every one in `ACCOLADES`' order, pressed in the accolade's own colour when the move has it. Ticking one of a group that cannot all be true of one move unticks the rest.
 - **2026-11-16, v1.2, #273.** A move can have no frame data: the Frame Track and the Micro Variant tabs go away, and it is stored only when ticked.
 - **2026-11-16, v1.2, #273.** A Micro Variant can have its own media, shown when that variant is, stored only while it holds something. Each media field measures its own file, so the two never cancel each other.
+- **2026-10-29, v1.2, #258.** The Micro Variant tabs wrap (the owner's pick, 2026-10-29): as one row, a fourth new variant pushed + ADD VARIANT out of the Workspace and scrolled it sideways.
 - **2026-10-18, v1.1, #234.** A move's "1. STATS & FRAME DATA" section folds, remembered on this device: on a long move it is most of the Workspace, and the strategy Blocks sit under it (owner, 2026-10-18).
 - **2026-10-18, v1.1, #234.** The Frame Track keeps its scroll position when it redraws: every click rebuilt it, and on a long move that threw the editor back to frame 0. A different variant starts at its own beginning.
 - **2026-09-20, v0.19, #198.** A phase can be timed in seconds, beside counted frames and estimates, and reads in its own unit ("120f" for a typed 2 would show a conversion as what the author wrote). Switching between the three keeps the bar's shape, and seconds keep two decimals.
