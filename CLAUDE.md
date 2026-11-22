@@ -111,7 +111,7 @@ This section is the index. A rule that names a practice file has its incidents, 
 - Walk the edges: empty, NULL, one, many, signed out, roleless, banned, slow network, a second click. NULL made the worst hole here (`is_owner()`, closed 2026-09-28).
 - State a rule once and derive the rest (`role_rank()`, `NAV_FLAGS` in `scripts/fetch-registry.js`): two copies of one rule that must agree will drift, and the rules in `.claude/rules/` name the known pairs. A new feature extends what exists. What several files share lives in `js/utility/site_utils.js` and the parts split from it by job, and a part past about 1,500 lines is split again (`practice-new-code.md`).
 - CSS: restate `[hidden]` for every class that sets `display` and test with `toBeHidden`, check every page a shared class is used on, and read only variables that are defined (`practice-css.md`).
-- Comments say why, not what.
+- Comments: a JSDoc block with `@since`, `@touches` and `@watch` on each file and on each function another file calls; inside a function, why in a line or two, never what. Dates, the owner's words and history go to the area's `docs/` page (`docs/area-template.md`) and git (`practice-comments.md`).
 
 **Before saying it is done**
 - Prove it with a check that can fail: a test that drives the real control and was seen failing with the fix reverted (the `writing-tests` skill). Show the command and what it printed. "Should work" is not a result.
@@ -161,4 +161,4 @@ On a draft the owner hands over: grammar and spelling only, keep their wording, 
 
 ## Rules that load with their files
 
-`.claude/rules/` holds rules that load when a file their `paths:` match is read or edited: `combo-card.md` (the two Combo Card editors), `tier-rosters.md` (the shared roster loader), `discord-relay.md` (`supabase/functions/`), `regeneration.md` (workflows, scripts and generated stubs), and the practice files "Writing code here" names: `practice-escaping.md`, `practice-roles.md`, `practice-new-code.md` and `practice-css.md`. `tests/repo-docs.spec.js` fails when a rule's paths match no file in the repo, or a rule is missing from this list.
+`.claude/rules/` holds rules that load when a file their `paths:` match is read or edited: `combo-card.md` (the two Combo Card editors), `tier-rosters.md` (the shared roster loader), `discord-relay.md` (`supabase/functions/`), `regeneration.md` (workflows, scripts and generated stubs), and the practice files "Writing code here" names: `practice-escaping.md`, `practice-roles.md`, `practice-new-code.md`, `practice-css.md` and `practice-comments.md`. `tests/repo-docs.spec.js` fails when a rule's paths match no file in the repo, or a rule is missing from this list.
