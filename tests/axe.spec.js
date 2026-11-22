@@ -77,6 +77,13 @@ const BASELINE = {
     ],
 };
 
+// Listed findings that hang on how fonts render, so they may be gone. The
+// ToC's collapse button measures 22.9px on Windows and passes on CI's Linux
+// runner.
+const MAY_BE_GONE = {
+    '/characters/Crow_charmer/index.html': ['target-size li > .toc-group-row > .toc-toggle-btn'],
+};
+
 async function freeze(page) {
     const unfrozen = [];
     await page.route(/\.supabase\.co\//, route => {
@@ -130,7 +137,8 @@ for (const { url, ready } of PAGES) {
 
         expect(unfrozen, 'a page read a data file the fixture does not freeze').toEqual([]);
         const listed = [...(BASELINE[url] || [])].sort();
-        expect({ new: found.filter(f => !listed.includes(f)), gone: listed.filter(f => !found.includes(f)) })
+        const mayBeGone = MAY_BE_GONE[url] || [];
+        expect({ new: found.filter(f => !listed.includes(f)), gone: listed.filter(f => !found.includes(f) && !mayBeGone.includes(f)) })
             .toEqual({ new: [], gone: [] });
     });
 }
