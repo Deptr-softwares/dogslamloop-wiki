@@ -1,5 +1,12 @@
 /**
- * Dogslamloop Wiki - Frame Data Engine
+ * The Skill Card: each move's box on a character page, with its stats, media,
+ * accolades and Frame Track (the timeline of its phases, under Micro Variant tabs).
+ * @since v0.01
+ * @touches page_data.frame_data, window.cachedMasterFrameData, FRAME_COLORS,
+ *   WINDOW_COLORS and ACCOLADES (site_meta.js), wikiClipHTML (description.js)
+ * @watch the editor's Frame Data tab uses this file's scales and phase maths
+ *   (FRAME_ESTIMATES, phaseWeight), so a phase measures the same in both
+ * @see docs/character-page.md
  */
 
 const frameDataLegendHTML = `
@@ -34,9 +41,7 @@ const frameDataLegendHTML = `
     </section>
 `;
 
-// Dictionary for standardized game windows (Overlays)
-// Reverse Hitcancel was one until 2026-11-12, retired by the owner: no Frame
-// Track ever used it, and an old revision that names it just draws nothing.
+// The overlays a phase can carry. A retired one that an old revision names draws nothing.
 const windowTypes = {
     'iframe-melee': { class: 'span-iframe-melee', label: 'Melee I-Frames' },
     'iframe-bullet': { class: 'span-iframe-bullet', label: 'Bullet I-Frames' },
@@ -45,12 +50,13 @@ const windowTypes = {
     'iframe-complete': { class: 'span-iframe-complete', label: 'Complete I-Frames' }
 };
 
-// --- SKILL CARD ACCOLADES (v1.2, the owner's Kanban card) ---
-// The 26 themselves (window.ACCOLADES) and their icons (window.accoladeIconHTML)
-// are in js/utility/site_meta.js since the mini icons in text, which any page can show.
+// The accolades and their icons are in site_meta.js, since any page's text can show the icons.
 
-// No two of one group can be true of the same move, so the editor unticks the
-// rest of a group when one is ticked (js/editor/tabs/editor-framedata.js).
+/**
+ * Accolade groups of which no two can be true of one move. The editor unticks the
+ * rest of a group when one is ticked (editor-framedata.js).
+ * @since v1.2
+ */
 window.ACCOLADE_OPPOSITES = [
     ['punishable-on-block', 'safe-on-block'],
     ['punishable-on-whiff', 'safe-on-whiff'],
@@ -59,8 +65,11 @@ window.ACCOLADE_OPPOSITES = [
     ['uncancelable', 'semi-uncancelable'],
 ];
 
-// A move's accolades as the owner's entries, in the owner's order. An id that
-// is not one of theirs is left out rather than shown as a bare id.
+/**
+ * A move's accolades as window.ACCOLADES entries, in that list's order. An id that
+ * is not one of them is left out, never shown bare.
+ * @since v1.2
+ */
 window.orderedAccolades = function (ids) {
     const picked = new Set(Array.isArray(ids) ? ids : []);
     return window.ACCOLADES.filter(a => picked.has(a.id));
@@ -75,22 +84,14 @@ function accoladesHTML(ids) {
     return `<ul class="skill-accolades">${badges.join('')}</ul>`;
 }
 
-// initTooltip/bindTooltip are defined once, in site_media.js (loaded before
-// this file), and shared with description.js's inline callout tooltips.
-
-// Core frame section generator
-// --- QUALITATIVE FRAME DATA ---
-// A pro who knows how an endlag *feels* should be able to record it without
-// counting frames. Seven steps, the owner's own wording, ordered from nothing
-// to unrecoverable.
-//
-// `frames` is a nominal weight for layout only. It exists so an estimated
-// phase occupies believable space next to measured ones - it is never shown as
-// a number and must never be read as one, which is exactly why an estimated
-// phase renders with no tick divisions: the ticks are the visual language for
-// "counted", so their absence says "estimated" with no legend required. That
-// is the owner's design, and it is better than a marker plus styling because
-// it also withholds the per-frame view, which would be meaningless here.
+/**
+ * The estimate scale, for a phase someone can describe without counting frames:
+ * seven steps, from nothing to unrecoverable. `frames` is a nominal weight for
+ * layout only, never shown as a number.
+ * @since v0.12
+ * @watch an estimated phase draws with no tick divisions: the ticks mean
+ *   "counted", so their absence says "estimated"
+ */
 window.FRAME_ESTIMATES = [
     { id: 'none', label: 'Non-existent', frames: 0 },
     { id: 'very-short', label: 'Very short', frames: 3 },
@@ -101,38 +102,35 @@ window.FRAME_ESTIMATES = [
     { id: 'rip', label: 'RIP', frames: 70 },
 ];
 
+/**
+ * The FRAME_ESTIMATES entry with that id, or null.
+ * @since v0.12
+ */
 window.frameEstimate = function(id) {
     if (!id) return null;
     return (window.FRAME_ESTIMATES || []).find(e => e.id === id) || null;
 };
 
-// --- SECONDS DATA (v0.19 C4) ---
-//
-// A third way to say how long a phase lasts, BESIDE counted frames and an
-// estimate rather than replacing either (owner, 2026-08-24 - the list had
-// floated replacement and they decided against it).
-//
-// Some phases are genuinely timed rather than counted: a long animation, a
-// cooldown, a state that lasts "about two seconds". Writing 120 in a frame box
-// claims a precision nobody measured; writing 2 in a seconds box does not.
-//
-// JJS runs at 60fps server-side, so a second IS 60 frames and the conversion is
-// exact rather than a display convenience - which is why it happens here, in
-// the one function that decides how wide a phase is drawn, instead of at each
-// call site.
+/**
+ * JJS runs at 60fps server-side, so a timed phase converts to frames exactly.
+ * @since v0.19
+ */
 window.FRAMES_PER_SECOND = 60;
 
+/**
+ * A phase's typed seconds, or null.
+ * @since v0.19
+ */
 window.phaseSeconds = function(phaseObj) {
     const raw = Number(phaseObj && phaseObj.seconds);
     return Number.isFinite(raw) && raw > 0 ? raw : null;
 };
 
-// The frames a phase occupies on the timeline: timed, estimated, or counted.
-//
-// Seconds first. A typed duration is a claim about how long something actually
-// lasts, where an estimate is a bucket somebody picked - so if a phase carries
-// both, the number is the more specific of the two. Nothing carries both today;
-// the order is stated so that the first row which does is not a surprise.
+/**
+ * The frames a phase takes on the timeline: its seconds, else its estimate, else
+ * its counted frames. Seconds come first, as the more specific claim.
+ * @since v0.12
+ */
 window.phaseWeight = function(phaseObj) {
     const seconds = window.phaseSeconds(phaseObj);
     if (seconds !== null) return seconds * window.FRAMES_PER_SECOND;
@@ -142,8 +140,10 @@ window.phaseWeight = function(phaseObj) {
     return Number(phaseObj && phaseObj.duration) || 0;
 };
 
-// "2s", "1.5s" - trailing zeroes dropped, because 2.0s reads as a measurement
-// to three significant figures and it is not one.
+/**
+ * "2s", "1.5s": trailing zeroes dropped, since "2.0s" reads as a measurement.
+ * @since v0.19
+ */
 window.formatPhaseSeconds = function(seconds) {
     const n = Number(seconds);
     if (!Number.isFinite(n)) return '';
@@ -156,9 +156,8 @@ function createPhase(phaseObj, totalScale) {
     let styleClass = phaseObj.styleClass || '';
 
     const estimate = window.frameEstimate(phaseObj.estimate);
-    // A seconds phase overrides an estimate for width, so it must do the same
-    // here - otherwise the block says "estimated" while being drawn to a timed
-    // width, which is the one combination that misreports the data.
+    // Seconds win over an estimate for width, so they win here too, or the block would
+    // say "estimated" at a timed width.
     const seconds = window.phaseSeconds(phaseObj);
     const solid = seconds !== null || !!estimate;
 
@@ -167,7 +166,6 @@ function createPhase(phaseObj, totalScale) {
         + (seconds !== null ? ' phase-seconds' : (estimate ? ' phase-estimated' : ''));
     phase.style.width = `${(window.phaseWeight(phaseObj) / totalScale) * 100}%`;
 
-    // --- STACKABLE OVERLAYS (Gradient Glows) ---
     let activeOverlays = [];
     if (phaseObj.overlays) activeOverlays.push(...phaseObj.overlays);
     if (phaseObj.overlay) activeOverlays.push(phaseObj.overlay);
@@ -184,26 +182,20 @@ function createPhase(phaseObj, totalScale) {
         }
     });
 
-    // --- CUSTOM TOOLTIPS ---
     if (phaseObj.label || estimate || seconds !== null) {
         // The tooltip is written as HTML (window.bindTooltip), and the label is
         // contributor text.
         let tooltipContent = `<strong>${window.escapeHtmlKeepBreaks(phaseObj.label || (estimate ? estimate.label : ''))}</strong>`;
 
-        // Said in words as well as shown by the missing divisions, for the same
-        // reason the estimate says so below: the hover is where somebody has
-        // asked for the detail, and the detail is which unit this was measured
-        // in. The frame figure is given too, because the timeline around it is
-        // drawn in frames and a reader comparing phases needs the same unit.
+        // Said in words too: the hover is where someone asks for the detail, and here the
+        // detail is the unit. The frame figure too, since the timeline is drawn in frames.
         if (seconds !== null) {
             tooltipContent += `<br><span class="tooltip-desc tooltip-desc-seconds">`
                 + `Timed: ${window.formatPhaseSeconds(seconds)}`
                 + ` - ${seconds * window.FRAMES_PER_SECOND} frames at ${window.FRAMES_PER_SECOND}fps</span>`;
         }
 
-        // Said in words as well as shown by the missing divisions. Somebody
-        // reading a hover has already decided they want the detail, and the
-        // one detail an estimate must not hide is that it is an estimate.
+        // The one detail an estimate must not hide is that it is an estimate.
         if (estimate && seconds === null) {
             tooltipContent += `<br><span class="tooltip-desc tooltip-desc-estimate">Estimated: ${estimate.label.toLowerCase()} - not frame-counted</span>`;
         }
@@ -219,9 +211,7 @@ function createPhase(phaseObj, totalScale) {
         window.bindTooltip(phase, tooltipContent);
     }
 
-    // No ticks for an estimate or for a timed phase - that absence IS the
-    // marker. Drawing them would claim a per-frame breakdown nobody measured,
-    // and for seconds it would invent 120 divisions out of one typed "2".
+    // No ticks for an estimate or a timed phase: that absence is the marker.
     if (!solid) {
         for (let i = 0; i < phaseObj.duration; i++) {
             const tick = document.createElement('div');
@@ -233,20 +223,20 @@ function createPhase(phaseObj, totalScale) {
     return phase;
 }
 
+/**
+ * Frame data by page id, filled by the first fetch. The editor, the review screens
+ * and History put the data being edited or shown here, so the Skill Cards draw that.
+ * @since v0.3
+ */
 window.cachedMasterFrameData = window.cachedMasterFrameData || {}; 
 
-// What goes in a Skill Card's media box: the move's media, or the media of the
-// Micro Variant on show (owner, 2026-11-16), or the Missing Media notice.
+// A Skill Card's media box: the move's media, or the media of the Micro Variant on
+// show, or the Missing Media notice.
 function skillMediaHTML(media) {
     let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
     if (media?.src) {
-        // Extension is read off the path, not the whole URL. A raw
-        // endsWith missed anything carrying a query string or
-        // fragment - "clip.mp4?t=123" is ordinary for storage URLs -
-        // and only knew mp4/webm, while the media library accepts
-        // anything video/*. Those all fell through to the <img>
-        // branch, which cannot play a video: that is why mp4 looked
-        // unsupported in skill cards.
+        // The extension from the path, not the whole address: storage links carry a query
+        // ("clip.mp4?t=123").
         const path = media.src.split(/[?#]/)[0].toLowerCase();
         const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
         // .gif stays an image on purpose - it animates on its own.
@@ -254,28 +244,13 @@ function skillMediaHTML(media) {
         const altText = media.alt || '';
 
         if (isVideo) {
-            // Injecting lazy-loading to prevent memory nukes!
-            //
-            // aria-label, not alt: <video> has no alt attribute, so
-            // alt text entered against a video-media move used to go
-            // nowhere at all - which is how "alt text does not
-            // persist" was reported. It persisted fine in the data;
-            // it just had nothing to render into. Plenty of skill
-            // media is .mp4/.webm, so this was the common case.
-            //
-            // The shared clip (js/pages/core/description.js wikiClipHTML), which
-            // carries the corner button that opens the player.
+            // The shared clip (wikiClipHTML). An aria-label, because <video> has no alt.
             mediaContent = window.wikiClipHTML(media.src, {
                 className: 'skill-media-img', label: altText,
             }) + `
                 <span class="skill-media-filename">${window.escapeHtml(filename)}</span>`;
         } else {
-            // Native loading="lazy" with a real src, matching how
-            // description.js renders wiki images. This carried
-            // data-lazy-src before, but initLazyMedia only ever
-            // promoted video[data-lazy-src] and iframe[data-lazy-src]
-            // - never img - so every static image in a skill card
-            // rendered with no source at all.
+            // A real src with loading="lazy": initLazyMedia starts only videos and iframes.
             mediaContent = `
                 <img src="${window.escapeHtml(media.src)}" alt="${window.escapeHtml(altText)}" class="skill-media-img" loading="lazy">
                 <span class="skill-media-filename">${window.escapeHtml(filename)}</span>`;
@@ -284,17 +259,24 @@ function skillMediaHTML(media) {
     return mediaContent;
 }
 
+/**
+ * Draws one move tab (M1s, Skills, Specials and the rest) of a character page: the
+ * legend and a Skill Card per move, for the active mode.
+ * @since v0.01
+ * @touches window.cachedMasterFrameData, fetchCloudCharacterData, resolveModeFrame;
+ *   leaves a strategy-<moveId> box for description.js to fill
+ * @watch with targetMoveId only that move is drawn (the editor's preview); an error
+ *   is only logged
+ */
 async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageType = 'character', modeId = null) {
     if (pageType === 'system') return;
 
     try {
         let data = null;
         
-        // 1. Check Editor Cache
         if (window.cachedMasterFrameData && window.cachedMasterFrameData[pageId]) {
             data = window.cachedMasterFrameData[pageId];
         } 
-        // 2. Check Supabase
         else {
             if (typeof window.fetchCloudCharacterData === 'function') {
                 const cloudData = await window.fetchCloudCharacterData(pageId);
@@ -305,19 +287,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     console.log(`[Cloud] Loaded ${pageId} frame data.`);
                 }
             }
-
-            // 3. NO LOCAL FALLBACK. This used to read
-            // characters/<Name>/<pageId>_framedata.json, from before content
-            // moved to Supabase. No such file has existed in this repo since,
-            // so it could only ever 404 - and unlike the descriptions fallback
-            // it was not even wrapped, so the request threw and was swallowed
-            // by this function's own catch. Its path was at least correct:
-            // loadMoveSection returns early for system pages, so it only ever
-            // ran for characters, which all live in characters/.
-            //
-            // `data` stays null and the throw below reports the real problem
-            // (no frame data) instead of a fetch failure for a file that was
-            // never going to be there.
         }
 
         if (!data) throw new Error("No frame data found.");
@@ -325,10 +294,8 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
         const container = document.getElementById(`tab-${sectionType}`);
         if (!container) return;
 
-        // A full character's ultimate modes replace the whole moveset, so which
-        // array this tab renders depends on the active mode. resolveModeFrame
-        // hands back `data` itself for the base mode, which is every character
-        // that declares no modes - so this is a no-op for all of them.
+        // A full character's ultimate mode replaces the whole moveset. The base mode gets the
+        // data back unchanged.
         const activeMode = modeId || window.activeCharacterMode || null;
         const scopedData = typeof window.resolveModeFrame === 'function'
             ? window.resolveModeFrame(data, activeMode)
@@ -336,21 +303,14 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
 
         let movesArray = scopedData[sectionType] || [];
 
-        // If the editor passes a specific move ID, strip out the others so only that move renders.
         if (targetMoveId) {
             movesArray = movesArray.filter(move => move.id === targetMoveId);
         }
 
         container.innerHTML = '';
 
-        // An empty move tab used to render as a blank white void with no
-        // explanation - indistinguishable from a page that failed to load.
-        // It became worth naming once modes arrived: switching to an ultimate
-        // state whose Skills have not been written yet is a normal, expected
-        // thing to land on, not a broken page.
-        // No early return: the legend below is skipped on its own for an empty
-        // array, the render loop does nothing, and the lazy-media and TOC
-        // passes after the try block still need to run.
+        // Said, so an empty tab (often an ultimate mode not written yet) does not look like a
+        // failed load. No early return: the lazy-media and contents passes below still run.
         if (movesArray.length === 0 && !targetMoveId) {
             container.innerHTML = `<div class="empty-tab-msg">Nothing has been recorded here yet.</div>`;
         }
@@ -365,17 +325,14 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
         movesArray.forEach(move => {
             const card = document.createElement('section');
             card.className = 'skill-entry-card';
-            // "No frame data" (owner, 2026-11-16): the move's description takes
-            // the space the Frame Track would, and nothing says frame data is
-            // missing. Stored tracks are kept, so unticking brings them back.
+            // No frame data: the description takes the Frame Track's space, and nothing says
+            // frame data is missing. Stored tracks are kept, so unticking brings them back.
             const noFrameData = move.noFrameData === true;
             if (noFrameData) card.classList.add('skill-entry-card-no-frames');
 
-            // --- 1. STATS FALLBACK ---
             let statsHTML = '';
             if (move.stats && move.stats.length > 0) {
                 move.stats.forEach(stat => {
-                    // FIXED: Replaced Tailwind with explicit CSS color
                     const highlightStyle = stat.isHighlighted ? 'color: #ef4444;' : '';
                     // Contributor text, written into innerHTML: escaped, with
                     // the <br> editors use for a second line kept.
@@ -389,7 +346,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 statsHTML = `<div class="stat-row stat-row-empty">No stats recorded</div>`;
             }
 
-            // --- 2. MEDIA & VIDEO FALLBACK ---
             const mediaContent = skillMediaHTML(move.media);
 
             card.innerHTML = `
@@ -455,10 +411,8 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
 
             const rightCol = document.getElementById(`right-col-${move.id}`);
 
-            // --- MEDIA PER MICRO VARIANT (owner, 2026-11-16) ---
-            // Each timeline (a leaf of the tree, however deep) can carry its
-            // own media, and the box on the left follows the one on show. A
-            // timeline without any shows the move's own media.
+            // Each timeline (a leaf of the tree, however deep) can carry its own media, and the
+            // box on the left follows the one on show.
             const leafViews = new Map();
             const mediaWrapper = card.querySelector('.skill-media-wrapper');
             let shownSrc = move.media?.src || '';
@@ -485,16 +439,16 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 if (typeof window.initLazyMedia === 'function') window.initLazyMedia(mediaWrapper);
             }
 
-            // --- 3. RECURSIVE FRAME DATA ENGINE ---
+            // The Frame Track: rows of Micro Variant tabs, down to the timelines.
             function buildNestedTabs(dataNode, prefixId, wrapperElement) {
 
-                // LEAF NODE: Render actual frame data
+                // A leaf: the timelines.
                 if (dataNode.bars) {
                     leafViews.set(wrapperElement, dataNode);
                     let autoLegendItems = [];
                     let seenPhases = new Set();
 
-                    // --- NEW: SCROLL WRAPPER TO PREVENT OVER-COMPRESSION ---
+                    // It scrolls sideways rather than squeezing the frames.
                     const scrollWrapper = document.createElement('div');
                     scrollWrapper.className = 'frame-scroll-wrapper';
                     scrollWrapper.style.overflowX = 'auto';
@@ -511,7 +465,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                         const barGroup = document.createElement('div');
                         if (bar.type === 'target') barGroup.className = 'bar-group-target';
 
-                        // 1. Conditionally Build Header (Top)
                         const headerText = bar.headerInfo || bar.title || dataNode.headerInfo || '';
                         if (headerText.trim() !== '') {
                             const infoHeader = document.createElement('div');
@@ -521,7 +474,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                             barGroup.appendChild(infoHeader);
                         }
                         
-                        // 2. Build Timeline (Middle)
                         const timelineContainer = document.createElement('div');
                         timelineContainer.className = 'frame-bar-container';
                         timelineContainer.style.position = 'relative'; 
@@ -531,13 +483,12 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                             const phaseEl = createPhase(phase, dataNode.totalScale);
                             timelineContainer.appendChild(phaseEl);
 
-                            // --- AUTO-LEGEND COLLECTOR (Standard Phase) ---
+                            // The legend, collected from the phases shown.
                             if (phase.styleClass && phase.styleClass !== 'bg-transparent' && !phase.hideFromLegend) {
                                 
-                                // Determine the final visible text FIRST
                                 let legendText = phase.legendDesc ? phase.legendDesc : phase.label;
                                 
-                                // NEW: Use the final text to check for duplicates, not the hidden label!
+                                // Deduplicated by the text shown, not the hidden label.
                                 const uniqueKey = phase.styleClass + '-' + legendText;
                                 
                                 if (!seenPhases.has(uniqueKey)) {
@@ -551,7 +502,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                                 }
                             }
 
-                            // --- AUTO-LEGEND COLLECTOR (Windows/Overlays) ---
                             let activeWindows = [];
                             if (phase.overlays) activeWindows.push(...phase.overlays);
                             if (phase.overlay) activeWindows.push(phase.overlay);
@@ -576,11 +526,10 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                         
                         barGroup.appendChild(timelineContainer);
 
-                        // 3. Conditionally Build Footer (Bottom)
                         if (bar.footerInfo && bar.footerInfo.trim() !== '') {
                             const infoFooter = document.createElement('div');
-                            infoFooter.className = 'bar-header-info'; // Reusing font styling class
-                            infoFooter.style.marginTop = '0.25rem';  // Give it a gap from the timeline
+                            infoFooter.className = 'bar-header-info';
+                            infoFooter.style.marginTop = '0.25rem';
                             infoFooter.style.marginBottom = '0.5rem';
                             infoFooter.innerHTML = `<span class="${headerClass}">${window.escapeHtmlKeepBreaks(bar.footerInfo)}</span>`;
                             barGroup.appendChild(infoFooter);
@@ -592,7 +541,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     const rulerContainer = document.createElement('div');
                     rulerContainer.className = 'frame-ruler';
 
-                    // Apply the EXACT SAME minimum width to the ruler so it scales perfectly with the bars
+                    // The ruler takes the bars' minimum width, so it scales with them.
                     rulerContainer.style.minWidth = safeMinWidth;
                     
                     const tickInterval = dataNode.totalScale > 100 ? 20 : 10;
@@ -607,10 +556,9 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     
                     scrollWrapper.appendChild(rulerContainer);
 
-                    // Finally, append the full scroll wrapper to the view
                     wrapperElement.appendChild(scrollWrapper);
 
-                    // Render Legend
+                    // An inlineLegend written in the editor wins over the collected one.
                     const legendData = (dataNode.inlineLegend && dataNode.inlineLegend.length > 0) 
                         ? dataNode.inlineLegend 
                         : autoLegendItems;
@@ -644,7 +592,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     return;
                 }
 
-                // BRANCH NODE: Generate a new row of tabs
+                // A branch: a row of Micro Variant tabs.
                 if (dataNode.variants) {
                     const keys = Object.keys(dataNode.variants);
                     if (keys.length === 0) return;
@@ -673,8 +621,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                         viewSection.id = `view-${childId}`;
                         viewSection.className = `view-section ${index === 0 ? '' : 'hidden'}`;
 
-                        // --- NATIVE TAB SWITCHER ---
-                        // Instantly hides/shows the preloaded timelines without recalculating
+                        // Every timeline is built up front; a tab only shows and hides them.
                         btn.addEventListener('click', () => {
                             Array.from(tabBar.children).forEach(b => b.classList.remove('active'));
                             Array.from(viewsWrapper.children).forEach(v => v.classList.add('hidden'));
@@ -695,7 +642,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             if (noFrameData) {
                 // Left empty here: the description is put in below.
             } else if (move.variants && Object.keys(move.variants).length > 0) {
-                // Generates the entire recursive tree at once
                 buildNestedTabs({ variants: move.variants }, move.id, rightCol);
                 syncMediaToVariant();
             } else {
@@ -706,7 +652,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 `;
             }
             
-            // --- 4. STRATEGY INJECTION TARGET ---
+            // description.js puts the move's strategy here.
             const strategyTarget = document.createElement('div');
             strategyTarget.id = `strategy-${move.id}`;
             (noFrameData ? rightCol : card).appendChild(strategyTarget);
@@ -718,7 +664,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
         console.error(`Failed handling live frame engine synchronization updates for ${sectionType}:`, error);
     }
 
-    // AWAKEN THE LAZY OBSERVER
     if (typeof window.initLazyMedia === 'function') {
         const container = document.getElementById(`tab-${sectionType}`);
         if (container) window.initLazyMedia(container);

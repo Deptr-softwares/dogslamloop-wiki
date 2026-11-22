@@ -1,47 +1,24 @@
 /**
- * Dogslamloop Wiki - Automated Contextual Text Colorizer & Shortcode Engine
- *
- * Turns contributor shortcodes ([b], [color=...], [url=...]) into markup, and
- * auto-highlights character names, frame-data terms and frame timings.
- *
- * WHAT THIS FILE IS AND WHY IT NEEDS CARE. It reads a block's innerHTML, runs
- * string replacements over it, and writes the result back. Every value it
- * interpolates comes from PAGE CONTENT, which is contributor-submitted. That
- * makes it an innerHTML sink with attacker-reachable input, which is the exact
- * case CLAUDE.md's escaping rule is about.
- *
- * Three holes were found and closed on 2026-08-14, all reachable from ordinary
- * page text and all live on the public site:
- *
- *   [url=javascript:alert(1)]click[/url]
- *       became <a href="javascript:alert(1)">, which runs on click.
- *
- *   [url=" onmouseover="...]hover[/url]
- *       the quote closed href= and the rest landed as a REAL onmouseover
- *       handler on the anchor. Confirmed against a running page, not reasoned
- *       about.
- *
- *   [color=red" onmouseover="...]x[/color]
- *       the same break-out, one attribute over, on the span.
- *
- * A reviewer could not have caught these by reading a diff: the submission
- * shows as the literal text "[url=...]", and the handler only exists after
- * this file has run.
- *
- * So every interpolation now goes through one of three gates - escapeHtml,
- * safeUrl, safeColor - and anything that fails renders as plain text rather
- * than as markup. Losing a colour is a rendering nit; the alternative is
- * executing somebody's script on a page 1.4M people are pointed at.
+ * The format tags ([b], [color=], [url=], [multicolor=], [icon=], [noauto] and the
+ * rest) and the automatic colours: character names, frame-data terms, frame
+ * timings, a page's own words, and move names by input slot. Runs over every text
+ * Block on the page, and again whenever content lands.
+ * @since v0.01
+ * @touches CHARACTER_COLORS, CHARACTER_ALIASES, FRAME_COLORS, WINDOW_COLORS and
+ *   ACCOLADES (site_meta.js), desc_data.pageConfig.words, data/navigation.json,
+ *   buildMoveSlotMap (input_slots.js)
+ * @watch it reads a Block's innerHTML, rewrites it as a string and writes it back,
+ *   so every value it puts in goes through escapeHtml, safeUrl or safeColor, and
+ *   one that fails stays plain text
+ * @watch a Block is styled once (.is-styled): running the tags twice would eat
+ *   their own output
+ * @see docs/format-tags.md
  */
 
-// Allowed: absolute http(s), mailto, a site-relative path, a fragment, or a
-// bare relative path. Everything else is refused - which is the point, because
-// javascript:, data: and vbscript: are the schemes that execute, and a
-// whitelist cannot be outflanked by a scheme nobody thought of.
-//
-// Leading "//" is excluded deliberately: it is protocol-relative, so it
-// inherits https here but is still an off-site jump that does not look like
-// one in the source text.
+// Allowed: http(s), mailto, a site path, a fragment, or a bare relative path. An
+// allowlist, because javascript:, data: and vbscript: execute, and a scheme nobody
+// thought of cannot slip past one. "//" is refused: an off-site jump that does not
+// look like one.
 const SAFE_URL_PATTERN = /^(?:https?:\/\/[^\s]+|mailto:[^\s]+|#[^\s]*|\/(?!\/)[^\s]*|[\w.~-][^\s:]*)$/i;
 
 function safeUrl(raw) {
@@ -55,43 +32,27 @@ function safeUrl(raw) {
     return url;
 }
 
-// A colour is a small closed grammar, so it can be whitelisted outright rather
-// than escaped. Anything outside it is somebody trying to leave the style
-// attribute, not somebody with an unusual colour.
+// A colour is a small closed grammar, so it is allowlisted, not escaped: anything
+// outside it is trying to leave the style attribute.
 const SAFE_COLOR_PATTERN =
     /^(?:#[0-9a-f]{3,8}|(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/+-]+\)|var\(\s*--[\w-]+\s*\)|[a-z]{3,20})$/i;
 
+/**
+ * The colour if it is one (hex, rgb(), hsl(), var(--x) or a name), otherwise null.
+ * For any stored colour that lands in a style attribute.
+ * @since v0.14
+ */
 function safeColor(raw) {
     const color = String(raw == null ? '' : raw).trim();
     return SAFE_COLOR_PATTERN.test(color) ? color : null;
 }
-// Shared with js/pages/core/framedata.js, whose legend writes a stored colour into a
-// style attribute. It calls this at render time, after both files have loaded.
 window.safeColor = safeColor;
 
 
-// --- THE MULTICOLOUR SHORTCODE (v0.19 C6) ---------------------------------
-//
-// [multicolor=#ef4444,#22d3ee]DOMAIN EXPANSION[/multicolor] sweeps the text
-// from the first colour to the last, one span per visible character. Any
-// number of stops: a,b,c runs through all three in order.
-//
-// Carried since v0.12 as "the auto-splitting multicolor text shortcode" and
-// deferred four times. Owner chose the gradient reading on 2026-09-20.
-//
-// WHY THE COLOURS ARE RESOLVED BY THE BROWSER AND NOT PARSED HERE
-//
-// safeColor accepts five grammars - #hex, rgb(), hsl(), var(--x) and named
-// colours. A gradient needs numeric channels, and two of those five cannot be
-// read numerically without a stylesheet: `var(--color-vessel)` is whatever
-// site_meta.js set it to, and `rebeccapurple` is whatever the browser says it
-// is. Parsing only hex would silently refuse half the colours the sibling
-// [color=] shortcode accepts, which is the kind of inconsistency nobody can
-// guess from the outside.
-//
-// So every stop goes through a probe element and comes back as rgb(). One
-// probe, created once, parented to <html> so custom properties on :root
-// resolve against the real cascade.
+// [multicolor=a,b,...] sweeps the text from the first colour to the last, one span
+// per visible character. Each stop goes through a probe element and comes back as
+// rgb(), because var(--x) and named colours cannot be read as numbers here. One
+// probe, parented to <html> so custom properties resolve against the real cascade.
 let colorProbe = null;
 
 function resolveColorChannels(color) {
@@ -116,31 +77,13 @@ function resolveColorChannels(color) {
 }
 
 /**
- * Splits already-converted HTML into per-character spans along a gradient.
- *
- * Walks the string rather than the DOM because this runs inside the shortcode
- * pass, where `content` is a half-built HTML string. Three things must survive
- * the walk untouched:
- *
- *   TAGS      `<strong class="sc-b">` - nested shortcodes are converted first
- *             (the do-while below is inside-out), so by the time this runs the
- *             inner text may already carry markup. Splitting inside a tag
- *             would produce `<str<span>ong>`.
- *   ENTITIES  `&amp;` is ONE character to a reader and five to a string index.
- *   SPACES    left unwrapped. Colouring a space shows nothing, and skipping it
- *             keeps the output roughly a third smaller on ordinary prose.
- *   LATER SHORTCODES  `[noauto]` and `[url=...]` (v1.1). [noauto] is lifted
- *             out after the whole conversion loop, and [url] converts after
- *             [multicolor] inside it, so a tag split into one span per letter
- *             was no longer a tag to either of them: the reader saw
- *             "[noauto]Startup[/noauto]" printed in gradient colours. Kept
- *             whole and uncounted, so the gradient works with either nesting.
- *
- * Only the characters a reader actually sees are counted for position, so the
- * sweep is even regardless of how much markup is mixed in.
+ * Splits converted HTML into per-character spans along a gradient. It walks the
+ * string, because it runs on half-built HTML, and keeps these whole: tags (nested
+ * tags are converted first), entities (one character to a reader), spaces (left
+ * unwrapped), and the [noauto] and [url] tags that convert after it. Only visible
+ * characters count, so the sweep is even.
  */
 function splitGradient(html, stops) {
-    // Pass 1: cut the string into units, marking which are visible characters.
     const units = [];
     let i = 0;
     while (i < html.length) {
@@ -175,8 +118,6 @@ function splitGradient(html, stops) {
     }
 
     const total = units.filter(u => u.visible).length;
-    // One visible character has no gradient to be on - it takes the first stop
-    // rather than dividing by zero.
     if (total === 0) return html;
 
     const lerp = (a, b, t) => Math.round(a + (b - a) * t);
@@ -185,6 +126,7 @@ function splitGradient(html, stops) {
     return units.map(unit => {
         if (!unit.visible) return unit.raw;
 
+        // One visible character takes the first stop, rather than dividing by zero.
         const t = total === 1 ? 0 : seen / (total - 1);
         seen += 1;
 
@@ -201,13 +143,9 @@ function splitGradient(html, stops) {
     }).join('');
 }
 
-// Spellings the community uses that are not the legend's own wording. Kept
-// small and explicit: an alias is a claim that two phrases mean the same
-// thing, which is a domain judgement rather than a formatting one.
-//
-// Block Endlag changed meaning 2026-11-12 (Terminologies, Round 2): it is the
-// stun of the player who blocked, and the attacker's endlag on block
-// ("Extended Recovery") is Recovery.
+// Spellings the community uses beside the legend's own wording. Kept small: an
+// alias says two phrases mean the same thing, which is a game judgement. Block
+// Endlag is the blocker's stun; the attacker's endlag on block is Recovery.
 const TERM_ALIASES = {
     'bg-tick-recov': ['Whiff Endlag', 'Extended Recovery'],
     'bg-tick-blockendlag': ['Block Stun'],
@@ -222,26 +160,14 @@ function termPattern(text) {
         .replace(/-/g, '[-\\s]?');
 }
 
-// Separators are REMOVED, not collapsed to a space. The pattern deliberately
-// accepts "Bullet Iframes" as well as "Bullet I-Frames", so the key both spell
-// has to be the same one - collapsing to a space gives "bullet i frames" and
-// "bullet iframes", the lookup misses, and the term silently renders unstyled
-// while every regex-level test still passes.
+// Separators are removed, not collapsed: the pattern accepts "Bullet Iframes" and
+// "Bullet I-Frames", so both must make the same key.
 function normalizeTerm(text) {
     return String(text).toLowerCase().replace(/[\s-]+/g, '');
 }
 
-// One combined pattern and ONE pass, rather than a replace per term.
-//
-// That is not a tidy-up, it is a correctness fix. The old code ran nine
-// separate passes in list order, so "Recovery" (pass 3) matched inside
-// "Extended Recovery" before pass 7 could claim the whole phrase - and pass 7
-// then found a <span> in the middle of its own term and never matched at all.
-// "Extended Recovery" has therefore been rendering as plain "Extended" plus a
-// recovery-coloured "Recovery" for as long as the phrase has existed.
-//
-// A single global replace never re-scans what it just inserted, so one pass
-// cannot wrap a term inside another one.
+// One combined pattern, one pass: a global replace never re-scans what it inserted,
+// so a term cannot be wrapped inside a longer one ("Recovery" in "Extended Recovery").
 function buildHighlightTerms() {
     const colors = Object.assign({}, window.FRAME_COLORS || {}, window.WINDOW_COLORS || {});
     const labels = window.FRAME_COLOR_LABELS || {};
@@ -300,24 +226,10 @@ function buildCharacterTerms() {
     };
 }
 
-// --- [noauto] ---
-//
-// Auto-highlighting matches ordinary English - Register, Active, Misc,
-// Recovery, Startup, Perfection are all real words, and the alias list adds
-// Yuki, Todo, Charles and a sentence fragment. This is the author's way of
-// saying "that one is not the character".
-//
-// Implemented by lifting the protected text out before the auto passes run and
-// putting it back afterwards, because a regex over a string cannot be told to
-// skip a region. The placeholder is plain ASCII and visible in source: a
-// private-use codepoint reads as "cannot collide", but it is invisible in an
-// editor and survives a paste as something nobody can see. The worst case here
-// is not a security one either - content that literally contained the token
-// would get some of its own text relocated, which is a rendering bug.
-//
-// [noauto=all] (v1.1) also stops the page's own words (PAGE WORDS below).
-// Plain [noauto] stops the built-in colours only, because a page word is one
-// an editor of the page chose on purpose (owner, 2026-10-19).
+// [noauto] lifts its text out before the automatic colours run and puts it back
+// after, since a regex over a string cannot skip a region. The placeholder is plain
+// ASCII, so it shows in source. [noauto=all] also stops the page's own words; plain
+// [noauto] stops the built-in colours only.
 const NOAUTO_OPEN = '%%DSL_NOAUTO_';
 const NOAUTO_CLOSE = '%%';
 
@@ -328,10 +240,8 @@ function liftNoAuto(content, store) {
     });
 }
 
-// Put back inside a marker span, not bare. The move-name pass for Combos and
-// Techs (applyInputSlotColours) runs later, over the rendered text, where the
-// [noauto] tag no longer exists; the span is how it can still tell which words
-// the author protected.
+// Put back inside a marker span: the move-name pass (applyInputSlotColours) runs
+// later, where the tag is gone, and the span is how it sees the protected words.
 function restoreNoAuto(content, store) {
     if (!store.length) return content;
     return content.replace(
@@ -344,23 +254,14 @@ function restoreNoAuto(content, store) {
     );
 }
 
-// --- PAGE WORDS (v1.1) ---
-//
-// Owner, 2026-10-18: "auto-coloring custom words in a page ... JUST FOR THAT
-// PAGE". A page lists up to fifty words in desc_data.pageConfig.words, each
-// with one colour or a gradient, set in the editor's Config > Page.
-//
-// Whole words in their EXACT case, the rule character names use, so "Domain"
-// colours and the ordinary word "domain" stays plain. Built-in colours win
-// wherever the two meet: this paints only the text the built-in passes left
-// plain, and in the Combos and Techs tabs a page word that is a move name
-// gives way to the move's colour (applyInputSlotColours). [noauto=all] stops
-// it; plain [noauto] stops only the built-in colours, so a page word inside one
-// is painted.
-//
-// A pass over text nodes rather than one more replace over the HTML string,
-// because the string cannot tell text inside an auto-coloured span from text
-// outside one, and painting inside one would let the page beat the built-in.
+/**
+ * Page words: up to this many words in desc_data.pageConfig.words, each with one
+ * colour or a gradient, coloured on that page only (the editor's Config > Page).
+ * @since v1.1
+ * @watch whole words in their exact case. Built-in colours win where the two meet:
+ *   page words paint only the text the other passes left plain, over text nodes,
+ *   because the HTML string cannot tell inside an automatic colour from outside one
+ */
 window.PAGE_WORD_LIMIT = 50;
 
 // Whose words: the page in the editor, the version a reviewer is looking at,
@@ -369,7 +270,7 @@ function currentPageConfig() {
     // The whole page, not the character state being edited: the settings
     // belong to the page.
     if (window.editorMasterDescData) return window.editorMasterDescData.pageConfig || null;
-    // admin.html. Diff View is the proposed version, so it takes those words.
+    // The Overseer: Diff View is the proposed version, so it takes those words.
     if (window.activePreviewRevId) {
         const desc = window.activePreviewViewMode === 'live'
             ? window.currentLiveDescData : window.currentPendingDescData;
@@ -458,10 +359,12 @@ function paintPageWords(block, words) {
     });
 }
 
-// Config > Page changes the list while the preview is already painted, and a
-// block is only ever styled once, so a change repaints in place. A solid
-// word's children are kept rather than flattened: in the Combos tab a move's
-// colour may sit inside it.
+/**
+ * Paints page words again after Config > Page changes the list. A Block is styled
+ * once, so this repaints in place; a solid word's children are kept, since a move's
+ * colour may sit inside it.
+ * @since v1.1
+ */
 window.refreshPageWords = function () {
     document.querySelectorAll('.sc-page-word').forEach(span => {
         const parent = span.parentNode;
@@ -474,8 +377,11 @@ window.refreshPageWords = function () {
     document.querySelectorAll('.is-styled').forEach(block => paintPageWords(block, words));
 };
 
-// For Config > Page: the built-in colour a word runs into, so the editor is
-// told it will not colour there instead of finding out on the page.
+/**
+ * The built-in colour or move name a page word runs into, or null, so Config > Page
+ * can say the word will not colour there.
+ * @since v1.1
+ */
 window.pageWordBuiltIn = function (word) {
     const text = String(word || '').trim();
     if (!text) return null;
@@ -491,20 +397,9 @@ window.pageWordBuiltIn = function (word) {
     return move ? { kind: 'move', term: move } : null;
 };
 
-// --- MOVE NAMES, COLOURED BY INPUT SLOT (v0.15) ---
-//
-// JJS combos are written NAME-FIRST - "MURMURATE > R^ > AIR UPDRAFT", not
-// "2 > R > 1" - so colouring notation means knowing which of the ten inputs
-// each move NAME belongs to.
-//
-// The map is derived from frame_data's `input` field per character, with
-// desc_data.characterSettings as a thin override (js/utility/input_slots.js). Nothing
-// is hand-listed here, for the same reason the frame terms above are derived
-// from site_meta.js: a second copy drifts.
-//
-// Mode-aware: a character's ultimate state has different skills in the same
-// slots, so the same name can be a different colour depending on which state
-// the reader is looking at.
+// Move names coloured by input slot. JJS combos are written name-first ("MURMURATE
+// > R^ > AIR UPDRAFT"), so colouring needs each name's slot. The map comes from
+// frame_data's `input` (input_slots.js), and follows the active mode.
 function currentPageMoveSlots() {
     if (typeof window.buildMoveSlotMap !== 'function') return null;
 
@@ -512,12 +407,9 @@ function currentPageMoveSlots() {
         || window.activePreviewCharId || window.currentEditorCharId;
     if (!pageId) return null;
 
-    // admin.html holds neither of the first two. It loads a revision into
-    // currentPending*/currentLive*, so notation in Diff View and in the
-    // reviewer's preview was never coloured at all - the reader saw colours,
-    // the person approving them saw plain text, which is the half that has to
-    // spot a wrong input. Pending first: the reviewer is looking at the
-    // PROPOSED version, so a move the ticket itself adds must colour too.
+    // The Overseer loads a revision into currentPending* and currentLive*. Pending
+    // first: the reviewer is looking at the proposed version, so a move it adds colours
+    // too.
     let frame = (window.cachedMasterFrameData || {})[pageId]
         || window.currentEditorFrameData
         || window.currentPendingFrameData
@@ -525,17 +417,15 @@ function currentPageMoveSlots() {
         || null;
     if (!frame) return null;
 
-    // The active state's slice, when there is one. resolveModeFrame is the
-    // shared resolver; falling back to the master keeps a page with no states
-    // working unchanged.
+    // The active state's slice, when there is one; a page with no states uses the master.
     const mode = window.activeCharacterMode || window.activePreviewMode;
     if (mode && !((window.isBaseMode && window.isBaseMode(mode)))
         && frame.modeData && frame.modeData[mode]) {
         frame = Object.assign({}, frame, frame.modeData[mode]);
     }
 
-    // Same three sources, same order - characterSettings overrides live in
-    // desc_data, so a reviewer must resolve names the same way a reader does.
+    // The same sources in the same order: characterSettings overrides live in
+    // desc_data, so a reviewer resolves names the way a reader does.
     const desc = window.currentPageDescData
         || window.currentEditorDescData
         || window.currentPendingDescData
@@ -555,27 +445,17 @@ function currentPageMoveSlots() {
     };
 }
 
-// A move name as written in a route or in prose. The map's names are
-// normalised (input_slots.js), so the hyphen in "Dive-Bomb" or "Flowing Red
-// Scale - Air" is a space there, and each space has to match a run of spaces
-// and hyphens here. Split BEFORE termPattern: its output has no spaces left to
-// split on, which is how this matched spaces only until 2026-11-20 and left
-// " - Air" white in "...Flowing Red Scale - Air" (reported by an editor).
+// A move name as written. The map's names are normalised (a hyphen is a space
+// there), so each space matches a run of spaces and hyphens. Split before
+// termPattern, whose output has no spaces left to split on.
 const MOVE_NAME_SEPARATOR = '[\\s\\u2010-\\u2015-]+';
 function moveNamePattern(name) {
     return String(name).split(/\s+/).map(termPattern).join(MOVE_NAME_SEPARATOR);
 }
 
-// The bare keys themselves - "M1", "2", "R". Only ever applied INSIDE a combo
-// chip: a lone "1" or "2" in prose is a number far more often than an input,
-// and colouring those would tint every frame count and damage figure on the
-// site.
-//
-// A trailing direction is part of the input, not a separate step: the owner
-// writes "R^" constantly, and JJS's directions are the arrow glyphs and
-// A/W/S/D. Without this "R^" fell through the whole-chip match and came out
-// uncoloured while a bare "R" was fine - which is exactly the swap the owner
-// asked to be sure of.
+// The bare keys ("M1", "2", "R"), only ever inside a combo chip: a lone "2" in prose
+// is a number far more often than an input. A trailing direction is part of the
+// input ("R^", the arrows, A/W/S/D).
 function inputKeyPattern() {
     const ids = (window.INPUT_SLOT_IDS || []).slice().sort((a, b) => b.length - a.length);
     if (!ids.length) return null;
@@ -584,42 +464,30 @@ function inputKeyPattern() {
     return new RegExp(`^\\s*(${keys})${direction}\\s*$`, 'i');
 }
 
-// Move names AND bare keys, for matching inside one compound step. Names go
-// first and longest-first, so "Air Updraft" is claimed before "Updraft" and
-// before the bare "1" that a name might contain.
-//
-// The key half is bounded by non-alphanumerics, which is what keeps "(X3)" and
-// "M1 x3" from lighting up their digits.
+// Move names and bare keys, for matching inside one compound step. Names first and
+// longest first, so "Air Updraft" is claimed before "Updraft" or a "1" in a name.
+// The keys are bounded by non-alphanumerics, so "(X3)" and "M1 x3" keep their digits.
 function compoundPattern(terms) {
     const names = Array.from(terms.lookup.keys()).sort((a, b) => b.length - a.length);
     const keys = (window.INPUT_SLOT_IDS || []).slice().sort((a, b) => b.length - a.length);
     if (!names.length && !keys.length) return null;
 
-    // The names come from the map already normalised, which means space-joined.
-    // Each space has to match a hyphen too, or a compound step containing the
-    // frame data's own spelling - "Dive-Bomb (whiff)" - would find nothing
-    // while the plain "Dive Bomb" matched.
+    // Each space matches a hyphen too, or "Dive-Bomb (whiff)" finds nothing.
     const namePart = names.length ? `(?<![\\w-])(?:${names.map(moveNamePattern).join('|')})(?![\\w-])` : null;
     const keyPart = keys.length ? `(?<![A-Za-z0-9])(?:${keys.map(termPattern).join('|')})(?![A-Za-z0-9])` : null;
 
     return new RegExp([namePart, keyPart].filter(Boolean).join('|'), 'gi');
 }
 
+// Colours combo chips by input slot, and move names in Combos and Techs prose.
 window.applyInputSlotColours = function (root) {
     const scope = root || document;
     const terms = currentPageMoveSlots();
     const keyPattern = inputKeyPattern();
 
-    // 1. Combo chips. A chip is one step, so it is matched WHOLE against the
-    //    key list first - "2" as a chip is Skill 2, unambiguously - and only
-    //    then against move names.
-    //
-    // A chip is only marked DONE once the move map exists. The styling pass
-    // runs on DOM changes, and the first one fires before the character's
-    // frame data has landed - so marking unconditionally left every chip
-    // flagged as processed with no colour, and nothing ever looked again.
-    // That is why a plain "MURMURATE" stayed uncoloured while "BIRD
-    // CONTROL(S)", rendered later, came out orange.
+    // Combo chips. A chip is one step, matched whole against the keys first ("2" as a
+    // chip is Skill 2), then against move names. A chip is marked done only once the
+    // move map exists: the first styling pass runs before the frame data lands.
     scope.querySelectorAll('.combo-node:not(.is-slotted)').forEach(chip => {
         if (terms) chip.classList.add('is-slotted');
         const text = chip.textContent || '';
@@ -640,15 +508,8 @@ window.applyInputSlotColours = function (root) {
             return;
         }
 
-        // A COMPOUND step - "R (Upward, Cancel Murmurate)", "GARUDA STAB OR
-        // RISING RAGE", "BIRD CONTROL(S)". The chip cannot take one colour, so
-        // every move name AND every bare key inside it is coloured in place.
-        //
-        // Keys have to be in this pass, not only in the whole-chip match
-        // above. Without them the leading "R" of "R (Upward, Cancel
-        // Murmurate)" was never considered and the parenthetical Murmurate was
-        // the only thing that coloured - which reads as the annotation
-        // stealing the step's own colour.
+        // A compound step ("R (Upward, Cancel Murmurate)", "BIRD CONTROL(S)") cannot take
+        // one colour, so every move name and bare key in it is coloured in place.
         const compound = compoundPattern(terms);
         if (!compound) return;
         compound.lastIndex = 0;
@@ -662,27 +523,14 @@ window.applyInputSlotColours = function (root) {
             return `<span class="sc-auto ${slot.cls}">${match}</span>`;
         });
 
-        // Wrapped in ONE inline child rather than written straight in.
-        // .combo-node is display:inline-flex, so a mix of text nodes and spans
-        // becomes a row of FLEX ITEMS - and a flex container discards the
-        // whitespace between its items. "Cancel Murmurate" rendered as
-        // "CancelMurmurate" until this wrapper put it all back in normal
-        // inline flow.
+        // Wrapped in one inline child: .combo-node is inline-flex, and a flex container
+        // drops the whitespace between its items ("CancelMurmurate").
         if (matched) chip.innerHTML = `<span class="combo-node-text">${replaced}</span>`;
     });
 
-    // 2. Move names in prose - but ONLY inside a DOCUMENT TAB (Combos, Techs).
-    //
-    // Owner, 2026-08-17: slot colouring stays in combo blocks and the Combos
-    // tab. Site-wide it would tint the frame-data pages, where every move name
-    // appears dozens of times, and turn a reference table into a rainbow. A
-    // combo block carries its own colour anywhere because a route IS notation;
-    // prose only counts as notation when it is combo prose.
-    //
-    // Techs is the same kind of prose - routes, cancels and move names written
-    // as notation - so it gets the same treatment. Derived from the registry
-    // rather than listing the two tabs, so this cannot be the one place a third
-    // document tab is forgotten.
+    // Move names in prose, only inside a document tab (Combos, Techs): site-wide they
+    // would tint the frame-data pages, where every name appears dozens of times. The
+    // tabs come from the registry, so a third document tab is not forgotten.
     if (!terms) return;
     if (!scope.querySelector) return;
 
@@ -697,20 +545,14 @@ window.applyInputSlotColours = function (root) {
     });
     if (!hosts.length) return;
 
-    // Text node by text node, rather than one replace over the block's HTML,
-    // so that words inside a [noauto] region (.sc-noauto) can be skipped. The
-    // whole-HTML replace could not see where the author's region began and
-    // ended, which is why [noauto] stopped every other kind of auto-colouring
-    // and not this one.
+    // Text node by text node, so a [noauto] region (.sc-noauto) can be skipped.
     hosts.forEach(host => {
         host.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
             block.classList.add('is-slotted-prose');
 
-            // A page word that is a move name gives way to the move's colour,
-            // the way every built-in colour wins over a page's words (v1.1).
-            // A gradient word is one span per letter, which the walk below
-            // could never match a name across. Inside [noauto] the move
-            // colour is stopped, so the page word stays.
+            // A page word that is a move name gives way to the move's colour, as built-in
+            // colours win over page words. Inside [noauto] the move colour is stopped, so the
+            // page word stays.
             let unwrapped = false;
             block.querySelectorAll('.sc-page-word').forEach(word => {
                 if (word.closest('.sc-noauto')) return;
@@ -750,22 +592,17 @@ window.applyInputSlotColours = function (root) {
     });
 };
 
-// --- MINI ICONS IN TEXT (v1.2) ---
-//
-// [icon=accolade/<id>] and [icon=character/<page id>]: the owner's Kanban card
-// "Add a way for editor to add mini icons to their text", like Dustloop, typed
-// or picked from the editor's icon button (js/editor/blocks/editor-blocks.js). The owner's
-// site icons join as a third group once they are drawn.
-//
-// The name is a closed grammar (lowercase letters, digits, - and _), checked
-// before anything is built, so nothing a contributor types reaches an
-// attribute unless it is already proven to be a name. A name this file does not
-// know stays as the tag that was typed, so the mistake shows in the preview.
+// Mini icons: [icon=accolade/<id>], [icon=character/<page id>] and [icon=ui/<name>].
+// The name is a closed grammar checked before anything is built, and a name this
+// file does not know stays as the typed tag, so the mistake shows in the preview.
 const TEXT_ICON_SOURCE = String.raw`\[icon=([a-z]+)\/([a-z0-9_-]{1,64})\]`;
 const TEXT_ICON_TAG = new RegExp(TEXT_ICON_SOURCE, 'gi');
 
-// One whole tag, by the same grammar, for the editor's writing checks
-// (js/editor/tools/editor-writing-checks.js), so they keep no copy of it.
+/**
+ * Whether a whole tag is a mini icon, by the same grammar, so the editor's writing
+ * checks keep no copy of it.
+ * @since v1.2
+ */
 window.isTextIconTag = (tag) => new RegExp(`^${TEXT_ICON_SOURCE}$`, 'i').test(String(tag));
 
 function textIconHTML(tag, group, name) {
@@ -783,7 +620,7 @@ function textIconHTML(tag, group, name) {
         return `<img class="text-icon text-icon-character" src="/${window.escapeHtml(file)}" alt=""`
              + ` data-character-id="${window.escapeHtml(name)}" data-icon-tag="${window.escapeHtml(tag)}" loading="lazy">`;
     }
-    // The owner's site icons (v1.2), in the color of the text around them.
+    // The site's icons, in the colour of the text around them.
     if (group === 'ui') {
         return typeof window.uiIconHTML === 'function' ? window.uiIconHTML(name, { inText: true }) || null : null;
     }
@@ -802,71 +639,41 @@ function watchTextIcon(img) {
     img.addEventListener('error', restore, { once: true });
 }
 
+/**
+ * Styles every text Block on the page not styled yet: format tags first, then the
+ * automatic colours (characters, frame terms, timings, page words), then input-slot
+ * colours (the wrapper at the end of this file).
+ * @since v0.01
+ * @watch called from a dozen places and by a MutationObserver on <main>; each Block
+ *   is marked .is-styled and never styled twice
+ */
 function applyInternalStyling() {
-    // 1. Select targets
-    // HEADINGS AND LIST ITEMS ARE MATCHED BY THEIR OWN CLASS, not by a
-    // `.vessel-content` ancestor.
-    //
-    // They used to be reachable ONLY through that prefix, which quietly split
-    // the site in two. A tab's panel class comes from js/utility/character_tabs.js, and
-    // half of them are `.tab-content`: Overview, Combos, M1s, Specials and now
-    // Techs. In those, a heading kept its literal `[b]…[/b]` and a list item
-    // lost every move-name colour, while the paragraph directly beneath it
-    // worked - because paragraphs carry `.strategy-paragraph`, which was never
-    // prefixed. The owner found it in the Combos tab's Read First section, and
-    // it was never a Combos bug.
-    //
-    // A heading renders as `<h3 class="wiki-block-heading">` and a list as
-    // `<ul class="wiki-block-list"><li>` (js/pages/core/description.js), so those are the
-    // honest handles. The `.vessel-content` entries stay: system pages and
-    // move cards put prose in bare <p>/<li> that carry no block class.
+    // Headings and list items are matched by their own class as well: in a .tab-content
+    // panel (Overview, Combos, M1s) nothing reaches them through .vessel-content. The
+    // .vessel-content entries stay for system pages and move cards, whose prose has no
+    // Block class.
     const textBlocks = document.querySelectorAll(
         '.wiki-text:not(.is-styled), .strategy-paragraph:not(.is-styled),'
         + ' .wiki-block-heading:not(.is-styled), .wiki-block-list li:not(.is-styled),'
         + ' .vessel-content p:not(.is-styled), .vessel-content li:not(.is-styled),'
         + ' .vessel-content h2:not(.is-styled), .vessel-content h3:not(.is-styled),'
         + ' .vessel-content h4:not(.is-styled),'
-        // Gallery captions (v0.18 F9). A caption is a <span>, so the
-        // `.vessel-content` entries above never reached it even though the
-        // character Gallery tab sets that class on its container - which is
-        // why the quick styling tools now offered on the bin would otherwise
-        // have written shortcodes the reader sees as literal `[b]…[/b]`.
-        // Both galleries build these captions with textContent
-        // (js/pages/types/gallery.js:99, js/pages/core/description.js), so what this engine reads
-        // back is already escaped - the same contract as every other entry.
+        // Gallery captions: built with textContent, so what this reads back is escaped.
         + ' .gallery-card-name:not(.is-styled), .gallery-card-note:not(.is-styled),'
-        // A Combo Card's name, and each section's (v1.0 Part 2 bug). The same
-        // split as headings above: reached only through `.vessel-content h4`,
-        // so in the Combos and Techs tabs, which are `.tab-content`, a name
-        // kept its literal [b]...[/b]. Rendered through escapeHtml
-        // (js/pages/core/description.js), so what this reads back is already escaped.
+        // A Combo Card's name, and each section's: escaped when drawn.
         + ' .theorybox-title:not(.is-styled),'
         + ' .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
     
-    // 2. Characters, canonical names and every alias the community uses.
     const characterColors = window.CHARACTER_COLORS || {};
     const characterTerms = buildCharacterTerms();
 
-    // 3. Frame data and overlay-window terms.
-    //
-    // DERIVED from site_meta.js rather than listed here, 2026-08-14. The old
-    // hardcoded array was a second copy of FRAME_COLOR_LABELS, and the copies
-    // had already drifted: every one of the six OVERLAY WINDOW colours -
-    // Reverse Hitcancel and the five I-Frame kinds - has existed in
-    // WINDOW_COLORS and been offered in the frame-data legend for versions,
-    // and none of them was ever highlighted in prose, because nobody thought
-    // to add a tenth line to a list that looked complete.
-    //
-    // Deriving it means the next colour token added to site_meta.js is
-    // highlighted the day it lands.
     const highlightTerms = buildHighlightTerms();
 
-    // 4. This page's own words, painted after the three passes above.
     const pageWords = textBlocks.length ? buildPageWords() : null;
 
-    // Detect current character header title context
+    // Timings take the page character's colour.
     const pageTitleEl = document.querySelector('.character-title');
-    let currentCharColor = 'var(--text-white)'; // Fallback
+    let currentCharColor = 'var(--text-white)';
     if (pageTitleEl && characterColors[pageTitleEl.textContent.trim()]) {
         currentCharColor = characterColors[pageTitleEl.textContent.trim()];
     }
@@ -875,39 +682,27 @@ function applyInternalStyling() {
         block.classList.add('is-styled');
         let content = block.innerHTML;
 
-        // --- Mini icons (v1.2) ---
-        // First, so every pass below meets them as markup, which their
-        // (?![^<]*>) guards step over. An icon wraps nothing, so it needs none
-        // of the nesting loop.
+        // Mini icons first, so every pass below meets them as markup and steps over them.
         content = content.replace(TEXT_ICON_TAG,
             (tag, group, name) => textIconHTML(tag, group.toLowerCase(), name.toLowerCase()) || tag);
 
-        // --- STEP A: Custom Shortcodes (Stackable & Nested) ---
-        // A do-while loop ensures that nested tags (e.g. [color=red][b][i]Text[/i][/b][/color]) 
-        // are processed from the inside out until no more tags are left.
+        // Tags, inside out: the loop runs until nothing changes, so nested tags convert.
         let previousContent;
         do {
             previousContent = content;
             
-            // Standard formatting. Classes rather than inline styles since
-            // 2026-08-14 - see style/Common.css. These carry no contributor
-            // input at all, so they are the easy half.
             content = content.replace(/\[b\]((?:(?!\[b\])[\s\S])*?)\[\/b\]/gi, '<strong class="sc-b">$1</strong>');
             content = content.replace(/\[i\]((?:(?!\[i\])[\s\S])*?)\[\/i\]/gi, '<em class="sc-i">$1</em>');
             content = content.replace(/\[u\]((?:(?!\[u\])[\s\S])*?)\[\/u\]/gi, '<span class="sc-u">$1</span>');
             content = content.replace(/\[s\]((?:(?!\[s\])[\s\S])*?)\[\/s\]/gi, '<span class="sc-s">$1</span>');
             content = content.replace(/\[code\]((?:(?!\[code\])[\s\S])*?)\[\/code\]/gi, '<code class="sc-code">$1</code>');
-            // A fighting-game wiki types M1, M2, E, R and F constantly, and
-            // they read as prose today. <kbd> is the element for it, so screen
-            // readers and search engines get the meaning too.
+            // <kbd>, so screen readers and search engines get the meaning too.
             content = content.replace(/\[kbd\]((?:(?!\[kbd\])[\s\S])*?)\[\/kbd\]/gi, '<kbd class="sc-kbd">$1</kbd>');
-            // A white outline (v1.1), drawn the same way the site already
-            // outlines a dark character name on a dark page (style/Common.css).
+            // A white outline, drawn the way the site outlines a dark character name
+            // (style/Common.css).
             content = content.replace(/\[outline\]((?:(?!\[outline\])[\s\S])*?)\[\/outline\]/gi, '<span class="sc-outline">$1</span>');
 
-            // Colour: the value is contributor text going into a style
-            // attribute. Refused rather than escaped, because a colour is a
-            // closed grammar and anything outside it is not a colour.
+            // A colour goes into a style attribute: refused, not escaped, when it is not one.
             // Refusing keeps the words and drops the tint.
             content = content.replace(/\[color=([^\]]+)\]((?:(?!\[color=)[\s\S])*?)\[\/color\]/gi,
                 (whole, rawColor, inner) => {
@@ -917,15 +712,8 @@ function applyInternalStyling() {
                         : inner;
                 });
 
-            // Multicolour (v0.19 C6): the same closed colour grammar as
-            // [color=] above, two or more stops, swept across the text.
-            //
-            // Refused WHOLE rather than per stop. [color=] drops the tint and
-            // keeps the words when its one value is bad; here, quietly ignoring
-            // one bad stop of three would change the gradient into a different
-            // gradient the writer never asked for, and they would have no way
-            // to tell. Dropping the tint and keeping the words is the same
-            // outcome the sibling shortcode already gives.
+            // The same colour grammar, two or more stops. Refused whole, never per stop:
+            // dropping one bad stop of three draws a gradient nobody asked for.
             content = content.replace(/\[multicolor=([^\]]+)\]((?:(?!\[multicolor=)[\s\S])*?)\[\/multicolor\]/gi,
                 (whole, rawStops, inner) => {
                     const raw = rawStops.split(',');
@@ -941,20 +729,9 @@ function applyInternalStyling() {
                     return splitGradient(inner, stops);
                 });
 
-            // Hyperlink: the value is contributor text going into an href.
-            // A refused URL renders as its own label - the reader still sees
-            // what was written, just not as something clickable.
-            //
-            // rel added at the same time: target="_blank" without it hands the
-            // opened page a window.opener reference back to the wiki.
-            //
-            // A fragment is an IN-PAGE link and is handled separately: it gets
-            // no target="_blank", because opening a second copy of the page
-            // scrolled to a section is not what "jump to the Tech section"
-            // means. js/pages/core/pagebuilder.js picks these up by class and resolves
-            // them, which is what lets one cross a tab boundary - the plain
-            // browser behaviour cannot, since the target tab is display:none
-            // until something clicks it.
+            // A refused address renders as its label. rel, because target="_blank" without it
+            // hands the opened page window.opener. A fragment is an in-page link with no
+            // target: pagebuilder.js resolves .wiki-link-jump, across tabs too.
             content = content.replace(/\[url=([^\]]+)\]((?:(?!\[url=)[\s\S])*?)\[\/url\]/gi,
                 (whole, rawUrl, label) => {
                     // Read back out of innerHTML, where a typed & < > are
@@ -974,26 +751,10 @@ function applyInternalStyling() {
         const protectedRegions = [];
         content = liftNoAuto(content, protectedRegions);
 
-        // --- STEP B: Auto-Highlight Characters and their aliases ---
-        // The colours are owner-configured rather than contributor-typed, so
-        // this is not the same risk as [color=] above - but it is the same
-        // sink, and a validated value costs nothing.
-        //
-        // data-character carries the CANONICAL name, which is what linking
-        // below resolves against. Without it an alias would have to be looked
-        // up a second time from its own rendered text.
-        //
-        // v0.18 FT2: a name whose OWN colour is dark carries sc-char-dark, and
-        // style/Common.css gives it a white outline only on a dark-coded
-        // character page. Two conditions, and both are needed - a dark name is
-        // the unreadable one, and the dark pages are where the site already
-        // outlines its dark text in white (the title engine in site_meta.js),
-        // so anywhere else it would be the only thing on the page treated that
-        // way.
-        //
-        // The darkness test comes from window.isDarkCharacterColor rather than
-        // being parsed again here: --character-ink, the title shadows and this
-        // must never disagree about the same character.
+        // Character names. data-character carries the canonical name, for linking below. A
+        // name whose own colour is dark gets sc-char-dark, which Common.css outlines in
+        // white only on a dark character page. Darkness comes from isDarkCharacterColor, so
+        // the title, --character-ink and this never disagree.
         if (characterTerms) {
             content = content.replace(characterTerms.pattern, (match) => {
                 const entry = characterTerms.lookup.get(normalizeTerm(match));
@@ -1006,7 +767,7 @@ function applyInternalStyling() {
             });
         }
 
-        // --- STEP C: Auto-Highlight Frame Data and Overlay Window Terms ---
+        // Frame-data and overlay terms.
         if (highlightTerms) {
             content = content.replace(highlightTerms.pattern, (match) => {
                 const entry = highlightTerms.lookup.get(normalizeTerm(match));
@@ -1015,19 +776,8 @@ function applyInternalStyling() {
             });
         }
 
-        // --- STEP D: Single-Pass Conditional Frame Timing Engine ---
-        //
-        // RANGES ARE FIRST IN THE ALTERNATION, and that ordering is the fix.
-        // "5-8f" is how an active window is normally written, and the +/-
-        // alternatives match the "-8f" inside it - so it rendered as a plain
-        // "5" followed by a red, disadvantage-coloured "-8f".
-        //
-        // It has to be ONE pass, not a range pass followed by a timing pass:
-        // a second pass finds "-8f" inside the span the first one just wrote,
-        // because the (?![^<]*>) guard only protects attribute text and "</"
-        // satisfies it immediately. A single global replace never re-scans its
-        // own output, and first-match alternation then means "5-8f" is claimed
-        // whole before "-8f" is ever considered.
+        // Frame timings, in one pass with ranges first: "5-8f" is an active window, and a
+        // second pass would find the "-8f" inside the first one's span.
         const timingRegex = new RegExp(
             '('
             + '\\(?\\b\\d+\\s*-\\s*\\d+f\\b\\)?|\\(?\\bf\\d+\\s*-\\s*\\d+\\b\\)?'  // ranges, first
@@ -1043,9 +793,9 @@ function applyInternalStyling() {
             const isRange = /\d\s*-\s*\d/.test(match);
 
             if (!isRange && match.includes('+')) {
-                finalColor = 'hsl(127, 59%, 58%)';  // Generic Green Advantage
+                finalColor = 'hsl(127, 59%, 58%)';
             } else if (!isRange && match.includes('-')) {
-                finalColor = 'hsl(3, 93%, 63%)';    // Generic Red Disadvantage
+                finalColor = 'hsl(3, 93%, 63%)';
             }
 
             const color = safeColor(finalColor) || 'var(--text-white)';
@@ -1054,29 +804,16 @@ function applyInternalStyling() {
 
         content = restoreNoAuto(content, protectedRegions);
 
-        // Apply changes back to DOM
         block.innerHTML = content;
         block.querySelectorAll('img.text-icon-character').forEach(watchTextIcon);
         paintPageWords(block, pageWords);
     });
 }
 
-// --- LINKING CHARACTER MENTIONS TO THEIR PAGES ---
-//
-// A mention got a colour and nothing else, so a reader who met "Higuruma" in
-// somebody's matchup notes had to go and find the page by hand. The roster and
-// its URLs are already in navigation.json.
-//
-// A SEPARATE DOM PASS, not another string replacement, and that is the whole
-// design. applyInternalStyling is called synchronously from a dozen places and
-// its output is not re-enterable - blocks are marked is-styled precisely
-// because running the shortcode conversion twice would eat its own output. So
-// linking cannot wait inside it for a fetch.
-//
-// Instead step B leaves a marked span behind, and this walks those spans
-// whenever the roster is available. It is idempotent: a span it has already
-// wrapped carries sc-linked and is skipped, so it is safe to run on every
-// observer tick and safe to run before the roster has loaded (it does nothing).
+// Character mentions link to their pages, in a separate DOM pass: the styling pass
+// is synchronous and must not run twice, so it cannot wait for the roster. Step B
+// leaves marked spans, and this wraps them whenever the roster is here. It is safe
+// on every observer tick: a wrapped span carries sc-linked.
 let characterPageUrls = null;
 let characterNamesById = null;
 
@@ -1170,7 +907,6 @@ const observer = new MutationObserver((mutations) => {
     }
 });
 
-// Start watching the main content area once the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.querySelector('main');
     if (mainContent) {

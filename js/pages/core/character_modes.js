@@ -1,46 +1,25 @@
 /**
- * Dogslamloop Wiki - Character modes and the Ultimate tab
- *
- * Two features that answer the same question - "which kit is this page talking
- * about?" - and split by how the character is built:
- *
- *   Full characters swap their entire moveset when they go ultimate, so the
- *   tabs stay and their contents change. A toggle above the tab strip picks
- *   the state; Overview, M1s, Skills, Specials, Matchups and Counterplay all
- *   re-render underneath it. Gallery does not - it is the character's media,
- *   not one state's, and it stays put across every switch.
- *
- *   Base-only characters have no second kit. Their ultimate is a single big
- *   attack, so it gets one extra tab after Counterplay rather than a toggle
- *   over a whole duplicate page.
- *
- * Both are injected at runtime rather than generated into the page stub. That
- * is deliberate: a stub only changes when the generator runs, and the whole
- * point here is that adding an ultimate mode in the editor shows up on the
- * page as soon as it is approved - not on the next regeneration.
- *
- * Loads before js/pages/core/page_boot.js so ?mode= is already in place when the boot
- * sequence fires its first fetch, which is what stops a shared link rendering
- * the base kit and then visibly snapping to the ultimate.
+ * Character modes and the Ultimate tab. A full character's ultimate states swap
+ * its whole moveset, so a toggle above the tab strip picks the state and the tabs
+ * draw again under it (Gallery stays put). A base-only character's ultimate is one
+ * attack, so it gets an Ultimate tab after Counterplay instead.
+ * @since v0.12
+ * @touches frame_data.modeData (getCharacterModes), data/navigation.json
+ *   (isBaseOnly), ?mode= in the address, window.activeCharacterMode
+ * @watch both are added at runtime, not generated into the stub, so a new mode
+ *   shows once it is approved. This file loads before page_boot.js, so ?mode= is
+ *   set before the first fetch and a shared link never draws the base kit first.
+ * @see docs/character-page.md
  */
 
 (function () {
     const ULTIMATE_TAB_ID = 'ultimateAtk';
     const ULTIMATE_TAB_LABEL = 'Ultimate';
 
-    // The full strip as page_router.js builds it - the static tabs, so not
-    // ULTIMATE_TAB_ID, which this file is the one injecting. Re-registering the
-    // whole list (rather than just the new id) is what teaches the buttons
-    // bound at boot to also hide the Ultimate tab when they are clicked.
-    //
-    // Falls back to reading the strip page_router just built rather than to a
-    // second copy of the list. Same GitHub Pages cache-skew case as isBase
-    // below: a stub cached from before character_tabs.js existed will not have
-    // loaded it, and in that case the DOM is the honest answer - whatever the
-    // stale router actually rendered is what these buttons have to match.
-    // includeOptional for the same reason js/pages/core/page_boot.js passes it: this
-    // RE-registers the whole strip, and dropping the optional buttons here
-    // would unbind a Techs tab that page_boot had already bound.
+    // The static strip, registered again with the Ultimate tab so the buttons bound at
+    // boot hide it too. includeOptional, as page_boot.js passes it, or a Techs tab
+    // would lose its binding. Without character_tabs.js (a stale cached stub), the
+    // strip page_router built is the answer.
     const staticTabIds = () => (window.getCharacterTabIds
         ? window.getCharacterTabIds({ includeOptional: true })
         : Array.from(document.querySelectorAll('.character-nav button[id^="nav-"]'))
@@ -52,11 +31,8 @@
     const requestedMode = new URLSearchParams(window.location.search).get('mode');
     if (requestedMode) window.activeCharacterMode = requestedMode;
 
-    // js/utility/site_utils.js is cached for an hour by GitHub Pages while this file is
-    // new, so the first load after a deploy can pair a fresh copy of this file
-    // with an hour-old copy of that one. Local fallbacks for the two trivial
-    // predicates, and a hard bail in init below, so that skew costs the toggle
-    // rather than the page.
+    // site_utils.js may be an older cached copy than this file: local fallbacks for
+    // the trivial predicates, and init bails, so the skew costs the toggle, not the page.
     const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
 
     async function findNavEntry(pageId) {
@@ -75,7 +51,6 @@
         return null;
     }
 
-    // --- THE ULTIMATE TAB ---
     function injectUltimateTab() {
         if (document.getElementById(`tab-${ULTIMATE_TAB_ID}`)) return false;
 
@@ -88,9 +63,8 @@
         btn.className = 'btn-manga btn-manga-slanted';
         btn.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${window.escapeHtml(ULTIMATE_TAB_LABEL)}</span></div>`;
 
-        // After Counterplay, which leaves Gallery last. Gallery is the media
-        // dump and reads as the end of the page; an Ultimate tab past it would
-        // be the one tab people never scroll to.
+        // After Counterplay, leaving Gallery last: past the media, an Ultimate tab would be
+        // the one tab nobody scrolls to.
         if (counterplayBtn) counterplayBtn.insertAdjacentElement('afterend', btn);
         else nav.appendChild(btn);
 
@@ -108,7 +82,6 @@
         return true;
     }
 
-    // --- THE MODE TOGGLE ---
     function renderModeBar(modes, activeId) {
         const bar = document.getElementById('character-mode-bar');
         if (!bar) return;
@@ -120,8 +93,6 @@
         }
 
         bar.classList.remove('hidden');
-        // data-mode-id plus one delegated listener, never an inline onclick -
-        // the id and label are contributor-authored and reach this string.
         bar.innerHTML = modes.map(m => {
             const isActive = m.id === activeId;
             return `<button type="button" role="tab" aria-selected="${isActive ? 'true' : 'false'}"` +
@@ -135,6 +106,10 @@
     // away from `base` and redraw the whole page for nothing.
     const sameMode = (a, b) => (isBase(a) && isBase(b)) || a === b;
 
+    /**
+     * Switches the page to a mode: draws the move tabs and the descriptions again for
+     * it, and writes ?mode= (dropped for base, so the address stays the bare one).
+     */
     window.switchCharacterMode = async function(modeId) {
         if (sameMode(modeId, window.activeCharacterMode)) return;
 
@@ -144,12 +119,9 @@
         window.activeCharacterMode = modeId;
         renderModeBar(window.declaredCharacterModes, modeId);
 
-        // Same shape as the character boot in js/pages/core/page_boot.js: the move
-        // sections are fired without awaiting and the descriptions go out
-        // alongside them, because loadPageDescriptions waits 300ms before
-        // writing move strategies into the cards framedata.js is building.
-        // Awaiting here instead would be a different load order than every
-        // character page has had, for no gain.
+        // The same shape as page_boot.js's character boot: the move tabs fired without
+        // waiting, the descriptions beside them (loadPageDescriptions waits 300ms for the
+        // cards).
         if (typeof window.loadMoveSection === 'function') {
             (window.FRAME_MOVE_CATEGORIES || []).forEach(cat => {
                 if (document.getElementById(`tab-${cat}`)) {
@@ -162,9 +134,6 @@
             await window.loadPageDescriptions(route.pageId, 'character', modeId);
         }
 
-        // A shared link should open on the state the sharer was reading. Base
-        // drops the parameter rather than writing ?mode=base, so the canonical
-        // URL of a character page stays the bare one.
         const url = new URL(window.location.href);
         if (isBase(modeId)) url.searchParams.delete('mode');
         else url.searchParams.set('mode', modeId);
@@ -185,6 +154,11 @@
         });
     }
 
+    /**
+     * Reads the character's modes and base-only flag, adds the Ultimate tab where it
+     * applies, and draws the toggle for two or more modes.
+     * @watch a ?mode= this character does not have draws the page again for base
+     */
     window.initCharacterModes = async function(pageId) {
         if (typeof window.getCharacterModes !== 'function') {
             console.warn('[Modes] site_utils.js is older than this file (likely a cached copy). The state toggle is off for this load; reload to restore it.');
@@ -203,10 +177,9 @@
         const modes = typeof window.getCharacterModes === 'function' ? window.getCharacterModes(frameData) : [];
         window.declaredCharacterModes = modes;
 
-        // The Ultimate tab shows for a base-only character even with nothing in
-        // it yet - an empty tab is how the team sees there is something to
-        // fill. It also shows for any page that already has ultimate moves
-        // written, so mislabelled registry metadata can never hide real data.
+        // A base-only character gets the tab even when it is empty, so the team sees there
+        // is something to fill; so does any page with ultimate moves, so a wrong registry
+        // flag never hides data.
         const hasUltimateMoves = Array.isArray(frameData[ULTIMATE_TAB_ID]) && frameData[ULTIMATE_TAB_ID].length > 0;
         if ((navEntry && navEntry.isBaseOnly) || hasUltimateMoves) {
             if (injectUltimateTab() && typeof window.loadMoveSection === 'function') {
@@ -216,11 +189,8 @@
 
         if (modes.length < 2) {
             renderModeBar(modes, null);
-            // Reachable from a hand-typed or stale ?mode= on a character that
-            // has no modes. The boot already rendered against that name, and
-            // every resolver went looking for a modeData bucket that does not
-            // exist - so the page is sitting there blank and has to be redrawn
-            // against the base kit, not merely re-pointed at it.
+            // A stale or typed ?mode= on a character with no modes: the boot drew against it
+            // and the page is blank, so it is drawn again for base.
             await window.switchCharacterMode(null);
             return;
         }
@@ -231,9 +201,8 @@
         renderModeBar(modes, activeId);
         wireModeBar();
 
-        // Same blank-page correction as above, for a ?mode= that names a mode
-        // this particular character does not have. sameMode makes the ordinary
-        // case - no ?mode= at all, landing on base - a no-op.
+        // The same correction for a ?mode= this character does not have. No ?mode= at all
+        // is a no-op.
         await window.switchCharacterMode(activeId);
     };
 })();
