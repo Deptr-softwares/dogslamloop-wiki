@@ -1,26 +1,19 @@
 /**
- * Dogslamloop Wiki - Page Router (boot sequence)
- *
- * The second half of the router, holding what used to be the inline
- * <script> block at the bottom of every character/system page. Must stay the
- * LAST script on a stub: the old pages registered this handler after
- * js/utility/site_meta.js registered its own, so applyCharacterTheme runs first, and
- * loading order is what preserves that for free.
- *
- * The two branches below are deliberately NOT merged. The character and
- * system pages had genuinely different boot sequences - the system one awaits
- * its fetches in order and uses a 150ms TOC delay, the character one fires
- * them concurrently and uses 500ms. Those differences are behavioural, and
- * flattening them into one "tidier" sequence would be an unreviewed change to
- * how every page loads.
+ * What a generated page runs once its skeleton is in: the sidebars, the tabs, the
+ * content fetches, alerts and the discussion, per page kind (character, gallery or
+ * tool, system).
+ * @since v0.9
+ * @touches setupTabs, loadMoveSection, initCharacterModes, loadPageDescriptions,
+ *   loadPageAlerts, initPageDiscussions, renderGalleryPage, renderToolPage
+ * @watch it stays the last script on a stub, so site_meta.js's DOMContentLoaded
+ *   handler (the character theme) runs first. The character and system branches
+ *   differ on purpose: a character page fires its fetches together and maps the
+ *   contents after 500ms; a system page awaits them in order and waits 150ms.
+ * @see docs/page-shell.md
  */
 
-// A tool page lists its headings like a system page. Until v1.1 batch 10
-// nothing asked it to, so every tool's sidebar said "Loading contents..." for
-// good. Most tools have no headings at all (the tier list makers, the
-// Playground), and then "On this page" is hidden rather than titling an empty
-// list (owner, 2026-10-22), along with its header row when no edit button
-// shares it. The gallery branch never calls this: its sidebar has no list.
+// A tool page lists its headings like a system page. With none (most tools), "On
+// this page" is hidden, and its header row too when no edit button shares it.
 function showToolContents() {
     if (typeof window.refreshTOC !== 'function') return;
     window.refreshTOC();
@@ -38,57 +31,34 @@ function showToolContents() {
 }
 
 /**
- * A character page's content: its tab strip, moves, states and descriptions.
- *
- * Its own function so history.html draws a past version of a page with the
- * same steps the live page uses (js/pages/records/history.js), rather than a copy of them
- * that would drift. The live page fires these without waiting, as it always
- * did; the promise is for a caller that needs to know when they are done.
+ * A character page's content: the tab strip, moves, modes and descriptions.
+ * history.html draws a past version with these same steps (history.js). The live
+ * page does not wait; the promise is for a caller that needs to.
+ * @since v1.2
  */
 window.bootCharacterContent = function (route) {
     const { pageId } = route;
     const pending = [];
 
-    // 2. Inner tab navigation
     if (window.setupTabs) {
-        // From the vocabulary (js/utility/character_tabs.js), which is also what
-        // page_router.js built the buttons from - so every button it drew
-        // is registered here and none is left inert.
-        //
-        // This was a hardcoded list, and it is how the Combos and Starter
-        // Guide tabs shipped unclickable: the buttons and panels existed,
-        // setupTabs never heard about them, so clicking did nothing at all.
-        // It was written as [{id:'overview'}, …] rather than ['overview', …],
-        // which is why the guard scanning for restated tab lists walked
-        // straight past it.
-        //
-        // includeOptional: every button page_router.js DREW gets bound,
-        // including the optional ones it drew hidden. Binding only the
-        // enabled ones would be binding against a flag that has not been
-        // fetched yet - so a Techs button un-hidden a moment later by
-        // applyOptionalTabVisibility would sit there doing nothing when
-        // clicked, which is exactly how the Combos and Starter Guide tabs
-        // shipped inert. setupTabs is idempotent and additive, so binding a
-        // button that stays hidden costs nothing.
+        // From the tab list page_router.js built the buttons from, so none is left
+        // unbound. includeOptional: a Techs button shown a moment later must already
+        // work, and binding a hidden button costs nothing.
         const tabIds = route.tabs
             ? route.tabs.map(t => t.id)
             : window.getCharacterTabIds({ includeOptional: true });
         window.setupTabs('nav', 'tab', tabIds, 'major', { address: true });
     }
 
-    // 3. Fire the data fetchers concurrently - no blocking await, matching
-    //    the original character-page behaviour.
+    // The fetches go out together, not awaited.
     if (typeof window.loadMoveSection === 'function') {
         pending.push(window.loadMoveSection(pageId, 'skills'));
         pending.push(window.loadMoveSection(pageId, 'm1s'));
         pending.push(window.loadMoveSection(pageId, 'specials'));
     }
 
-    // Alongside them, not before: it decides whether this character has a
-    // mode toggle or an Ultimate tab, and both are additions to a page
-    // that renders perfectly well without them. Blocking the moveset on
-    // that question would make every character page wait for an answer
-    // that is "no" for all 22 of them today.
+    // Beside them, not before: modes and the Ultimate tab are additions, and most
+    // characters have neither.
     if (typeof window.initCharacterModes === 'function') {
         pending.push(window.initCharacterModes(pageId));
     }
@@ -101,11 +71,9 @@ window.bootCharacterContent = function (route) {
 };
 
 /**
- * The boot sequence, as a function.
- *
- * Callable rather than only DOMContentLoaded-driven because js/pages/core/page_rescue.js
- * boots a page long after that event has fired: on a 404 the route is not
- * known until Supabase has been asked what lives at the requested URL.
+ * The boot sequence for a route. A function, not only a DOMContentLoaded handler,
+ * because page_rescue.js boots a 404 long after that event, once Supabase has said
+ * what lives at the address.
  */
 window.runPageBoot = async function (route) {
     if (!route) return;
@@ -113,7 +81,6 @@ window.runPageBoot = async function (route) {
     const { pageId, pageType } = route;
 
     if (pageType === 'character') {
-        // 1. Boot the master global sidebars
         if (window.initSidebarToggle) window.initSidebarToggle();
         if (window.initMobileNav) window.initMobileNav();
         if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
@@ -126,15 +93,13 @@ window.runPageBoot = async function (route) {
             window.loadPageAlerts(pageId);
         }
 
-        // Fired alongside the rest rather than awaited, for the same reason
-        // the mode toggle is: the thread sits below the tabs and nothing above
-        // it depends on the answer. A slow discussion query must never be what
-        // delays the frame data somebody came here to read.
+        // Not awaited: the thread sits below the tabs, and a slow discussion query must
+        // never delay the frame data.
         if (typeof window.initPageDiscussions === 'function') {
             window.initPageDiscussions(pageId);
         }
 
-        // 4. Delay the TOC mapping so every content block has been injected.
+        // The contents are mapped once every Block is in.
         setTimeout(() => {
             if (window.refreshTOC) window.refreshTOC();
         }, 500);
@@ -142,13 +107,8 @@ window.runPageBoot = async function (route) {
         return;
     }
 
-    // --- GALLERY AND TOOL PAGES ---
-    // Same shell as a system page, filled by their own renderer instead of
-    // description.js's tab engine. Handled before the system branch rather
-    // than inside it: both fetch the same page_data row but do entirely
-    // different things with desc_data, and folding that into
-    // loadPageDescriptions would mean a third mode in a function that already
-    // has two.
+    // Gallery and tool pages: the system shell, filled by their own renderer rather
+    // than description.js's tab engine.
     if (pageType === 'gallery' || pageType === 'tool') {
         if (window.initMobileNav) window.initMobileNav();
 
@@ -170,8 +130,7 @@ window.runPageBoot = async function (route) {
         return;
     }
 
-    // --- SYSTEM PAGES ---
-    // Sequential and awaited, matching the original system-page behaviour.
+    // System pages: in order, awaited.
     if (window.initMobileNav) window.initMobileNav();
 
     if (typeof window.loadPageDescriptions === 'function') {
@@ -195,9 +154,8 @@ window.runPageBoot = async function (route) {
     if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
 };
 
-// Guarded on PAGE_ROUTE for the same reason js/pages/core/page_router.js is: a page that
-// resolves its own route later loads this file without one, and calls
-// runPageBoot itself when it knows.
+// Skipped without PAGE_ROUTE, as in page_router.js: page_rescue.js calls
+// runPageBoot itself.
 document.addEventListener('DOMContentLoaded', () => {
     if (window.PAGE_ROUTE) window.runPageBoot(window.PAGE_ROUTE);
 });

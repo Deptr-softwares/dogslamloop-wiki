@@ -1,24 +1,15 @@
 /**
- * Dogslamloop Wiki - Page Router (skeleton builder)
- *
- * Every character and system page used to be a hand-authored ~160-line HTML
- * file whose only real variance was the page id and display title. This file
- * holds that markup once. A page stub sets window.PAGE_ROUTE in <head>, loads
- * this script as the first element in <body>, and gets the full skeleton.
- *
- * Deliberately NOT covered by this router (they stay hand-authored, and
- * tests/page-skeleton-parity.spec.js asserts they never define PAGE_ROUTE):
- *   characters/Template  - documentation page in a character page's clothes
- *   systems/collaborators - own fetch engine, own containers
- *   systems/tierlist      - own pageType, loads tierlist.js
- *   systems/updatelog     - driven by home_widgets.js
- *   systems/color-codes   - hand-authored swatch markup
- *
- * Pairs with js/pages/core/page_boot.js, which runs the per-type boot sequence as the
- * LAST script on the page. The split matters: this file decides what the DOM
- * looks like, that one decides what runs, and keeping boot last preserves the
- * DOMContentLoaded handler ordering the old inline scripts had (site_meta.js
- * registers first, so applyCharacterTheme still runs before the boot).
+ * The skeleton every generated page stub gets: the mobile bar, both sidebars, and
+ * a character page's header, tab strip and panels, or a system page's header. A
+ * stub sets window.PAGE_ROUTE in <head> and loads this as the first element in
+ * <body>; page_boot.js, the last script, decides what runs.
+ * @since v0.9
+ * @touches window.PAGE_ROUTE, getCharacterTabs (character_tabs.js, which loads
+ *   just before this file)
+ * @watch it runs before site_utils.js and site_meta.js, so it keeps its own
+ *   escaper and writes the icon markup itself. Hand-authored pages never set
+ *   PAGE_ROUTE (tests/page-skeleton-parity.spec.js).
+ * @see docs/page-shell.md
  */
 
 window.buildPageSkeleton = function (route, rootPath) {
@@ -27,42 +18,15 @@ window.buildPageSkeleton = function (route, rootPath) {
         return null;
     }
 
-    // Stubs live two levels deep (characters/<Name>/, systems/<slug>/). Kept
-    // as a literal rather than derived, because getRootPath() (site_utils.js)
-    // has not loaded yet at this point - this script runs before it by design.
-    //
-    // 404.html passes its own root: it is served from an arbitrary depth for
-    // any unmatched URL and carries <base href="/">, so two levels up is the
-    // wrong answer there and '/' is always the right one.
+    // Stubs sit two levels deep, written as a literal because getRootPath() has not
+    // loaded yet. 404.html passes '/': it is served at any depth, with <base href="/">.
     const ROOT = rootPath || '../../';
 
-    // The character tabs come from js/utility/character_tabs.js, which every page
-    // loads immediately before this one - the list used to live here, and the
-    // other twelve files holding a copy each had to be kept in step by hand.
-    // `gallery` has no handler anywhere and renders empty; it is kept
-    // deliberately, and is marked `editable: false` there so the admin and
-    // editor strips keep leaving it out.
-    //
-    // `hidden` is derived from isDefault rather than written into each entry,
-    // because which tab starts visible was separately hardcoded here, in
-    // admin.html's markup and in admin-preview.js's restore-from-diff-mode.
-    //
-    // The PAGE_ROUTE.tabs escape hatch is intentionally unused today. It lets
-    // the generator start emitting per-page tab lists later without reworking
-    // this module. Unifying character tabs with desc_data.tabs[] the way
-    // system pages already work is a much larger data-model change (see
-    // description.js:640-828, which is shape-driven rather than tab-driven)
-    // and is explicitly out of scope for v0.9.
-    //
-    // includeOptional, because this is markup rather than a decision about what
-    // a reader can reach. The page row that says whether this character has the
-    // Techs tab has not been fetched yet - this script runs as the first
-    // element in <body> - so the button and panel ship for every character and
-    // window.applyOptionalTabVisibility() un-hides them once the answer lands
-    // (js/utility/character_tabs.js). Same arrangement edit.html has always used for
-    // the Ultimate button. `optionalHidden` below is what makes the default
-    // OFF: a character whose fetch never completes shows one tab too few, not
-    // an empty tab nobody can fill.
+    // includeOptional: this is markup, and the page row that says whether the
+    // character has Techs is not fetched yet. The buttons ship for every character,
+    // hidden (optionalHidden), and applyOptionalTabVisibility shows them once the
+    // answer lands. route.tabs is an unused way for the generator to pass a page's
+    // own list.
     const DEFAULT_CHARACTER_TABS = (window.getCharacterTabs
         ? window.getCharacterTabs({ includeOptional: true })
         : []
@@ -79,18 +43,15 @@ window.buildPageSkeleton = function (route, rootPath) {
 
     const tabs = route.tabs || DEFAULT_CHARACTER_TABS;
 
-    // Content is owner/contributor-authored and arrives via the generator, but
-    // escaping here costs nothing and keeps the "escape at every innerHTML
-    // interpolation" standard this codebase holds everywhere else intact.
+    // Its own escaper, because site_utils.js has not loaded yet.
     function esc(str) {
         return String(str === null || str === undefined ? '' : str)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // The owner's pixel icons, as window.uiIconHTML (js/utility/site_meta.js) writes
-    // them: this file runs before that one loads, so the markup is written
-    // out here. An id is a file in medias/icons/.
+    // The site's icons as window.uiIconHTML (site_meta.js) writes them, written out
+    // here because that file loads later. An id is a file in medias/icons/.
     const uiIcon = (id) => `<span class="px-icon" aria-hidden="true" style="--px-icon: url('/medias/icons/${id}.png')"></span>`;
     const EDIT_ICON = uiIcon('edit');
     const KOFI_ICON = uiIcon('kofi');
@@ -145,11 +106,8 @@ window.buildPageSkeleton = function (route, rootPath) {
         </aside>`;
     }
 
-    // withToc is separate from the sidebar itself, because this aside is two
-    // things: a table of contents, and the ONLY place the Edit and History
-    // buttons live. A gallery genuinely has no headings to index - but it is
-    // still a page somebody has to be able to edit, and since v0.14 removed
-    // the duplicate mobile pair there is nowhere else to put them.
+    // The right sidebar is the table of contents and also the only home of the Edit
+    // and History buttons, so a page with no contents list still gets it.
     function rightSidebar(label, withToc = true) {
         return `
         <aside class="local-sidebar-right" aria-label="${withToc ? 'On this page' : 'Page tools'}">
@@ -241,18 +199,9 @@ ${tabDivs}
 
     const isCharacter = route.pageType === 'character';
 
-    // Gallery and tool pages reuse the system shell: a back link, a title and
-    // the alerts container, with the body filled at runtime. What differs is
-    // which script fills it (js/pages/types/gallery.js, js/pages/types/tool_page.js), not the frame
-    // around it - so there is nothing here for them to override.
-    //
-    // A gallery has no headings to index - its own search box is how you find
-    // something in it - so it gets the sidebar WITHOUT the contents list.
-    //
-    // It used to get no sidebar at all, which is why the Emotes page had no
-    // edit button and nobody could contribute to it: #btn-edit-current-tab
-    // lives in there, initTabEditorButtons ran, found nothing, and did nothing.
-    // Dropping the whole aside to drop the list threw the buttons out with it.
+    // Gallery and tool pages use the system shell, and their own script fills the
+    // body. A gallery has no headings to index, so its right sidebar has no contents
+    // list, but it keeps the Edit button.
     const hasToc = route.pageType !== 'gallery';
 
     const skeleton = `${mobileNav()}
@@ -266,17 +215,10 @@ ${rightSidebar(isCharacter ? 'On this tab' : (hasToc ? 'On this page' : 'This pa
     return skeleton;
 };
 
-// The parse-time path, used by every generated stub.
-//
-// insertAdjacentHTML('beforebegin') on the currently-executing script is the
-// safe mid-parse insertion: it writes before this <script> element without
-// disturbing the parser's insertion point. Assigning to document.body.innerHTML
-// here would destroy the not-yet-parsed rest of the document, including the
-// script tags below this one.
-//
-// Guarded on PAGE_ROUTE so the same file can be loaded by a page that decides
-// its route later - js/pages/core/page_rescue.js does exactly that, and calls
-// buildPageSkeleton itself once it knows what it is rendering.
+// The stub's path: written before this <script> with insertAdjacentHTML, which
+// leaves the parser's insertion point alone (innerHTML here would wipe the rest of
+// the page). Skipped without PAGE_ROUTE: page_rescue.js decides its route later
+// and calls buildPageSkeleton itself.
 (function () {
     if (!window.PAGE_ROUTE) return;
 

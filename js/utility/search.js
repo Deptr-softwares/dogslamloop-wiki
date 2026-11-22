@@ -1,24 +1,13 @@
 /**
- * Dogslamloop Wiki - Site search (v0.19 F1a, the searchbar)
- *
- * Typeahead over data/search-index.json: every page name, every section
- * heading, and every move name. Not body text - that is search.html (F1b),
- * which fetches a much larger index and ranks paragraphs. The split is the
- * owner's: "structural for a short search, full text for a dedicated page".
- *
- * WHY THE INDEX IS NOT LOADED AT PAGE LOAD
- *
- * 83 KB raw, ~14 KB gzipped. Small over the wire, but it is 83 KB of JSON to
- * parse on a page nobody has tried to search yet, on every page view. It is
- * fetched once on first focus and kept for the life of the page, which is the
- * first moment somebody has expressed any interest in searching.
- *
- * WHY RESULTS DEEP LINK
- *
- * Every entry carries an anchor minted by collectSectionTargets, which is the
- * same function that feeds the in-page link picker and which mirrors
- * assignSectionAnchors' sweep of the rendered DOM. So `?tab=combos#sec-neutral`
- * lands on a real element rather than the top of the page.
+ * The search box in the left sidebar: a typeahead over data/search-index.json, with
+ * every page name, section heading and move name, each result linked to its tab
+ * and section. Body text is search.html's, which has its own index.
+ * @since v0.19
+ * @touches data/search-index.json (fetched on first focus, then kept for the page),
+ *   buildGlobalSidebarMenu (which calls initSiteSearch)
+ * @watch a result's anchor comes from collectSectionTargets, the function behind
+ *   the page's own anchors, so ?tab=...#sec-... lands on a real element
+ * @see docs/page-shell.md
  */
 
 (function () {
@@ -64,13 +53,8 @@
     }
 
     /**
-     * Scores one candidate against the query, or returns -1 for no match.
-     *
-     * Ranked rather than filtered, because an unranked substring search over
-     * ~1000 entries answers "Neutral" with thirty identically-plausible rows.
-     * The order that matters in practice: what you typed IS the thing (exact),
-     * then it starts the thing, then it starts a word inside it, then it is
-     * merely somewhere in it.
+     * One candidate's score against the query, or -1. Ranked, not filtered: exact,
+     * then starts with, then a word starts with, then anywhere.
      */
     function score(text, query) {
         const t = text.toLowerCase();
@@ -120,11 +104,9 @@
         return out.slice(0, 12);
     }
 
-    // The way out of the box and into search.html (F1b). Without it, nothing on
-    // the site links to the full-text page at all - and the box deliberately
-    // does not index body text, so "no matches here" is very often "the answer
-    // is in a paragraph". Shown on every render, including the empty one, which
-    // is exactly when it is most useful.
+    // The way from the box to search.html: the box indexes no body text, so "no
+    // matches" often means "it is in a paragraph". Shown on every render, the empty one
+    // too.
     function moreLink(rootPath, query) {
         return `<a class="site-search-more" href="${window.escapeHtml(rootPath)}search.html?q=${encodeURIComponent(query)}">
                     Search all writing for “${window.escapeHtml(query)}” &rarr;
@@ -139,9 +121,7 @@
             return;
         }
 
-        // Escaped at every interpolation. Section titles and page names are
-        // contributor-authored - they come from page_data through the index
-        // generator, which does no escaping of its own and should not.
+        // Titles and names come from page_data through the index, unescaped.
         panel.innerHTML = results.map((r, i) => {
             const where = r.kind === 'page'
                 ? `<span class="site-search-kind">${window.escapeHtml(r.type || 'page')}</span>`
@@ -161,13 +141,9 @@
     }
 
     /**
-     * Builds the searchbar above the navigation list.
-     *
-     * Injected rather than shipped in markup because 19 pages are hand-authored
-     * and 45 are generated from three templates - the searchbar would be the
-     * same block of HTML in 22 places, which is exactly the shape
-     * scripts/generate-pages.js exists to stop. This runs from
-     * buildGlobalSidebarMenu, which every page on the site already calls.
+     * Builds the search box above the navigation list. Added by script rather than
+     * shipped in every page's markup, so it is written once; buildGlobalSidebarMenu
+     * calls it on every page.
      */
     window.initSiteSearch = function (navContainerId) {
         const nav = document.getElementById(navContainerId || 'global-sidebar-nav');
@@ -232,9 +208,6 @@
             }
         });
 
-        // Delegated, and the hit carries its index in a data attribute rather
-        // than an inline handler built from a URL - the standing rule for
-        // anything user-influenced.
         panel.addEventListener('mousedown', (e) => {
             const hit = e.target.closest('.site-search-hit');
             if (!hit) return;

@@ -1,31 +1,15 @@
 /**
- * Dogslamloop Wiki - 404 rescue: render a page that exists but has no file yet
- *
- * The problem this solves, in the owner's words: "I have no idea why there is
- * this regeneration thing here that is blocking my feedback loop."
- *
- * Creating a page writes a row to `site_pages` immediately. But GitHub Pages
- * serves a URL only if a real file sits at that path, and those files come
- * from scripts/generate-pages.js - which runs on a workflow, not on save. So
- * between creating a page and the next regeneration run, its URL 404s even
- * though the page fully exists and its content is editable.
- *
- * The diagnosis that matters: the gate was never navigation.json, which is why
- * moving the registry to the cloud would not have helped. It is the file.
- *
- * GitHub Pages serves 404.html for any unmatched path, so this asks the
- * registry what is supposed to live at the requested URL and, if the answer is
- * a live page, renders it right there. The page works the moment it is
- * created; regeneration then only matters for crawlers, which is exactly what
- * it is for.
- *
- * Deliberately NOT a substitute for regenerating:
- *   - The response is still HTTP 404, so search engines and Discord unfurlers
- *     will not index it. That is correct - an unpublished page should not be
- *     indexed - and it is why the banner says the page is not published yet
- *     rather than pretending everything is fine.
- *   - Nothing here writes anything. A failed lookup falls through to the
- *     ordinary 404, which is the honest answer when a URL really is wrong.
+ * The 404 rescue. On 404.html it asks site_pages what should live at the requested
+ * address and, for a live page whose stub is not generated yet, draws that page
+ * there with a "Not published yet" banner. A new page works the moment it is
+ * created; regeneration then matters only for crawlers.
+ * @since v0.12
+ * @touches site_pages (page_id, name, url, page_type, status), buildPageSkeleton,
+ *   runPageBoot
+ * @watch the response is still a 404, so search engines and Discord previews do
+ *   not index the page, and the banner says so. It writes nothing, and a failed
+ *   lookup falls through to the ordinary 404.
+ * @see docs/page-shell.md
  */
 
 (function () {
@@ -50,11 +34,8 @@
 
         let data, error;
         try {
-            // try/catch as well as the error field: Supabase reports a query
-            // failure in `error`, but a client that cannot reach the network at
-            // all throws. Both mean the same thing here - we do not know what
-            // is at this URL - and both must land on the ordinary 404 rather
-            // than an unhandled rejection.
+            // try/catch as well as the error field: a client with no network throws. Either
+            // way the address is unknown, and the ordinary 404 shows.
             ({ data, error } = await window.supabaseClient
                 .from('site_pages')
                 .select('page_id, name, url, page_type, status')
@@ -87,10 +68,12 @@
         return banner;
     }
 
-    // pathname is a parameter, defaulting to the real one, purely so this is
-    // drivable: the local test server serves its own error page rather than
-    // 404.html, so a spec cannot reach this by navigating to a missing URL the
-    // way GitHub Pages would. Everything below is the real path either way.
+    /**
+     * Draws the page that lives at pathname, if site_pages has a live one there, and
+     * returns whether it did.
+     * @watch pathname is a parameter only so a spec can drive it: the test server
+     *   serves its own error page, not 404.html
+     */
     window.initPageRescue = async function (pathname) {
         const row = await findLivePage(pathname || window.location.pathname);
         if (!row) return false;
@@ -103,9 +86,7 @@
         window.PAGE_ROUTE = route;
         document.title = `${route.title} | Dogslamloop Wiki`;
 
-        // '/' rather than the router's usual '../../': 404.html is served for
-        // a URL at any depth and carries <base href="/">, so the only correct
-        // root here is the site root.
+        // '/': 404.html is served at any depth and carries <base href="/">.
         const skeleton = window.buildPageSkeleton(route, '/');
         if (!skeleton) return false;
 
