@@ -1,27 +1,20 @@
 /**
- * Dogslamloop Wiki - Admin: Report Queue (v0.14 item 6)
- *
- * The model lives in supabase/migrations/20260813000002_content_reports.sql.
- *
- * Moderators removing posts they happen to see does not scale to 1.4M people.
- * This is the thing that turns moderation from patrolling into a queue, and it
- * is deliberately the same shape as the media queue beside it: load on demand,
- * filter by status, act per row.
- *
- * One number does most of the work here. list_content_reports returns
- * report_count - how many people reported the same post - and three reports on
- * one post is a completely different situation from one. It is computed
- * server-side because doing it in the client would be a query per row.
- *
- * Every string rendered below is attacker-reachable: a reporter's note, the
- * reported post's body, and both display names. All of it is escaped, and the
- * post body additionally goes through textContent rather than innerHTML - the
- * same rule js/pages/community/discussions.js follows for the same text on the public side.
+ * The report queue: reported discussion and forum posts, how many people reported
+ * each, the post's earlier versions, and hide, remove or dismiss per report. The
+ * same shape as the media queue: loaded on demand, filtered by status, acted on
+ * per row.
+ * @since v0.14
+ * @touches list_content_reports() (with report_count and post_images),
+ *   moderate_discussion_post(), resolve_content_report(), page_discussion_edits,
+ *   storage buckets discussion-media and discord-media, adminPrompt and
+ *   setQueueCount (admin-core.js)
+ * @watch every string is someone else's (the note, the post, both names): post and
+ *   note text go in by textContent, the rest through escapeHtml.
+ * @see docs/overseer.md
  */
 
 let reportQueueRows = [];
 let reportQueueLoaded = false;
-// post id -> its earlier versions, newest first (v1.0 batch 3).
 let reportEditsByPost = new Map();
 
 const REPORT_REASON_LABELS = {
@@ -31,23 +24,21 @@ const REPORT_REASON_LABELS = {
     other: 'Other',
 };
 
-// post_images arrives with list_content_reports since v0.20; absent before the
-// release, which reads as no images rather than an error.
+// Absent on an older database, which reads as no images.
 function reportImagePaths(row) {
     return (Array.isArray(row.post_images) ? row.post_images : [])
         .filter(p => typeof p === 'string' && reportImageBucket(p));
 }
 
-// A post's picture lives in the bucket its path names: an upload from the wiki,
-// or a copy the Discord relay made (v1.0). A path matching neither is not drawn.
+// An upload from the wiki or a copy the Discord relay made; a path matching
+// neither is not drawn.
 function reportImageBucket(path) {
     if (/^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/.test(path)) return 'discussion-media';
     if (/^discord\/[0-9]{5,20}-[0-3]\.(png|jpg|webp|gif)$/.test(path)) return 'discord-media';
     return null;
 }
 
-// Where a reported post was: a character's page, or a forum post (v1.0), whose
-// key is 'forum:<uuid>' and reads better as FORUM.
+// A forum post's key is 'forum:<uuid>', shown as FORUM.
 function reportPageLabel(pageId) {
     const id = String(pageId || '');
     return id.startsWith('forum:') ? 'FORUM' : id.toUpperCase();
@@ -75,8 +66,7 @@ window.loadReportQueue = async function () {
     const { data, error } = await window.supabaseClient.rpc('list_content_reports', { p_status: status });
 
     if (error) {
-        // The normal state between writing a migration and the release that
-        // applies it - says so plainly rather than showing a raw error.
+        // Normal between a migration and the release that applies it, and said so.
         const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
         container.innerHTML = notDeployed
             ? `<p class="admin-error-text">The report queue isn't available yet - <code>list_content_reports</code> arrives with the next release.</p>`
@@ -87,15 +77,14 @@ window.loadReportQueue = async function () {
     reportQueueRows = data || [];
     reportEditsByPost = await loadReportEdits(reportQueueRows);
     reportQueueLoaded = true;
-    // Only the open ones are "waiting": a list of actioned reports is a record.
+    // Only open reports are "waiting".
     if (typeof window.setQueueCount === 'function' && status === 'open') window.setQueueCount('reports', reportQueueRows.length);
     renderReportQueue();
 };
 
-// v1.0 batch 3: a post can be edited after it is reported, so the queue shows
-// what an edited post said before, for every card at once in one read.
-// page_discussion_edits is readable by moderators only; before the release it
-// does not exist, and the queue is drawn as it always was.
+// A post can be edited after it is reported, so every card shows what it said
+// before, in one read. The table is moderators only, and absent on an older
+// database.
 async function loadReportEdits(rows) {
     const byPost = new Map();
     const ids = [...new Set(rows.map(r => r.target_id).filter(Boolean))];
@@ -123,8 +112,7 @@ function renderReportEdits(row) {
 
     const box = document.createElement('details');
     box.className = 'report-edits';
-    // An edit after the report is the one that matters most: the words the
-    // reporter saw may be gone from the quote above.
+    // An edit after the report matters most: the words the reporter saw may be gone.
     const afterReport = earlier.some(e => Date.parse(e.edited_at) > Date.parse(row.created_at));
     const summary = document.createElement('summary');
     summary.className = 'report-edits-summary';
@@ -137,7 +125,7 @@ function renderReportEdits(row) {
         when.textContent = `Until ${reportTimeAgo(e.edited_at)}${e.edited_by ? '' : ', changed on Discord'}:`;
         const text = document.createElement('blockquote');
         text.className = 'report-quote';
-        // textContent: earlier words are as attacker-reachable as current ones.
+        // textContent: earlier words are as hostile as current ones.
         text.textContent = e.body || '[no words]';
         box.appendChild(when);
         box.appendChild(text);
@@ -181,8 +169,7 @@ function renderReportQueue() {
         if (row.note) {
             const note = document.createElement('div');
             note.className = 'report-note';
-            // textContent: a reporter's free text is as attacker-reachable as
-            // the post it complains about.
+            // textContent: a reporter's note is as hostile as the post.
             note.textContent = `“${row.note}”`;
             card.appendChild(note);
         }
@@ -203,9 +190,8 @@ function renderReportQueue() {
         const edits = renderReportEdits(row);
         if (edits) card.appendChild(edits);
 
-        // v0.20: a moderator deciding about an image has to see it. Small here;
-        // each opens the full file. Paths are checked against the same rule the
-        // trigger enforces, and every address is set as a property.
+        // A moderator deciding about an image sees it. Paths are checked against the
+        // trigger's rule, and every address is set as a property.
         const images = reportImagePaths(row);
         if (images.length && window.supabaseClient) {
             const strip = document.createElement('div');
@@ -237,9 +223,8 @@ function renderReportQueue() {
             const actions = document.createElement('div');
             actions.className = 'report-card-actions';
 
-            // data- attributes and a delegated listener, never an inline
-            // onclick: ids and names from the database must not reach an
-            // executable position.
+            // data- attributes and a delegated listener: ids and names from the database
+            // never reach an executable position.
             [
                 { label: 'REMOVE POST', cls: 'btn-sys-red', act: 'remove' },
                 { label: 'HIDE POST', cls: 'btn-sys-yellow', act: 'hide' },
@@ -251,7 +236,7 @@ function renderReportQueue() {
                 btn.dataset.reportId = row.id;
                 btn.dataset.reportTarget = row.target_id || '';
                 btn.dataset.reportAct = act;
-                // Nothing to hide or remove if the post is already down.
+                // Nothing to hide or remove when the post is already down.
                 if (act !== 'dismiss' && row.post_status && row.post_status !== 'visible') btn.disabled = true;
                 if (act !== 'dismiss' && !row.target_id) btn.disabled = true;
                 actions.appendChild(btn);
@@ -273,10 +258,8 @@ function renderReportQueue() {
     });
 }
 
-// Acting on a report is two writes that must not drift apart: the post is
-// moderated, and the report is closed. Doing them in this order means a
-// failure leaves the report open with the post already down - visible work to
-// finish - rather than a closed report over a post still on the page.
+// The post is moderated first and the report closed second, so a failure leaves
+// an open report over a post already down: visible work, not a hidden one.
 async function actOnReport(btn) {
     const { reportId, reportTarget, reportAct } = btn.dataset;
     const card = document.getElementById(`report-${reportId}`);
@@ -301,7 +284,6 @@ async function actOnReport(btn) {
             reportAct === 'hide' ? 'HIDE POST' : 'REMOVE POST',
             'CONFIRM', true, 'e.g. Targeted harassment'
         );
-        // Cancelled. Nothing has been written yet, so nothing to undo.
         if (reason === null) { setBusy(false); say(''); return; }
 
         if (!reason.trim()) { setBusy(false); say('A reason is required.', true); return; }

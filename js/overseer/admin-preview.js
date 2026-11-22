@@ -1,24 +1,26 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Preview (revision preview, pending/live/
- * diff view switching)
- *
- * switchVersionView is kept as one function rather than split further -
- * its diff-branch renderers (renderDiffBlock, applyInlineDiffToBlocks,
- * renderDeltaDiff, formatScopeName) are closures over this function's own
- * local variables (diffContainer, diffRenderQueue, rev), not top-level
- * functions; separating them into another file would mean actually
- * refactoring them into parameterized functions, not just moving code.
+ * The Overseer's preview pane: opening a revision, the QA report, and the four
+ * views of it (PENDING SUBMISSION, LIVE VERSION, DIFF VIEW side by side, and the
+ * CHANGE LIST of every changed part).
+ * @since v0.4, as part of admin.js
+ * @touches page_data, pending_revisions, window.currentLive* and currentPending*,
+ *   applyDeltaToData (site_data.js), loadPageDescriptions (description.js),
+ *   renderStructuredDiff and setActiveRevisionTab (admin-diff.js),
+ *   initPreviewStates (admin-modes.js), SideBySide.mount (side-by-side.js)
+ * @watch switchVersionView is one function on purpose: its diff renderers close
+ *   over its local variables. Every scope a submission can send needs a branch in
+ *   renderDeltaDiff, or it shows as the raw fallback.
+ * @see docs/overseer.md
  */
 
-// --- 3. THE PREVIEW & TICKET ENGINE ---
 async function previewRevision(revId) {
     const rev = window.currentQueueData.find(r => r.id === revId);
     if (!rev) return;
 
     const { data: authorRoleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', rev.author_id);
     rev.author_roles = authorRoleData ? authorRoleData.map(r => r.role.toLowerCase()) : [];
-    // From the page list, never the submission's own page_type: that one is
-    // the submitter's word, and it picks which renderer runs below.
+    // From the page list, never the submission's page_type: that one is the
+    // submitter's word, and it picks the renderer.
     const pageType = (await window.registeredPageType(rev.page_id)) || 'character';
 
     window.activePreviewRevId = rev.id;
@@ -28,22 +30,16 @@ async function previewRevision(revId) {
 
     updateActionButtons(rev);
     renderQaReport(rev);
-    // The pane gets the whole width for the submission (js/overseer/admin-queue.js).
     if (typeof window.setQueueOpen === 'function') window.setQueueOpen(false);
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');
     document.getElementById('preview-tab-nav').classList.remove('hidden');
 
-    // tab_settings is named explicitly because this is a column list, not a
-    // `select('*')` - the reader and the editor both take the whole row and
-    // would have picked the new column up for free, and this one would not.
+    // A column list, so a new page_data column must be named here too.
     const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data, tab_settings').eq('page_id', rev.page_id).single();
     window.currentLiveDescData = liveData ? liveData.desc_data : {};
     window.currentLiveFrameData = liveData ? liveData.frame_data : {};
 
-    // Which optional tabs this page has, before the strip or the diff renders.
-    // Per revision rather than once at boot: a reviewer works through a queue
-    // of different pages in one session, so leaving the previous page's answer
-    // in place would show a Techs tab on a character that has none.
+    // Per revision: a reviewer works through different pages in one session.
     if (typeof window.applyOptionalTabsFromPageRow === 'function') {
         window.applyOptionalTabsFromPageRow(liveData);
     }
@@ -63,22 +59,16 @@ async function previewRevision(revId) {
         window.currentPendingFrameData = rev.frame_data || {};
     }
 
-    // Character states, after both versions are in memory and before anything
-    // renders: picks which state the preview opens on, draws the state
-    // toggle, and injects the Ultimate tab if this revision has one. See
-    // js/overseer/admin-modes.js for why the preview needs its own copy of this rather
-    // than js/pages/core/character_modes.js.
+    // Before anything renders: picks the state the preview opens on, draws the
+    // toggle, and adds the Ultimate tab when this revision has one.
     if (typeof window.initPreviewStates === 'function') window.initPreviewStates(rev);
 
-    // --- Trigger Document Explorer Sidebar rebuild ---
     if (typeof window.updateAdminSidebar === 'function') window.updateAdminSidebar();
 
     const toggleBar = document.getElementById('version-toggle-bar');
     if (toggleBar) toggleBar.classList.remove('hidden');
 
-    // A media clip and a revision share this pane, so opening one puts the
-    // other away. Without this a reviewer picks a revision and gets the clip
-    // they were last looking at, still sitting on top of it.
+    // A clip and a revision share this pane, so opening one puts the other away.
     if (typeof window.closeMediaPreview === 'function') window.closeMediaPreview();
 
     calculateTabDiffs(rev);
@@ -126,21 +116,15 @@ async function previewRevision(revId) {
     if (rev.is_delta) {
         initMode = 'diff';
 
-        // A merged or batched ticket carries several scopes, so there is no
-        // single tab to open onto - land on the first one it touched and let
-        // the strip's changed-tab markers show the rest. calculateTabDiffs
-        // (js/overseer/admin-diff.js) already resolves every scope in a 'multi'
-        // payload to its tab, so reuse that rather than re-deriving it.
+        // A ticket with several scopes opens on the first tab it touched; the strip's
+        // markers show the rest.
         const unwrapped = window.unwrapModeDelta(rev.target_scope, rev.target_key);
 
         let activeTabId = null;
         if (rev.target_scope === 'multi') {
             activeTabId = (window.changedTabs || [])[0] || 'overview';
         } else if (window.getKeyedSectionByScope(unwrapped.scope)) {
-            // Read from the vocabulary, not built by appending an 's'. That
-            // turned 'counterplay' into 'counterplays' - not a tab - so a
-            // counterplay ticket never opened onto its own tab and the
-            // reviewer landed on Overview instead.
+            // From the vocabulary: a tab name is not the scope plus an "s".
             activeTabId = window.getKeyedSectionByScope(unwrapped.scope).tab;
         } else if (unwrapped.scope === 'move') {
             activeTabId = unwrapped.key.split('::')[0];
@@ -153,11 +137,9 @@ async function previewRevision(revId) {
 
     switchVersionView(initMode);
 
-    // --- QOL: AUTO-SCROLL TO TICKET WORKSPACE ---
     setTimeout(() => {
         const workspace = document.getElementById('ticket-workspace');
         const actionBtns = document.getElementById('preview-action-buttons');
-        // If there's an open ticket chat, snap to it. Otherwise, snap to the review buttons.
         if (workspace && !workspace.classList.contains('hidden')) {
             workspace.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
         } else if (actionBtns) {
@@ -166,20 +148,13 @@ async function previewRevision(revId) {
     }, 150);
 }
 
-// --- THE QA REPORT (owner's Overseer card, v1.2) ---
-//
-// "There is no way to view the full QA, unless you need to open a ticket." It
-// was drawn inside the ticket workspace, so a submission nobody had opened a
-// ticket on never showed it. It is the pane's own panel now, for whichever
-// submission is open, ticket or not.
-//
-// All of it is contributor text on a staff page, so all of it is escaped. The
-// evidence is a link only when it is one whole http(s) address (a javascript:
-// URI typed into the field stays text), and the address is the link's text, so
-// a reviewer sees where it goes before pressing it. Anything else is shown as
-// written: a merged ticket's evidence is one block per contributor
-// (js/overseer/admin-merge-compiler.js), and a sentence is evidence too. Both used to
-// read "Evidence link is not a valid http(s) URL." with the text hidden.
+/**
+ * The contributor's QA report, in its own panel for any open submission.
+ * @since v1.2
+ * @watch all of it is contributor text: escaped. The evidence is a link only
+ *   when it is one whole http(s) address, with the address as its text, so a
+ *   reviewer sees where it goes. Anything else is shown as written.
+ */
 function renderQaReport(rev) {
     const panel = document.getElementById('qa-report-panel');
     const report = document.getElementById('qa-report');
@@ -202,19 +177,15 @@ function renderQaReport(rev) {
     panel.classList.remove('hidden');
 }
 
-// --- VERSION COMPARISON ENGINE ---
+/**
+ * Switches the pane between PENDING SUBMISSION, LIVE VERSION, DIFF VIEW (side by
+ * side) and the CHANGE LIST.
+ * @watch Page History is its own pane, not a mode here, so every mode hides it
+ */
 async function switchVersionView(mode) {
-    // Remembered so switching character state can redraw whichever comparison
-    // the reviewer was already in (js/overseer/admin-modes.js) instead of snapping
-    // them back to a default.
+    // Remembered, so switching character state redraws the same view.
     window.activePreviewViewMode = mode;
 
-    // Page History (js/overseer/admin-history.js) is a 4th, independently-toggled
-    // pane rather than a mode in this function's own pending/live/diff
-    // state machine (see the file header comment on why this function is
-    // kept whole) - hide it and reset its button whenever any of the three
-    // original modes gets picked, so switching away from history behaves
-    // consistently no matter which of the three buttons was clicked.
     const historyContainer = document.getElementById('page-history-container');
     if (historyContainer) historyContainer.classList.add('hidden');
     const historyBtn = document.getElementById('btn-view-history');
@@ -228,36 +199,27 @@ async function switchVersionView(mode) {
 
     if (mode === 'pending' && btns.pending) btns.pending.classList.add('btn-sys-blue');
     if (mode === 'live' && btns.live) btns.live.classList.add('btn-sys-green');
-    // The change list is the side-by-side's other half, so DIFF VIEW stays lit.
+    // The change list is the side by side's other half, so DIFF VIEW stays lit.
     if ((mode === 'diff' || mode === 'list') && btns.diff) btns.diff.classList.add('btn-sys-purple');
 
-    // Anything still lining up a previous side-by-side lets go of it.
+    // A side by side still lining up lets go.
     sideBySideRun++;
     if (sideBySide) { sideBySide.destroy(); sideBySide = null; }
     // Two pages wide while it is up (admin.css).
     document.body.classList.toggle('sbs-active', mode === 'diff');
 
-    // DIFF VIEW (v1.2, owner's Overseer card): both versions of the open tab,
-    // side by side, as the page draws them. js/utility/side-by-side.js.
     if (mode === 'diff') {
         await renderSideBySideDiff();
         return;
     }
 
-    // CHANGE LIST: the list of every changed part, which was DIFF VIEW until
-    // v1.2. Kept for what a page does not draw (an editor folder, a setting),
-    // which the side-by-side cannot show.
+    // For what a page does not draw (an editor folder, a setting).
     if (mode === 'list') {
-        // Universal clear for both Character AND System dynamically generated tabs
         document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => {
             el.classList.add('hidden');
         });
-        // Character-type revisions reuse admin.html's pre-existing static
-        // #tab-* divs, which never carry the .tab-content/.wiki-tab-content
-        // class the line above keys off (only dynamically-created
-        // system-type tabs do - see js/pages/core/description.js), so entering diff
-        // mode never actually hid them: the old pending/live content and
-        // the new diff comparison rendered stacked on top of each other.
+        // A character revision uses admin.html's own #tab-* panes, which carry neither
+        // class above, so they are hidden by id.
         document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => {
             el.classList.add('hidden');
         });
@@ -266,15 +228,7 @@ async function switchVersionView(mode) {
         if (!diffContainer) {
             diffContainer = document.createElement('div');
             diffContainer.id = 'admin-diff-container';
-            // .tab-content alone (not paired with .wiki-tab-content, unlike
-            // js/pages/core/description.js's unrelated system-page tab containers this
-            // was copied from) - .tab-content is what the hide/show sweep
-            // (this file, admin-preview.js:148/491) actually needs to key
-            // off; .wiki-tab-content additionally carries a display:flex;
-            // flex-wrap:wrap layout rule (style/Layout.css) that was never
-            // wanted here and forced the title/location-label/diff-content
-            // children into a wrapping row instead of normal vertical
-            // stacking - a real bug, found via a live screenshot.
+            // Not .wiki-tab-content as well: that one lays its children out in a wrapping row.
             diffContainer.className = 'tab-content';
             const mainArea = document.querySelector('.main-content-area');
             if (mainArea) mainArea.appendChild(diffContainer);
@@ -297,8 +251,7 @@ async function switchVersionView(mode) {
                 'overview': 'Overview',
                 'strategy': 'General Strategy'
             };
-            // Keyed sections name themselves (js/utility/character_tabs.js), so a new
-            // one shows the reviewer its real name rather than a raw scope.
+            // Keyed sections name themselves, so a new one shows its real name.
             window.getKeyedSections().forEach(s => { map[s.scope] = s.entryLabel; });
             (window.FIXED_BLOCK_SECTIONS || []).forEach(s => { map[s.scope] = s.label; });
             Object.assign(map, {
@@ -313,12 +266,8 @@ async function switchVersionView(mode) {
             return map[scope] || scope;
         };
 
-        // "frame.skills" -> "Skills", "desc.comboGroups" -> "Combo Group".
-        //
-        // An order delta's key is a dotted path, which is the right identifier
-        // for the apply step and completely unreadable to a reviewer. Resolved
-        // through the vocabulary so the name matches what the strip is called
-        // on screen.
+        // "frame.skills" to "Skills": an order delta's key is a dotted path, named here
+        // as the strip names it.
         const orderListLabel = (key) => {
             const [root, field] = String(key || '').split('.');
             if (root === 'frame') {
@@ -332,17 +281,10 @@ async function switchVersionView(mode) {
         const fixedSectionByScope = (scope) =>
             (window.FIXED_BLOCK_SECTIONS || []).find(s => s.scope === scope) || null;
 
-        // The scopes a system or tier list page submits. They name a tab of the
-        // page itself rather than one from the character vocabulary, so the
-        // breadcrumb has to read their labels out of the data.
+        // A system or tier list page's scopes name the page's own tabs, read from its data.
         const SYSTEM_SCOPES = ['system_section', 'system_tab', 'tierlist_tiers', 'tierlist_changelog'];
 
-        // WHERE THIS CHANGE IS, in one shape for every page type.
-        //
-        // Character pages got a breadcrumb and system, tool, gallery and tier
-        // list pages kept "[Tab] ➔ Section" baked into the block title - so the
-        // same reviewer read two different vocabularies depending on which
-        // queue item they opened, and only one of them named a place.
+        // Where the change is, in one shape for every page type.
         const renderLocation = (crumbs) => {
             const parts = crumbs
                 .filter(Boolean)
@@ -354,13 +296,8 @@ async function switchVersionView(mode) {
                 + `</div>`;
         };
 
-        // The Combo List's rows. Paired by POSITION, because that is what the
-        // author edits - a combo table is an ordered list, and the route text
-        // is the thing most likely to change, so keying on it would report
-        // every edited combo as one removal plus one addition.
-        //
-        // Each changed row is named by its route rather than by index alone,
-        // since the route is how an author recognises which combo they wrote.
+        // Combo List rows pair by position, since a route is the part most likely to
+        // change; each changed row is named by its route.
         const renderComboRowsDiff = (section, oldRows, newRows) => {
             const max = Math.max(oldRows.length, newRows.length);
             let rendered = 0;
@@ -378,8 +315,7 @@ async function switchVersionView(mode) {
                 else renderDiffBlock(`Combo: ${route}`, o, n);
             }
 
-            // The table changed but no row did - a reorder, or the starter was
-            // renamed. Saying so beats an empty panel that reads as a bug.
+            // A reorder or a renamed starter changes the table and no row: said, not left blank.
             if (!rendered && JSON.stringify(oldRows) !== JSON.stringify(newRows)) {
                 renderDiffBlock(`${section.entryLabel}: order changed`, oldRows, newRows, 'json');
             }
@@ -387,34 +323,16 @@ async function switchVersionView(mode) {
 
         if (rev.is_delta) {
             const renderDeltaDiff = (rawScope, rawKey, payload) => {
-                // A character-state edit wraps one of the scopes below, and the
-                // live side it has to be compared against lives in modeData -
-                // not at the top level. Comparing against the base kit would
-                // show the reviewer a diff wrong in both directions: additions
-                // that already exist, and deletions that never happened.
+                // A character state's edit compares against that state's live data in modeData,
+                // never the base kit.
                 const { modeId, scope, key } = window.unwrapModeDelta(rawScope, rawKey);
                 const liveDesc = modeId ? ((window.currentLiveDescData.modeData || {})[modeId] || {}) : window.currentLiveDescData;
                 const liveFrame = modeId ? ((window.currentLiveFrameData.modeData || {})[modeId] || {}) : window.currentLiveFrameData;
                 const where = modeId ? modeId.toUpperCase() + ' / ' : '';
 
-                // `key` was interpolated straight into `key.replace(...)`, which
-                // threw on a null key and took the whole batch render down with
-                // it - see the forEach below. The merge compiler emits null for
-                // a base-kit section conflict where the editor emits 'full', so
-                // every merged ticket containing one showed only the entries
-                // ahead of it. Tickets already in the queue still carry null
-                // keys, so this coercion is what makes them reviewable at all.
-                // WHERE THIS CHANGE IS, in the words the reviewer sees on the
-                // page itself. It used to read
-                //   Suggested Edit Location: [ COMBOINTRO ➔ FULL ]
-                // which names a delta scope and an internal placeholder - two
-                // things that appear nowhere in the wiki. A reviewer cannot act
-                // on that; they have to go and find what it means.
-                //
-                // Now: the TAB it lives under, the section's own name, and the
-                // entry, e.g. "Combos › Read First". 'full' means the whole
-                // section rather than one entry, so it is dropped rather than
-                // printed - there is nothing after the section name to name.
+                // A key may be null (older merged tickets), so it is never used as a string
+                // unchecked. The location reads as the page does: tab, section, entry
+                // ("Combos › Read First"), and 'full' names no entry.
                 const tabLabels = window.getCharacterTabLabels ? window.getCharacterTabLabels() : {};
                 const owningTab = (window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope))
                     || fixedSectionByScope(scope);
@@ -425,14 +343,9 @@ async function switchVersionView(mode) {
                 if (!tabName && scope === 'move' && key) tabName = tabLabels[String(key).split('::')[0]];
 
                 const rawKeyLabel = key === null || key === undefined ? 'full' : String(key);
-                // A move's key is "skills::explosion" - the tab half is already
-                // shown, so only the move itself is worth repeating.
                 const entryName = rawKeyLabel === 'full' ? '' : rawKeyLabel.split('::').pop();
 
-                // A system page's tabs are the PAGE'S OWN, not the character
-                // vocabulary, so their names have to be read from the data.
-                // Keys are derived, so the label is the human half and the key
-                // is only how the two sides find each other.
+                // A system page's tabs are its own, so their names come from the data.
                 if (SYSTEM_SCOPES.includes(scope)) {
                     const tabKey = scope === 'system_section'
                         ? window.splitSystemKey(key).tabKey : String(key || '');
@@ -475,25 +388,15 @@ async function switchVersionView(mode) {
                         renderDiffBlock('Matchup Strategy', oldMu.content || [], payload.content || []);
                     }
                 }
-                // Every other keyed section, matchups aside - that branch above
-                // stays written out because its metadata pairs opponent with
-                // tier and reads better named. This covers counterplay, the new
-                // Starter Guide, and anything added to the vocabulary later,
-                // which otherwise renders as a raw JSON blob to the reviewer.
+                // Every other keyed section. Matchups keeps its own branch above.
                 else if (window.getKeyedSectionByScope(scope)) {
                     const section = window.getKeyedSectionByScope(scope);
                     const oldEntry = liveDesc[section.field]?.find(e => e[section.keyField] === key) || {};
                     if (payload === null) {
                         renderDiffBlock(`${section.entryLabel} Deleted`, oldEntry, null, 'json');
                     }
-                    // An entry that is a flat object rather than blocks-with-a-key:
-                    // a gallery item is { name, src, alt, tags, note } and has no
-                    // `.content` at all. Splitting it into "Metadata" plus
-                    // "Notes" would show the reviewer the name and then diff two
-                    // empty arrays for everything that actually changed - which
-                    // is the Combo List bug described below, in a new place.
-                    // Declared in the registry rather than tested by name, the
-                    // same way rowsField and metaField are.
+                    // An entry that is one flat object (a gallery item) diffs whole, declared in the
+                    // registry, never tested by name.
                     else if (section.wholeEntryDiff) {
                         renderDiffBlock(section.entryLabel, oldEntry, payload, 'json');
                     }
@@ -505,11 +408,8 @@ async function switchVersionView(mode) {
                         };
                         renderDiffBlock(`${section.entryLabel} Metadata`, meta(oldEntry), meta(payload));
 
-                        // A section whose entries hold ROWS rather than blocks -
-                        // the Combo List. Diffing `.content` here compared two
-                        // empty arrays and returned before rendering anything,
-                        // so every combo-table edit reviewed as no change at
-                        // all while applying perfectly.
+                        // A section whose entries hold rows (the Combo List): diffing `.content` would
+                        // compare two empty arrays.
                         if (section.rowsField) {
                             renderComboRowsDiff(
                                 section,
@@ -521,12 +421,8 @@ async function switchVersionView(mode) {
                         }
                     }
                 }
-                // An order change has no before/after DOCUMENT to diff - the
-                // entries are untouched and only the sequence moved - so the
-                // generic block renderer would show two identical blobs. The
-                // reviewer needs the two sequences side by side and, more than
-                // that, WHICH entries actually moved: a list of thirty names
-                // reordered by one is unreadable as two lists of thirty.
+                // An order change moves entries without changing one, so it shows the two
+                // sequences and which entries moved.
                 else if (scope === 'order') {
                     const listKey = key;
                     const before = (() => {
@@ -545,8 +441,6 @@ async function switchVersionView(mode) {
 
                     const after = Array.isArray(payload) ? payload.map(String) : [];
 
-                    // Named by position so "moved from 4th to 1st" is legible
-                    // without counting down the list.
                     const moved = after
                         .map((name, i) => ({ name, from: before.indexOf(name), to: i }))
                         .filter(m => m.from !== -1 && m.from !== m.to);
@@ -576,14 +470,12 @@ async function switchVersionView(mode) {
                         renderDiffBlock('Move Strategy Text', oldDesc, newDesc);
                     }
                 }
-                // A fixed block section - "Read First" on the Combos tab, and
-                // anything added to FIXED_BLOCK_SECTIONS later. Declared in
-                // js/utility/character_tabs.js, so this needs no per-section branch.
+                // A fixed Block section (FIXED_BLOCK_SECTIONS, character_tabs.js).
                 else if (fixedSectionByScope(scope)) {
                     const section = fixedSectionByScope(scope);
                     renderDiffBlock(section.label, liveDesc[section.field] || [], payload || []);
                 }
-                // Gallery pages. One delta per item, keyed by name.
+                // A gallery page: one delta per item, keyed by name.
                 else if (scope === 'gallery_item') {
                     const oldItem = liveDesc.items?.find(i => i.name === key) || {};
                     if (payload === null) {
@@ -592,8 +484,7 @@ async function switchVersionView(mode) {
                         renderDiffBlock('Gallery Item', oldItem, payload);
                     }
                 }
-                // The prose above a gallery, the notes below one, and a tool
-                // page's configuration. All whole-value replacements.
+                // Whole-value replacements.
                 else if (scope === 'gallery_intro' || scope === 'intro') {
                     renderDiffBlock('Introduction', liveDesc.intro || [], payload || []);
                 }
@@ -603,14 +494,12 @@ async function switchVersionView(mode) {
                 else if (scope === 'tool_config') {
                     renderDiffBlock('Tool Configuration', liveDesc.tool || {}, payload);
                 }
-                // The page's own settings (v1.1). The words as a list, which
-                // the styling pass then paints in the proposed colours, so the
-                // reviewer sees each colour rather than a hex code. The house
-                // style as prose, so a changed sentence diffs as one.
+                // The page's own settings: the words painted in their colours, and the house
+                // style as prose.
                 else if (scope === 'pageConfig') {
                     const wordLines = (cfg) => ((cfg && Array.isArray(cfg.words)) ? cfg.words : [])
                         .filter(w => w && w.word)
-                        // [noauto] so a hex like #f00 is not read as a frame count.
+                        // [noauto], so a hex like #f00 is not read as a frame count.
                         .map(w => `${w.word}: [noauto]${(w.colors || []).join(' → ')}[/noauto]`);
                     const asList = (cfg) => {
                         const items = wordLines(cfg);
@@ -621,9 +510,8 @@ async function switchVersionView(mode) {
                         window.houseStyleBlocks(liveDesc.pageConfig && liveDesc.pageConfig.houseStyle),
                         window.houseStyleBlocks(payload && payload.houseStyle));
                 }
-                // One section of a system page. The prose diffs as prose; the
-                // layout fields diff as fields, so a reviewer can tell "the
-                // wording changed" from "somebody made it half-width".
+                // The prose diffs as prose and the layout fields as fields, so a reviewer tells
+                // a wording change from a width change.
                 else if (scope === 'system_section') {
                     const found = window.indexSystemSections(liveDesc).find(e => e.key === key);
                     const before = (found && found.section) || {};
@@ -640,9 +528,7 @@ async function switchVersionView(mode) {
                         renderDiffBlock(title, before.blocks || [], payload.blocks || [], 'system-content');
                     }
                 }
-                // A tab's own metadata, and the ORDER of its sections. Order
-                // arrives as a list of keys, so it is rendered as the names
-                // those keys resolve to rather than as the keys themselves.
+                // A tab's metadata and its section order, as the names the keys resolve to.
                 else if (scope === 'system_tab') {
                     const tab = window.findSystemTab(liveDesc, key) || {};
                     if (payload === null) {
@@ -671,13 +557,7 @@ async function switchVersionView(mode) {
                         }
                     }
                 }
-                // THE ORDER OF THE TABS THEMSELVES - v0.18 B2.
-                //
-                // Rendered as the tab LABELS the keys resolve to, exactly as
-                // Section Order is one level down: a reviewer approving a
-                // reorder should read "Basics, Advanced" and not
-                // "basics, advanced". The key is derived by slugifying, so for
-                // a renamed tab the two differ enough to matter.
+                // The order of the tabs, as their labels: a renamed tab's key differs from its name.
                 else if (scope === 'system_tab_order') {
                     const indexed = window.indexSystemTabs(liveDesc);
                     const nameFor = (tabKey) => {
@@ -693,20 +573,8 @@ async function switchVersionView(mode) {
                     const field = scope === 'tierlist_tiers' ? 'tiers' : 'changelog';
                     renderDiffBlock(field === 'tiers' ? 'Tiers' : 'Changelog', tab[field] || [], payload || [], 'json');
                 }
-                // NOTHING MATCHED, AND THAT MUST NEVER BE SILENT.
-                //
-                // Until this existed, an unhandled scope rendered its location
-                // label and no diff at all - so the reviewer saw a heading
-                // saying something changed, nothing underneath it, and had no
-                // way to tell that apart from "nothing changed here". Seven
-                // scopes were in that state: comboIntro, comboTable,
-                // gallery_item, gallery_intro, intro, notes and tool_config.
-                //
-                // Approving what you were never shown is the same failure the
-                // merged-ticket bug had, and it is worse here because it was
-                // the STEADY state rather than an edge case. A raw dump is a
-                // poor diff; it is still infinitely better than a blank space,
-                // and the banner says plainly that this is the fallback.
+                // Nothing matched: never silent. A raw dump with a banner, since a heading over
+                // a blank space reads as "nothing changed".
                 else {
                     diffContainer.innerHTML += `<div class="diff-unknown-scope">`
                         + `This change is shown in its raw form because the review screen has no`
@@ -717,16 +585,10 @@ async function switchVersionView(mode) {
                 }
             };
 
-            // Recursively execute the render function for Batched multi-tickets!
             if (rev.target_scope === 'multi') {
                 diffContainer.innerHTML += `<div class="diff-batch-banner">BATCHED MULTI-PAYLOAD DETECTED (${rev.delta_payload.length} EDITS)</div>`;
 
-                // One entry must not be able to hide the others. This loop was
-                // a bare forEach, so a single throw inside renderDeltaDiff
-                // abandoned every remaining edit - the banner still counted
-                // them, so the ticket read as "5 EDITS" while showing 2, with
-                // nothing to say the other 3 existed. A reviewer approving that
-                // is approving changes they were never shown.
+                // One entry that throws must not hide the rest of the ticket.
                 rev.delta_payload.forEach((edit, i) => {
                     try {
                         renderDeltaDiff(edit.scope, edit.key, edit.payload);
@@ -748,11 +610,7 @@ async function switchVersionView(mode) {
                     const nTab = newTabs.find(t => (t.tabId || t.id) === tabId) || { sections: [] };
                     const tabLabel = nTab.tabLabel || nTab.label || oTab.tabLabel || oTab.label || tabId;
 
-                    // The location goes in the breadcrumb, not into every block
-                    // title. It used to read "[Basic Fundamentals] ➔
-                    // Introduction" inside the heading itself, which put the
-                    // tab name on screen once per block and still never said
-                    // which page type it belonged to.
+                    // The location goes in the breadcrumb, not into every block title.
                     if ((oTab.tabLabel || oTab.label) !== (nTab.tabLabel || nTab.label)) {
                          renderLocation([tabLabel, 'Tab name']);
                          renderDiffBlock('Tab Name', { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
@@ -830,8 +688,7 @@ async function switchVersionView(mode) {
                         renderDiffBlock(`Matchup Strategy: ${nM || oM || 'Unknown'}`, oldMu[i]?.content || [], newMu[i]?.content || []);
                     }
                 } else if (window.getKeyedSectionByTab(tab)) {
-                    // Counterplay, Starter Guide, and anything keyed added
-                    // later. Matchups keeps its own branch above.
+                    // Counterplay, Starter Guide and any keyed section added later.
                     const section = window.getKeyedSectionByTab(tab);
                     const oldList = Array.isArray(oldTab) ? oldTab : [];
                     const newList = Array.isArray(newTab) ? newTab : [];
@@ -855,10 +712,7 @@ async function switchVersionView(mode) {
                     const newMoves = Array.isArray(newTab) ? newTab : [];
                     const allMoveIds = Array.from(new Set([...oldMoves.map(m=>m.id), ...newMoves.map(m=>m.id)]));
 
-                    // Narrowed to the state on screen, like getTabData above
-                    // it. Reading the top level here compared a state's move
-                    // strategies against the base kit's, which reported edits
-                    // in both directions that nobody had made.
+                    // Narrowed to the state on screen, like getTabData.
                     const scopedDesc = (full) => (typeof window.resolveModeDesc === 'function'
                         ? window.resolveModeDesc(full || {}, window.activePreviewMode || null)
                         : (full || {}));
@@ -880,7 +734,6 @@ async function switchVersionView(mode) {
             });
         }
 
-        // --- CORE DIFF RENDERER ---
         function renderDiffBlock(title, oldData, newData, context = '') {
             const oldStr = JSON.stringify(oldData || null);
             const newStr = JSON.stringify(newData || null);
@@ -918,8 +771,7 @@ async function switchVersionView(mode) {
                         }
                         b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
                         b.note = window.diffTextLCS(oldB.note || '', newB.note || '');
-                        // Notation styles (v0.20), through the helper both review
-                        // screens share, so neither can miss a changed style.
+                        // Through the helper both review screens share.
                         if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                     }
                     else if (b.type === 'table') {
@@ -949,9 +801,7 @@ async function switchVersionView(mode) {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                     }
-                    // A combo card nests like an accordion, plus its own
-                    // fields. Missing this means the reviewer sees the card
-                    // unchanged while its route or damage was rewritten.
+                    // A Combo Card nests like an accordion, plus its own fields.
                     else if (b.type === 'theorybox') {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.oneliner = window.diffTextLCS(oldB.oneliner || '', newB.oneliner || '');
@@ -966,11 +816,8 @@ async function switchVersionView(mode) {
                         }
                         if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
-                        // A card in Multiple Sections mode carries a whole
-                        // variant per tab - route, damage, clip and write-up -
-                        // so each one is diffed like a card in its own right.
-                        // Missing this means the reviewer sees the tabs
-                        // unchanged while every combo behind them was rewritten.
+                        // A card in Multiple Sections mode holds a whole variant per tab, each diffed
+                        // like a card.
                         const oldCardSecs = oldB.sections || [];
                         const newCardSecs = newB.sections || [];
                         if (!Array.isArray(b.sections)) b.sections = [];
@@ -994,10 +841,7 @@ async function switchVersionView(mode) {
                             b.sections[j].content = applyInlineDiffToBlocks(oSec.content || [], nSec.content || []);
                         }
                     }
-                    // A Section Box nests like an accordion twice over: an
-                    // introduction, and one content array per section. Missing
-                    // this means the reviewer sees the box unchanged while its
-                    // sections were rewritten under it.
+                    // A Section Box nests twice: its introduction and one content array per section.
                     else if (b.type === 'sectionedbox') {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.intro = applyInlineDiffToBlocks(oldB.intro || [], newB.intro || []);
@@ -1054,23 +898,14 @@ async function switchVersionView(mode) {
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks, context);
-                    // The renderer has now escaped the contributor's text, once.
-                    // Turn the diff markers it left alone into real tags.
-                    // Unguarded, like editor-sync.js: a typeof guard here is
-                    // how the editor's copy of this bug stayed invisible.
+                    // The renderer has escaped the text once; the diff markers it left become tags.
+                    // Unguarded on purpose, like editor-sync.js, so a missing helper is loud.
                     window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
                 });
 
             } else {
-                // Structural field-by-field diff (move/frame data, profile/
-                // playstyle metadata, matchup/counterplay metadata) - used to
-                // be a raw two-column JSON dump here, which made a single
-                // changed frame number buried in an object as hard to spot as
-                // reading two unrelated walls of text. window.renderStructuredDiff
-                // (js/overseer/admin-diff.js) escapes every value it renders - this was
-                // the single highest-risk render in this file since it's the
-                // one place a reviewer sees a contributor's data essentially
-                // unprocessed.
+                // renderStructuredDiff escapes every value: this is where a reviewer sees a
+                // contributor's data least processed.
                 diffContainer.innerHTML += `
                     <div class="diff-container">
                         <h3 class="diff-section-title">${window.escapeHtml(title.toUpperCase())}</h3>
@@ -1083,34 +918,29 @@ async function switchVersionView(mode) {
         diffRenderQueue.forEach(fn => fn());
         if(typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
 
-        // Render dynamic ToC for the Diff View!
         setTimeout(updateAdminTOC, 200);
         return;
     }
 
     await renderPreviewVersion(mode);
 
-    // Always scan for new Headers after rendering finishes
     setTimeout(updateAdminTOC, 300);
 }
 
-// --- ONE VERSION, DRAWN AS THE PAGE ---
-// PENDING SUBMISSION and LIVE VERSION, and each half of the side-by-side.
-// Resolves once the page is drawn, the move strategies included, which
-// js/pages/core/description.js puts in 300ms after the rest. `onlyTab` (the
-// side-by-side) leaves out the move tabs it was not asked for.
+/**
+ * Draws one version (live or pending) as the page draws it, for the two plain
+ * views and each half of the side by side. Resolves once the move strategies
+ * are in.
+ * @since v1.2
+ * @watch onlyTab (the side by side) leaves out the move tabs it was not asked for
+ */
 async function renderPreviewVersion(mode, onlyTab = null) {
-    // The renderers narrow to a character state through this, exactly as the
-    // live page does. currentEditorDescData is handed over already narrowed
-    // (js/pages/core/description.js treats an editor-supplied object as final), while the
-    // frame cache stays whole because loadMoveSection resolves it itself.
+    // The renderers narrow to a character state as the live page does: the desc data
+    // arrives narrowed, and the frame data stays whole for loadMoveSection.
     const previewMode = window.activePreviewMode || null;
     window.activeCharacterMode = previewMode;
-    // resolveModeDesc rather than reaching into modeData directly, so the
-    // preview inherits the one documented exception: a state that has not
-    // overridden the portrait shows the character's, not an empty box. Reading
-    // the bucket raw showed a state with no profile of its own as a page with
-    // no character on it, which is not what approving it would produce.
+    // Through resolveModeDesc, so a state without its own portrait shows the
+    // character's, as approving it would.
     const narrow = (full) => (typeof window.resolveModeDesc === 'function'
         ? window.resolveModeDesc(full || {}, previewMode)
         : (window.isBaseMode(previewMode) ? full : ((full && full.modeData) || {})[previewMode] || {}));
@@ -1120,36 +950,17 @@ async function renderPreviewVersion(mode, onlyTab = null) {
     window.cachedMasterFrameData = window.cachedMasterFrameData || {};
     window.cachedMasterFrameData[window.activePreviewCharId] = pending ? window.currentPendingFrameData : window.currentLiveFrameData;
 
-    // --- REBUILDING LIVE / PENDING VIEWS ---
     document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => el.innerHTML = '');
 
-    // Undo the diff-mode hide above (character-type #tab-overview et al. and
-    // #admin-diff-container aren't reset by anything else - nothing else
-    // ever un-hides #tab-overview after it, since the static markup only
-    // ever relied on it starting unhidden by default). Restores the same
-    // default (overview visible, everything else hidden) a fresh revision
-    // load already starts with, so returning here from diff mode looks
-    // identical to arriving here normally.
+    // Undoes the diff view's hiding, back to a fresh revision's default.
     const diffContainerToHide = document.getElementById('admin-diff-container');
     if (diffContainerToHide) diffContainerToHide.classList.add('hidden');
 
-    // RESTORE THE TAB THE REVIEWER IS ON, NOT THE DEFAULT.
-    //
-    // This used to un-hide `getDefaultCharacterTabId()` unconditionally and
-    // never tell the strip, so a reviewer who opened a merged ticket on Skills
-    // and clicked PENDING SUBMISSION got the strip still reading Skills and the
-    // pane reading Overview. Techs is caught by the same sweep - it is
-    // `editable` in the vocabulary - which is why a Techs tab could not be
-    // previewed at all. Both were reported as separate bugs; they are this line.
-    //
-    // The STRIP is the source of truth here, not the panes: Diff View
-    // deliberately hides every pane, so on the way back out of it the strip is
-    // the only surviving record of where the reviewer was.
+    // Back to the tab the strip names, not the default: the diff view hides every
+    // pane, so the strip is the only record of where the reviewer was.
     const activeNavBtn = document.querySelector('#preview-tab-nav .btn-manga.active');
     const stripTabId = activeNavBtn ? activeNavBtn.id.replace(/^nav-/, '') : null;
-    // Falls back to the default when the strip names a tab this page does not
-    // have - a reviewer moving from a character with Techs on to one with it
-    // off would otherwise be restored to a pane that does not exist.
+    // The default when this page lacks the strip's tab.
     const restoreTabId = (stripTabId && document.getElementById(`tab-${stripTabId}`))
         ? stripTabId
         : window.getDefaultCharacterTabId();
@@ -1163,13 +974,8 @@ async function renderPreviewVersion(mode, onlyTab = null) {
     const tabToShow = document.getElementById(`tab-${restoreTabId}`);
     if (tabToShow) tabToShow.classList.remove('hidden');
 
-    // And move the strip with it. setActiveRevisionTab (js/overseer/admin-diff.js) is
-    // the one function that changes both halves together, and it exists because
-    // of this exact class of bug - its own comment records the last time the
-    // strip pointed at one tab while the pane showed another. The sweep above
-    // is kept rather than delegated entirely: setActiveRevisionTab returns
-    // early if the strip or the button is missing, and the panes still have to
-    // end up in a sane state when it does.
+    // setActiveRevisionTab moves the strip and the pane together. The sweep above
+    // stays for when it returns early.
     if (typeof window.setActiveRevisionTab === 'function') {
         window.setActiveRevisionTab(restoreTabId);
     }
@@ -1179,7 +985,6 @@ async function renderPreviewVersion(mode, onlyTab = null) {
     if (window.activePreviewPageType === 'tierlist') {
         window.liveTierData = window.currentEditorDescData;
 
-        // Inject the required containers so tierlist.js has somewhere to render!
         const overviewTab = document.getElementById('tab-overview');
         if (overviewTab) {
             overviewTab.innerHTML = `
@@ -1201,38 +1006,30 @@ async function renderPreviewVersion(mode, onlyTab = null) {
         }
 
         if (window.activePreviewPageType !== 'system' && typeof loadMoveSection === 'function') {
-            // The side-by-side asks for one tab, and drawing the other move
-            // tabs twice over was most of its wait on a page with many moves.
+            // The side by side asks for one tab, and drawing every move tab twice was most
+            // of its wait.
             const moveTabs = window.FRAME_MOVE_CATEGORIES.filter(tab => !onlyTab || tab === onlyTab);
             for (const tab of moveTabs) {
-                // Only when the tab exists - js/overseer/admin-modes.js injects the
-                // Ultimate one for a revision that actually has ultimate
-                // moves, and loadMoveSection bails on a missing container anyway.
+                // Only when the tab exists: admin-modes.js adds Ultimate when a revision has it.
                 if (tab === 'ultimateAtk' && !document.getElementById('tab-ultimateAtk')) continue;
                 await loadMoveSection(window.activePreviewCharId, tab);
             }
         }
     }
 
-    // A move's strategy text goes into its card 300ms after the rest
-    // (js/pages/core/description.js); only a move tab has cards for it to go into.
+    // A move's strategy text arrives 300ms later, and only a move tab has cards.
     const movesOnScreen = !onlyTab || (window.FRAME_MOVE_CATEGORIES || []).includes(onlyTab);
     if (movesOnScreen && window.moveStrategiesDrawn) await window.moveStrategiesDrawn;
-    // The profile card's Previous / Next tiles wait on navigation.json.
-    // Never rejects in practice (it catches its own fetch); a failure here
-    // must not stop the page drawing, so it is let go.
+    // The profile card's pager waits on navigation.json. It catches its own fetch,
+    // and a failure must not stop the page drawing.
     if (window.profilePagerFilled) await Promise.resolve(window.profilePagerFilled).catch(() => {});
-    // The shortcodes ([b], colours, move names) styled now, not on a timer, so
-    // each half of the side-by-side is compared as a reader would see it.
+    // The format tags styled now, not on a timer, so each half is compared as a
+    // reader sees it.
     if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
 }
 
-// --- THE SIDE-BY-SIDE (v1.2) ---
-// Owner's Overseer card: "fit in the review panel that page current state with
-// all the red parts, and the current submission with all the green parts".
-// The open tab is drawn twice by renderPreviewVersion, live then pending, each
-// lifted out of its pane before the next is drawn, so no renderer finds the
-// other version's elements by id. js/utility/side-by-side.js lines them up.
+// The side by side: the open tab drawn live then pending, each lifted out of its
+// pane before the next, so no renderer finds the other's elements by id.
 let sideBySide = null;
 let sideBySideRun = 0;
 
@@ -1242,8 +1039,7 @@ function openRevisionTabId() {
     return id && document.getElementById(`tab-${id}`) ? id : window.getDefaultCharacterTabId();
 }
 
-// Moves a drawn tab's content into a holder that keeps the pane's layout
-// classes (a system tab lays its sections out in a row) but not its id.
+// Into a holder that keeps the pane's layout classes but not its id.
 function liftTabContent(tabId) {
     const holder = document.createElement('div');
     const pane = document.getElementById(`tab-${tabId}`);
@@ -1271,8 +1067,8 @@ function showDiffContainer() {
 }
 
 async function renderSideBySideDiff() {
-    // A tier list keeps the change list: its board redraws itself by id when
-    // one of its tabs is pressed, which two copies on one screen would confuse.
+    // A tier list keeps the change list: its board redraws by id, which two copies
+    // would confuse.
     if (window.activePreviewPageType === 'tierlist') {
         await switchVersionView('list');
         return;
@@ -1306,9 +1102,8 @@ async function renderSideBySideDiff() {
     setTimeout(updateAdminTOC, 200);
 }
 
-// A tab picked in the strip while DIFF VIEW is open shows that tab side by
-// side. setupTabs (js/pages/core/pagebuilder.js) has already switched the panes by then,
-// so this runs after it.
+// A tab picked while DIFF VIEW is open shows that tab side by side, after
+// setupTabs has switched the panes.
 document.addEventListener('DOMContentLoaded', () => {
     const strip = document.getElementById('preview-tab-nav');
     if (!strip) return;

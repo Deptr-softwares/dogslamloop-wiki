@@ -1,9 +1,16 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Merge Compiler (combine multiple
- * pending revisions on one page into one unified ticket)
+ * MERGE TICKETS: several open submissions on one page made into one ticket. It
+ * lists every place two of them disagree with the live page, the reviewer picks a
+ * version for each, and the choices ship as one batch of scoped deltas.
+ * @since v0.4, as part of admin.js
+ * @touches pending_revisions, page_data, applyDeltaToData (site_data.js),
+ *   getKeyedSections (character_tabs.js), loadQueue (admin-queue.js)
+ * @watch a merge ships deltas, never a snapshot: a snapshot taken now and applied at
+ *   approval would overwrite everything approved meanwhile. A scope the scan
+ *   misses never conflicts, and the second ticket overwrites the first.
+ * @see docs/overseer.md
  */
 
-// --- THE MERGE COMPILER ENGINE ---
 window.openMergeCompiler = async function(pageId) {
     const modal = document.getElementById('compiler-modal-overlay');
     const body = document.getElementById('compiler-modal-body');
@@ -32,12 +39,7 @@ window.openMergeCompiler = async function(pageId) {
     const isDiff = (a, b) => JSON.stringify(a || null) !== JSON.stringify(b || null);
     const conflicts = [];
 
-    // A character with ultimate states has a whole second (or third) set of
-    // everything below, living under modeData. Scanning only the top level
-    // meant a merge silently dropped every state edit it swept up - the same
-    // data-loss class as the compile-time snapshot this file was rewritten to
-    // remove. Each conflict therefore carries the state it belongs to, and the
-    // scan runs once per state.
+    // Each character state is scanned too, and each conflict carries its state.
     const narrow = (obj, modeId) => (modeId ? ((obj && obj.modeData) || {})[modeId] || {} : (obj || {}));
 
     const statesIn = (frame) => (typeof window.getCharacterModes === 'function' ? window.getCharacterModes(frame || {}) : [])
@@ -45,8 +47,7 @@ window.openMergeCompiler = async function(pageId) {
         .filter(id => id && id !== 'base');
 
     const addConflict = (sectionId, sectionName, type, lData, lStratData = null, modeId = null) => {
-        // Prefixed so the same section in two states stays two conflicts with
-        // two distinct <select> ids.
+        // Prefixed, so one section in two states is two conflicts with two ids.
         const scopedId = modeId ? `state_${String(modeId).replace(/[^a-zA-Z0-9]/g, '_')}__${sectionId}` : sectionId;
         let existing = conflicts.find(c => c.sectionId === scopedId);
         if (!existing) {
@@ -70,57 +71,39 @@ window.openMergeCompiler = async function(pageId) {
             tFullFrame = patched.newFrame;
         }
 
-        // The page's own settings (v1.1), one conflict on every page type.
-        // Scanned before the branch below, which returns early for a system
-        // page. Its sectionId is the field name, which is what the 'desc'
-        // branch of the compile step writes and ships as the scope.
+        // The page's own settings, on every page type, before the system branch returns.
         if (isDiff(tFullDesc.pageConfig, liveDesc.pageConfig)) {
             addConflict('pageConfig', 'Page Settings (auto-color words and house style)', 'desc', liveDesc.pageConfig)
                 .options.push({ ticket: t, data: tFullDesc.pageConfig });
         }
 
-        // A SYSTEM OR TIER LIST PAGE IS A DIFFERENT SHAPE ENTIRELY.
-        //
-        // Its content lives under tabs[].sections[], and the character scan
-        // below looks for profile/playstyle/overview/strategy, the keyed
-        // arrays and moves - none of which exist here. So the compiler found
-        // ZERO conflicts and produced an empty merge, while the queue offered
-        // the MERGE TICKETS button for any page with more than one ticket
-        // (js/overseer/admin-queue.js). The one tool that exists to resolve two people
-        // editing the same page was inert on exactly the page type that could
-        // not survive it.
+        // A system or tier list page holds tabs of sections, which the character scan
+        // below would find no conflicts in.
         if (isSystemShaped(tFullDesc) || isSystemShaped(liveDesc)) {
             scanSystemPage(t, tFullDesc);
             return;
         }
 
-        // Which states exist is page-level, not per-state. It has to travel
-        // through a merge on its own: dropping it would leave a contributor's
-        // state content merged into modeData with no toggle on the page able
-        // to reach it.
+        // Which states exist is page-level and travels on its own, or merged state
+        // content has no toggle to reach it.
         if (isDiff(tFullFrame.modes, liveFrame.modes)) {
             addConflict('modes', 'Character States (which kits exist)', 'modes', liveFrame.modes)
                 .options.push({ ticket: t, data: tFullFrame.modes });
         }
 
-        // The union: a ticket that declares a brand new state has to be scanned
-        // for it even though live has never heard of it.
+        // The union: a ticket may declare a state live has never had.
         const states = [null, ...new Set([...statesIn(liveFrame), ...statesIn(tFullFrame)])];
 
         states.forEach(modeId => scanOneState(t, modeId, tFullDesc, tFullFrame));
     });
 
-    // A page whose content is tabs of sections rather than a character's kit.
-    // Read from the DATA, not from a page-type flag: the compiler is handed
-    // tickets, and a ticket does not always carry the page type.
+    // From the data, not a page-type flag: a ticket does not always carry the type.
     function isSystemShaped(desc) {
         return !!(desc && Array.isArray(desc.tabs));
     }
 
-    // Sections are matched by their DERIVED key, the same one the editor and
-    // applyDeltaToData use (js/utility/site_data.js), so a conflict is per section
-    // rather than per page. Two people editing different sections now produce
-    // no conflict at all, which is the correct answer and the whole point.
+    // Sections match by their derived key, as the editor and applyDeltaToData do, so
+    // two people editing different sections do not conflict.
     function scanSystemPage(t, tDesc) {
         const liveTabs = window.indexSystemTabs(liveDesc);
         const liveSecs = window.indexSystemSections(liveDesc);
@@ -144,17 +127,8 @@ window.openMergeCompiler = async function(pageId) {
                 .options.push({ ticket: t, data: tSec && tSec.section });
         });
 
-        // THE ORDER OF THE TABS THEMSELVES - v0.18 B2.
-        //
-        // ONE conflict for the page, not one per tab. Two contributors who both
-        // reordered the strip made a single competing decision; offering it per
-        // tab would ask the reviewer to choose a position for each tab
-        // separately and let them assemble a sequence neither contributor
-        // wrote.
-        //
-        // Same membership test as the editor's scan: a tab added or removed is
-        // already a system_tab conflict below, and without this test every such
-        // ticket would also raise a spurious order conflict.
+        // The order of the tabs is one conflict for the page: two reorders are one
+        // competing decision. A tab added or removed is a system_tab conflict instead.
         const liveOrder = liveTabs.map(x => x.tabKey);
         const tOrder = tTabs.map(x => x.tabKey);
         if (liveOrder.join(' ') !== tOrder.join(' ')
@@ -168,7 +142,6 @@ window.openMergeCompiler = async function(pageId) {
                 .options.push({ ticket: t, data: tOrder });
         }
 
-        // Tab metadata and tier list tables, per tab.
         const allTabKeys = new Set([...liveTabs.map(x => x.tabKey), ...tTabs.map(x => x.tabKey)]);
         allTabKeys.forEach(tabKey => {
             const lTab = (liveTabs.find(x => x.tabKey === tabKey) || {}).tab;
@@ -199,21 +172,9 @@ window.openMergeCompiler = async function(pageId) {
         if (isDiff(tDesc.overview, liveDescData.overview)) addConflict('overview', 'Character Overview', 'desc', liveDescData.overview, null, modeId).options.push({ ticket: t, data: tDesc.overview });
         if (isDiff(tDesc.strategy, liveDescData.strategy)) addConflict('strategy', 'General Strategy', 'desc', liveDescData.strategy, null, modeId).options.push({ ticket: t, data: tDesc.strategy });
 
-        // Identity-based (matches window.applyDeltaToData's own extras/
-        // matchups/counterplay handling in site_utils.js - findIndex by
-        // keyProp, not array position), not positional. Comparing by raw
-        // index here used to mean: if one ticket deletes item #2 out of 5
-        // (shifting everything after it down by one) while another ticket
-        // only edits item #4, scanning ticket A index-by-index against live
-        // flagged every position from 2 onward as "changed" - including a
-        // phantom conflict at the live array's last index, where ticket A's
-        // shorter array has nothing. Picking that ticket's "version" for the
-        // phantom conflict silently wrote undefined into a real, untouched
-        // item elsewhere in the array - an accepted merge deleting content
-        // nobody asked to touch. Matching by identity makes that structurally
-        // impossible: each conflict is keyed by the item's real identity
-        // (title/opponent/topic), so an unrelated shift elsewhere in the
-        // array can never manifest as a conflict on this item.
+        // By identity (keyProp), never position: a deletion shifting the array would
+        // otherwise raise conflicts on items nobody touched, and picking one wrote
+        // undefined into them.
         const scanArray = (arrName, labelName, tArr, lArr, keyProp) => {
             const tItems = tArr || [];
             const lItems = lArr || [];
@@ -230,10 +191,7 @@ window.openMergeCompiler = async function(pageId) {
         };
 
         scanArray('extras', 'Custom Tab', tDesc.extras, liveDescData.extras, 'title');
-        // Every keyed section (js/utility/character_tabs.js), so a section added there
-        // is merged here too. A section missing from this scan means two
-        // tickets editing the same entry never register as a conflict, and the
-        // second one silently overwrites the first.
+        // Every keyed section, so one added to the vocabulary is merged too.
         window.getKeyedSections().forEach(s => {
             scanArray(s.field, s.entryLabel, tDesc[s.field], liveDescData[s.field], s.keyField);
         });
@@ -251,9 +209,8 @@ window.openMergeCompiler = async function(pageId) {
 
                 if (isDiff(tMove, lMove) || isDiff(tStrat, lStrat)) {
                     const conflict = addConflict(`move_${cat}_${moveId}`, `Move: ${cat.toUpperCase()} / ${moveId}`, 'move', { move: lMove, cat: cat }, lStrat, modeId);
-                    // Recorded rather than parsed back out of sectionId, which
-                    // now carries a state prefix and a move id that may itself
-                    // contain underscores.
+                    // Recorded, since sectionId carries a state prefix and a move id may hold
+                    // underscores.
                     conflict.moveId = moveId;
                     conflict.options.push({
                         ticket: t,
@@ -306,45 +263,24 @@ window.openMergeCompiler = async function(pageId) {
         const selectedTicketIds = new Set();
         const contributors = new Set();
 
-        // The merged ticket ships as a multi-scope delta, not a snapshot.
-        // A snapshot is taken here, at compile time, and applied later, at
-        // approval time - so every submission approved in that window is
-        // silently overwritten by stale data. Emitting one scoped patch per
-        // accepted conflict means approval injects exactly the sections that
-        // were chosen and leaves everything else at whatever it is by then.
-        //
-        // 'multi' is not a new format: js/editor/core/editor-core.js already batches a
-        // contributor's independent edits this way, window.applyDeltaToData
-        // unpacks it recursively (js/utility/site_utils.js), and the diff, preview,
-        // history and recent-changes views all branch on it already.
+        // One scoped patch per accepted conflict, as a 'multi' delta, the same batch
+        // shape the editor sends.
         const batchedDeltas = [];
 
-        // applyDeltaToData's array scopes are singular; the compiler's are the
-        // property names they live under. Declared per section in
-        // js/utility/character_tabs.js rather than derived by trimming an 's' - see the
-        // note there about the 'counterplays' tab id that produced.
+        // applyDeltaToData's array scopes are singular; declared, never made by trimming
+        // an "s".
         const DELTA_SCOPE_FOR_ARRAY = { extras: 'extra' };
         window.getKeyedSections().forEach(s => { DELTA_SCOPE_FOR_ARRAY[s.field] = s.scope; });
 
-        // A conflict inside an ultimate state writes into that state's bucket
-        // and ships as a mode-wrapped delta - the same wrapper the editor emits
-        // (js/editor/core/editor-modes.js scopeEditorDelta) and applyDeltaToData unwraps.
+        // A state's conflict ships wrapped in its state, as the editor's deltas are.
         const sliceOf = (master, modeId) => {
             if (!modeId) return master;
             if (!master.modeData) master.modeData = {};
             if (!master.modeData[modeId]) master.modeData[modeId] = {};
             return master.modeData[modeId];
         };
-        // A singular scope carries the key 'full', not null. The editor has
-        // always emitted 'full' here (js/editor/core/editor-core.js's scanOverview), and
-        // the mode branch below normalised it - but the plain branch passed
-        // null straight through, so a merged ticket touching a base-kit
-        // section shipped `{ scope: 'playstyle', key: null }`.
-        //
-        // That applied correctly and reviewed catastrophically: the diff
-        // renderer called key.replace(...), threw, and abandoned every
-        // remaining edit in the batch. Ticket 63a024d0 counted 5 edits and
-        // showed 2. Normalising in one place instead of two.
+        // A singular scope's key is 'full', never null, as the editor sends it: a null
+        // key broke the diff view.
         const normaliseKey = (key) => (key === null || key === undefined ? 'full' : key);
 
         const pushDelta = (modeId, scope, key, payload) => {
@@ -371,30 +307,22 @@ window.openMergeCompiler = async function(pageId) {
                 batchedDeltas.push({ scope: 'modes', key: 'full', payload: chosenOpt.data || null });
             }
             else if (c.type === 'desc') {
-                // sectionId carries the state prefix; the property name is what
-                // comes after it.
                 const prop = c.modeId ? c.sectionId.split('__').pop() : c.sectionId;
                 descSlice[prop] = chosenOpt.data;
                 pushDelta(c.modeId, prop, null, chosenOpt.data);
             }
-            // One section of a system page, chosen from whichever ticket the
-            // reviewer picked. Emitted as the same scoped delta the editor
-            // sends, so approval injects exactly this section and leaves every
-            // other one at whatever it is by then - which is the property the
-            // whole merge compiler was rewritten for.
+            // One system section from the chosen ticket, as the editor's scoped delta.
             else if (c.type === 'system_section') {
                 const key = c.liveStratData.systemKey;
                 const chosen = chosenOpt.data === undefined ? null : chosenOpt.data;
-                // tabs replaced in place rather than reassigning masterDesc:
-                // it is a const, and sliceOf() above already holds references
-                // into the same object.
+                // tabs replaced in place: masterDesc is a const, and sliceOf holds references
+                // into it.
                 const applied = window.applyDeltaToData(masterDesc, masterFrame, 'system_section', key, chosen);
                 masterDesc.tabs = applied.newDesc.tabs;
                 batchedDeltas.push({ scope: 'system_section', key, payload: chosen });
             }
-            // Page-level, so it carries key 'full' like `modes` rather than
-            // naming a tab. Applied to masterDesc first so a later section
-            // conflict in the same batch resolves against the reordered tabs.
+            // Page-level, key 'full', and applied first, so a section conflict in the same
+            // batch resolves against the new order.
             else if (c.type === 'system_tab_order') {
                 const chosen = chosenOpt.data === undefined ? null : chosenOpt.data;
                 const applied = window.applyDeltaToData(masterDesc, masterFrame, 'system_tab_order', 'full', chosen);
@@ -409,13 +337,8 @@ window.openMergeCompiler = async function(pageId) {
                 batchedDeltas.push({ scope: c.type, key, payload: chosen });
             }
             else if (c.type === 'array_item') {
-                // Identity-based, matching scanArray above - find by keyProp,
-                // not position. chosenOpt.data being undefined means the
-                // chosen ticket's version of this item is "deleted" (its
-                // post-delta array had nothing for this identity), which
-                // splice() now handles explicitly instead of silently
-                // writing undefined into whatever happened to sit at a given
-                // index.
+                // By identity, like scanArray. No data on the chosen option means that ticket
+                // deleted the item.
                 const { arrName, key, keyProp } = c.liveStratData;
                 if (!descSlice[arrName]) descSlice[arrName] = [];
                 const existingIdx = descSlice[arrName].findIndex(item => item?.[keyProp] === key);
@@ -427,10 +350,7 @@ window.openMergeCompiler = async function(pageId) {
                     descSlice[arrName].push(chosenOpt.data);
                 }
 
-                // undefined means the chosen ticket had no version of this item,
-                // i.e. it deleted it. applyDeltaToData reads null as "delete";
-                // undefined would drop out of the JSON payload entirely and
-                // apply as a no-op, quietly resurrecting the deleted item.
+                // A deletion is null: undefined drops out of the JSON and would bring the item back.
                 pushDelta(c.modeId, DELTA_SCOPE_FOR_ARRAY[arrName], key,
                     chosenOpt.data === undefined ? null : chosenOpt.data);
             }
@@ -454,9 +374,7 @@ window.openMergeCompiler = async function(pageId) {
                 if (stratData) descSlice.moveStrategies[moveId] = stratData;
                 else delete descSlice.moveStrategies[moveId];
 
-                // Same {frame_data, desc_data} shape the editor's own move
-                // deltas use, keyed "category::moveId" - applyDeltaToData
-                // splits on "::" to find the category array.
+                // Keyed "category::moveId", like the editor's move deltas.
                 pushDelta(c.modeId, 'move', `${cat}::${moveId}`,
                     moveData ? { frame_data: moveData, desc_data: stratData || [] } : null);
             }
@@ -475,10 +393,7 @@ window.openMergeCompiler = async function(pageId) {
         const authorsList = Array.from(contributors).join(', ');
         const finalAuthorName = `Staff Merge (Credits: ${authorsList})`;
 
-        // Every contributor's changelog and evidence carries through, attributed.
-        // This used to be replaced by a one-line synthetic summary, which threw
-        // away the audit trail of who verified what and kept only the last
-        // ticket's evidence - the exact thing a reviewer needs to judge a merge.
+        // Every contributor's changelog and evidence carry through, attributed.
         const CONFIDENCE_RANK = { low: 0, medium: 1, high: 2 };
         const qaSources = chosenTickets.map(t => ({
             name: t.author_name || 'Contributor',
@@ -495,8 +410,7 @@ window.openMergeCompiler = async function(pageId) {
             .map(s => `--- ${s.name} ---\n${s.qa.evidence}`)
             .join('\n\n');
 
-        // The merge is only as trustworthy as its least certain source, so take
-        // the lowest rather than asserting "high" over someone's own "low".
+        // The lowest confidence of its sources: a merge is only as sure as its least sure part.
         const mergedConfidence = qaSources.reduce((lowest, s) => {
             const rank = CONFIDENCE_RANK[s.qa.confidence];
             if (rank === undefined) return lowest;
@@ -504,8 +418,7 @@ window.openMergeCompiler = async function(pageId) {
         }, null) || 'medium';
 
         const payload = {
-            // Kept as the legacy fallback, matching the shape editor-core.js's
-            // buildPayload emits - delta_payload is what actually applies.
+            // The editor's fallback shape; delta_payload is what applies.
             desc_data: masterDesc,
             frame_data: masterFrame,
             is_delta: true,

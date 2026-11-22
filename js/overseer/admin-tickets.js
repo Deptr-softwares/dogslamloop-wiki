@@ -1,8 +1,15 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Tickets (discuss-and-vote workspace)
+ * A revision's ticket: the vote (SUPPORT, OPPOSE) with the score it needs, and
+ * the chat between staff and the contributor.
+ * @since v0.4, as part of admin.js
+ * @touches pending_revisions (supporters, opposers, ticket_chat),
+ *   post_ticket_message(), user_notifications, updateActionButtons (admin-queue.js)
+ * @watch the score it needs must match updateActionButtons in admin-queue.js: this
+ *   one prints it, that one shows MERGE. Chat text and names are contributor
+ *   text: escaped.
+ * @see docs/overseer.md
  */
 
-// --- 4. TICKET LOGIC (VOTING & CHAT) ---
 function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
     const supportText = document.getElementById('ticket-support-text');
     const opposeText = document.getElementById('ticket-oppose-text');
@@ -12,12 +19,7 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
     rev.supporters = rev.supporters || [];
     rev.opposers = rev.opposers || [];
 
-    // --- NET SCORE UI WITH PERKS ---
-    // At or above trusted_editor, matching js/overseer/admin-queue.js - reviewer and
-    // admin get the discount too (v0.16 bug 6). These two must agree: this one
-    // prints the requirement and that one decides whether MERGE appears, so a
-    // disagreement shows a reviewer "+1 to Merge" beside a button that will not
-    // appear until +2.
+    // At or above trusted_editor, matching admin-queue.js.
     const isTrusted = (rev.author_roles || []).some(r =>
         window.roleMeets(r, 'trusted_editor'));
     const requiredSupport = isTrusted ? 1 : 2;
@@ -29,10 +31,7 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
 
     supportText.innerHTML = `Net Approval Score: <strong class="ticket-score-value" style="color:${scoreColor};">${netScore > 0 ? '+' : ''}${netScore}</strong>`;
 
-    // "Staff", not "Trusted Editor": the discount now applies to reviewer and
-    // admin as well, and a reviewer reading "Trusted Editor Perk Applied" on
-    // their own ticket would reasonably wonder whose perk they were getting.
-    // STAFF_ROLES in js/editor/core/editor-core.js is already exactly these three.
+    // "Staff", since reviewers and admins get the perk too.
     const perkHtml = isTrusted ? ` <span class="ticket-perk-note">(Staff Perk Applied)</span>` : '';
     opposeText.innerHTML = `<span class="ticket-requirement-text">Requires +${requiredSupport} to Merge, or -2 to Reject${perkHtml}</span>`;
 
@@ -50,19 +49,12 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
         supportActions.innerHTML = `<div class="ticket-vote-actions-row">${supBtn}${oppBtn}</div>`;
     }
 
-    // The QA report was drawn here until v1.2. It is the review pane's own
-    // panel now, for every submission: renderQaReport in js/overseer/admin-preview.js.
-
     chatLog.innerHTML = '';
     if (rev.ticket_chat.length === 0) {
         chatLog.innerHTML = `<span class="ticket-chat-empty">No messages yet.</span>`;
     } else {
         rev.ticket_chat.forEach(msg => {
             const timeStr = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            // type: 'changes_requested' (js/overseer/admin-actions.js's requestChanges)
-            // gets a distinct look so it reads as a first-class request, not
-            // just another passing chat line - existing messages have no
-            // `type` field at all and fall through to the plain rendering.
             if (msg.type === 'changes_requested') {
                 chatLog.innerHTML += `
                     <div class="ticket-chat-changes-requested">
@@ -70,11 +62,8 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
                         <div class="ticket-chat-changes-requested-text">${window.escapeHtml(msg.text)}</div>
                     </div>`;
             } else if (msg.type === 'author') {
-                // v0.17 F13: the contributor can answer now, so a reviewer has
-                // to be able to tell their own side of the conversation from
-                // the person whose submission it is. Same additive `type`
-                // mechanism as changes_requested; untyped messages are staff
-                // lines from before this shipped and render as they always did.
+                // The contributor's own replies are typed, so a reviewer tells the two sides
+                // apart. Untyped messages are staff lines.
                 chatLog.innerHTML += `
                     <div class="ticket-chat-from-author">
                         <strong class="ticket-chat-author-badge">[${timeStr}] ${window.escapeHtml(msg.author)} (contributor):</strong>
@@ -108,14 +97,8 @@ async function toggleSupportToTicket() {
 
     rev.supporters = newSupporters; rev.opposers = newOpposers;
     renderTicketWorkspace(rev, false, newSupporters.includes(window.currentUserId), newOpposers.includes(window.currentUserId));
-    // Refresh just the vote-dependent action buttons (MERGE TO LIVE/REJECT
-    // thresholds) - same lightweight pattern previewRevision's own realtime
-    // listener uses for a vote change from another reviewer. Previously
-    // called the full previewRevision() here, which re-fetched live/pending
-    // page data, recalculated the whole diff, and reset whichever view
-    // (pending/live/diff) the reviewer had open back to the default every
-    // time anyone voted - a real "voting knocks you back to the top"
-    // regression for something that only changed vote counts.
+    // Only the vote buttons: a full previewRevision reset the reviewer's view on
+    // every vote.
     updateActionButtons(rev);
 }
 
@@ -151,16 +134,12 @@ async function postTicketMessage() {
     input.disabled = true;
     const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
 
-    // Read only to decide the notification below. The WRITE goes through the
-    // RPC, which appends in SQL - this client used to read the array, append in
-    // JavaScript and write the whole thing back, so two people replying at once
-    // silently lost one of the two messages.
+    // Read only for the notification below. The RPC appends in SQL, so two replies
+    // at once both land.
     const { data: liveRev, error: fetchErr } = await window.supabaseClient.from('pending_revisions').select('ticket_chat').eq('id', rev.id).single();
     const currentChat = (!fetchErr && liveRev.ticket_chat) ? liveRev.ticket_chat : [];
 
-    // The author name is resolved server-side now. It used to be
-    // window.currentUsername, so the name on a ticket message was whatever the
-    // caller said it was - the same thing page_discussions' trigger prevents.
+    // The RPC sets the author's name, so a message cannot claim to be someone else.
     const { data: newMessage, error } = await window.supabaseClient.rpc('post_ticket_message', {
         target_revision_id: rev.id,
         message_text: text,
@@ -179,12 +158,8 @@ async function postTicketMessage() {
 
     const newChat = [...currentChat, newMessage];
 
-    // Notify the author on the FIRST staff reply only - enough of a nudge to
-    // come look, without a notification per message once a real back-and-forth
-    // is under way. "First" = no prior message from anyone but the author.
-    // author_id is NULL once an author's account has been anonymized - there
-    // is nobody left to notify, and the insert would violate
-    // user_notifications.user_id's foreign key.
+    // The author is notified on the first staff reply only, and never once their
+    // account is anonymized (author_id NULL).
     const isAuthorsOwnTicket = rev.author_id === window.currentUserId;
     const hadPriorStaffReply = currentChat.some(m => m.author !== rev.author_name);
     if (rev.author_id && !isAuthorsOwnTicket && !hadPriorStaffReply) {
@@ -196,9 +171,6 @@ async function postTicketMessage() {
     }
 
     rev.ticket_chat = newChat;
-    // Previously missing the 4th (hasOpposed) argument, so the OPPOSE/REMOVE
-    // OPPOSE button always reset to its default "OPPOSE" state after every
-    // chat message, even for a reviewer who'd already opposed the ticket.
     renderTicketWorkspace(rev, rev.author_id === window.currentUserId, (rev.supporters || []).includes(window.currentUserId), (rev.opposers || []).includes(window.currentUserId));
     setTimeout(() => document.getElementById('ticket-chat-input').focus(), 10);
 }
