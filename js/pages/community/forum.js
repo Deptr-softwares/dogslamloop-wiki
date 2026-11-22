@@ -1,19 +1,18 @@
-// The Forum (v1.0 batch 2). Spec: V1.0-DEVLOG.md, "SPEC 2026-10-04: batch 2,
-// the Forum".
-//
-// forum.html          the posts, most recently active first, by category
-// forum.html?post=id  one post: its title and category, then its conversation
-//
-// A post's conversation is page_discussions under page_id 'forum:<id>', drawn
-// by js/pages/community/discussions.js, the same component as a character thread. This file
-// draws only what a thread does not have: the list, the title and category,
-// the new-post form, and moderation of a whole post.
-//
-// Everything a reader or a Discord member typed is set as text, never markup:
-// titles, names and handles are all attacker-reachable.
+/**
+ * The Forum: forum.html lists the posts, most recently active first, by category;
+ * forum.html?post=<id> shows one post, its title and category, then its
+ * conversation. The conversation is page_discussions under page_id 'forum:<id>',
+ * drawn by discussions.js like a character thread; this file draws the list, the
+ * title and category, the new-post form and moderation of a whole post.
+ * @since v1.0
+ * @touches forum_threads, forum_thread_edits, create_forum_post,
+ *   edit_my_forum_post, moderate_forum_thread
+ * @watch everything a reader or a Discord member typed is set as text, never markup
+ * @see docs/discussions.md
+ */
 (function () {
-    // The owner's six, 2026-10-04, in their order. The database refuses any
-    // other (forum_threads_tag_check); a test checks this list against it.
+    // The six categories, in order. The database refuses any other
+    // (forum_threads_tag_check), and a test checks this list against it.
     const FORUM_TAGS = ['Question', 'Guide', 'Discussion', 'Art', 'Game Update', 'Promotion'];
     const PAGE_SIZE = 20;
     const MAX_TITLE = 100;
@@ -43,8 +42,8 @@
         return new Date(then).toLocaleDateString();
     }
 
-    // A category's colour lives in style/forum.css under this class, worn by
-    // its filter button and every post's tag (owner, 2026-10-23).
+    // A category's colour lives in style/forum.css under this class, on its filter
+    // button and on every post's tag.
     const catClass = (tag) => `forum-cat-${String(tag || '').toLowerCase().replace(/[^a-z]+/g, '-')}`;
     const tagClass = (tag) => `forum-tag ${catClass(tag)}`;
 
@@ -58,8 +57,6 @@
         }
         return span;
     }
-
-    // --- THE LIST ---
 
     async function fetchPage() {
         let q = client()
@@ -148,9 +145,9 @@
         return bar;
     }
 
-    // NEW POST: a title and a category above the thread composer, which
-    // brings images, paste and KLIPY links with it. The post and its opening
-    // message are made together by create_forum_post.
+    // New post: a title and a category above the thread's composer, which brings
+    // images, paste and KLIPY links with it. create_forum_post makes the post and its
+    // first message together.
     async function renderNewPost(panel) {
         const title = document.createElement('input');
         title.type = 'text';
@@ -226,8 +223,6 @@
         await drawList(listBox);
     }
 
-    // --- ONE POST ---
-
     function renderModeration(box, row) {
         const viewer = typeof window.discussionViewer === 'function' ? window.discussionViewer() : null;
         if (!viewer || !viewer.canModerate) return;
@@ -279,9 +274,8 @@
         box.appendChild(form);
     }
 
-    // Batch 3: the person who started a post can change its title and
-    // category. The rules are edit_my_forum_post's, including one rename every
-    // 5 minutes; this only draws the form.
+    // The person who started a post can change its title and category, under
+    // edit_my_forum_post's rules (one rename every 5 minutes); this draws the form.
     function renderTitleEdit(head, row) {
         const viewer = typeof window.discussionViewer === 'function' ? window.discussionViewer() : null;
         if (!viewer || viewer.banned || !viewer.userId) return;
@@ -340,8 +334,8 @@
         head.appendChild(form);
     }
 
-    // Batch 3: what a post was called before, for a moderator: renamed on the
-    // wiki or on Discord. forum_thread_edits is readable by moderators alone.
+    // What a post was called before, for a moderator, renamed on the wiki or on
+    // Discord. forum_thread_edits is readable by moderators alone.
     async function renderTitleHistory(head, meta, row) {
         const viewer = typeof window.discussionViewer === 'function' ? window.discussionViewer() : null;
         if (!viewer || !viewer.canModerate) return;

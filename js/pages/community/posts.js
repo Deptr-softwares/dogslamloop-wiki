@@ -1,15 +1,10 @@
 /**
- * Dogslamloop Wiki - Site Posts (blog + hotfix notes)
- *
- * Reader side of the site_posts table. Posts store the same block array the
- * wiki already uses, so rendering is js/pages/core/description.js's generateHTMLForBlocks
- * plus the two post-steps that function does not do for you (binding callout
- * tooltips and arming lazy media) - see populateTextSection in that file for
- * the original of this sequence.
- *
- * Rendered content is staff-authored, but every value that comes from a post's
- * metadata (title, summary, author) is escaped anyway, matching the standard
- * the rest of this codebase holds.
+ * The blog and the hotfix notes (site_posts), reader side. A post stores the same
+ * Block list a page does, so it renders through generateHTMLForBlocks plus the two
+ * steps populateTextSection adds: callout tooltips and lazy media.
+ * @since v0.9
+ * @touches site_posts
+ * @see docs/discussions.md
  */
 
 window.POSTS_PAGE_SIZE = 10;
@@ -75,12 +70,8 @@ window.loadPostList = async function(containerId, { kind = 'blog', limit = windo
     const { data, error } = await fetchPosts({ kind, limit });
 
     if (error) {
-        // console.warn, not console.error: posts are optional content, and a
-        // page that renders fine without them has not encountered an error
-        // condition. This also matters for deployment ordering - the
-        // site_posts migration lands with the merge, so between deploying the
-        // code and applying the migration every page load would otherwise
-        // report a failure for a table that simply does not exist yet.
+        // console.warn: posts are optional, and a page that draws fine without them has
+        // not failed.
         console.warn('Posts unavailable:', error.message || error);
         container.innerHTML = `<div class="wiki-section-empty">${window.escapeHtml(emptyMessage || 'Nothing posted yet.')}</div>`;
         return;

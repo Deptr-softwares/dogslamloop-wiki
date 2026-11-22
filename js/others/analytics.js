@@ -1,34 +1,16 @@
 /**
- * Dogslamloop Wiki - counting visitors (Umami Cloud), v1.2.
- *
- * The owner turned Cloudflare's Web Analytics off and counts visitors with
- * Umami Cloud instead (2026-11-17): KLIPY asks for monthly active users before
- * it issues a production API key. The owner's brief: "the least intrusive and
- * minimal things". So this asks Umami for page views and nothing more:
- *
- * - On reader pages only. This file is loaded by them and by nothing else:
- *   not the editor, the Overseer, the owner tools, the post editor or the tier
- *   editor (tests/analytics.spec.js).
- * - On dogslamloop.com only, so a local run, a preview or a test never counts
- *   and never loads Umami at all.
- * - Without the ?query or #hash of an address (search terms, page ids).
- * - Not at all for a browser that asks not to be tracked (Do Not Track).
- * - No speed data, no error reports, no click tracking (owner, 2026-11-17).
- *
- * Umami sets no cookies and stores nothing on the device; it only reads an
- * opt-out flag (localStorage `umami.disabled`). It counts a visitor with an
- * anonymous ID made from the IP address, the browser and a salt that changes
- * every month, so a month's Visitors is the MAU figure, and the IP itself is
- * not stored (docs.umami.is, Metric definitions).
- *
- * Loaded `async` and injecting Umami's script, which is async too, so neither
- * ever holds the page up: a slow analytics script once did (Cloudflare's, a
- * module, which DOMContentLoaded waits for).
+ * Visitor counting (Umami Cloud), on reader pages only: page views and nothing
+ * more, on dogslamloop.com only, without the ?query or #hash, and not for a
+ * browser that sends Do Not Track. No speed data, errors or clicks.
+ * @since v1.2
+ * @touches the Umami Cloud script; localStorage umami.disabled (Umami's opt-out)
+ * @watch the privacy policy says what is collected, so a change here changes the
+ *   policy too. Loaded async, adding an async script, so it never holds the page up.
+ * @see docs/shared-code.md
  */
 (function () {
-    // The owner's Website ID from Umami Cloud (2026-11-17). Not a secret: it is
-    // in the page source of every site that uses Umami. Emptying it turns the
-    // counting off.
+    // The Website ID from Umami Cloud: not a secret, it is in every Umami site's
+    // source. Empty turns the counting off.
     const WEBSITE_ID = 'd53106ba-6b61-4ad7-8ae1-24ce62d4c32d';
     const SITE = 'dogslamloop.com';
 
