@@ -1,19 +1,19 @@
-/* --- CREATE TIER LIST (v1.1) ---
+/* Create Tier List: the board, the pool, the drop marker, the options and the
+   tier controls.
+   Since v1.1.
+   Touches: the tool page tools/create-tier-list/, which the generator gives
+   this sheet as it gives js/pages/tools/create_tier_list.js; .tier-portrait from
+   Layout.css.
+   Watch: classes are prefixed mk-, apart from the certified lists' ctl- and Free
+   Submit's fs-, so a fix to one cannot reach the others. .tier-portrait is
+   shared on purpose, with its size scoped to .mk-entry.
+   See: docs/tier-lists.md */
 
-   Anyone's own tier list, copied as an image. Its own stylesheet under
-   style/tools/, picked up by the generator the same way js/pages/tools/<page id>.js
-   is.
-
-   Namespaced mk- ("make"). The certified lists use ctl- and Free Submit fs-,
-   and three features sharing a prefix is how a fix to one reaches the others.
-   .tier-portrait is the one deliberate reuse: the same character icon, with
-   its size scoped to .mk-entry, as the other lists scope theirs. */
-
-/* .tool-frame lines its children up at the start, so the tool says it wants
-   the whole width. */
+/* .tool-frame lines its children up at the start, so the tool asks for the whole
+   width. */
 .mk-tool {
-    /* A character's box, set once: the board's grid columns are this plus the
-       portrait's 2px border on each side. */
+    /* A character's box: the board's grid columns are this plus the portrait's 2px
+       border each side. */
     --mk-box: 92px;
     display: flex;
     flex-direction: column;
@@ -44,7 +44,7 @@
 
 .mk-status-error { color: var(--accent-red); }
 
-/* --- THE BOARD --- */
+/* The board */
 
 .mk-board,
 .mk-pool { user-select: none; }
@@ -59,7 +59,7 @@
 
 .mk-board .mk-row:last-child { border-bottom: 2px solid var(--border-color); }
 
-/* A button, because it is a place to put the character picked up. */
+/* A button: it is a place to put the character picked up. */
 .mk-label {
     width: 92px;
     flex-shrink: 0;
@@ -83,8 +83,8 @@
 .mk-label.mk-label-mid { font-size: 1rem; }
 .mk-label.mk-label-long { font-size: 0.72rem; }
 
-/* 3px apart, the same as the image (owner, 2026-10-21: "somewhere 2px-3px"):
-   the board is the image's preview. One row of boxes tall when empty. */
+/* 3px apart, as in the image, since the board is its preview. One row tall when
+   empty. */
 .mk-body,
 .mk-pool {
     flex: 1;
@@ -94,9 +94,8 @@
     min-height: calc(var(--mk-box) + 10px);
 }
 
-/* A grid of box-wide columns rather than a wrapping row, so the branding can
-   hold the first tier's top right corner and the characters flow around it
-   (owner, 2026-10-21, after TierMaker). */
+/* A grid of box-wide columns, so the branding holds the first tier's top right
+   corner and the characters flow around it. */
 .mk-body {
     display: grid;
     grid-template-columns: repeat(auto-fill, calc(var(--mk-box) + 4px));
@@ -111,8 +110,7 @@
     align-content: flex-start;
 }
 
-/* The last two columns of the first row (js/pages/tools/create_tier_list.js
-   brand). Placed, so the characters placed around it skip those cells. */
+/* The last two columns of the first row, placed, so the characters skip them. */
 .mk-brand {
     grid-row: 1;
     grid-column: -3 / -1;
@@ -134,10 +132,9 @@
     white-space: nowrap;
 }
 
-/* Small (owner, 2026-10-22): one box at the bottom right of the last tier, at
-   about half strength. It is the last thing in its tier, so with only its
-   column set the grid puts it after the last character: on that line when
-   there is room, on a line of its own when there is not. */
+/* Small: one box at the bottom right of the last tier, at about half strength.
+   Last in its tier with only its column set, so the grid puts it after the last
+   character. */
 .mk-brand.mk-brand-small {
     grid-row: auto;
     grid-column: -2 / -1;
@@ -164,8 +161,7 @@
     align-self: center;
 }
 
-/* No border or shadow of its own: the gap between two characters is the 3px
-   above and nothing else. Hover and pick-up recolour the portrait's border. */
+/* No border or shadow of its own: the 3px gap is all there is between two. */
 .mk-entry {
     padding: 0;
     background: none;
@@ -185,8 +181,8 @@
 /* Picked up, waiting for a tier. */
 .mk-entry[aria-pressed="true"] .tier-portrait { border-color: var(--accent-yellow); }
 
-/* Where the dragged character will land (js/pages/tools/create_tier_list.js
-   showMarker). Fixed, over the board, so nothing moves under the pointer. */
+/* Where the dragged character will land, fixed over the board so nothing moves
+   under the pointer. */
 .mk-drop-marker {
     position: fixed;
     z-index: 9998;
@@ -203,8 +199,8 @@
     gap: 0.75rem;
 }
 
-/* The three choices on a line of their own, the buttons under them: side by
-   side they no longer fit the column and RESET wrapped alone. */
+/* The three choices on a line of their own and the buttons under them: side by
+   side, RESET wrapped alone. */
 .mk-options {
     flex-basis: 100%;
     display: flex;
@@ -221,7 +217,7 @@
     text-transform: uppercase;
 }
 
-/* --- THE TIERS --- */
+/* The tiers */
 
 .mk-controls {
     display: flex;

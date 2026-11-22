@@ -1,17 +1,13 @@
-/* --- FREE SUBMIT TIER LIST (v0.14 item 4) ---
-
-   The community's ranking. Its own stylesheet under style/tools/, picked up by
-   the generator the same way js/pages/tools/<page id>.js is - a tool is an
-   application rather than a document, and the alternative is a <style> block
-   written from JavaScript, which is the shape v0.13 spent six PRs removing
-   from editor.js.
-
-   Namespaced fs- throughout. The certified lists use ctl- and the retired
-   renderer uses tier-list-*; three features sharing a class prefix is how a
-   fix to one silently reaches the others.
-
-   .tier-portrait is the one deliberate reuse, same as the certified page: it
-   is the same character icon, and a second class for the same thing drifts. */
+/* The Free Submit Tier List: the board, each character's sample size, the
+   distribution of one character's votes, and the ballot.
+   Since v0.14.
+   Touches: the tool page tools/free-submit-tier-list/, which the generator gives
+   this sheet as it gives js/pages/tools/free_submit_tier_list.js; .tier-portrait
+   from Layout.css.
+   Watch: classes are prefixed fs-, apart from the certified lists' ctl- and the
+   old renderer's tier-list-*. .tier-portrait is shared by four surfaces, so its
+   size is scoped to .fs-entry.
+   See: docs/tier-lists.md */
 
 .fs-tool {
     display: flex;
@@ -27,7 +23,7 @@
     margin: 0 0 0.75rem 0;
 }
 
-/* --- THE BOARD --- */
+/* The board */
 
 .fs-tier-row {
     display: flex;
@@ -55,8 +51,7 @@
     padding: 0.25rem;
 }
 
-/* The unplaced row. Deliberately not coloured like a tier - it is not one, and
-   giving it a tier's swatch would read as an F by another name. */
+/* The unplaced row is not coloured like a tier: it is not one. */
 .fs-tier-label-pending {
     background: transparent;
     color: var(--text-muted);
@@ -83,8 +78,7 @@
     align-self: center;
 }
 
-/* --- ONE CHARACTER ON THE BOARD ---
-   A button, because it is one: selecting it opens the distribution below. */
+/* A character on the board is a button: selecting it opens the distribution. */
 .fs-entry {
     display: flex;
     flex-direction: column;
@@ -98,40 +92,22 @@
     color: inherit;
 }
 
-/* v0.18 batch 3.5 - the boards' characters were tiny. Owner, 2026-09-09:
-   "make the free submit character boxes bigger and almost fill up the width".
-
-   THEY GROW INTO THE ROW rather than taking a bigger fixed size. A tier holds
-   anything from nobody to the whole roster, so one fixed number is either
-   cramped on a full row or a postage stamp on a sparse one - flex-grow lets a
-   four-character S tier use the space a twelve-character B tier cannot.
-
-   The cap is the judgement call in this rule, and it is what stops a tier
-   holding ONE character from rendering it 900px wide. 168px is roughly two and
-   a half times what these were, and eight of them fill a row.
-
-   Scoped to .fs-entry, NOT applied to .tier-portrait. That class is shared by
-   the certified reader, the tier editor and the history renderer, and three
-   surfaces do not want one size - which is why certified-tier-lists.css
-   already scopes its own override the same way. */
+/* The characters grow into the row, since a tier holds anyone from nobody to the
+   whole roster. The cap stops one character in a tier being 900px wide. */
 .fs-tier-body .fs-entry {
     flex: 1 1 108px;
     min-width: 84px;
     max-width: 168px;
 }
 
-/* The portrait fills whatever width the entry was given, and stays square by
-   aspect-ratio rather than by a matching height - the two would otherwise have
-   to be kept in step by hand every time the cap moves. */
+/* Square by aspect-ratio, so the height never has to follow the cap by hand. */
 .fs-tier-body .fs-entry .tier-portrait {
     width: 100%;
     height: auto;
     aspect-ratio: 1 / 1;
 }
 
-/* The name behind the portrait is the 404 fallback, so it scales with the box
-   it shows through - at 60px it was 0.5rem, and left there it would read as a
-   caption under a picture two and a half times its size. */
+/* The name behind the portrait is the fallback, so it scales with the box. */
 .fs-tier-body .fs-entry .tier-portrait-name { font-size: 0.72rem; }
 .fs-tier-body .fs-entry .fs-entry-count { font-size: 0.65rem; }
 
@@ -139,9 +115,7 @@
 
 .fs-entry-selected { border-color: var(--accent-blue); background: rgba(255, 255, 255, 0.05); }
 
-/* The sample size on the face of every character, not in a tooltip. "S tier"
-   from nine people and from four hundred are different claims, and this is the
-   only thing on the board that tells them apart. */
+/* The sample size, on the face of every character. */
 .fs-entry-count {
     font-family: var(--text-mono);
     font-size: 0.55rem;
@@ -164,9 +138,8 @@
     gap: 0.4rem;
 }
 
-/* --- THE DISTRIBUTION ---
-   A median reports the middle, and a split community and a unanimous one have
-   the same middle. This is what tells them apart. */
+/* The distribution: a split community and a unanimous one share a median, and
+   this tells them apart. */
 
 .fs-detail {
     border: 2px solid var(--border-color);
@@ -241,7 +214,7 @@
     color: var(--text-muted);
 }
 
-/* --- THE BALLOT --- */
+/* The ballot */
 
 .fs-ballot-hint,
 .fs-gate-note,
@@ -252,8 +225,7 @@
     margin: 0 0 0.75rem 0;
 }
 
-/* The refusal itself reads as a statement rather than an error - it is a rule,
-   and the reader has not done anything wrong by not meeting it yet. */
+/* A refusal reads as a rule, not an error: the reader did nothing wrong. */
 .fs-gate-note {
     color: var(--text-white);
     border-left: 3px solid var(--accent-blue);
@@ -340,8 +312,8 @@
     .fs-tier-label { width: 58px; font-size: 1.1rem; }
     .fs-tier-body { min-height: 76px; }
 
-    /* The ballot stacks: a portrait, a name and seven buttons do not fit on a
-       phone row, and squeezing them makes every choice a mis-tap. */
+    /* The ballot stacks on a phone: a portrait, a name and seven buttons do not fit
+       a row. */
     .fs-ballot-row { flex-direction: column; align-items: flex-start; }
     .fs-ballot-choices { width: 100%; }
     .fs-choice { flex: 1; min-width: 2.4rem; padding: 0.45rem 0.3rem; }

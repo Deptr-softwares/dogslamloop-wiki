@@ -104,6 +104,13 @@ const TRIMMED = [
     'js/owner/owner-tier-lists.js',
     'js/owner/owner-media-report.js',
     'js/owner/post-editor.js',
+    'js/pages/tier-lists/tier-editor.js',
+    'js/pages/tools/free_submit_tier_list.js',
+    'js/pages/tools/create_tier_list.js',
+    'js/pages/tools/editor_playground.js',
+    'style/tier-editor.css',
+    'style/tools/free_submit_tier_list.css',
+    'style/tools/create_tier_list.css',
 ];
 
 // What a comment never holds. A PR number is #NNN on its own, never a colour,

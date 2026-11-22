@@ -1,27 +1,16 @@
 /**
- * Dogslamloop Wiki - Create Tier List (v1.1)
- *
- * Any visitor ranks the roster their own way and copies the result as an
- * image. Nothing is sent anywhere: the list lives in this browser, and the
- * image goes to the clipboard (owner, 2026-08-16: "delivers to the clipboard,
- * not a download"), with a PNG download only when the browser cannot copy one.
- *
- * The owner's calls: on the site, not an external tool (2026-10-18);
- * drag-and-drop, with tier names and colours customisable (v0.15); the image
- * carries an optional title (2026-10-20) and the site's branding at the top
- * right of the first tier, on the board too, TierMaker's way (2026-10-21); no
- * Edit and no History, because the page is the tool (2026-10-21); a choice of
- * portraits or icons, and of big or small branding (2026-10-22).
- *
- * The characters come from the shared roster (loadCharacterRoster in
- * js/utility/site_utils.js), which serves every portrait from this site's own
- * medias/portraits/. That is what lets the image be drawn at all: a
- * cross-origin portrait taints the canvas, and toBlob() throws on a tainted
- * one. Hidden characters are private-server only, so they are left out.
- *
- * Namespaced mk- ("make") in the markup. The certified lists use ctl- and Free
- * Submit fs-, and three features sharing a prefix is how a fix to one reaches
- * the others. .tier-portrait is the one deliberate reuse: the same icon.
+ * Create Tier List: any visitor ranks the roster their own way and copies the
+ * result as an image. Nothing is sent anywhere: the list stays in this browser,
+ * and the image goes to the clipboard, or downloads as a PNG when the browser
+ * cannot copy one.
+ * @since v1.1
+ * @touches loadCharacterRoster (site_data.js), rosterIconPath (site_meta.js),
+ *   registerWikiTool (tool_page.js), localStorage dsl_create_tier_list
+ * @watch every portrait comes from this site's own medias/portraits/: a
+ *   cross-origin one taints the canvas, and toBlob() throws. Hidden characters
+ *   are left out. Classes are prefixed mk-, apart from the certified lists' ctl-
+ *   and Free Submit's fs-; .tier-portrait is the one shared on purpose.
+ * @see docs/tier-lists.md
  */
 
 (function () {
@@ -32,8 +21,7 @@
     const TIERS_MAX = 12;
     const DRAG_START_PX = 6;
 
-    // Free Submit's scale (supabase/migrations/20260814000001), so the two
-    // community lists read alike.
+    // Free Submit's scale, so the two community lists read alike.
     const DEFAULT_TIERS = [
         { name: 'S', color: 'hsl(0, 80%, 60%)' },
         { name: 'A', color: 'hsl(30, 80%, 60%)' },
@@ -43,43 +31,32 @@
         { name: 'F', color: 'hsl(300, 80%, 60%)' },
     ];
 
-    // A palette and a hex field, not the editor's full picker: that lives in
-    // js/editor/blocks/editor-blocks.js, and this page would have to load the whole editor
-    // for it. Not <input type="color"> either, which opens the operating
-    // system's dialog over the wiki (why the tier editor dropped it).
+    // A palette and a hex field: the editor's picker would mean loading the editor,
+    // and <input type="color"> opens the operating system's dialog.
     const PALETTE = [
         ...DEFAULT_TIERS.map(t => t.color),
         'hsl(45, 90%, 55%)', 'hsl(180, 70%, 55%)', 'hsl(270, 70%, 70%)',
         'hsl(340, 80%, 70%)', 'hsl(0, 0%, 75%)', 'hsl(0, 0%, 45%)',
     ];
 
-    // The image, laid out at its Standard size. Width is fixed so a list
-    // looks the same wherever it was made; height follows the rows. The cells
-    // stretch to fill the row, 3px apart (owner, 2026-10-21: "the distance
-    // between the each character ... somewhere 2px-3px").
+    // The image at its Standard size: a fixed width, so a list looks the same
+    // wherever it was made, and cells 3px apart that stretch to fill the row.
     const IMG = { width: 1200, label: 150, cell: 120, gap: 3, pad: 3, line: 2, title: 76 };
-    // High and Max draw the same layout two and three times as sharp (owner,
-    // 2026-10-21: "the export quality is kinda low"). The portraits are 320 to
-    // 400px across, so Max is about as sharp as they get.
+    // High and Max draw the same layout two and three times as sharp; the portraits
+    // are 320 to 400px across, so Max is about as sharp as they get.
     const QUALITIES = [
         { scale: 1, label: 'Standard (1200px wide)' },
         { scale: 2, label: 'High (2400px wide)' },
         { scale: 3, label: 'Max (3600px wide)' },
     ];
     const DEFAULT_SCALE = 2;
-    // A fixed block at the top right of the first tier, the last `cells`
-    // places of its first row, which that tier's characters wrap around; every
-    // other tier fills its whole row (owner, 2026-10-21, after TierMaker's).
+    // A fixed block at the top right of the first tier, which its characters wrap
+    // around; every other tier fills its whole row.
     const BRAND = { text: 'dogslamloop.com', icon: 'medias/images/DogslamloopIcon.webp', cells: 2 };
     const LABEL_FONT = '"CC-Wild-Words", sans-serif';
 
-    // Owner, 2026-10-22: "make it an option to use either the Icons or the
-    // Portraits", and "either the big branding at the top right corner, or the
-    // small subtle 1-box size branding at the bottom right corner". Both are
-    // preferences like the quality: kept on the device and through RESET.
-    // An icon is the roster's (rosterIconPath, js/pages/core/pagebuilder.js), drawn the
-    // way the certified lists draw one; a character with no icon keeps its
-    // portrait.
+    // Portraits or icons, big or small branding: preferences like the quality, kept
+    // on the device and through RESET. A character with no icon keeps its portrait.
     const PICTURES = [
         { value: 'portrait', label: 'Portraits' },
         { value: 'icon', label: 'Icons' },
@@ -126,10 +103,8 @@
         return { title: '', tiers: DEFAULT_TIERS.map(t => ({ ...t, characters: [] })) };
     }
 
-    // --- KEPT ON THIS DEVICE ---
-
-    // Whatever was saved, cut back to what can still be drawn: a character
-    // removed or hidden since goes, and each character sits in one tier only.
+    // What was saved, cut back to what can still be drawn: a character removed or
+    // hidden since goes, and each sits in one tier only.
     function sanitise(saved) {
         if (!saved || !Array.isArray(saved.tiers) || !saved.tiers.length) return null;
         const seen = new Set();
@@ -154,8 +129,8 @@
         try {
             saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
         } catch (e) {
-            // Unreadable or blocked: start from the defaults. A blocked write
-            // is the one the reader is told about, in save().
+            // Unreadable or blocked: start from the defaults. A blocked write is the one the
+            // reader is told about, in save().
             saved = null;
         }
         const list = sanitise(saved) || defaults();
@@ -180,15 +155,13 @@
         if (note) note.hidden = saved;
     }
 
-    // --- WHERE EVERYONE IS ---
-
     function zoneOf(id) {
         const index = state.tiers.findIndex(t => t.characters.includes(id));
         return index < 0 ? 'pool' : String(index);
     }
 
-    // Also the tap and keyboard path: a move is a data operation, and the drag
-    // is one way to ask for it.
+    // The tap and keyboard path too: a move is a data operation, and dragging is one
+    // way to ask for it.
     function place(id, zone, beforeId, focusAfter) {
         state.tiers.forEach(t => { t.characters = t.characters.filter(c => c !== id); });
         const tier = zone === 'pool' ? null : state.tiers[Number(zone)];
@@ -224,9 +197,6 @@
         node.classList.toggle('mk-status-error', !!isError);
     }
 
-    // --- THE BOARD ---
-
-    // The icon for a character when Icons is picked, or null.
     function iconPath(id) {
         return state.pictures === 'icon' && typeof window.rosterIconPath === 'function'
             ? window.rosterIconPath(id) : null;
@@ -247,7 +217,6 @@
         // Or the browser starts its own image drag and cancels ours.
         img.draggable = false;
 
-        // The portrait's look: the character's colour fills the box.
         const asPortrait = () => {
             face.classList.remove('tier-portrait-icon', 'is-icon-loaded');
             face.style.removeProperty('--char-color');
@@ -255,7 +224,7 @@
             if (meta.image) img.src = rootPath + meta.image;
             else img.style.display = 'none';
         };
-        // No icon yet: the portrait instead. No portrait either: the name.
+        // No icon yet: the portrait. No portrait either: the name.
         img.addEventListener('error', () => {
             if (face.classList.contains('tier-portrait-icon')) asPortrait();
             else img.style.display = 'none';
@@ -263,11 +232,11 @@
 
         const icon = iconPath(id);
         if (icon) {
-            // The icon's look (style/Layout.css, .tier-portrait-icon): the
-            // colour moves to the border and the icon is fitted, not cropped.
+            // The icon's look (.tier-portrait-icon in Layout.css): the colour moves to the
+            // border, and the icon is fitted, not cropped.
             face.classList.add('tier-portrait-icon');
             if (color) face.style.setProperty('--char-color', color);
-            // Hides the name behind it (style/Layout.css, .is-icon-loaded).
+            // Hides the name behind it (.is-icon-loaded in Layout.css).
             img.addEventListener('load', () => {
                 if (face.classList.contains('tier-portrait-icon')) face.classList.add('is-icon-loaded');
             });
@@ -288,8 +257,8 @@
         return node;
     }
 
-    // Decorative: the copied image says the same in pixels. Its corner is held
-    // by grid placement (create_tier_list.css), so nothing here measures.
+    // Decorative: the copied image says the same in pixels. Grid placement holds its
+    // corner, so nothing here measures.
     function brand() {
         const node = el('div', state.branding === 'small' ? 'mk-brand mk-brand-small' : 'mk-brand');
         node.setAttribute('aria-hidden', 'true');
@@ -302,8 +271,8 @@
         return node;
     }
 
-    // One size per name length rather than measuring: a scale of labels
-    // reads as one when the short ones agree, and a long name wraps inside.
+    // One size per name length rather than measuring: the short labels agree, and a
+    // long name wraps inside.
     function setLabel(label, name) {
         label.textContent = name;
         const length = Array.from(name).length;
@@ -329,15 +298,13 @@
             body.dataset.zone = String(index);
             if (index === 0 && state.branding === 'big') body.appendChild(brand());
             tier.characters.forEach(id => body.appendChild(entry(id)));
-            // After the characters, so the grid puts it after the last one,
-            // in the last column (create_tier_list.css).
+            // After the characters, so the grid puts it last, in the last column.
             if (index === last && state.branding === 'small') body.appendChild(brand());
             row.appendChild(body);
             board.appendChild(row);
         });
 
-        // Recomputed, never stored, so a character added to the wiki shows up
-        // here the next time the page opens.
+        // Recomputed, never stored, so a character added to the wiki shows up next time.
         const placed = new Set(state.tiers.flatMap(t => t.characters));
         const waiting = Array.from(state.roster.keys()).filter(id => !placed.has(id));
         pool.textContent = '';
@@ -345,8 +312,6 @@
         if (!waiting.length) pool.appendChild(el('span', 'mk-empty', 'Everyone is placed.'));
         state.root.querySelector('[data-mk-pool-count]').textContent = `(${waiting.length})`;
     }
-
-    // --- THE TIERS ---
 
     function closeColorPopups() {
         state.root.querySelectorAll('.mk-color-popup').forEach(popup => {
@@ -450,9 +415,8 @@
             name.setAttribute('aria-label', `Name of tier ${index + 1}`);
             name.addEventListener('input', () => {
                 tier.name = name.value;
-                // The board label only. Rebuilding the controls here would
-                // throw away the field being typed into, the tier editor's
-                // one-letter-at-a-time bug (owner, 2026-08-18).
+                // The board label only: rebuilding the controls would throw away the field being
+                // typed into.
                 const label = state.root.querySelector(`.mk-label[data-zone="${index}"]`);
                 if (label) setLabel(label, tier.name);
                 save();
@@ -494,8 +458,7 @@
             const used = new Set(state.tiers.map(t => t.color));
             state.tiers.push({ name: 'New', color: PALETTE.find(c => !used.has(c)) || PALETTE[10], characters: [] });
         } else if (action === 'remove') {
-            // Its characters go back to Not placed yet, because the pool is
-            // whoever is in no tier.
+            // Its characters go back to Not placed yet: the pool is whoever is in no tier.
             state.tiers.splice(index, 1);
         } else {
             const other = action === 'up' ? index - 1 : index + 1;
@@ -515,11 +478,11 @@
         }
     }
 
-    // --- DRAG (mouse and pen; a finger taps, so the page still scrolls) ---
+    // Drag is mouse and pen; a finger taps, so the page still scrolls.
 
-    // Where a drop at (x, y) lands. Over a character, its left half means
-    // before it and its right half after it; past the end of a line, the
-    // start of the next. The pool keeps roster order, so it has no position.
+    // Where a drop at (x, y) lands: before a character on its left half, after it on
+    // its right; past the end of a line, the start of the next. The pool keeps roster
+    // order.
     function targetAt(x, y) {
         const under = document.elementFromPoint(x, y);
         if (!under || !state.root.contains(under)) return null;
@@ -542,9 +505,8 @@
         if (zoneEl) zoneEl.classList.add('mk-zone-hot');
     }
 
-    // The bar in the gap the character will drop into (owner, 2026-10-21: "a
-    // clear indicator inbetween the characters"). Fixed over the board rather
-    // than inserted into it, so nothing moves under the pointer.
+    // The bar in the gap the character will drop into, fixed over the board so
+    // nothing moves under the pointer.
     function showMarker(target) {
         const marker = state.marker;
         if (!target || !target.body) { marker.hidden = true; return; }
@@ -596,8 +558,7 @@
     function endDrag(e, dropped) {
         state.press = null;
         if (!state.drag) return;
-        // Read while the drag is still on, so the character being moved is
-        // not a place to drop it.
+        // Read while the drag is on, so the character moved is not a place to drop it.
         const target = dropped ? targetAt(e.clientX, e.clientY) : null;
         const { id, node, ghost } = state.drag;
         state.drag = null;
@@ -606,15 +567,15 @@
         highlight(null);
         showMarker(null);
 
-        // The click that follows a drag is not a tap. Cleared on the next
-        // turn, because a drop between two elements fires no click at all.
+        // The click after a drag is not a tap. Cleared on the next turn, since a drop
+        // between two elements fires no click.
         state.suppressClick = true;
         setTimeout(() => { state.suppressClick = false; }, 0);
 
         if (target) place(id, target.zone, target.before, false);
     }
 
-    // --- TAP (and the keyboard, since entries and labels are buttons) ---
+    // Tap, and the keyboard, since entries and labels are buttons.
 
     function onClick(e) {
         if (state.suppressClick) return;
@@ -660,8 +621,6 @@
         setStatus('The list is back to the defaults.');
     }
 
-    // --- THE IMAGE ---
-
     function fitFont(ctx, text, maxWidth, largest, smallest, family) {
         let size = largest;
         ctx.font = `${size}px ${family}`;
@@ -676,8 +635,7 @@
         return new Promise(resolve => {
             const img = new Image();
             img.onload = () => resolve(img);
-            // A missing portrait draws the name on its colour, the same as the
-            // board does.
+            // A missing portrait draws the name on its colour, as the board does.
             img.onerror = () => resolve(null);
             img.src = src;
         });
@@ -699,9 +657,8 @@
         return lines;
     }
 
-    // An icon as the board draws one (style/Layout.css, .tier-portrait-icon):
-    // the dark ground with its faint hatching, the icon fitted whole, and the
-    // character's colour on a 3px border.
+    // An icon as the board draws one (.tier-portrait-icon): the dark hatched ground,
+    // the icon fitted whole, the character's colour on a 3px border.
     function drawIconEntry(ctx, img, x, y, size, color, ground) {
         ctx.fillStyle = ground;
         ctx.fillRect(x, y, size, size);
@@ -744,8 +701,7 @@
         ctx.fillRect(x, y, size, size);
 
         if (img && img.naturalWidth && img.naturalHeight) {
-            // Cropped to a centred square, the crop object-fit: cover gives
-            // the board.
+            // Cropped to a centred square, as object-fit: cover crops the board's.
             const scale = Math.max(size / img.naturalWidth, size / img.naturalHeight);
             const sw = size / scale;
             const sh = size / scale;
@@ -786,8 +742,8 @@
         }
 
         const rootPath = window.getRootPath();
-        // Each character's picture, and whether it is an icon. An icon that
-        // will not load falls back to the portrait, as on the board.
+        // Each character's picture, and whether it is an icon. An icon that will not load
+        // falls back to the portrait, as on the board.
         const images = new Map();
         await Promise.all(state.tiers.flatMap(t => t.characters).map(async id => {
             const meta = state.roster.get(id);
@@ -804,13 +760,12 @@
         const cell = Math.floor((bodyWidth - (perRow - 1) * IMG.gap) / perRow);
         const small = state.branding === 'small';
         const brandTier = small ? state.tiers.length - 1 : 0;
-        // Big: the place character n takes in the first tier stops where the
-        // branding starts on the first row, and the rest carry on below it.
+        // Big: the first tier's first row stops where the branding starts, and the rest
+        // carry on below it.
         const firstRow = perRow - BRAND.cells;
         const slot = (i, n) => (!small && i === 0 && n >= firstRow ? n + BRAND.cells : n);
-        // Small: the last column of the line after the last tier's last
-        // character, or of a new line when that one is full. The same place
-        // the board's grid gives it.
+        // Small: the last column of the line after the last tier's last character, or of
+        // a new line when that one is full, where the board's grid puts it.
         const smallSlot = (count) => Math.floor(count / perRow) * perRow + perRow - 1;
         const heights = state.tiers.map((t, i) => {
             let taken = t.characters.length;
@@ -822,8 +777,7 @@
         const top = title ? IMG.title : 0;
         const height = top + heights.reduce((a, b) => a + b, 0) + IMG.line * (heights.length + 1);
 
-        // Drawn in Standard units and scaled, so every quality has the same
-        // layout and only the sharpness changes.
+        // Drawn in Standard units and scaled, so every quality has the same layout.
         const canvas = document.createElement('canvas');
         canvas.width = IMG.width * scale;
         canvas.height = height * scale;
@@ -888,8 +842,8 @@
         return canvas;
     }
 
-    // The icon over dogslamloop.com, centred in its block: big at full
-    // strength like TierMaker's own, small in one box at about half.
+    // The icon over dogslamloop.com, centred: big at full strength, small in one box
+    // at about half.
     function drawBrand(ctx, icon, x, y, w, h, ink, small) {
         ctx.save();
         if (small) ctx.globalAlpha = SMALL_BRAND_ALPHA;
@@ -939,12 +893,11 @@
     async function copyImage(btn) {
         btn.disabled = true;
         setStatus('Drawing the image...');
-        // Started before the clipboard call and handed to it as a promise:
-        // Safari only allows the write while the click is still the reason
-        // for it, and drawing takes longer than that.
+        // Started before the clipboard call and handed to it as a promise: Safari allows
+        // the write only while the click is still its reason, and drawing takes longer.
         const drawn = drawTierList(state.scale);
         const png = drawn.then(toPng);
-        // The size, because a big image is the one a chat app refuses.
+        // The size, since a big image is the one a chat app refuses.
         const size = async () => {
             const [canvas, blob] = await Promise.all([drawn, png]);
             return `${canvas.width}x${canvas.height}, ${(blob.size / 1048576).toFixed(1)} MB`;
@@ -972,8 +925,6 @@
             btn.disabled = false;
         }
     }
-
-    // --- THE PAGE ---
 
     window.registerWikiTool(PAGE_ID, async (mount) => {
         const all = await window.loadCharacterRoster();
