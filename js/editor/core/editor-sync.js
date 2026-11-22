@@ -1,27 +1,20 @@
 /**
- * Dogslamloop Wiki - Editor: Sync & Diff Engine (pushes the in-memory block
- * buffer back into desc_data/frame_data, rebuilds the live preview, and
- * renders the pending-vs-live diff comparison)
- *
- * triggerManualSync and updateLivePreview are kept together deliberately -
- * both re-branch on pageType/tabId almost identically and both decide where
- * the block-buffer state (currentStrategyBlocks, declared in
- * js/editor/blocks/editor-blocks.js) gets written back into desc_data; splitting them
- * apart by page-type would separate code that has to stay in sync with
- * itself.
+ * Sync and the preview: the Block buffer written back into the page's data, the
+ * live preview redrawn, and VIEW DIFF (side by side, or the change list).
+ * @since v0.4, as part of editor.js
+ * @touches currentStrategyBlocks (editor-blocks.js), window.currentEditorDescData
+ *   and currentEditorFrameData, loadPageDescriptions (description.js),
+ *   approved_revisions, diff-markers.js, side-by-side.js
+ * @watch triggerManualSync and updateLivePreview branch on the page type and tab
+ *   almost alike, and both decide where the buffer is written back: they stay
+ *   together so they cannot drift
+ * @see docs/editor.md
  */
 
-// Writes the block buffer back into whichever entry of a keyed section is
-// open (js/utility/character_tabs.js). currentStrategyBlocks is only ever written into
-// desc_data on sync, so skipping this drops whatever the contributor is typing
-// right now. Two separate sync paths need it, hence module scope.
-//
-// Guarded on the entry still existing: removeKeyedEntry clears the index, but a
-// sync racing a delete could otherwise write blocks into a slot that now holds
-// a different topic.
-//
-// Named with the section prefix rather than `flush` because every js/ file here
-// shares one global lexical scope - see tests/global-scope-collisions.spec.js.
+// Writes the buffer back into the open entry of a keyed section (character_tabs.js):
+// the buffer reaches desc_data only on sync. Checked that the entry still
+// exists, since a sync racing a delete could write into another topic. Not named
+// `flush`: every file here shares one global scope.
 function flushKeyedSection(id, blocks) {
     const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab(id) : null;
     const idx = (window.currentKeyedIndex || {})[id];
@@ -32,26 +25,24 @@ function flushKeyedSection(id, blocks) {
 }
 
 
-// diffTextLCS and resolveDiffMarkers come from js/utility/diff-markers.js, the same
-// file the review queue loads. This file carried its own older copy until
-// v0.20; it returned real <ins>/<del> tags, which the block renderer escapes,
-// so a contributor's diff mode showed the tags as text.
+// diffTextLCS and resolveDiffMarkers come from diff-markers.js, the file the
+// review queue loads too.
 
-// --- PREVIEW ONLY ON SYNC (v1.1, js/editor/core/editor-config.js) ---
-//
-// An edit still reaches the page's data, the undo history and the draft; only
-// the redraw waits. Anything that goes through triggerManualSync draws, which
-// is Sync itself and every section switch, so the preview never shows a
-// different place from the Workspace.
+// Preview only on Sync (Config): an edit still reaches the data, the UNDO history
+// and the draft, and only the redraw waits. Everything through triggerManualSync
+// draws (Sync and every section switch), so the preview never shows another place.
 let previewSyncDepth = 0;
-// A held edit leaves the preview behind the data, and only for the section it
-// was in, so the next draw is a whole one: a system page's single-section
-// repaint would otherwise skip the section the edit was made in.
+// A held edit leaves the preview behind for its own section only, so the next
+// draw is a whole one: a single-section repaint would skip that section.
 let previewMissedDraw = false;
 function previewHeld() {
     return previewSyncDepth === 0 && !!window.editorConfig && window.editorConfig.get('previewOnSync') === true;
 }
 
+/**
+ * Draws the preview now, also when Config holds it for Sync.
+ * @since v1.1
+ */
 window.drawLivePreviewNow = function (skipHistory = false) {
     previewSyncDepth++;
     try {
@@ -61,14 +52,19 @@ window.drawLivePreviewNow = function (skipHistory = false) {
     }
 };
 
-// The Sync button. A system page's triggerManualSync only flushes (typing has
-// always redrawn that preview), so the redraw is asked for here.
+/**
+ * The Sync button. A system page's triggerManualSync only flushes, so the redraw
+ * is asked for here.
+ * @since v1.1
+ */
 window.syncWorkspace = async function () {
     await window.triggerManualSync();
     if (window.currentEditorPageType === 'system') window.drawLivePreviewNow(true);
 };
 
-// --- MASTER MANUAL SYNC ---
+/**
+ * Writes the Block buffer back into the section on screen, then redraws.
+ */
 window.triggerManualSync = async function () {
     previewSyncDepth++;
     try {
@@ -79,7 +75,6 @@ window.triggerManualSync = async function () {
 };
 
 async function syncEditorBuffer() {
-    // Safely sync the system blocks ---
     if (window.currentEditorPageType === 'system') {
         if (window.currentEditorDescData && window.currentEditorDescData.tabs) {
             let tab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
@@ -88,14 +83,14 @@ async function syncEditorBuffer() {
             }
         }
         if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
-        return; // CRITICAL: Exit early so the Character logic below doesn't trigger!
+        return; // the character branch below must not run
     } else if (window.currentEditorPageType === 'tierlist') {
-        // Tierlist handles its own data binding natively via oninput
+        // The tier list binds its own data on input.
         if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
         return; 
     } else if (window.currentEditorPageType === 'tool') {
-        // Intro and notes are ordinary block arrays behind one buffer, so the
-        // flush has to know which of the two is on screen.
+        // Intro and notes are two Block arrays behind one buffer, so the flush asks
+        // which is on screen.
         if (typeof window.flushToolBlocks === 'function') window.flushToolBlocks();
         if (typeof window.renderToolPage === 'function' && window.currentEditorCharId) {
             window.renderToolPage(window.currentEditorCharId);
@@ -104,7 +99,6 @@ async function syncEditorBuffer() {
         return;
     }
 
-    // --- CHARACTER SYNC LOGIC ---
     const tabId = window.currentEditorTabId;
     const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
@@ -134,22 +128,13 @@ async function syncEditorBuffer() {
         }
         renderMatchupsPreview();
     } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
-        // A document tab (Combos, Techs). It needs its own branch for the same
-        // reason the keyed one below does - the buffer belongs to whichever of
-        // the three sections is open, and the tab is composed rather than being
-        // a single block list.
-        //
-        // WITHOUT THIS, COMBOS FELL THROUGH TO THE GENERIC ELSE, which calls
-        // populateTextSection('tab-combos', 'Editing combos', buffer) - blowing
-        // the composed tab away and leaving a bare block dump titled "Editing
-        // combos" behind. Found while generalising this for Techs; it has been
-        // the behaviour since the Combos tab shipped in v0.15.
+        // A document tab (Combos, Techs): the buffer belongs to whichever of its three
+        // sections is open, and the tab is composed, not one Block list. The generic
+        // branch would replace the tab with a bare Block dump.
         if (typeof window.flushDocumentSection === 'function') window.flushDocumentSection();
         window.renderDocumentPreview(tabId);
     } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
-        // Any keyed section (js/utility/character_tabs.js). Flushes the open entry's
-        // blocks back into it before redrawing, which is what stops the buffer
-        // being dropped when the contributor switches away.
+        // Any keyed section: the open entry's Blocks go back into it before the redraw.
         flushKeyedSection(tabId, currentStrategyBlocks);
         window.renderKeyedSectionPreview(tabId);
     } else if (typeof updateLivePreview === 'function') {
@@ -160,28 +145,17 @@ async function syncEditorBuffer() {
 }
 
 /**
- * Does the rendered preview still match this tab's DATA, structurally?
- *
- * The gate on FT6's single-section repaint. It answers one question only: is
- * everything except block CONTENT the same, so that repainting one section
- * cannot leave the page showing something the data no longer says.
- *
- * Deliberately a whole-tab fingerprint rather than a check of the edited
- * section alone. Deleting a section shifts every index after it, so a check
- * scoped to the active section would pass while its neighbours rendered under
- * the wrong ids - the fast path would then be right about the one section it
- * looked at and wrong about the page.
- *
- * Returns false on anything it cannot verify, including a missing preview
- * pane. False costs one full redraw; a wrong true costs a contributor their
- * trust in the preview.
+ * Whether the system page's preview still matches this tab's data in all but
+ * Block content, which gates the single-section repaint. A whole-tab check:
+ * deleting a section shifts every index after it. False on anything it cannot
+ * verify, which costs one full redraw.
+ * @since v0.18
  */
 window.systemPreviewMatchesData = function (tab) {
     if (!tab || !Array.isArray(tab.sections) || !tab.sections.length) return false;
 
     const container = document.getElementById(`tab-${tab.tabId}`);
-    // Hidden means the visible tab is a different one, which is a tab switch:
-    // the rebuild also has to move the nav highlight, so it must not be skipped.
+    // Hidden means a tab switch, which must also move the nav highlight.
     if (!container || container.classList.contains('hidden')) return false;
 
     const rendered = container.querySelectorAll('.wiki-section');
@@ -194,14 +168,12 @@ window.systemPreviewMatchesData = function (tab) {
         const node = content.parentElement;
         if (!node.classList.contains('wiki-section')) return false;
 
-        // textContent, so this compares against the RAW title - the renderer
-        // escapes on the way in, and comparing escaped output to raw data
-        // would report a mismatch for every title containing an ampersand.
+        // textContent, so it compares with the raw title: escaped output would differ
+        // for every title with an ampersand.
         const heading = node.querySelector('h2.section-title');
         if ((heading ? heading.textContent : '') !== (section.sectionTitle || '')) return false;
 
-        // Geometry is written as an inline style by the renderer, so it can be
-        // read back exactly rather than recomputed.
+        // The renderer writes geometry inline, so it reads back exactly.
         const width = section.width === undefined ? null : `0 0 ${section.width}%`;
         if (width !== null && node.style.flex !== width) return false;
 
@@ -209,11 +181,14 @@ window.systemPreviewMatchesData = function (tab) {
     });
 };
 
-// --- LIVE SYNC & STATE MANAGEMENT ---
+/**
+ * Writes the buffer into the page's data, records history (unless skipHistory),
+ * saves the draft and redraws the preview. The Block editor calls it after
+ * every change.
+ */
 function updateLivePreview(skipHistory = false) {
-    // Not while VIEW DIFF has another version of the page in the editor's
-    // place (drawTabApart below): this writes the Workspace into the page's
-    // data, which in that moment is the other version.
+    // Not while VIEW DIFF has another version in the editor's place
+    // (drawTabApart): this would write the Workspace into that version.
     if (window.afterDrawingApart(() => updateLivePreview(skipHistory))) return;
     const draw = !previewHeld();
     if (!draw) previewMissedDraw = true;
@@ -230,7 +205,6 @@ function updateLivePreview(skipHistory = false) {
         return;
     }
 
-    // --- Safely sync the blocks and bypass Character Preview logic ---
     if (window.currentEditorPageType === 'system' || window.currentEditorPageType === 'tierlist') {
         if (window.currentEditorPageType === 'system') {
             let syncedTab = null;
@@ -247,20 +221,10 @@ function updateLivePreview(skipHistory = false) {
                 return;
             }
 
-            // --- FT6: repaint ONLY the section being edited ---
-            //
-            // Every keystroke used to call loadPageDescriptions, which rebuilds
-            // EVERY tab and EVERY section of the page and then hides all but
-            // one 150ms later. On a long system page that is the whole document
-            // re-rendered per character typed, plus a window where the wrong tab
-            // is the visible one.
-            //
-            // The fast path is deliberately fail-safe: it runs only when a full
-            // structural fingerprint of the visible tab still matches the data
-            // (same tab, same section count, same titles, same geometry), so
-            // anything structural - adding, deleting, renaming, resizing,
-            // switching tab - fails the check and takes the original rebuild.
-            // A missed case costs a redraw, never a stale preview.
+            // A system page repaints only the section being edited: a full rebuild per
+            // keystroke re-rendered the whole document. Only while the structural check
+            // above passes, so anything structural takes the full rebuild. A missed case
+            // costs a redraw, never a stale preview.
             if (syncedTab && !previewMissedDraw && window.systemPreviewMatchesData(syncedTab)
                 && typeof window.populateTextSection === 'function') {
                 window.populateTextSection(
@@ -297,7 +261,7 @@ function updateLivePreview(skipHistory = false) {
         }
         
         if (!skipHistory && typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
-        return; // CRITICAL
+        return; // the character branch below must not run
     }
 
     const previewPane = document.querySelector('.live-preview-pane');
@@ -310,17 +274,9 @@ function updateLivePreview(skipHistory = false) {
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    // window.currentEditorTabId is the authoritative tab, the same thing
-    // triggerManualSync above reads. This used to take urlParams.get('tab')
-    // raw, which disagreed with editor-core.js's own `urlParams.get('tab') ||
-    // 'overview'` boot default - so opening the editor without a ?tab= gave
-    // the editor 'overview' and gave this function null. null matched no
-    // branch below, fell through to the generic else, and built a phantom
-    // "tab-null" section titled "Editing null" out of currentStrategyBlocks,
-    // which still held the previous section's blocks. That is the reported
-    // uneditable section that copied the last section's contents, and the
-    // reason the preview looked like it was not picking up new content when
-    // intercepting a ticket that carried no &tab=.
+    // The tab triggerManualSync reads, with editor-core.js's own default: a raw
+    // ?tab= gave null when the URL had none, and built a phantom section from the
+    // previous section's Blocks.
     const tabId = window.currentEditorTabId || urlParams.get('tab') || 'overview';
     const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
@@ -374,9 +330,7 @@ function updateLivePreview(skipHistory = false) {
         if (draw && typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
 
     } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
-        // See the matching branch in triggerManualSync above. This is the call
-        // path that runs on every keystroke in a block, so it is the one that
-        // was destroying the Combos preview as it was typed into.
+        // As in triggerManualSync: this runs on every keystroke in a Block.
         if (typeof window.flushDocumentSection === 'function') window.flushDocumentSection();
         if (draw && typeof window.renderDocumentPreview === 'function') window.renderDocumentPreview(tabId);
 
@@ -418,22 +372,18 @@ function updateLivePreview(skipHistory = false) {
         }, 50);
     }
 
-    // --- REFRESH EXTERNAL UI HOOKS ---
     if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
     
     // Math in the live preview, fetched the first time there is some.
     setTimeout(() => window.renderMathIfAny(document.querySelector('.live-preview-pane')), 150);
 }
 
-// --- VIEW DIFF: SIDE BY SIDE (v1.2, owner's Overseer card) ---
-// "There is no way to compare historical page versions from the current
-// version in the editor". The owner's pick from the mockups (2026-11-18): a
-// "Compare with" picker beside the diff, in the same side-by-side as the
-// Overseer (js/utility/side-by-side.js). The left side is the live page, or a past
-// version picked from the approved edits since 2026-10-29 (the ones the site
-// knows the whole page after, as on the History page); the right side is the
-// page in this editor. The list VIEW DIFF used to show is CHANGE LIST, which
-// is renderDiffView below.
+/**
+ * VIEW DIFF: a "Compare with" picker over the side by side the Overseer uses
+ * (side-by-side.js). The left side is the live page, or a past version from the
+ * approved edits the site knows the whole page after; the right side is the page
+ * in this editor. CHANGE LIST is the list (renderDiffView).
+ */
 window.toggleDiffMode = async function() {
     window.isDiffModeActive = !window.isDiffModeActive;
     const btn = document.getElementById('btn-toggle-diff');
@@ -461,24 +411,19 @@ window.toggleDiffMode = async function() {
 let editorSideBySide = null;
 let editorSideBySideRun = 0;
 
-// While the side-by-side is up, the Workspace folds away, so each half gets
-// about half the window instead of half of what the Workspace leaves (owner,
-// 2026-11-18: "way too compressed"). The bar's WORKSPACE button brings it back
-// for the rest of this VIEW DIFF. Anything without that button (the list, a
-// version that could not be loaded) unfolds it, since EXIT DIFF is in it.
+// While the side by side is up, the Workspace folds away, so each half gets half
+// the window. The bar's WORKSPACE button brings it back for this VIEW DIFF; a
+// view without that button unfolds it, since EXIT DIFF is in it.
 let workspaceKeptOpen = false;
 function foldWorkspace(fold) {
     const layout = document.querySelector('.editor-layout-split');
     if (layout) layout.classList.toggle('sbs-workspace-folded', fold);
 }
 
-// Set while drawTabApart has the preview's ids parked and, for the other
-// version, that version's data in the editor's place. A typing pause that
-// runs out in that moment (the block, profile, playstyle and system forms each
-// wait 400ms, and the click on VIEW DIFF does not cancel them) would write the
-// Workspace into that version, and for the live page that is the copy a
-// submission is measured against. So what those timers call waits, and runs
-// in order once the editor's own data is back. Returns true when it waited.
+// Set while drawTabApart has the preview's ids parked and another version in the
+// editor's place. A typing pause that runs out then (the forms wait 400ms) would
+// write the Workspace into that version, so what those timers call waits and
+// runs in order afterwards. afterDrawingApart returns true when it waited.
 let drawingApart = false;
 const waitingForEditorData = [];
 window.afterDrawingApart = function (fn) {
@@ -490,8 +435,7 @@ let compareWith = 'live';
 let pastVersions = null;
 const pastVersionPages = new Map();
 
-// Only the editor's own data from here: a mode's slice of a page, the way
-// js/editor/core/editor-modes.js slices the page it edits.
+// Only the editor's own data from here: a state's slice, as editor-modes.js cuts it.
 function editorModeSlice(master) {
     const mode = window.editorActiveMode;
     if (!master || !mode || (typeof window.isBaseMode === 'function' && window.isBaseMode(mode))) return master || {};
@@ -520,7 +464,7 @@ function editorDiffTabId() {
     return window.currentEditorTabId || 'overview';
 }
 
-// Where an approved edit was, in the words of the tab strip.
+// Where an approved edit was, in the tab strip's words.
 function pastVersionPlace(rev) {
     if (!rev.is_delta) return 'whole page';
     if (rev.target_scope === 'multi') return 'several places';
@@ -545,9 +489,9 @@ function pastVersionPlace(rev) {
 
 const pastVersionDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-// The approved edits the site knows the whole page after: approved_at is set
-// from 2026-10-29 on (20261029000001). Older ones only know what they
-// changed, and stay on the History page.
+// The approved edits the site knows the whole page after (approved_at set, from
+// migration 20261029000001 on). Older ones only know what they changed, and stay
+// on the History page.
 async function loadPastVersions() {
     if (pastVersions) return pastVersions;
     const { data, error } = await window.supabaseClient
@@ -570,7 +514,7 @@ async function loadPastVersions() {
     return pastVersions;
 }
 
-// The left side: the live page as the editor loaded it, or a past version.
+// The left side: the live page as loaded, or a past version.
 async function comparedVersion(id) {
     if (id === 'live') {
         return { desc: window.originalCloudDescData || {}, frame: window.originalCloudMasterFrame || window.originalCloudFrameData || {} };
@@ -585,11 +529,9 @@ async function comparedVersion(id) {
     return { desc, frame: page.frame_data || {} };
 }
 
-// Draws one version of a tab in a box of its own, so the editor's preview is
-// left exactly as it was. While it draws, every id in the preview is parked and
-// this box sits first in the pane, so a renderer looking an element up by id
-// finds this copy (getElementById returns the first in the page). `version`
-// null draws the page in the editor.
+// One version of a tab in a box of its own, so the preview stays as it was. While
+// it draws, every id in the preview is parked and this box is first in the pane,
+// so a renderer looking an id up finds this copy. `version` null is the editor's.
 async function drawTabApart(tabId, version) {
     const charId = window.currentEditorCharId;
     const pageType = window.currentEditorPageType || 'character';
@@ -629,8 +571,8 @@ async function drawTabApart(tabId, version) {
         const movesOnScreen = (window.FRAME_MOVE_CATEGORIES || []).includes(tabId);
         if (movesOnScreen && typeof window.loadMoveSection === 'function') await window.loadMoveSection(charId, tabId);
         if (typeof window.loadPageDescriptions === 'function') await window.loadPageDescriptions(charId, pageType);
-        // The move strategies and the profile card's Previous / Next tiles
-        // come in after the rest (js/pages/core/description.js).
+        // Move strategies and the profile card's Previous and Next tiles come in after
+        // the rest (description.js).
         if (movesOnScreen && window.moveStrategiesDrawn) await window.moveStrategiesDrawn;
         if (window.profilePagerFilled) await Promise.resolve(window.profilePagerFilled).catch(() => {});
         if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
@@ -670,7 +612,7 @@ function comparePicker() {
         select.append(none);
     }
     select.value = compareWith;
-    // `change`, not `input`: the site's dropdown only ever dispatches change.
+    // `change`: the site's dropdown only dispatches change.
     select.addEventListener('change', () => {
         if (!select.value) return;
         compareWith = select.value;
@@ -702,9 +644,11 @@ function changeListButton() {
     return list;
 }
 
-// A version that will not draw (a renderer throwing on what a page holds)
-// used to leave "Drawing both versions..." on screen for good, because nothing
-// caught it. It says so now, and keeps the list and the picker in reach.
+/**
+ * Draws the side by side. A version that will not draw says so, with the list and
+ * the picker still in reach.
+ * @since v1.2
+ */
 window.showEditorSideBySide = async function () {
     const run = ++editorSideBySideRun;
     try {
@@ -728,7 +672,7 @@ async function drawEditorSideBySide(run) {
     if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
     const host = editorDiffHost();
 
-    // A tier list, a tool, a gallery: not drawn tab by tab, so they keep the list.
+    // A tier list, a tool, a gallery are not drawn tab by tab: they keep the list.
     if (!['character', 'system'].includes(window.currentEditorPageType || 'character')) {
         window.renderDiffView();
         return;
@@ -751,7 +695,7 @@ async function drawEditorSideBySide(run) {
     }
 
     const tabId = editorDiffTabId();
-    // Nothing typed while the two versions are drawn can land in the wrong one.
+    // Nothing typed while both are drawn can land in the wrong one.
     const workspace = document.querySelector('.editor-workspace');
     if (workspace) workspace.inert = true;
     let left;
@@ -770,7 +714,7 @@ async function drawEditorSideBySide(run) {
         : { left: 'LIVE PAGE', leftHint: 'red: goes', right: 'YOUR EDITOR', rightHint: 'green: comes', onlyRight: 'Not on the live page', onlyLeft: 'Not in your editor' };
 
     const extra = [comparePicker()];
-    // The list compares against the live page only.
+    // The list compares with the live page only.
     if (!past) extra.push(changeListButton());
 
     const workspaceBtn = document.createElement('button');
@@ -791,7 +735,6 @@ async function drawEditorSideBySide(run) {
     editorSideBySide = window.SideBySide.mount(host, left, right, { labels, leadButtons: [workspaceBtn], extraButtons: extra });
 }
 
-// --- VISUAL DIFF COMPARISON ENGINE ---
 window.renderDiffView = function() {
     document.getElementById('standard-preview-container').classList.add('hidden');
     
@@ -846,8 +789,7 @@ window.renderDiffView = function() {
                         }
                         b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
                         b.note = window.diffTextLCS(oldB.note || '', newB.note || '');
-                        // Notation styles (v0.20), through the helper both review
-                        // screens share, so neither can miss a changed style.
+                        // Notation styles, through the helper both review screens share.
                         if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                     }
                     else if (b.type === 'table') {
@@ -877,9 +819,8 @@ window.renderDiffView = function() {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                     }
-                    // A combo card nests like an accordion, plus its own
-                    // fields. Missing this means the reviewer sees the card
-                    // unchanged while its route or damage was rewritten.
+                    // A Combo Card nests like an accordion, plus its own fields: without this the
+                    // card shows unchanged while its route was rewritten.
                     else if (b.type === 'theorybox') {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.oneliner = window.diffTextLCS(oldB.oneliner || '', newB.oneliner || '');
@@ -894,11 +835,7 @@ window.renderDiffView = function() {
                         }
                         if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
-                        // A card in Multiple Sections mode carries a whole
-                        // variant per tab - route, damage, clip and write-up -
-                        // so each one is diffed like a card in its own right.
-                        // Missing this means the reviewer sees the tabs
-                        // unchanged while every combo behind them was rewritten.
+                        // In Multiple Sections each tab is a whole variant, diffed like a card.
                         const oldCardSecs = oldB.sections || [];
                         const newCardSecs = newB.sections || [];
                         if (!Array.isArray(b.sections)) b.sections = [];
@@ -922,10 +859,7 @@ window.renderDiffView = function() {
                             b.sections[j].content = applyInlineDiffToBlocks(oSec.content || [], nSec.content || []);
                         }
                     }
-                    // A Section Box nests like an accordion twice over: an
-                    // introduction, and one content array per section. Missing
-                    // this means the reviewer sees the box unchanged while its
-                    // sections were rewritten under it.
+                    // A Section Box nests twice: an introduction and one array per section.
                     else if (b.type === 'sectionedbox') {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.intro = applyInlineDiffToBlocks(oldB.intro || [], newB.intro || []);
@@ -974,9 +908,7 @@ window.renderDiffView = function() {
 
                 const diffedBlocks = applyInlineDiffToBlocks(oldBlocks, newBlocks);
 
-                // A section's name carries contributor text (a move's id, a
-                // custom tab's name, a matchup's opponent), and so does the
-                // JSON below, so both are escaped.
+                // A section's name and the JSON below carry contributor text: both escaped.
                 diffContainer.innerHTML += `
                     <div class="diff-container">
                         <h3 class="diff-section-title">${window.escapeHtml(sectionName.toUpperCase())}</h3>
@@ -985,24 +917,13 @@ window.renderDiffView = function() {
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks);
-                    // Same pairing as the reviewer's view: the renderer escapes
-                    // the text, then the diff markers become tags. Without this
-                    // the contributor's own before/after preview shows raw
-                    // <ins class="diff-add"> instead of a diff.
-                    //
-                    // No typeof guard. There was one, and edit.html never loaded
-                    // the file that defines this, so the guard turned "missing
-                    // script" into "diff mode quietly shows tags" for months.
-                    // js/utility/diff-markers.js is on this page now; if it ever goes
-                    // missing again, this should throw where someone sees it.
+                    // As in the reviewer's view: the renderer escapes the text, then the markers
+                    // become tags. No typeof guard: a missing diff-markers.js should throw where
+                    // someone sees it.
                     window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
                 });
             } else {
-                // Same diff-stacked-* classes admin.html's own raw/JSON diff view
-                // uses (js/overseer/admin-preview.js, switchVersionView) - kept in sync rather than a
-                // parallel editor-only copy, and diff-container-raw is the
-                // only genuinely different piece (this branch's border/
-                // box-shadow differ from the inline-blocks branch above).
+                // The diff-stacked-* classes the Overseer's raw view uses (admin-preview.js).
                 diffContainer.innerHTML += `
                     <div class="diff-container diff-container-raw">
                         <h3 class="diff-section-title">${window.escapeHtml(sectionName.toUpperCase())}</h3>
@@ -1035,24 +956,16 @@ window.renderDiffView = function() {
     compareAndRender('Character Overview', window.originalCloudDescData.overview, window.currentEditorDescData.overview, 'blocks');
     compareAndRender('General Strategy', window.originalCloudDescData.strategy, window.currentEditorDescData.strategy, 'blocks');
     compareArrayOfObjects('Custom Tab', window.originalCloudDescData.extras, window.currentEditorDescData.extras, 'title', 'blocks');
-    // Every keyed section, so a new one appears in the change summary the
-    // contributor reads before submitting. One missing from here submits
-    // silently, which is the worst version of this bug. Matchups are one of
-    // them; until v1.2 they were also compared by name just above, so each
-    // changed matchup was listed twice.
+    // Every keyed section, so a new one shows in the summary read before Submit:
+    // one missing here would submit unseen.
     (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
         compareArrayOfObjects(s.entryLabel, window.originalCloudDescData[s.field],
             window.currentEditorDescData[s.field], s.keyField, 'blocks');
     });
 
-    // ORDER. Two different code paths decide whether a reorder counts: the
-    // submit scan in js/editor/core/editor-core.js, which builds the delta, and this
-    // summary, which is what the contributor READS before pressing submit.
-    // Fixing only the first left the editor submitting a reorder while still
-    // telling the person making it that nothing had changed.
-    //
-    // Same members, different sequence - a list that gained or lost an entry
-    // is already reported by compareArrayOfObjects above.
+    // Order: the submit scan (editor-core.js) and this summary both decide whether a
+    // reorder counts, and must agree, or the editor submits a reorder while saying
+    // nothing changed. A list that gained or lost an entry is reported above.
     const compareOrder = (label, oldList, newList, keyField) => {
         const o = (oldList || []).map(e => (e ? e[keyField] : null)).filter(v => v != null).map(String);
         const n = (newList || []).map(e => (e ? e[keyField] : null)).filter(v => v != null).map(String);

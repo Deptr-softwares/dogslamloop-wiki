@@ -1,9 +1,15 @@
 /**
- * Dogslamloop Wiki - Editor: Local Draft System (auto-save to localStorage,
- * the Draft Manager modal)
+ * Drafts in this browser: the auto-save, Save's own slot, what was already
+ * submitted from here, and the Draft Manager.
+ * @since v0.4, as part of editor.js
+ * @touches localStorage wiki_draft_*, wiki_save_* and wiki_submitted_*,
+ *   window.editorMasterDescData (editor-modes.js)
+ * @watch a draft holds the masters, never the slice on screen: on a character
+ *   with states, saving the slice would restore only that state
+ * @see docs/editor.md
  */
 
-// What a draft holds, for the auto-save and for Save (v1.1) alike.
+// What a draft holds, for the auto-save and for Save alike.
 function editorDraftPayload() {
     const tabId = window.currentEditorTabId || 'overview';
     let moveId = '';
@@ -15,31 +21,16 @@ function editorDraftPayload() {
         moveId = new URLSearchParams(window.location.search).get('move');
     }
 
-    // Scoped per-character, not per-tab/move (fixed 2026-08-02). This is the
-    // single source of truth for the key shape - window.currentEditorDescData
-    // is always the FULL character object regardless of which tab is active,
-    // so a per-tab/move key just created a new, never-swept localStorage entry
-    // every time the user switched tabs within one session, leaving stale
-    // duplicates behind that only ever got cleaned up if the user happened to
-    // submit while that exact tab/move was still the active one. tabId/moveId
-    // are still recorded in the payload below so resuming a draft can jump
-    // back to the last-active tab - it just can't offer a *choice* of which
-    // earlier tab to resume into anymore, since there's only one draft per
-    // character now, not one per tab visited.
+    // One key per page, not per tab or move: the editor always holds the whole
+    // page. tabId and moveId are kept so RESUME opens the last tab.
     return {
         timestamp: Date.now(),
         charId: window.currentEditorCharId,
-        // The page's type, so RESUME opens a system or tool page as one: the
-        // link carried no type before v1.1, and the editor reads a missing
-        // type as a character page.
+        // The page's type, so RESUME opens a system or tool page as one.
         pageType: window.currentEditorPageType || 'character',
         tabId: tabId,
         moveId: moveId,
-        // The master, not the slice. On a character with ultimate states
-        // currentEditorDescData is a view onto one of them, and saving that
-        // would restore a draft containing only that state - silently losing
-        // the base kit and every other state the moment it was reloaded.
-        // Identical objects for a character with no states.
+        // The master, not the slice: identical objects for a character with no states.
         desc_data: window.editorMasterDescData || window.currentEditorDescData,
         frame_data: window.editorMasterFrameData || window.currentEditorFrameData,
         mode: window.editorActiveMode || null
@@ -51,14 +42,15 @@ function draftPageName(charId) {
     return String(charId).split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
-// --- WHAT THIS BROWSER HAS ALREADY SUBMITTED (v1.1) ---
-//
-// Owner, 2026-10-19: a successful Submit keeps every draft, and an editor who
-// opens one again is warned instead. Submit records when the page was sent
-// from this browser. A draft saved before that moment holds changes that are
-// in the queue already, so sending it again would duplicate the submission.
+// What this browser already submitted: Submit keeps every draft, and a draft
+// saved before the page was sent from here warns that sending it again would
+// duplicate the submission.
 const SUBMITTED_PREFIX = 'wiki_submitted_';
 
+/**
+ * Records that this browser sent the page just now.
+ * @since v1.1
+ */
 window.markPageSubmitted = function (pageId) {
     try {
         localStorage.setItem(`${SUBMITTED_PREFIX}${pageId}`, String(Date.now()));
@@ -67,8 +59,11 @@ window.markPageSubmitted = function (pageId) {
     }
 };
 
-// When this browser submitted the page, if a draft saved at `timestamp` was
-// saved before then; 0 if it was not.
+/**
+ * When this browser submitted the page, if a draft saved at `timestamp` came
+ * before that; 0 if not.
+ * @since v1.1
+ */
 window.draftSubmittedAt = function (pageId, timestamp) {
     let at = 0;
     try { at = Number(localStorage.getItem(`${SUBMITTED_PREFIX}${pageId}`)) || 0; } catch (e) { at = 0; }
@@ -79,14 +74,9 @@ window.duplicateDraftWarning = function (at) {
     return `This draft was saved before you submitted this page on ${new Date(at).toLocaleString()}. Submitting it again sends the same changes to the review queue a second time.`;
 };
 
-// --- FIVE AUTO-SAVES (v1.1) ---
-//
-// Owner, 2026-10-19, once Submit stopped clearing drafts: "a max limit of 5
-// auto-save slots for every editor". Room is made when a page gets its first
-// auto-save. One already submitted goes first, since its changes are in the
-// queue; unsent work goes only when all five are unsent, the oldest first, and
-// the editor is told which. SAVED versions are never dropped: the editor chose
-// to keep them.
+// Five auto-save slots across pages. Room is made when a page gets its first
+// auto-save: one already submitted goes first, then the oldest, and the editor is
+// told which. SAVED versions are never dropped: the editor chose to keep them.
 const AUTO_DRAFT_PREFIX = 'wiki_draft_';
 const AUTO_SAVE_LIMIT = 5;
 
@@ -115,12 +105,10 @@ function makeRoomForAutoSave(draftKey) {
     }
 }
 
-// --- LOCAL AUTO-SAVE ENGINE ---
 window.saveLocalDraft = function() {
     if (!window.currentEditorCharId) return;
-    // The Playground's one draft, under its own key and outside the five
-    // auto-save slots: practising on a page must never touch its real draft
-    // (js/editor/tools/editor-playground.js).
+    // The Playground's one draft, under its own key and outside the five slots:
+    // practising on a page never touches its real draft.
     if (window.editorPlayground) {
         try {
             localStorage.setItem(window.editorPlayground.draftKey, JSON.stringify(editorDraftPayload()));
@@ -129,11 +117,9 @@ window.saveLocalDraft = function() {
         }
         return;
     }
-    // Not while editing a submission (v1.1). The draft key is the page's, and a
-    // submission's content saved under it came back later as "restore your
-    // local progress?" on the page's own editor, where restoring it and
-    // pressing Submit sent the whole submission a second time. A submission is
-    // already saved in the queue; a draft of it is never offered back anyway.
+    // Not while editing a submission: it is saved in the queue, and a draft of it
+    // under the page's key came back as "restore your local progress?", where
+    // Submit sent it a second time.
     if (window.activeEditTicketId) return;
 
     const draftKey = `${AUTO_DRAFT_PREFIX}${window.currentEditorCharId}`;
@@ -145,19 +131,15 @@ window.saveLocalDraft = function() {
     }
 };
 
-// --- SAVE (v1.1) ---
-//
-// Owner, 2026-10-19: Sync and Save become two buttons, and Save writes "its
-// own independent slot in Drafts". One slot per page, beside the auto-save,
-// which keeps running: AUTO-SAVED is the latest edit, SAVED is the version the
-// editor chose to keep. Its own key prefix, so nothing that reads the
-// auto-save (the restore prompt on opening a page) takes it for one.
+// Save: one slot per page beside the auto-save, which keeps running. AUTO-SAVED
+// is the latest edit, SAVED the version the editor chose to keep. Its own prefix,
+// so the restore prompt never takes it for an auto-save.
 const SAVED_DRAFT_PREFIX = 'wiki_save_';
 
 window.saveWorkspace = async function () {
     // Its button is hidden there; the Playground keeps itself.
     if (!window.currentEditorCharId || window.editorPlayground) return false;
-    // The same rule as the auto-save above.
+    // The same rule as the auto-save.
     if (window.activeEditTicketId) {
         window.editorAlert('This is a submission, and the review queue keeps it already. UPDATE SUBMISSION sends your changes to it.');
         return false;
@@ -178,7 +160,6 @@ window.saveWorkspace = async function () {
     return true;
 };
 
-// --- LOCAL DRAFT MANAGER HUB ---
 const DRAFT_KINDS = [
     { prefix: AUTO_DRAFT_PREFIX, kind: 'auto', label: 'AUTO-SAVED', stamp: 'Last Auto-Saved' },
     { prefix: SAVED_DRAFT_PREFIX, kind: 'saved', label: 'SAVED', stamp: 'Saved' },
@@ -227,13 +208,11 @@ window.openDraftManager = function() {
                 if (activeBtn && activeBtn.id.startsWith('move-nav-')) currentMove = activeBtn.id.replace('move-nav-', '');
             }
 
-            // A saved version is never the one on screen: the auto-save is.
+            // The auto-save is the one on screen, never a saved version.
             const isCurrent = draft.kind.kind === 'auto' && (window.currentEditorCharId === draft.charId) && (currentTab === draft.tabId) && (currentMove === draft.moveId);
 
-            // --- DRAFT UI ---
-            // Everything here came out of localStorage, so it is escaped, and
-            // the buttons carry the key as data for the listener below rather
-            // than inside an onclick.
+            // Everything here came out of localStorage, so it is escaped, and the buttons
+            // carry the key as data for the listener, never in an onclick.
             html += `
                 <div class="draft-row draft-row-${draft.kind.kind}">
                     <div>
@@ -273,15 +252,15 @@ async function onDraftListClick(e) {
     const draft = draftManagerRows.find(d => d.key === key);
     if (!draft) return;
 
-    // A draft of changes already in the queue warns first: opening it is
-    // allowed, sending it again duplicates the submission.
+    // Changes already in the queue warn first: opening is allowed, sending again
+    // duplicates.
     const submittedAt = window.draftSubmittedAt(draft.charId, draft.timestamp);
     if (submittedAt) {
         const ok = await window.customConfirm(`${window.duplicateDraftWarning(submittedAt)}\n\nOpen it anyway?`, 'OPEN ANYWAY', true);
         if (!ok) return;
     }
-    // Reopening this page's own saved version replaces what is on screen. The
-    // auto-save keeps it until the first edit to the saved version.
+    // This page's own saved version replaces what is on screen; the auto-save keeps
+    // it until the first edit.
     else if (draft.kind.kind === 'saved' && draft.charId === window.currentEditorCharId) {
         const ok = await window.customConfirm('Open the version you saved?\n\nWhat is on screen now stays in AUTO-SAVED until you edit the saved version.', 'OPEN SAVED', false);
         if (!ok) return;

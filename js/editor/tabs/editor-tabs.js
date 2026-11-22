@@ -1,49 +1,39 @@
 /**
- * Dogslamloop Wiki - Editor: Character Tab Editor + Sub-navigation
- * (custom/extra tabs, moves, matchups, counterplay, profile/playstyle)
+ * A character page's tabs in the editor: the major tab strip and each tab's
+ * sub-navigation (Overview and its custom tabs, moves, Matchups, the keyed
+ * sections, the document tabs Combos and Techs with their cards, lists and row
+ * modal), and the Profile and Playstyle forms.
+ * @since v0.4, as part of editor.js
+ * @touches window.currentEditorDescData and currentEditorFrameData, the tab
+ *   vocabulary (character_tabs.js), currentStrategyBlocks and the Block editor
+ *   (editor-blocks.js), triggerManualSync (editor-sync.js), initDawEditor
+ *   (editor-framedata.js), localStorage dsl_editor_stats_folded
+ * @watch every loader writes the previous selection's Blocks back into the data
+ *   on entry, so anything that changes what is open or the data under it clears
+ *   the selection first (clearSubSelection). A write-back takes the whole buffer
+ *   (currentStrategyBlocks), never getActiveBlocks(), which inside a Section Box
+ *   is only the box's list.
+ * @see docs/editor.md
  */
 
-// --- MAJOR TAB NAVIGATION ---
-// The editor had no way to change major tab at all: currentEditorTabId was
-// read from ?tab= once at boot (js/editor/core/editor-core.js) and never moved again.
-// Landing on the wrong tab - which is what every intercept of a non-delta
-// ticket did - meant hand-editing the URL or giving up, so intercepting a
-// skill revision was effectively impossible. This is the same strip, in the
-// same shape, as the live character page's nav.
-// Includes ultimateAtk: unlike admin.html, edit.html ships that button in its
-// static markup (hidden), and js/editor/core/editor-modes.js un-hides it for a base-only
-// character. Gallery is excluded because it has no editor at all.
-//
-// includeOptional: this is a module-level const, so it is evaluated at PARSE
-// time - long before the character's tab_settings has been fetched and
-// enabledOptionalTabs is still []. Binding only the enabled ones therefore
-// dropped `techs` from this list permanently, for the life of the page. The
-// visible bug was in renderEditorTabNav below, which walks this list: clicking
-// Techs mounted its editor correctly but never toggled edit-nav-techs on, while
-// still clearing .active off the button the user came from - so the whole strip
-// went dark and the editor looked broken while working fine.
-//
-// This is the THIRD surface to make this exact mistake. js/pages/core/page_boot.js fixed
-// it on the reader page; js/overseer/admin-core.js:355 fixed it on admin.html and its
-// comment records the same symptom in the same words ("never had .active
-// removed"). The editor was missed both times. An .active class on a button
-// that stays hidden costs nothing, which is why including them is the safe
-// direction and filtering them is not.
+// The major tab strip, the same as the live page's. Optional tabs are included
+// whatever this character has: this is evaluated at parse time, before the
+// page's tab settings arrive, and an .active class on a hidden button costs
+// nothing. Gallery has no editor.
 const EDITOR_MAJOR_TABS = window.getCharacterTabIds({
     includeInjected: true,
     editableOnly: true,
     includeOptional: true,
 });
 
+/**
+ * Draws the major tab strip with `activeTabId` lit.
+ */
 window.renderEditorTabNav = function(activeTabId) {
     const nav = document.getElementById('editor-tab-nav');
     if (!nav) return;
 
-    // System, tierlist and gallery pages bail out of initFullTabEditor into
-    // their own builders, which manage their own tabs - a character strip
-    // above them would offer tabs those page types do not have. Gallery was
-    // missing from this list when the type shipped, so its editor showed six
-    // character tabs that did nothing.
+    // System, tier list, gallery and tool pages have their own builders and tabs.
     if (['system', 'tierlist', 'gallery', 'tool'].includes(window.currentEditorPageType)) {
         nav.classList.add('hidden');
         return;
@@ -56,52 +46,48 @@ window.renderEditorTabNav = function(activeTabId) {
     });
 };
 
-// Forgets which section of the tab is open. Every sub-tab loader below writes
-// the PREVIOUS selection's blocks into desc_data on entry, so this runs
-// whenever the buffer cannot be trusted to belong where the selection says:
-// crossing to another tab, or the data changing underneath it.
+// Forgets which section of the tab is open: every loader below writes the
+// previous selection's Blocks into desc_data on entry, so this runs whenever the
+// buffer cannot be trusted to belong where the selection says.
 function clearSubSelection() {
     window.currentOverviewSection = null;
     window.currentMatchupIndex = undefined;
     window.currentKeyedIndex = {};
 
-    // The document-tab cursors are scalars rather than a map keyed by tab,
-    // because only one document tab is ever mounted. Crossing to another tab
-    // therefore has to reset them, or opening Techs would land on the group
-    // index that belonged to Combos - and `group-4` of a tab with one group
-    // resolves to undefined and renders nothing.
+    // The document tab's cursors are plain values, since one document tab is mounted
+    // at a time, so crossing tabs resets them: `group-4` of a tab with one group
+    // draws nothing.
     window.currentDocSection = null;
     window.currentDocCardIndex = undefined;
     window.currentDocTableIndex = undefined;
 }
-// Switching state (js/editor/core/editor-modes.js) needs exactly this reset. It kept its
-// own copy of the first three lines, which missed the document cursors when
-// Techs added them (2026-11-20, an editor lost a Techs card that way).
+// Switching state (editor-modes.js) needs exactly this reset, through this one
+// function.
 window.clearEditorSubSelection = clearSubSelection;
 
-// For the reorder bar (js/editor/blocks/editor-reorder.js), which changes the order under the
-// selection. Only the selections that name the open entry BY POSITION are
-// forgotten, because those are the ones a move makes point at a neighbour. The
-// fixed sections and the Combo List stay open: the List holds no block buffer,
-// and dropping it would close the strip whose entry was just moved.
+/**
+ * For the reorder bar, which changes the order under the selection: forgets only
+ * the selections that name the open entry by position. The fixed sections and
+ * the Combo List stay open.
+ * @since v1.1
+ */
 window.clearPositionalSelection = function () {
     window.currentMatchupIndex = undefined;
     window.currentKeyedIndex = {};
     if (String(window.currentOverviewSection || '').startsWith('extra-')) window.currentOverviewSection = null;
-    // The open card's write-up is flushed into the open group by position too.
+    // The open card's write-up is flushed into its group by position too.
     if (String(window.currentDocSection || '').startsWith('group-')) {
         window.currentDocSection = null;
         window.currentDocCardIndex = undefined;
     }
 };
 
-// Redraws the open tab from desc_data after something changed the DATA rather
-// than the block buffer: Find & Replace and its UNDO. The loaders' write-back
-// on entry is right after typing and wrong here, because the buffer is now the
-// older copy. It put the replaced text straight back, in the open section only
-// (reported by an editor, 2026-10-19). So the selection is cleared first, then
-// the same section is opened again, so the editor sees the change where they
-// made it instead of landing on the tab's first section.
+/**
+ * Redraws the open tab from desc_data after something changed the data, not the
+ * buffer (Find and Replace and its UNDO): the selection is cleared first, so the
+ * older buffer is not written back, and the same section opens again.
+ * @since v1.1
+ */
 window.reopenEditorTab = function () {
     const tabId = window.currentEditorTabId;
     const activeMove = () => document.querySelector('#interactive-builder [data-move-load].active');
@@ -117,9 +103,8 @@ window.reopenEditorTab = function () {
     clearSubSelection();
     initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
 
-    // Each loader below first writes back the section initFullTabEditor just
-    // opened, which is harmless now: that buffer was read from the data a
-    // moment ago.
+    // Each loader first writes back the section initFullTabEditor just opened, which
+    // is harmless: that buffer was read from the data a moment ago.
     const desc = window.currentEditorDescData || {};
     if (tabId === 'overview') {
         if (place.overview && place.overview !== 'overview') window.loadOverviewSectionIntoEditor(place.overview);
@@ -127,7 +112,7 @@ window.reopenEditorTab = function () {
         if (place.matchup > 0 && (desc.matchups || [])[place.matchup]) window.loadMatchupIntoEditor(place.matchup);
     } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
         if (place.doc && place.doc !== 'intro') window.loadDocumentSectionIntoEditor(tabId, place.doc);
-        // Opening a group closes its cards, so the open one is put back.
+        // Opening a group shuts its cards, so the open one is put back.
         if (place.card !== undefined && String(place.doc).startsWith('group-')) {
             window.currentDocCardIndex = place.card;
             window.renderDocumentCardsPanel(tabId, parseInt(place.doc.replace('group-', ''), 10));
@@ -144,22 +129,22 @@ window.reopenEditorTab = function () {
     }
 };
 
+/**
+ * Moves the editor to another major tab, flushing first.
+ * @since v0.12
+ */
 window.switchEditorTab = async function(tabId) {
     if (tabId === window.currentEditorTabId) return;
 
-    // currentStrategyBlocks is a buffer that is only written back into
-    // desc_data on sync (js/editor/core/editor-sync.js), so switching without flushing
-    // first silently drops whatever is being edited right now.
+    // The buffer reaches desc_data only on sync, so switching without it drops what
+    // is being edited.
     if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
 
-    // Arriving at Overview with a stale currentOverviewSection of 'strategy'
-    // would write the matchup blocks still sitting in the buffer into
-    // descData.strategy. The flush above has already saved the real content
-    // by this point.
+    // A stale section id would write the buffer's Blocks into the wrong section of
+    // the new tab; the flush above already saved them.
     clearSubSelection();
 
-    // The preview pane keeps one visible tab; editor-core un-hides only the
-    // booted one, so the switch has to move it.
+    // The preview keeps one visible tab, so the switch moves it.
     const previousPreviewTab = document.getElementById(`tab-${window.currentEditorTabId}`);
     if (previousPreviewTab) previousPreviewTab.classList.add('hidden');
     const nextPreviewTab = document.getElementById(`tab-${tabId}`);
@@ -168,19 +153,17 @@ window.switchEditorTab = async function(tabId) {
     window.renderEditorTabNav(tabId);
     initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
 
-    // Keep the URL honest - the editor boots from ?tab=, so a reload should
-    // land where the strip says it is. A leftover &move= would reopen a move
-    // belonging to the tab just left.
+    // The editor boots from ?tab=, so a reload lands where the strip says. A leftover
+    // &move= would reopen a move from the tab just left.
     const url = new URL(window.location.href);
     url.searchParams.set('tab', tabId);
     url.searchParams.delete('move');
     window.history.replaceState({}, '', url);
 
-    // VIEW DIFF follows the tab, rather than keep comparing the one just left.
+    // VIEW DIFF follows the tab.
     if (window.isDiffModeActive && typeof window.showEditorSideBySide === 'function') window.showEditorSideBySide();
 };
 
-// --- CUSTOM TAB MANAGEMENT ---
 window.addExtraTab = async function() {
     await window.triggerManualSync();
     if (!window.currentEditorDescData.extras) window.currentEditorDescData.extras = [];
@@ -195,8 +178,7 @@ window.removeExtraTab = async function(idx) {
     if (await window.confirmDelete("Delete this custom tab and all its contents?")) {
         await window.triggerManualSync();
         window.currentEditorDescData.extras.splice(idx, 1);
-        // Synced above. The open section's `extra-N` now names a neighbour, or
-        // nothing at all when it was the last one removed.
+        // Synced above. The open `extra-N` now names a neighbour, or nothing.
         window.currentOverviewSection = null;
         if(typeof renderFullOverviewPreview === 'function') renderFullOverviewPreview();
         initFullTabEditor(window.currentEditorCharId, 'overview', window.currentEditorDescData, window.currentEditorFrameData);
@@ -211,6 +193,10 @@ window.updateExtraTabTitle = function(idx, newTitle) {
     renderFullOverviewPreview();
 };
 
+/**
+ * Mounts the editor for one tab of the page, routing a gallery, a tool, a system
+ * page and a tier list to their own builders.
+ */
 function initFullTabEditor(charId, tabId, descData, frameData) {
     const builder = document.getElementById('interactive-builder');
 
@@ -219,45 +205,32 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     window.currentEditorTabId = tabId;
     window.currentEditorCharId = charId;
 
-    // Every entry point into a major tab lands here, including the boot
-    // route in editor-core.js, so the strip stays in step with the URL.
+    // Every way into a tab lands here, so the strip follows the URL.
     if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
 
-    // --- Reroute to the Gallery bin ---
-    // Before the system branch: a gallery is a flat list of media with names,
-    // not tabs of blocks, and routing it through the block editor would be
-    // three screens of machinery for two fields.
+    // A gallery is a flat list of named media, not tabs of Blocks.
     if (window.currentEditorPageType === 'gallery') {
         if (typeof window.renderGalleryEditor === 'function') window.renderGalleryEditor(builder);
         return;
     }
 
-    // --- A tab that brings its own editor ---
-    //
-    // Looked up in the vocabulary rather than tested by name: a keyed section
-    // declares `editorFn` when its entries are not blocks-under-a-key and the
-    // shared keyed editor would be the wrong screen. The character Gallery tab
-    // (v0.18 F9) is the first, and this is the branch that would otherwise have
-    // been `if (tabId === 'gallery')`.
+    // A tab that brings its own editor: a keyed section declaring `editorFn` (the
+    // character Gallery tab), found in the vocabulary rather than by name.
     const tabSection = window.getKeyedSectionByTab ? window.getKeyedSectionByTab(tabId) : null;
     if (tabSection && tabSection.editorFn && typeof window[tabSection.editorFn] === 'function') {
         window[tabSection.editorFn](builder);
         return;
     }
 
-    // --- Reroute to the Tool setup ---
-    // A tool page is a link or an app plus two blocks of prose, not tabs of
-    // sections - routing it through the system builder would offer a tab
-    // structure the renderer never reads.
+    // A tool page is a link or an app plus two Block lists, not tabs of sections.
     if (window.currentEditorPageType === 'tool') {
         if (typeof window.renderToolEditor === 'function') window.renderToolEditor(builder);
         return;
     }
 
-    // --- Reroute to the new System Builder UI ---
     if (window.currentEditorPageType === 'system') {
         if (window.currentSystemTabIdx === undefined) {
-            // Read the URL parameter so "EDIT TAB" opens the exact custom tab you clicked!
+            // EDIT TAB opens the custom tab that was clicked.
             const foundIdx = (window.currentEditorDescData.tabs || []).findIndex(t => t.tabId === tabId);
             window.currentSystemTabIdx = foundIdx > -1 ? foundIdx : 0;
         }
@@ -265,12 +238,12 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         window.renderSystemEditor(builder);
         return;
     } else if (window.currentEditorPageType === 'tierlist') {
-        // 1. Lock the builder strictly to the sidebar!
+        // The tier list's builder lives in the sidebar.
         if (typeof window.initTierListEditor === 'function') {
             window.initTierListEditor(builder.id, window.currentEditorDescData);
         }
 
-        // 2. Kill the Live Preview pane and replace it with a static notice
+        // The live preview gives way to a static notice.
         const previewPane = document.querySelector('.live-preview-pane .main-content-area') || document.querySelector('.live-preview-pane');
         if (previewPane) {
             previewPane.innerHTML = `
@@ -286,11 +259,6 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
     const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
-    // Note: window.currentEditor* was previously assigned a second time here,
-    // byte-identical to the assignment at the top of this function - a
-    // Gemini copy-paste leftover (neither the system nor tierlist branch
-    // above touches these vars, so it was pure dead weight). Removed
-    // 2026-08-02, same bug class as admin.js's duplicated getTabData.
     if (frameTabs.includes(tabId)) {
         const moves = frameData ? (frameData[tabId] || []) : [];
 
@@ -300,16 +268,11 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             navHTML += `<span class="daw-empty-state">No moves mapped in this category yet.</span>`;
         } else {
             moves.forEach((m, idx) => {
-                // A move's id and name are stored data. They used to sit inside
-                // an inline onclick string, where escaping cannot help: the
-                // browser decodes &#39; back into a quote before the handler
-                // runs. So the id rides in a data- attribute and the listeners
-                // are attached below, once the markup exists.
+                // A move's id and name are stored data: never inside an inline onclick, where
+                // the browser decodes &#39; back into a quote. Data attributes and listeners.
                 const id = window.escapeHtml(m.id);
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${id}" data-move-load="${id}">${window.escapeHtml(m.name || m.id)}</button>`;
-                // Item 8: a move could only be appended, so putting one next to
-                // Skill 1 meant re-entering every skill after it.
                 navHTML += `<button class="daw-tab-remove-btn" data-move-remove="${id}" title="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
@@ -400,15 +363,10 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         }
 
     } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
-        // A DOCUMENT TAB - Combos, Techs - is three parts, so its editor is a
-        // sub-tab strip like the Overview tab's, not a list of entries.
-        //
+        // A document tab (Combos, Techs) is three parts, so its editor is a sub-tab
+        // strip like Overview's, not a list of entries:
         //   [ Read First ] [ Combo List ] [ True Combos x ] [ + GROUP ]
-        //   [ Technical Overview ] [ Tech List ] [ Wall Techs x ] [ + GROUP ]
-        //
-        // Same daw-tab-btn strip, same removable-extra affordance, same single
-        // swapping container. Every word that differs between the two comes out
-        // of js/utility/character_tabs.js - this branch does not know either tab's name.
+        // Every word that differs between the two comes from character_tabs.js.
         const doc = window.getDocumentSections(tabId);
         const { intro, groups, list } = doc;
 
@@ -417,14 +375,12 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
         let navHTML = window.reorderStripControls(`desc.${groups.field}`);
         navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
-        // The tab id, not a literal: two document tabs would otherwise share
-        // one set of button ids, and loadDocumentSectionIntoEditor clears
-        // `active` by prefix.
+        // The tab id in the ids: loadDocumentSectionIntoEditor clears `active` by prefix.
         navHTML += `<button class="daw-tab-btn active" id="${window.escapeHtml(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'intro')">${window.escapeHtml(intro.label)}</button>`;
         navHTML += `<button class="daw-tab-btn" id="${window.escapeHtml(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'list')">${window.escapeHtml(list.label)}</button>`;
 
         window.currentEditorDescData[groups.field].forEach((group, idx) => {
-            // Escaped: a group title is contributor text reaching innerHTML.
+            // Escaped: a group title is contributor text.
             const name = group[groups.keyField] || `Group ${idx + 1}`;
             navHTML += `<div class="daw-tab-item">`;
             navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${window.escapeHtml(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'group-${idx}')">${window.escapeHtml(name)}</button>`;
@@ -444,13 +400,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         window.loadDocumentSectionIntoEditor(tabId, window.currentDocSection || 'intro');
 
     } else if (window.usesSharedKeyedUI(tabId)) {
-        // Every keyed section except matchups, which keeps its own editor -
-        // its entry picker lists the roster and its metadata is a tier, so it
-        // is a different screen rather than this one with different words.
-        //
-        // This was the counterplay branch with 'counterplay' written through
-        // it. Starter Guide is the same shape, and the owner asked for exactly
-        // that, so it runs here rather than as a third copy.
+        // Every keyed section but Matchups, whose picker lists the roster and whose
+        // metadata is a tier: a different screen.
         const section = window.getKeyedSectionByTab(tabId);
         if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
         const entries = window.currentEditorDescData[section.field];
@@ -463,9 +414,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             navHTML += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} entries defined yet.</span>`;
         } else {
             entries.forEach((entry, idx) => {
-                // Escaped: the name is contributor-authored and lands in
-                // innerHTML. The index is a number this loop produced, which is
-                // why it may sit in the inline handler while the name may not.
+                // Escaped: the name is contributor text. The index is a number this loop made,
+                // which is why it may sit in the inline handler and the name may not.
                 const name = entry[section.keyField] || `${noun} ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${window.escapeHtml(name)}</button>`;
@@ -503,20 +453,20 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     }
 }
 
+/**
+ * Adds a move to the tab: asks for its id, adds a blank move and opens it.
+ */
 window.addMove = async function() {
-    // 1. Force the user to define the exact ID
     const newMoveMeta = await window.promptForMoveId();
-    if (!newMoveMeta) return; // User cancelled
+    if (!newMoveMeta) return; // cancelled
 
     await window.triggerManualSync();
     const tabId = window.currentEditorTabId;
 
-    // 2. Ensure arrays exist
     if (!window.currentEditorFrameData) window.currentEditorFrameData = {};
     if (!window.currentEditorFrameData[tabId]) window.currentEditorFrameData[tabId] = [];
     if (!window.currentEditorDescData.moveStrategies) window.currentEditorDescData.moveStrategies = {};
 
-    // 3. Inject a fresh, blank move template using their chosen ID
     window.currentEditorFrameData[tabId].push({
         id: newMoveMeta.id,
         name: newMoveMeta.name,
@@ -532,7 +482,6 @@ window.addMove = async function() {
 
     window.currentEditorDescData.moveStrategies[newMoveMeta.id] = [];
 
-    // 4. Reload the UI and instantly switch to the new move
     initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
     window.loadMoveIntoEditor(newMoveMeta.id);
 };
@@ -543,25 +492,21 @@ window.removeMove = async function(moveId) {
         const tabId = window.currentEditorTabId;
         const arr = window.currentEditorFrameData[tabId];
 
-        // 1. Delete from Frame Data
         const idx = arr.findIndex(m => m.id === moveId);
         if (idx > -1) arr.splice(idx, 1);
 
-        // 2. Delete from Description Data
         if (window.currentEditorDescData.moveStrategies && window.currentEditorDescData.moveStrategies[moveId]) {
             delete window.currentEditorDescData.moveStrategies[moveId];
         }
 
-        // 3. CRITICAL: Immediately purge the deleted move from the Live Preview DOM
+        // The deleted move goes from the live preview at once.
         const previewCard = document.querySelector(`.live-preview-pane #strategy-${CSS.escape(String(moveId))}`);
         if (previewCard) previewCard.remove();
 
-        // 4. Reload the UI
         initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
     }
 };
 
-// --- MOVE ID GATEKEEPER ---
 window.promptForMoveId = function() {
     return new Promise((resolve) => {
         let overlay = document.getElementById('move-id-modal');
@@ -598,7 +543,7 @@ window.promptForMoveId = function() {
 
         overlay.classList.remove('hidden');
 
-        // Auto-fill the Technical ID based on what they type in the Name box
+        // The technical id follows the name as it is typed.
         const nameInp = overlay.querySelector('#new-move-name');
         const idInp = overlay.querySelector('#new-move-id');
 
@@ -624,7 +569,7 @@ window.promptForMoveId = function() {
                 return;
             }
 
-            // Failsafe: Prevent duplicate IDs inside the same tab
+            // No two moves in a tab share an id.
             const tabId = window.currentEditorTabId;
             const existingMoves = window.currentEditorFrameData[tabId] || [];
             if (existingMoves.some(m => m.id === mId)) {
@@ -638,7 +583,6 @@ window.promptForMoveId = function() {
     });
 };
 
-// --- SUB-NAVIGATION: OVERVIEW ---
 window.loadOverviewSectionIntoEditor = function(sectionId) {
     const oldSectionId = window.currentOverviewSection;
     if (oldSectionId && window.currentEditorDescData) {
@@ -738,7 +682,6 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
     }, 150);
 };
 
-// --- SUB-NAVIGATION: MATCHUPS ---
 window.addMatchup = async function() {
     await window.triggerManualSync();
     window.currentEditorDescData.matchups.push({
@@ -751,8 +694,8 @@ window.addMatchup = async function() {
 window.removeMatchup = async function(idx) {
     if (await window.confirmDelete("Delete this entire matchup?")) {
         window.currentEditorDescData.matchups.splice(idx, 1);
-        // The open matchup may have been the one removed, or may have shifted
-        // down; either way the redraw would save its text over a neighbour.
+        // The open matchup may be gone or shifted: the redraw would save its text over a
+        // neighbour.
         window.currentMatchupIndex = undefined;
         initFullTabEditor(window.currentEditorCharId, 'matchups', window.currentEditorDescData, window.currentEditorFrameData);
         if (window.currentEditorDescData.matchups.length > 0) window.loadMatchupIntoEditor(0);
@@ -769,13 +712,8 @@ window.updateMatchupMeta = function(idx, field, value) {
     renderMatchupsPreview();
 };
 
-// --- SUB-NAVIGATION: KEYED SECTIONS (Counterplay, Starter Guide) ---
-//
-// One set of functions for every keyed section, taking the tab id. The
-// per-section index lives in window.currentKeyedIndex rather than a
-// currentCounterplayIndex / currentStarterGuideIndex pair, because the flush
-// in js/editor/core/editor-sync.js has to find it too, and a second global is a second
-// thing to remember on every code path that switches away from a tab.
+// Keyed sections (Counterplay, Starter Guide): one set of functions taking the tab
+// id, and one window.currentKeyedIndex, which the flush in editor-sync.js reads too.
 
 window.currentKeyedIndex = window.currentKeyedIndex || {};
 
@@ -785,9 +723,8 @@ window.addKeyedEntry = async function(tabId) {
     await window.triggerManualSync();
 
     const entry = { [section.keyField]: `New ${section.entryLabel}`, content: [], author: "" };
-    // Only if the section HAS metadata. Starter Guide deliberately has none,
-    // and writing an empty field would put data in the payload that nothing
-    // reads and that the reviewer's diff would then report as a change.
+    // Only if the section has metadata: an empty field nothing reads would show as a
+    // change in review.
     if (section.metaField) entry[section.metaField] = Object.keys(section.metaColors || {})[2] || '';
 
     if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
@@ -802,9 +739,8 @@ window.removeKeyedEntry = async function(tabId, idx) {
     if (!section) return;
     if (await window.confirmDelete(`Delete this entire ${section.entryLabel.toLowerCase()}?`)) {
         window.currentEditorDescData[section.field].splice(idx, 1);
-        // The open entry may have been the one removed, or may have shifted
-        // down. Either way the stored index no longer means what it did, and
-        // the flush on the next switch would write blocks into the wrong entry.
+        // The open entry may be gone or shifted, and the next flush would write into the
+        // wrong one.
         window.currentKeyedIndex[tabId] = undefined;
         initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
         if (window.currentEditorDescData[section.field].length > 0) window.loadKeyedEntryIntoEditor(tabId, 0);
@@ -818,26 +754,23 @@ window.updateKeyedMeta = function(tabId, idx, field, value) {
     window.currentEditorDescData[section.field][idx][field] = value;
     if (field === section.keyField) {
         const btn = document.getElementById(`${section.tab}-nav-${idx}`);
-        // textContent, not innerHTML - this runs on every keystroke of a field
-        // the contributor is typing into.
+        // textContent: this runs on every keystroke.
         if (btn) btn.textContent = value || `Unknown ${section.entryLabel}`;
     }
     window.renderKeyedSectionPreview(tabId);
 };
 
-// --- COMBO ROWS (v0.15 item 3) ---
-//
-// Row fields come from window.COMBO_COLUMNS (js/pages/core/description.js) plus the two
-// resource fields, so a column added to the table appears in the editor
-// without a second edit - the same rule the tab vocabulary and the keyed
-// sections follow.
+/**
+ * A combo row's fields: window.COMBO_COLUMNS (description.js) plus the two
+ * resource fields, so a column added to the table appears here too.
+ * @since v0.15
+ */
 window.comboRowFields = function () {
     const columns = (window.COMBO_COLUMNS || []).filter(c => c.field !== 'sequence');
     return [
         { field: 'sequence', label: 'Route', hint: 'One step per line' },
         ...columns.map(c => ({ field: c.field, label: c.label })),
-        // Rendered above the notes on the page rather than as columns, so they
-        // sit at the end of the form where the notes are.
+        // Shown above the notes on the page, so they end the form like the notes.
         { field: 'ultGain', label: 'Ult Gain' },
         { field: 'evasiveGain', label: 'Evasive Gain' },
     ];
@@ -849,23 +782,10 @@ function comboRowSummary(row) {
     return row.damage ? `(${row.damage})` : 'Empty combo';
 }
 
-// --- SUB-NAVIGATION: A DOCUMENT TAB (Combos, Techs) ---
-//
-// Mirrors loadOverviewSectionIntoEditor: one swapping container, one active
-// button, and the block buffer flushed before leaving whatever was open.
-//
-// Every function below takes the tab id. This was written with 'combos' and
-// 'comboGroups' spelled through it at ~30 sites, and Techs is the same editor
-// with the owner's other vocabulary - so the alternative was a second copy of
-// 500 lines that has to be kept in step by hand. The strings all come out of
-// js/utility/character_tabs.js; nothing here knows either tab by name.
-//
-// The INNER panel ids (combo-cards-panel, combo-table-body, the row modal) stay
-// unprefixed on purpose: the editor mounts exactly one document tab at a time -
-// builder.innerHTML is replaced on every switch - so there is never a second
-// set in the DOM to collide with. Only the NAV ids carry the tab, because
-// loadDocumentSectionIntoEditor clears `active` by prefix and a stale
-// combos-nav-* left over from a previous mount would be missed.
+// A document tab (Combos, Techs): one swapping container and one active button,
+// flushing whatever was open first. Every function takes the tab id, and the
+// words come from character_tabs.js. The inner panel ids stay unprefixed: one
+// document tab is mounted at a time. Only the nav ids carry the tab.
 
 function docSections(tabId) {
     return window.getDocumentSections ? window.getDocumentSections(tabId) : null;
@@ -878,8 +798,7 @@ window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
 
     const { intro, groups } = doc;
 
-    // Flush the section being left, or its blocks are lost. currentStrategyBlocks
-    // is only written back into desc_data on sync.
+    // Flush the section being left: the buffer reaches the data only on sync.
     flushDocumentSection();
 
     document.querySelectorAll(`[id^="${tabId}-nav-"]`).forEach(b => b.classList.remove('active'));
@@ -932,19 +851,17 @@ window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
         <div id="combo-cards-panel"></div>
     `;
 
-    // A group is a list of CARDS, and the block builder edits the write-up of
-    // whichever card is open - not the group itself.
-    //
-    // Owner, 2026-08-16: "you should not be able to Add Blocks when you
-    // haven't selected a TheoryBox". Mounting the builder on group.content
-    // offered a bare block toolbar with nothing to attach a block to, and a
-    // block added there became a sibling of the cards rather than part of one.
+    // A group is a list of cards, and the Block editor edits the open card's write-up,
+    // never the group: with no card picked there is nowhere to add a Block.
     window.currentDocCardIndex = undefined;
     window.renderDocumentCardsPanel(tabId, idx);
     window.renderDocumentPreview(tabId);
 };
 
-// The cards inside one group, and the write-up editor for the open one.
+/**
+ * The cards in one group, and the write-up editor for the open one.
+ * @since v0.15
+ */
 window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     const doc = docSections(tabId);
     const host = document.getElementById('combo-cards-panel');
@@ -964,11 +881,8 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
         html += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} cards in this group yet.</span>`;
     } else {
         cards.forEach((card, i) => {
-            // A card is recognised by its name, and falls back to its route -
-            // an index is not something anyone remembers. Resolved through the
-            // shared helper because `card.title` is dead data once Multiple
-            // Sections is on, which is what showed "New Combo" here beside a
-            // name field reading something else.
+            // A card is known by its name, or its route; through comboCardLabel, since the
+            // card's own title is unused in Multiple Sections.
             const label = window.comboCardLabel(card, i);
             html += `<div class="daw-tab-item">`;
             html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${window.escapeHtml(label)}</button>`;
@@ -992,7 +906,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
         btn.addEventListener('click', async () => {
             if (!(await window.confirmDelete(`Delete this ${noun.toLowerCase()} card and its write-up?`))) return;
             cards.splice(parseInt(btn.getAttribute('data-remove-card'), 10), 1);
-            // The open card may have been the one removed, or shifted down.
+            // The open card may be gone or shifted.
             window.currentDocCardIndex = undefined;
             window.renderDocumentCardsPanel(tabId, groupIdx);
             window.renderDocumentPreview(tabId);
@@ -1015,25 +929,17 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     renderDocumentCardBody(tabId, groupIdx, cards);
 };
 
-// The block buffer belongs to the open card's write-up. Only ever written back
-// on a switch or a sync, same as every other block surface.
-//
-// The buffer is currentStrategyBlocks, the write-up's own list. Not
-// getActiveBlocks(): inside a Section Box or a Dropdown that is the box's list,
-// so a sync saved the box's blocks as the whole card and the preview showed
-// only those, and switching away from inside the box lost the rest for good
-// (reported by an editor, 2026-11-20). The same goes for the three other
-// write-backs in this file: the introduction, a keyed entry and a matchup.
+// The buffer belongs to the open card's write-up and is written back only on a
+// switch or a sync. The whole buffer: see the file's opening block. The
+// introduction, a keyed entry and a matchup write back the same way.
 function flushDocumentCard(tabId, groupIdx) {
     const doc = docSections(tabId);
     const idx = window.currentDocCardIndex;
     if (!doc || !doc.groups || idx === undefined || typeof currentStrategyBlocks === 'undefined') return;
     const group = (window.currentEditorDescData[doc.groups.field] || [])[groupIdx];
     const card = group && Array.isArray(group.content) ? group.content[idx] : null;
-    // Back into the SECTION on screen when the card is in Multiple Sections
-    // mode, which is where the builder read it from. Resolved through the same
-    // helper the block form uses, so the two cannot disagree about where a
-    // write-up lives.
+    // Into the section on screen in Multiple Sections, through the helper the Block
+    // form uses, so the two agree where a write-up lives.
     const dest = (card && typeof window.editorCardFieldTarget === 'function')
         ? window.editorCardFieldTarget(card)
         : card;
@@ -1050,26 +956,18 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
     const idx = window.currentDocCardIndex;
     const card = cards[idx];
     if (!card) {
-        // No card open, so no block toolbar. This is the owner's point: an
-        // ADD BLOCK with nothing selected has nowhere to put the block.
+        // No card open, so no Block toolbar: an ADD BLOCK there has nowhere to go.
         container.innerHTML = `<p class="admin-tool-hint">Select a ${window.escapeHtml(noun.toLowerCase())} card to edit it, or add one.</p>`;
         return;
     }
 
-    // MULTIPLE SECTIONS (v0.19 C3b). A Combo Card has TWO editors: this one,
-    // for a card inside a Combos/Techs group, and the theorybox block form in
-    // editor-blocks.js. The switch went into the block form alone and the owner
-    // found it missing here - the comment on the author field below records
-    // this same surface drifting from the other one once already.
-    //
-    // The same helpers as the block form rather than a second copy of the
-    // rules: which section is open is session state in a WeakMap keyed by the
-    // card, so it is never serialised into desc_data.
+    // Multiple Sections here too: a Combo Card has two editors, this one and the
+    // Block form in editor-blocks.js, and both use the same helpers. Which section is
+    // open is never stored.
     const multi = !!card.multiSections;
     const sections = Array.isArray(card.sections) ? card.sections : [];
     const secIdx = multi ? window.editorCardSectionIndex(card) : -1;
-    // Every field below edits the SECTION on screen when the switch is on, and
-    // the card itself when it is off.
+    // The fields edit the section on screen with the switch on, the card off.
     const target = (secIdx >= 0) ? sections[secIdx] : card;
 
     const stripHTML = (multi && sections.length) ? `
@@ -1077,9 +975,8 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
             <div class="cardsec-label">SECTIONS</div>
             <div class="cardsec-tabs">
                 ${sections.map((sec, i) =>
-                    // `cardsec-tab` as well, because the block form's strip
-                    // carries it and the CSS is written against it. The two
-                    // editors had drifted on this class alone.
+                    // `cardsec-tab` too: the Block form's strip carries it, and the CSS is written
+                    // against it.
                     `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
                     + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
                 <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
@@ -1150,23 +1047,18 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
     container.querySelectorAll('[data-card-field]').forEach(input => {
         const handler = () => {
             const field = input.getAttribute('data-card-field');
-            // The author credit stays on the CARD. It credits whoever wrote the
-            // card rather than one tab of it, which is how the block form
-            // treats it too.
+            // The author credit stays on the card, as in the Block form.
             const dest = (field === 'author') ? card : target;
             if (field === 'sequence') {
-                // One step per line; blank lines dropped rather than becoming
-                // empty chips in the route.
+                // One step a line; blank lines dropped.
                 dest.sequence = input.value.split('\n').map(v => v.trim()).filter(Boolean);
             } else {
                 dest[field] = input.value;
             }
             if (field === 'title' || field === 'sequence') {
                 const btn = document.querySelector(`[data-card="${idx}"]`);
-                // The same helper the row itself is built from, so the live
-                // keystroke update and the next full render cannot disagree
-                // about what this card is called.
-                // textContent, not innerHTML - this runs on every keystroke.
+                // The helper the row is built from, so typing and the next render agree on the
+                // card's name. textContent: this runs on every keystroke.
                 if (btn) btn.textContent = window.comboCardLabel(card, idx);
             }
             window.renderDocumentPreview(tabId);
@@ -1175,12 +1067,8 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         input.addEventListener('change', handler);
     });
 
-    // --- NOTATION STYLES (v0.20) ---
-    //
-    // Written into `target`, so a card in Multiple Sections edits the section
-    // on screen, exactly like the route above it. Typing never re-renders;
-    // adding or removing a style does, so it flushes the write-up first for the
-    // same reason the section controls below do.
+    // Notation styles write into `target`, like the route. Typing never re-renders;
+    // adding or removing one does, so the write-up is flushed first.
     container.querySelectorAll('[data-nstyle-label], [data-nstyle-route]').forEach(input => {
         input.addEventListener('input', () => {
             window.applyComboNotationInput(target, input);
@@ -1199,20 +1087,14 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         });
     });
 
-    // --- SECTION CONTROLS ---
-    //
-    // Each one FLUSHES the block buffer first. The builder below is editing the
-    // write-up of whatever is on screen, and switching away without writing it
-    // back would drop whatever was typed into it - the same reason switching
-    // CARDS flushes.
+    // Section controls flush the buffer first, as switching cards does.
     const multiToggle = container.querySelector('[data-card-multi]');
     if (multiToggle) {
         multiToggle.addEventListener('change', () => {
             flushDocumentCard(tabId, groupIdx);
             card.multiSections = multiToggle.checked;
-            // Seeds the first section FROM the card on the way in and copies it
-            // back on the way out, so an author who has already written a combo
-            // does not find it stranded behind a switch.
+            // The first section is seeded from the card on the way in and copied back on the
+            // way out, so nothing written is stranded behind the switch.
             if (typeof window.seedCardSections === 'function') {
                 window.seedCardSections(card, multiToggle.checked);
             }
@@ -1257,16 +1139,14 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
 
     const secLabel = container.querySelector('[data-cardsec-label]');
     if (secLabel) {
-        // No re-render here: rebuilding the form under a field being typed in
-        // takes the focus and the caret with it.
+        // No re-render here: it would take the focus and the caret.
         secLabel.addEventListener('input', () => {
             if (secIdx < 0 || !card.sections[secIdx]) return;
             card.sections[secIdx].label = secLabel.value;
             const btn = container.querySelector(`[data-cardsec="${secIdx}"]`);
             if (btn) btn.textContent = secLabel.value || `Section ${secIdx + 1}`;
-            // The card's name in the list comes from the FIRST section's tab
-            // label, so renaming that tab renames the card. Only then, because
-            // renaming tab 3 says nothing about what the card is called.
+            // The card's name in the list comes from the first section, so renaming that tab
+            // renames the card. Only that one.
             if (secIdx === 0) {
                 const cardBtn = document.querySelector(`[data-card="${idx}"]`);
                 if (cardBtn) cardBtn.textContent = window.comboCardLabel(card, idx);
@@ -1275,16 +1155,15 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         });
     }
 
-    // The builder edits the write-up of whatever is on screen - the card, or
-    // the section of it that is open.
+    // The write-up of what is on screen: the card, or its open section.
     initStrategyBlockBuilder('strategy-block-target', target.content || []);
 }
 
-// Writes the block buffer back into whichever document section is open.
-//
-// Reads currentEditorTabId rather than taking the tab as an argument: this is
-// called from the block-editor sync path, which knows what is open but not
-// which document tab it belongs to.
+/**
+ * Writes the buffer back into whichever document section is open. It reads
+ * currentEditorTabId: its caller, the sync path, knows what is open but not
+ * which tab.
+ */
 function flushDocumentSection() {
     const open = window.currentDocSection;
     const tabId = window.currentEditorTabId;
@@ -1292,16 +1171,14 @@ function flushDocumentSection() {
     if (!open || open === 'list' || !doc || !window.currentEditorDescData) return;
     if (typeof currentStrategyBlocks === 'undefined') return;
 
-    // The whole buffer, not getActiveBlocks(): see flushDocumentCard.
+    // The whole buffer.
     const blocks = JSON.parse(JSON.stringify(currentStrategyBlocks));
     if (open === 'intro') {
         window.currentEditorDescData[doc.intro.field] = blocks;
         return;
     }
-    // A group's buffer belongs to the open CARD's write-up, not to the group -
-    // the group holds cards, and the builder is only ever mounted on one of
-    // them. Writing `blocks` onto group.content here would replace every card
-    // in the group with the open card's write-up.
+    // A group's buffer is the open card's write-up: written onto group.content it
+    // would replace every card in the group.
     const idx = parseInt(String(open).replace('group-', ''), 10);
     flushDocumentCard(tabId, idx);
 }
@@ -1313,10 +1190,8 @@ window.renderDocumentPreview = function (tabId) {
     const fn = doc.list.rendererFn;
     if (!fn || typeof window[fn] !== 'function') return;
     window[fn](window.currentEditorDescData);
-    // The preview has to be styled like the live page, or notation is coloured
-    // for readers and plain for the person writing it. Without this the only
-    // thing colouring the editor's chips was the MutationObserver happening to
-    // catch them, which is why some steps came out coloured and others did not.
+    // Styled like the live page, or notation is coloured for readers and plain for
+    // the writer.
     if (typeof window.applyInternalStyling === 'function') {
         setTimeout(window.applyInternalStyling, 30);
     }
@@ -1338,7 +1213,7 @@ window.removeDocumentGroup = async function (tabId, idx) {
     if (!doc || !doc.groups) return;
     if (!(await window.confirmDelete('Delete this group and everything in it?'))) return;
     window.currentEditorDescData[doc.groups.field].splice(idx, 1);
-    // The open section may have been the one removed, or shifted down.
+    // The open section may be gone or shifted.
     window.currentDocSection = 'intro';
     initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
     window.renderDocumentPreview(tabId);
@@ -1351,14 +1226,13 @@ window.updateDocumentGroupTitle = function (tabId, idx, value) {
     if (!group) return;
     group[doc.groups.keyField] = value;
     const btn = document.getElementById(`${tabId}-nav-group-${idx}`);
-    // textContent, not innerHTML - this runs on every keystroke.
+    // textContent: this runs on every keystroke.
     if (btn) btn.textContent = value || `Group ${idx + 1}`;
     window.renderDocumentPreview(tabId);
 };
 
-// --- THE LIST EDITOR ---
-// Tables keyed by starter (Combos) or theory (Techs), each holding rows. The
-// rows themselves open in the modal (openDocumentRowModal below).
+// The list editor: tables keyed by starter (Combos) or theory (Techs), whose rows
+// open in a modal.
 window.renderDocumentListEditor = function (tabId) {
     const doc = docSections(tabId);
     const host = document.getElementById('combo-rows-panel');
@@ -1372,14 +1246,8 @@ window.renderDocumentListEditor = function (tabId) {
 
     const openTable = window.currentDocTableIndex;
 
-    // v0.18 F3. Combo groups have had reordering since v0.15 item 8 and the
-    // list beside them never did, so three Combo Lists could only be read in
-    // the order they were created in.
-    //
-    // `section.field` rather than a literal, so the Techs tab's techList gets
-    // this from the same line - the vocabulary in js/utility/character_tabs.js is what
-    // separates the two tabs, and writing 'comboList' here would be the second
-    // place that decision lives.
+    // The lists can be reordered like the groups. `section.field`, not a literal, so
+    // Techs gets it from the same line.
     let html = window.reorderStripControls(`desc.${section.field}`);
     html += `<div class="daw-variant-tabs daw-editor-nav-row">`;
     if (tables.length === 0) {
@@ -1412,9 +1280,8 @@ window.renderDocumentListEditor = function (tabId) {
             window.renderDocumentPreview(tabId);
         });
     });
-    // Shared by + STARTER and by the reorder bar's insert-in-place button, so
-    // the two cannot drift: insertListItemAfter runs this and then relocates
-    // whatever it appended, rather than building a second copy of the shape.
+    // Shared by + STARTER and the reorder bar's insert: the latter runs this, then
+    // moves what it appended.
     const appendTable = () => {
         tables.push({ [section.keyField]: `New ${noun}`, rows: [] });
         window.currentDocTableIndex = tables.length - 1;
@@ -1429,11 +1296,8 @@ window.renderDocumentListEditor = function (tabId) {
     renderDocumentListRows(tabId, section, tables);
 };
 
-// Named renderDocumentListRows, NOT renderComboTableBody: description.js assigns
-// window.renderComboTableBody, and a top-level `function` declaration here
-// silently overwrites it. The reader then called this one with the wrong
-// arguments and wrote a `rows: []` field into an individual combo. Every js/
-// file shares one global scope - see tests/global-scope-collisions.spec.js.
+// Not renderComboTableBody: description.js has a window.renderComboTableBody,
+// and a top-level function here would overwrite it in the shared global scope.
 function renderDocumentListRows(tabId, section, tables) {
     const container = document.getElementById('combo-table-body');
     if (!container) return;
@@ -1458,18 +1322,9 @@ function renderDocumentListRows(tabId, section, tables) {
     if (table.rows.length === 0) {
         html += `<p class="admin-tool-hint">${window.escapeHtml(section.emptyEntryMessage || 'Nothing here yet.')}</p>`;
     } else {
-        // v0.18 F4. PER-ROW controls, deliberately not the fixed bar every strip
-        // above uses.
-        //
-        // js/editor/blocks/editor-reorder.js rejected per-item controls because they travelled
-        // with the entry being moved and acted on "the selected one", so a second
-        // nudge meant chasing them along the row. Neither objection applies here:
-        // a row has NO selected state to act on - opening one opens a modal - and
-        // the list is vertical, so the buttons stay on the same line the eye is
-        // already on. A fixed bar would need a selection concept invented for it.
-        //
-        // window.moveListItem is still the shared primitive, so the array
-        // handling is the one that has been proven since v0.15 item 8.
+        // Per-row controls, unlike the fixed bars on the strips: a row has no selection to
+        // act on (opening one opens a modal), and in a vertical list the buttons stay on
+        // the line the eye is on. window.moveListItem does the moving.
         const lastRow = table.rows.length - 1;
         table.rows.forEach((row, i) => {
             html += `<div class="combo-row-item">
@@ -1500,11 +1355,8 @@ function renderDocumentListRows(tabId, section, tables) {
         btn.addEventListener('click', () =>
             window.openDocumentRowModal(tabId, idx, parseInt(btn.getAttribute('data-row'), 10)));
     });
-    // Row order rides inside the table's own delta rather than needing a scope:
-    // the entry keyed by `starter` ships whole when it differs, and moving a row
-    // changes that object. Proven in tests/combo-row-order.spec.js rather than
-    // assumed, because that is the assumption B2 turned out to have got wrong
-    // one level up.
+    // A row's order rides in its table's delta: the table ships whole when it
+    // differs (tests/combo-row-order.spec.js).
     container.querySelectorAll('.combo-row-up, .combo-row-down').forEach(btn => {
         btn.addEventListener('click', () => {
             const from = parseInt(btn.getAttribute('data-row'), 10);
@@ -1533,8 +1385,10 @@ function renderDocumentListRows(tabId, section, tables) {
     }
 }
 
-// The row form, in a modal rather than in the sidebar. Twelve fields do not
-// fit a pane that is sharing the screen with a live preview.
+/**
+ * The combo row's form, in a modal: twelve fields do not fit beside a preview.
+ * @since v0.15
+ */
 window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     const doc = docSections(tabId);
     const modal = document.getElementById('combo-row-modal');
@@ -1553,8 +1407,7 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     fields.innerHTML = window.comboRowFields().map(f => {
         if (f.field === 'sequence') {
             const value = Array.isArray(row.sequence) ? row.sequence.join('\n') : '';
-            // Notation styles (v0.20) sit directly under the route they are
-            // alternatives to, from the helper every other combo form uses.
+            // Notation styles sit under the route they are alternatives to.
             return `<div class="combo-field-full">
                 <label class="editor-field-label-sm">${window.escapeHtml(f.label)}<span class="admin-tool-hint"> - ${window.escapeHtml(f.hint)}</span></label>
                 <textarea class="editor-textarea" data-combo-field="sequence" rows="5">${window.escapeHtml(value)}</textarea>
@@ -1562,9 +1415,8 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
             <div class="combo-field-full">${window.comboNotationFieldsHTML(row, { lines: true })}</div>`;
         }
         if (f.field === 'difficulty') {
-            // A select, because difficulty is an ordinal enum: a typo sorts the
-            // row to the bottom silently (comboSortValue ranks an unrecognised
-            // value last) rather than showing an error anywhere.
+            // A select: difficulty is ordered, and a typo would sort the row last with no
+            // error.
             const options = ['', ...(window.COMBO_DIFFICULTIES || [])]
                 .map(d => `<option value="${window.escapeHtml(d)}" ${row.difficulty === d ? 'selected' : ''}>${window.escapeHtml(d || '- none -')}</option>`)
                 .join('');
@@ -1581,15 +1433,13 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
             <input type="text" class="editor-input" data-combo-field="${window.escapeHtml(f.field)}" value="${window.escapeHtml(row[f.field] || '')}"></div>`;
     }).join('');
 
-    // Live, on every keystroke: the preview behind the modal is the point of
-    // having one, and a Save button that could be missed would let a
-    // contributor close the modal having lost what they typed.
+    // Live, on every keystroke: the preview behind the modal is the point, and a
+    // missed Save button would lose what was typed.
     fields.querySelectorAll('[data-combo-field]').forEach(input => {
         const handler = () => {
             const field = input.getAttribute('data-combo-field');
             if (field === 'sequence') {
-                // One step per line. Blank lines are dropped rather than
-                // becoming empty chips in the route.
+                // One step a line; blank lines dropped.
                 row.sequence = input.value.split('\n').map(s => s.trim()).filter(Boolean);
             } else {
                 row[field] = input.value;
@@ -1602,8 +1452,8 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
         input.addEventListener('change', handler);
     });
 
-    // Notation styles: typing writes straight into the row; adding or removing
-    // one reopens the modal on the same row, which is how it re-renders.
+    // Typing writes into the row; adding or removing a style reopens the modal on
+    // the same row.
     fields.querySelectorAll('[data-nstyle-label], [data-nstyle-route]').forEach(input => {
         input.addEventListener('input', () => {
             window.applyComboNotationInput(row, input);
@@ -1628,8 +1478,7 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
 
     const done = document.getElementById('combo-row-modal-done');
     const del = document.getElementById('combo-row-modal-delete');
-    // Replaced rather than added to, so reopening the modal does not stack a
-    // second handler and delete two rows on one click.
+    // Replaced, not added: a reopened modal must not delete two rows on one click.
     if (done) done.onclick = close;
     if (del) {
         del.onclick = async () => {
@@ -1651,8 +1500,7 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
     const open = window.currentKeyedIndex[tabId];
     const list = window.currentEditorDescData[section.field] || [];
 
-    // Flush the entry being left before switching away, or its blocks are lost.
-    // The whole buffer, not getActiveBlocks(): see flushDocumentCard.
+    // Flush the entry being left; the whole buffer.
     if (open !== undefined && list[open]) {
         list[open].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
     }
@@ -1714,10 +1562,9 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
     }, 100);
 };
 
-// --- MOVES ---
 window.loadMatchupIntoEditor = function(idx) {
     if (window.currentMatchupIndex !== undefined && window.currentEditorDescData && window.currentEditorDescData.matchups[window.currentMatchupIndex]) {
-        // The whole buffer, not getActiveBlocks(): see flushDocumentCard.
+        // The whole buffer.
         window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
     }
 
@@ -1729,13 +1576,9 @@ window.loadMatchupIntoEditor = function(idx) {
     const matchup = window.currentEditorDescData.matchups[idx];
     const container = document.getElementById('matchup-editor-container');
 
-    // Offered options come from the one definition in js/utility/site_utils.js. The
-    // stored value is resolved through it first, for two reasons: a matchup
-    // written before the v0.13 rename still says "Unwinnable", and a matchup
-    // whose tier is junk (one live entry reads "Aerial Circling tier") is not
-    // in the list at all. In both cases an unresolved value would match no
-    // option, so the browser would display the first one - showing a tier
-    // nobody set, on a control that only writes when touched.
+    // The offered tiers come from site_utils.js, and the stored one is resolved
+    // through it first: an old name ("Unwinnable") or junk would match no option,
+    // and the browser would show the first, a tier nobody set.
     const currentTier = window.resolveMatchupTier(matchup.tier);
     const offered = window.MATCHUP_TIERS.some(t => t.id === currentTier.id)
         ? window.MATCHUP_TIERS
@@ -1784,12 +1627,8 @@ window.loadMatchupIntoEditor = function(idx) {
     }, 150);
 };
 
-// --- "1. STATS & FRAME DATA" CAN BE FOLDED (v1.1) ---
-//
-// On a long move this section is most of the workspace, and the strategy
-// blocks sit under it, so editing them meant scrolling past it again and again
-// (owner, 2026-10-18). Folded or not is remembered on this device, the way the
-// editor's other layout choices are, so it stays folded from move to move.
+// "1. STATS & FRAME DATA" folds, remembered on this device: on a long move it is
+// most of the Workspace, above the strategy Blocks.
 const STATS_FOLDED_KEY = 'dsl_editor_stats_folded';
 
 function statsSectionFolded() {
@@ -1820,7 +1659,6 @@ function bindStatsSectionFold(root) {
     });
 }
 
-// --- SUB-NAVIGATION: MOVES ---
 window.loadMoveIntoEditor = async function(moveId) {
     const oldActiveBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
     if (oldActiveBtn && window.currentEditorDescData) {
@@ -1884,16 +1722,11 @@ function initPerMoveEditor(moveId, statsData, strategyData) {
     updateLivePreview();
 }
 
-// --- STRUCTURED-FORM SUPPORT (Profile / Playstyle) ---
-// These two tabs edit a structured object rather than a block array, so they
-// return early from loadOverviewSectionIntoEditor without ever reaching
-// initBlockEditor - and with it they lost the Media Library button and the
-// undo/redo stack every other editor tab has. Reported as two separate bugs;
-// it is one gap, and this closes it for both tabs at once.
+// Profile and Playstyle edit an object, not a Block list, so they get their own
+// toolbar (the Media Library, UNDO and REDO) and history.
 
-// Same markup and classes as the block editor's toolbar so the two are
-// visually identical. No CLEAR ALL: there is no block list to clear, and
-// wiping a whole profile from a toolbar button is not a thing anyone wants.
+// The Block editor's toolbar markup, minus CLEAR ALL: wiping a whole profile from
+// a button is not wanted.
 function structuredFormToolbar() {
     return `
         <div class="strategy-toolbar-row">
@@ -1908,11 +1741,8 @@ function structuredFormToolbar() {
     `;
 }
 
-// A snapshot stack over a plain object, mirroring editor-blocks.js's block
-// history (same 50-entry cap, same truncate-on-new-branch behaviour) but
-// keyed on the form object, which is what these tabs actually edit.
-// apply() receives the restored state and is responsible for writing it back
-// and re-rendering.
+// A snapshot stack over a plain object, like the Block history (50 entries, a new
+// branch truncates). apply() writes the restored state back and redraws.
 function createFormHistory(initialState, apply) {
     let stack = [JSON.parse(JSON.stringify(initialState))];
     let index = 0;
@@ -1925,8 +1755,7 @@ function createFormHistory(initialState, apply) {
     };
 
     return {
-        // Called after every re-render, because re-rendering replaces the
-        // toolbar's buttons along with the rest of the form.
+        // After every redraw, which replaces the toolbar's buttons.
         bindButtons(u, r) { undoBtn = u; redoBtn = r; refresh(); },
         record(state) {
             const str = JSON.stringify(state);
@@ -1955,9 +1784,7 @@ function bindStructuredFormToolbar(container, history) {
     const media = container.querySelector('[data-form-media]');
     if (media) {
         media.addEventListener('click', () => {
-            // The gallery copies a URL to the clipboard on click rather than
-            // writing back into a field, so it needs no target plumbing -
-            // the same binding initBlockEditor uses.
+            // The library copies a URL on click, so it needs no target.
             document.getElementById('media-modal-overlay').classList.remove('hidden');
             if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
         });
@@ -1975,10 +1802,8 @@ function initProfileEditor(containerId, profileData) {
     if (!profileData) profileData = {};
     if (!profileData.stats) profileData.stats = [];
 
-    // Mutated in place rather than reassigned: the object identity is shared
-    // with currentEditorDescData.profile. Every field, not a list of them:
-    // restoring only image and stats left the crop focus and the v1.1 quote
-    // and trivia where they were.
+    // In place: the object is shared with currentEditorDescData.profile. Every field,
+    // so nothing is left behind.
     const history = createFormHistory(profileData, (restored) => {
         Object.keys(profileData).forEach(k => { delete profileData[k]; });
         Object.assign(profileData, restored);
@@ -1992,8 +1817,7 @@ function initProfileEditor(containerId, profileData) {
         window.currentEditorDescData.profile = profileData;
         clearTimeout(window.typingTimer);
         window.typingTimer = setTimeout(() => {
-            // Snapshot on the same debounce as the preview, so typing a word
-            // costs one history entry rather than one per keystroke.
+            // On the preview's debounce, so a typed word is one history entry.
             history.record(profileData);
             updateLivePreview();
         }, 400);
@@ -2002,9 +1826,8 @@ function initProfileEditor(containerId, profileData) {
     const renderProfileForm = () => {
         let statsHtml = '';
         profileData.stats.forEach((stat, idx) => {
-            // Escaped: a reviewer intercepting a submission loads someone
-            // else's data into this form, and an unescaped value= closes the
-            // attribute on the first double quote.
+            // Escaped: a reviewer intercepting a submission loads someone else's data here,
+            // and an unescaped value= ends at the first quote.
             statsHtml += `
                 <div class="editor-row editor-row-spaced-sm">
                     <div><input type="text" class="editor-input stat-label" data-idx="${idx}" value="${window.escapeHtml(stat.label)}" placeholder="Label (e.g. Archetype)"></div>
@@ -2088,9 +1911,7 @@ function initProfileEditor(containerId, profileData) {
             if (preview) preview.src = e.target.value;
         });
 
-        // Removed rather than left empty, so a page whose field was typed in
-        // and emptied again is the same data as one never touched, and shows
-        // no change to review.
+        // Removed when emptied, so it is the same data as never touched.
         container.querySelector('#profile-banner-input').addEventListener('input', (e) => {
             const value = e.target.value.trim();
             if (value) profileData.banner = value;
@@ -2112,9 +1933,7 @@ function initProfileEditor(containerId, profileData) {
             }
         });
 
-        // Delegated, and the value comes from a whitelist rather than the
-        // attribute being trusted - this string ends up inside a style
-        // attribute on the live page.
+        // From an allowlist, never the attribute: it lands in a style attribute on the page.
         container.querySelectorAll('.portrait-focus-dot').forEach(dot => {
             dot.addEventListener('click', () => {
                 const value = dot.dataset.focus;
@@ -2147,8 +1966,7 @@ function initProfileEditor(containerId, profileData) {
             profileData.stats.push({ label: 'New Stat', value: 'Value' }); renderProfileForm(); triggerSync();
         });
 
-        // An empty field is no field at all, so opening the form and leaving
-        // it blank is not a change to the page.
+        // An empty field is no field, so leaving the form blank is no change.
         const setOrDrop = (key, value) => {
             if (Array.isArray(value) ? value.length : value) profileData[key] = value;
             else delete profileData[key];
@@ -2194,8 +2012,7 @@ function initPlaystyleEditor(containerId, playstyleData) {
     };
 
     const renderForm = () => {
-        // Escaped for the same reason as the profile form above - a reviewer
-        // intercepting a submission renders someone else's text here.
+        // Escaped, as in the profile form.
         let likesHtml = playstyleData.likes.map((item, idx) => `
             <div class="editor-row editor-row-spaced-sm">
                 <input type="text" class="editor-input like-inp" data-idx="${idx}" value="${window.escapeHtml(item)}" placeholder="e.g. Fast-paced rushdown">

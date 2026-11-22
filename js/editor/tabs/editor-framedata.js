@@ -1,25 +1,22 @@
 /**
- * Dogslamloop Wiki - Editor: DAW Frame-Data Editor (variant-tree timeline
- * builder for move frame data - startup/active/recovery phases, tracks,
- * overlays)
- *
- * initDawEditor is kept as one closure rather than split further -
- * getCurrentDawNode/renderDaw/bindDawEvents and the whole window.setDawPath/
- * addDawVariant/deleteDawVariant/addDawTrack/deleteDawTrack/addDawPhase/
- * selectDawPhase/deleteDawPhase/initDawLeaf/initDawBranch family all close
- * over this function's own local variables (moveData, activePath,
- * selectedBarIdx/PhaseIdx) - splitting them apart would mean actually
- * refactoring into parameterized functions, not just moving code, matching
- * the precedent already set for admin-preview.js's switchVersionView.
+ * The Frame Data tab's editor: a move's stats, media and accolades, its Micro
+ * Variants, and the Frame Track (DAW in the code), where phases are built on
+ * tracks as counted frames, estimates or seconds.
+ * @since v0.4, as part of editor.js
+ * @touches page_data.frame_data (the move in place), FRAME_ESTIMATES, phaseWeight
+ *   and phaseSeconds (framedata.js), ACCOLADES (site_meta.js), measureMediaSource
+ *   (editor-media.js), saveLocalDraft (editor-drafts.js)
+ * @watch initDawEditor is one closure on purpose: its family of window.*Daw*
+ *   functions share its local variables (moveData, the active path, the selected
+ *   phase). Every stored string is contributor text written into innerHTML, so it
+ *   is escaped where it goes in.
+ * @see docs/frame-data-editor.md
  */
 
-// --- DAW FRAME EDITOR ENGINE ---
-
-// Edits here change the move in place and never pass through the Block buffer's
-// live preview, which is what writes the draft. So every change is saved here
-// instead, on the same short timer as a Block edit, so typing does not write
-// on every key. A field edit arrives as input/change on the container; every
-// other change ends in renderDaw().
+// Edits here change the move in place and never pass through the Block preview,
+// which is what writes the draft, so they are saved here on the same short
+// timer. A field edit arrives as input or change; every other change ends in
+// renderDaw().
 let frameDraftTimer = null;
 function saveFrameDraftSoon() {
     clearTimeout(frameDraftTimer);
@@ -31,9 +28,8 @@ const draftSavingContainers = new WeakSet();
 
 const DAW_TRACK_COLOR_CLASSES = ['text-red-400', 'text-red-600', 'text-blue-400', 'text-green-400', 'text-green-500', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-gray-400'];
 
-// The estimate whose nominal weight sits closest to a frame count, used when a
-// contributor switches a phase from counted to estimated. Nearest rather than
-// first, so the bar keeps its shape across the switch.
+// The estimate whose nominal weight is nearest a frame count, for a phase
+// switched from counted to estimated, so the bar keeps its shape.
 function closestEstimate(frames) {
     const scale = window.FRAME_ESTIMATES || [];
     if (scale.length === 0) return 'mid';
@@ -44,19 +40,16 @@ function closestEstimate(frames) {
     ).id;
 }
 
-// The move's accolades as chips, all of them in the owner's order
-// (js/pages/core/framedata.js), icon and name, pressed when the move has one and then in
-// its own color, as its badge is on the page. Their hover says what each means,
-// as the badge does.
+// The move's accolades as chips, every one in ACCOLADES' order, pressed in its own
+// colour when the move has it, as its badge is on the page.
 function accoladeChipsHTML(ids) {
     const has = new Set(Array.isArray(ids) ? ids : []);
     return (window.ACCOLADES || []).map(a => `<button type="button" class="accolade-chip" data-accolade="${window.escapeHtml(a.id)}" aria-pressed="${has.has(a.id)}" title="${window.escapeHtml(a.description)}" style="--accolade-color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}${window.escapeHtml(a.name)}</button>`).join('');
 }
 
-// Ticking one of a group that cannot all be true of one move unticks the rest
-// of the group. Stored in the owner's order, and not at all once none is
-// ticked, so a move ticked and unticked again is the same data as one never
-// touched, and a submission shows no change.
+// Ticking one of a group that cannot all be true of one move unticks the rest.
+// Stored in ACCOLADES' order, and not at all once none is ticked, so a move
+// ticked and unticked again is the data it was.
 function toggleAccolade(moveData, id) {
     const has = new Set(Array.isArray(moveData.accolades) ? moveData.accolades : []);
     if (has.has(id)) {
@@ -70,6 +63,9 @@ function toggleAccolade(moveData, id) {
     else delete moveData.accolades;
 }
 
+/**
+ * Draws the Frame Data editor for `moveData` into `containerId`.
+ */
 function initDawEditor(containerId, moveData) {
     const container = document.getElementById(containerId);
     if (!moveData) {
@@ -82,8 +78,7 @@ function initDawEditor(containerId, moveData) {
         container.addEventListener('input', saveFrameDraftSoon);
         container.addEventListener('change', saveFrameDraftSoon);
     }
-    // The first draw only shows the move; each later one follows a change, or a
-    // selection, which saves a draft identical to what is on screen.
+    // The first draw only shows the move; each later one follows a change.
     let drawnOnce = false;
 
     if (!moveData.media) moveData.media = { src: "", alt: "" };
@@ -104,9 +99,8 @@ function initDawEditor(containerId, moveData) {
     }
 
     function renderDaw() {
-        // Every stored string below is contributor text written into innerHTML,
-        // so it is escaped where it is interpolated. A reviewer opening a ticket
-        // here is the person a crafted value would run as.
+        // Every stored string below is contributor text, escaped where it goes in: a
+        // reviewer opening a ticket here is who a crafted value would run as.
         let metaHtml = `
             <div class="block-editor-container block-editor-container-tight">
                 <div class="block-card">
@@ -219,8 +213,8 @@ function initDawEditor(containerId, moveData) {
         let hasVariants = currentObj && currentObj.variants && Object.keys(currentObj.variants).length > 0;
 
         if (moveData.noFrameData === true) {
-            // The Micro Variant tabs go with the timeline: there is nothing to
-            // pick while the Frame Track is off.
+            // The Micro Variant tabs go with the timeline: nothing to pick with the Frame
+            // Track off.
             variantTabsHtml = '';
             dawHtml = `
                 <div class="daw-container daw-branch-empty-notice daw-no-frames-notice">
@@ -236,13 +230,11 @@ function initDawEditor(containerId, moveData) {
                 if (!bar.phases) bar.phases = [];
 
                 bar.phases.forEach((p, pIdx) => {
-                    // An estimated phase has no frame count, so its width comes
-                    // from the nominal weight of its label and its block reads
-                    // "~Short" rather than a number it does not have.
+                    // An estimated phase has no count, so its width comes from its label's nominal
+                    // weight, and it reads "~Short".
                     const estimate = typeof window.frameEstimate === 'function' ? window.frameEstimate(p.estimate) : null;
-                    // A timed phase reads in its own unit for the same reason
-                    // an estimate does: showing "120f" for a typed 2 would
-                    // present a conversion as the thing the author wrote.
+                    // A timed phase reads in its own unit: "120f" for a typed 2 would show a
+                    // conversion as what the author wrote.
                     const seconds = typeof window.phaseSeconds === 'function' ? window.phaseSeconds(p) : null;
                     const weight = typeof window.phaseWeight === 'function' ? window.phaseWeight(p) : (p.duration || 0);
                     let widthPct = (weight / totalScale) * 100;
@@ -473,11 +465,9 @@ function initDawEditor(containerId, moveData) {
             `;
         }
 
-        // Every click in the timeline (selecting a phase, adding one) rebuilds
-        // it, and a rebuilt scroll box starts at 0. On a long move that threw
-        // the editor back to frame 0 on every click. The position is kept when
-        // the same timeline is redrawn, and only then: a different variant is a
-        // different timeline and starts at its own beginning.
+        // Every click in the timeline rebuilds it, and a rebuilt scroll box starts at 0,
+        // so the position is kept when the same timeline redraws. A different variant
+        // starts at its own beginning.
         const oldTimeline = container.querySelector('.daw-timeline-wrapper');
         const keptScroll = oldTimeline && oldTimeline.dataset.timelinePath === JSON.stringify(activePath)
             ? oldTimeline.scrollLeft : 0;
@@ -492,14 +482,9 @@ function initDawEditor(containerId, moveData) {
         drawnOnce = true;
     }
 
-    // Stale dimensions are worse than none - they would frame the box for the
-    // previous file - so they are cleared the moment the src changes and only
-    // rewritten once the new source actually measures. A src typed one
-    // character at a time therefore spends most of its life with no dimensions
-    // rather than the wrong ones.
-    //
-    // `media` is the move's media object or a Micro Variant's, each with its
-    // own timer so typing in one does not cancel the other's measurement.
+    // Dimensions are cleared the moment the src changes and written once the new one
+    // measures: stale ones would frame the box for the previous file. One timer per
+    // media object, so the move's and a Micro Variant's do not cancel each other.
     const dimensionTimers = new WeakMap();
     function captureMediaDimensions(media, src) {
         media.width = null;
@@ -518,8 +503,8 @@ function initDawEditor(containerId, moveData) {
     }
 
     function bindDawEvents(container, currentObj) {
-        // Variant paths are built from stored variant keys, so they ride in
-        // data- attributes rather than an inline onclick (CLAUDE.md).
+        // Variant paths come from stored keys, so they ride in data- attributes, never an
+        // inline onclick.
         container.querySelectorAll('[data-daw-path]').forEach(btn =>
             btn.addEventListener('click', () => window.setDawPath(JSON.parse(btn.dataset.dawPath))));
         container.querySelectorAll('[data-daw-add-variant]').forEach(btn =>
@@ -531,12 +516,9 @@ function initDawEditor(containerId, moveData) {
                 if(field.startsWith('media.')) moveData.media[field.split('.')[1]] = e.target.value;
                 else moveData[field] = e.target.value;
 
-                // Recording the media's real size here is what lets a skill
-                // card pick its box shape before the file has loaded. It has
-                // to happen at paste time: the media library hands out URLs to
-                // copy rather than inserting files, so the upload path never
-                // sees this move. Debounced, because this fires per keystroke
-                // and each attempt is a network request.
+                // The media's real size, so a Skill Card picks its box shape before the file
+                // loads. At paste time, since the library hands out URLs. Debounced: each try is
+                // a network request.
                 if (field === 'media.src') captureMediaDimensions(moveData.media, e.target.value);
             });
         });
@@ -579,8 +561,8 @@ function initDawEditor(containerId, moveData) {
             if(activeBtns.length > 0) activeBtns[activeBtns.length - 1].textContent = e.target.value;
         });
 
-        // Stored on the timeline only while it has something in it, so a
-        // Micro Variant nobody gave media to keeps its shape.
+        // Stored on the timeline only while it holds something, so a Micro Variant with
+        // no media keeps its shape.
         container.querySelectorAll('.daw-variant-media-inp').forEach(inp => {
             inp.addEventListener('input', (e) => {
                 const media = currentObj.media || (currentObj.media = { src: '', alt: '' });
@@ -605,12 +587,8 @@ function initDawEditor(containerId, moveData) {
                 let bIdx = e.target.dataset.bidx;
                 let val = e.target.value;
 
-                // Swap only the semantic color-marker class in place (classList,
-                // not a className rebuild) so unrelated classes survive - most
-                // importantly .manga-initialized, which site_utils.js's dropdown
-                // engine relies on to avoid re-wrapping this <select> on every
-                // DOM mutation (a rebuild silently dropping it caused the select
-                // to get wrapped a second time on every color change).
+                // Only the colour class swapped, so .manga-initialized survives: without it the
+                // site's dropdown engine wraps this <select> again on every change.
                 DAW_TRACK_COLOR_CLASSES.forEach(c => e.target.classList.remove(c));
                 if (val) e.target.classList.add(val);
 
@@ -632,11 +610,8 @@ function initDawEditor(containerId, moveData) {
             renderDaw();
         });
 
-        // Bound on `change`, not with the .meta-inp `input` handlers above:
-        // initializeMangaSelects hides the native <select> behind a custom
-        // dropdown that only ever dispatches `change`.
-        // Stored only when ticked, so a move nobody touched keeps its shape and
-        // a submission shows no change.
+        // On `change`: the site's dropdown hides the native <select> and dispatches only
+        // change. Stored only when ticked, so an untouched move keeps its shape.
         const noFrames = container.querySelector('#move-no-frame-data');
         if (noFrames) noFrames.addEventListener('change', (e) => {
             if (e.target.checked) moveData.noFrameData = true;
@@ -655,16 +630,12 @@ function initDawEditor(containerId, moveData) {
         if (inspMode) inspMode.addEventListener('change', (e) => {
             const phase = currentObj.bars[selectedBarIdx].phases[selectedPhaseIdx];
 
-            // What the phase is worth RIGHT NOW, in frames. That is the one
-            // currency the three modes share, so a switch keeps the shape of
-            // the bar rather than snapping it to whatever happens to be first
-            // in a list - which is what the counted/estimated pair already did
-            // between themselves, generalised now that there are three.
+            // What the phase is worth now, in frames, the one unit the three modes share, so
+            // a switch keeps the bar's shape.
             const frames = Math.round(window.phaseWeight(phase)) || 0;
 
-            // Only ever ONE of the three is stored. Keeping the others would
-            // leave a count in the data that nothing displays and a reviewer
-            // might reasonably trust.
+            // Only one of the three is stored: a count nothing shows is one a reviewer might
+            // trust.
             delete phase.duration;
             delete phase.estimate;
             delete phase.seconds;
@@ -672,7 +643,7 @@ function initDawEditor(containerId, moveData) {
             if (e.target.value === 'estimated') {
                 phase.estimate = closestEstimate(frames);
             } else if (e.target.value === 'timed') {
-                // Two decimals, for the same reason the input steps by 0.05.
+                // Two decimals, as the input steps by 0.05.
                 phase.seconds = Number((frames / window.FRAMES_PER_SECOND).toFixed(2)) || 0;
             } else {
                 // A starting point to correct, not a claim.

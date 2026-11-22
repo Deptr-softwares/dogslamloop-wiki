@@ -1,5 +1,12 @@
 /**
- * Dogslamloop Wiki - Editor: Media Library (upload, gallery, WebP conversion)
+ * The Media Library: uploads to the wiki-media bucket, the list of files with one
+ * preview, search, and the picker the Gallery bin opens.
+ * @since v0.4, as part of editor.js
+ * @touches Storage bucket wiki-media, media_uploads (who uploaded what),
+ *   get_public_profiles, can_upload_media, window.currentMediaFiles
+ * @watch uploading needs the upload media permission, and Storage's own policy
+ *   enforces it: this file only says so before somebody tries
+ * @see docs/block-editor.md
  */
 
 function convertToWebP(file, newName) {
@@ -21,17 +28,9 @@ function convertToWebP(file, newName) {
 }
 
 /**
- * The pixel dimensions of a piece of media, as { width, height } or null.
- *
- * Accepts a File (measured from an object URL, so it costs no extra request)
- * or a URL string (measured from the network, which is what the move editor
- * needs because the media library hands out URLs to paste rather than
- * inserting files directly).
- *
- * Videos need a <video> and its loadedmetadata event; images need an <img> and
- * its load event - there is no one element that answers for both. Anything the
- * browser cannot decode resolves to null, which callers treat as "measure it
- * at render time instead".
+ * A piece of media's size, { width, height } or null, from a File (an object URL,
+ * no request) or a URL. null means "measure it when drawn".
+ * @since v0.12
  */
 window.measureMediaSource = function(source) {
     return new Promise((resolve) => {
@@ -50,8 +49,7 @@ window.measureMediaSource = function(source) {
         const el = document.createElement(isVideo ? 'video' : 'img');
         const done = (value) => { if (isFile) URL.revokeObjectURL(url); resolve(value); };
 
-        // A file that never fires either event would leave the upload hanging
-        // forever, and dimensions are an optimisation - not worth blocking on.
+        // Dimensions are an optimisation, not worth an upload that never finishes.
         const timer = setTimeout(() => done(null), 5000);
 
         const finish = () => {
@@ -69,43 +67,15 @@ window.measureMediaSource = function(source) {
     });
 };
 
-/**
- * Uploads one file to the wiki-media bucket and returns its public URL.
- *
- * Extracted from the Media Library's own drop zone so the gallery editor can
- * upload without reimplementing any of it. Three rules matter and all of them
- * are easy to get subtly wrong twice:
- *
- *   - Videos and GIFs keep their original extension; only static images are
- *     converted to WebP. Converting a GIF would kill the animation, and
- *     "convert everything" is the obvious wrong simplification.
- *   - An upload that would overwrite an existing filename is refused, because
- *     the old name is already live on wiki pages pointing at the old content.
- *   - A failed conversion falls back to the original file rather than
- *     aborting - a slightly larger image beats no image.
- *
- * onStatus is optional and exists so a caller can show progress in whatever
- * element it owns.
- */
-// alsoKnown is the batch's own history: names uploaded earlier in the same
-// run, which the bucket listing below was taken before. Without it, two
-// images called logo.png and logo.jpg both resolve to logo.webp and the
-// second one gets a raw storage error instead of the guard's explanation.
-// v0.20: uploading needs the upload media permission. Trusted Editor and up
-// have it by role; the owner can tick it for anyone else. Storage enforces it
-// (the "Auth Upload" policy); this file only says so before somebody tries.
+// Storage refuses an upload without the permission; this says why first.
 const MEDIA_UPLOAD_LOCKED_TEXT = 'Uploading needs the upload media permission. Trusted Editors and up have it, and the owner can give it to anyone else. Media already in the library can still be used.';
 // The Playground sends nothing anywhere, and an upload would be live in the
-// shared library at once (owner, 2026-10-20: uploads off inside).
+// shared library at once.
 const MEDIA_PLAYGROUND_TEXT = 'Uploading is off in the Playground. Media already in the library can still be used.';
 
-// Asked every time the library opens rather than once per page, so a
-// permission the owner ticks mid-session takes effect on the next open.
-//
-// Open unless the answer is an explicit false. Before the release that adds
-// it, the function does not exist (PGRST202) and uploading is not gated at
-// all; after it, Storage refuses anyway, so failing open costs a clearer
-// message and nothing else.
+// Asked on every open, so a permission ticked mid-session counts next time. Open
+// unless the answer is false: Storage refuses anyway, so failing open costs only
+// a clearer message.
 async function mediaUploadAllowed() {
     if (!window.supabaseClient) return true;
     try {
@@ -117,23 +87,18 @@ async function mediaUploadAllowed() {
     }
 }
 
-// --- MEDIA WEIGHT (v0.20 V2 fix 4) ---
-//
-// Measured on 2026-09-28: every working clip on Puppet Master's Overview was
-// 1920x1080, 0.3 to 4.9 MB each, shown in a column about 800px wide on a
-// desktop and 350px on a phone. The pixels past 720p are never seen, and a
-// reader waits for them anyway. So the library asks before uploading a clip
-// that heavy. It asks and never refuses: a long clip can be over 2 MB and
-// still be the right file.
+// The library asks before uploading a clip over 2 MB or past 720p, and never
+// refuses: a long clip can be heavy and still be the right file.
 const MEDIA_HEAVY_BYTES = 2 * 1024 * 1024;
 const MEDIA_HEAVY_SHORT_SIDE = 1080;
 window.MEDIA_WEIGHT_ADVICE = 'A 720p export under 2 MB looks the same on a page and loads faster for readers.';
 
-// What makes a file heavier than the wiki needs ("1920x1080, 4.9 MB"), or
-// null. The short side, so a phone capture held upright (1080x1920) counts as
-// 1080p too. Static images are left alone: they become WebP on the way up, so
-// their size here says nothing about what reaches the bucket. MP4 is refused
-// by uploadWikiMedia anyway, and a weight note on it would only be noise.
+/**
+ * What makes a file heavier than the wiki needs ("1920x1080, 4.9 MB"), or null.
+ * The short side, so an upright phone capture counts as 1080p. Images are left
+ * alone (they become WebP on the way up), and MP4 is refused anyway.
+ * @since v0.20
+ */
 window.mediaWeightNote = async function(file) {
     if (!file || !file.type) return null;
     const isVideo = file.type.startsWith('video/');
@@ -152,14 +117,9 @@ window.mediaWeightNote = async function(file) {
     return reasons.length ? reasons.join(', ') : null;
 };
 
-// --- THE WHOLE BUCKET (v1.2) ---
-//
-// Storage answers one page per request, and the library asked for one page of
-// 1000 and stopped. Past 1000 files that hid every file after the 1000th by
-// name, from the library and from the overwrite guard above alike (pages
-// already linked 510 different files on 2026-11-19). Paged to the end, the
-// way the admin media queue lists the same bucket. It stops at a short page,
-// or at a page that brings no new name, so an API ignoring offset cannot loop.
+// The whole bucket: Storage answers one page per request, so it pages to the
+// end. It stops at a short page, or a page with no new name, so an API that
+// ignores offset cannot loop.
 const MEDIA_LIST_PAGE = 1000;
 async function listWikiMediaBucket() {
     const files = [];
@@ -184,6 +144,15 @@ function mediaKind(name) {
 
 const MEDIA_PREVIEW_EMPTY = '<p class="media-lib-preview-empty">Pick a file to preview it here.</p>';
 
+/**
+ * Uploads one file to the wiki-media bucket and returns its public URL. Videos
+ * and GIFs keep their extension, and only still images become WebP (a GIF would
+ * lose its animation); a failed conversion uploads the original. A name already
+ * in the bucket is refused, since pages link the old file. `alsoKnown` is the
+ * batch's names so far, which the bucket listing was taken before. onStatus
+ * (optional) shows progress.
+ * @since v0.12
+ */
 window.uploadWikiMedia = async function(file, onStatus = () => {}, alsoKnown = []) {
     // Here rather than only on the drop zone: the Gallery bin uploads too.
     if (window.editorPlayground) return { error: MEDIA_PLAYGROUND_TEXT };
@@ -196,18 +165,9 @@ window.uploadWikiMedia = async function(file, onStatus = () => {}, alsoKnown = [
     const isVideo = file.type.startsWith('video/');
     const isGif = file.type.includes('gif');
 
-    // MP4 uploads are refused (owner, 2026-08-12). This is an upload gate and
-    // nothing else: every MP4 already on the wiki keeps playing, the library
-    // still lists them, and no renderer changed. The site did not stop
-    // supporting the format - it stopped accepting new ones.
-    //
-    // The reason is bytes. Measured across the whole library on 2026-08-11,
-    // MP4 was 18% of the files and 56% of the total size, averaging 4.6x a
-    // WebM. Format is a far bigger lever here than any size cap.
-    //
-    // Tested on the extension as well as the type, because a file renamed by
-    // hand arrives with an empty or mismatched type and a MIME-only check
-    // would wave it through.
+    // MP4 is refused at upload only: every MP4 already on the wiki still plays and
+    // is listed. Tested on the extension too, since a renamed file can arrive with an
+    // empty or wrong type.
     if (file.type === 'video/mp4' || originalExt === '.mp4') {
         return { error: `MP4 uploads are turned off - convert the clip to WebM first.
 
@@ -217,10 +177,8 @@ A WebM of the same clip is usually 4-5x smaller and plays exactly the same on th
     const needsConversion = !isVideo && !isGif && originalExt !== '.webp';
     let finalName = baseName + (needsConversion ? '.webp' : originalExt);
 
-    // The gallery editor can be open without the Media Library ever having
-    // been rendered, so the known-file list may not be populated. Fetch it
-    // rather than skipping the overwrite guard, which is the one check here
-    // that protects content already live.
+    // The known-file list may be empty (the Gallery editor can open without the
+    // library), so it is fetched: the overwrite guard protects content already live.
     let known = window.currentMediaFiles;
     if (!Array.isArray(known) || known.length === 0) {
         const { data } = await listWikiMediaBucket();
@@ -248,10 +206,8 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
 
         onStatus('Uploading to Cloud...');
         const { error } = await window.supabaseClient.storage.from('wiki-media').upload(finalName, finalFile);
-        // Storage refusing on the upload permission (v0.20) says "new row
-        // violates row-level security policy", which tells nobody what to do.
-        // The Gallery bin reaches this without the Media Library's lock, so the
-        // sentence lives here rather than only on the drop zone.
+        // Storage's "row-level security" refusal tells nobody what to do. Here, since
+        // the Gallery bin reaches it without the library's lock.
         if (error && /row-level security|unauthori[sz]ed|\b403\b/i.test(`${error.message} ${error.statusCode || ''}`)) {
             return { error: MEDIA_UPLOAD_LOCKED_TEXT };
         }
@@ -259,17 +215,9 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
 
         const { data: publicUrlData } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(finalName);
 
-        // v0.19 F8: record who uploaded this, so the library can credit them.
-        //
-        // AFTER the upload and deliberately not awaited into the result: the
-        // file is already in the bucket by this point, and a failure to write
-        // the credit must not report a successful upload as failed. A missing
-        // row renders as "Unknown", which is the same state as every file
-        // uploaded before this shipped - a degraded credit, not a lost file.
-        //
-        // uploaded_by is sent explicitly rather than left to a default, because
-        // the RLS policy is WITH CHECK (uploaded_by = auth.uid()) - a row with
-        // no uploader would be refused by its own guard.
+        // Who uploaded it, after the upload and not awaited into the result: the file is
+        // already in, and a failed credit must not fail it (a missing row reads
+        // "Unknown"). uploaded_by is sent, since the policy checks uploaded_by = auth.uid().
         try {
             const { data: sessionData } = await window.supabaseClient.auth.getSession();
             const uploaderId = sessionData && sessionData.session && sessionData.session.user
@@ -284,13 +232,9 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
             console.warn('Upload succeeded; could not record the uploader:', creditErr);
         }
 
-        // Dimensions travel with the file so a skill card can pick its box
-        // shape before the media has loaded. Without them the box starts 16:9
-        // and corrects itself in front of the reader the first time they open
-        // the tab - skill media is lazy and lives inside a hidden tab, so it
-        // genuinely does not load until then. Measured from the local file, so
-        // it costs no extra request; a failure here is not worth failing an
-        // upload over, hence the null fallback.
+        // The size goes with the file, so a Skill Card picks its box shape before the
+        // media loads. From the local file, so no request; a failure is not worth
+        // failing the upload.
         const dimensions = await window.measureMediaSource(finalFile).catch(() => null);
 
         return {
@@ -305,39 +249,30 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
     }
 };
 
-// --- MEDIA LIBRARY SYSTEM ---
-
 /**
- * The Media Library is a copy-a-URL tool everywhere it appears. The Gallery
- * bin (v0.18 F9) opens it for a different reason - to RE-USE a file that is
- * already uploaded - so clicking a card there has to hand the URL back rather
- * than put it on the clipboard, where a bin with no URL field could not
- * receive it.
- *
- * The handler is one-shot and armed per open. It is cleared the moment it
- * fires AND on close, because a handler left armed would silently turn the
- * next ordinary open - the block editor's footer button, one tab away - into
- * a picker that swallows the click and closes the library.
+ * Opens the Media Library to pick a file already uploaded (the Gallery bin):
+ * the file's button hands its URL to onPick instead of copying it.
+ * @since v0.18
+ * @watch the handler is one-shot: cleared when it fires and on close, or the next
+ *   ordinary open would become a picker
  */
 window.openMediaLibraryPicker = function (onPick) {
     window.mediaPickHandler = typeof onPick === 'function' ? onPick : null;
     const overlay = document.getElementById('media-modal-overlay');
     if (overlay) {
-        // The library is a tier-1 overlay (z-index 9000, style/Modals.css:19)
-        // and the Gallery item modal that opens it sets 10005 inline. Opened
-        // as-is it lands UNDERNEATH its own caller: fully rendered, visibly
-        // there, and every card unclickable. That is the failure this repo has
-        // already shipped twice, so the picker is lifted above the modal that
-        // opened it and put back on close.
+        // The library is a z-index 9000 overlay, and the Gallery item modal that opens it
+        // sets 10005, so it is lifted above its caller and put back on close.
         overlay.style.zIndex = '10010';
         overlay.classList.remove('hidden');
     }
     if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
 };
 
-// Every close path goes through here, including the modal's own Close button
-// and a successful pick, so there is one place that disarms the handler and
-// drops the lift rather than one per caller.
+/**
+ * Every way of closing the library, so one place disarms the picker and drops
+ * the lift.
+ * @since v0.18
+ */
 window.closeMediaLibrary = function () {
     window.mediaPickHandler = null;
     const overlay = document.getElementById('media-modal-overlay');
@@ -345,8 +280,8 @@ window.closeMediaLibrary = function () {
         overlay.style.zIndex = '';
         overlay.classList.add('hidden');
     }
-    // A hidden overlay does not stop a clip it holds from downloading, and the
-    // next open (maybe as a picker) must not offer the last file's button.
+    // A hidden overlay still downloads a clip it holds, and the next open must not
+    // offer the last file's button.
     window.mediaSelectedName = null;
     const preview = document.getElementById('media-lib-preview');
     if (preview) preview.innerHTML = MEDIA_PREVIEW_EMPTY;
@@ -364,8 +299,7 @@ window.initMediaLibrary = function() {
 
 
     window.currentMediaPage = 1;
-    // Rows of names are cheap to draw, so a page holds more than the 24 cards
-    // the old grid did.
+    // Rows of names are cheap, so a page holds 50.
     window.mediaItemsPerPage = 50;
     window.mediaSelectedName = null;
 
@@ -388,42 +322,29 @@ window.initMediaLibrary = function() {
         window.currentMediaFiles = data.filter(f => !f.name.startsWith('.'));
         window.currentMediaPage = 1;
 
-        // Not awaited into the grid: the files are why the library was
-        // opened, and they stay usable whatever the answer is.
+        // Not awaited: the files are usable whatever the answer.
         applyUploadPermission();
 
-        // Render FIRST, then fill the credits in. The grid is the reason the
-        // modal was opened and it does not need a name to be useful, so making
-        // it wait on two more requests would trade the thing people came for
-        // against a caption. loadUploaderCredits re-renders when it lands.
+        // The list first, the credits after: the list does not need names to be useful.
+        // loadUploaderCredits redraws when they land.
         window.renderMediaGrid();
         loadUploaderCredits();
     };
 
-    // path -> display name, for whatever the last load resolved. A plain object
-    // rather than a Map because renderMediaGrid reads it per card and this is
-    // the shape the rest of this file already passes around.
+    // path -> display name, from the last load.
     window.mediaUploaderNames = {};
 
-    // v0.19 F8. Two requests, in sequence because the second needs the first's
-    // ids: who uploaded each file, then what those people are called.
-    //
-    // Failure is silent by design. A credit is supplementary - the library
-    // worked without it for five versions - and an error banner over a working
-    // media picker would be the loudest possible way to report the least
-    // important thing on screen. Same call the terminology peek makes on the
-    // systems hub.
+    // Who uploaded each file, then what they are called (the second needs the
+    // first's ids). Fails silently on purpose: a credit is a caption, and an error
+    // banner over a working library would shout about the least important thing.
     async function loadUploaderCredits() {
         try {
             const { data: rows, error } = await window.supabaseClient
                 .from('media_uploads').select('path, uploaded_by');
             if (error || !rows || !rows.length) return;
 
-            // De-duplicated: get_public_profiles is bounded to 200 ids, and a
-            // bucket of 1000 files uploaded by four people is four ids, not a
-            // thousand. Nulls dropped - an ON DELETE SET NULL row is a real
-            // upload by a deleted account, and asking for a NULL profile would
-            // waste the request rather than fail it.
+            // Unique ids: get_public_profiles takes 200 at most. NULLs dropped: an upload by
+            // a deleted account.
             const ids = [...new Set(rows.map(r => r.uploaded_by).filter(Boolean))];
             if (!ids.length) return;
 
@@ -447,12 +368,9 @@ window.initMediaLibrary = function() {
         }
     }
 
-    // Search (owner, 2026-11-19): words search the file name, and "@" searches
-    // by uploader. The uploader's name is matched from its start, longest name
-    // first, so a name with a space works ("@Hired Killer kick") and the words
-    // after it search the file name. A name typed in part ("@hir") matches
-    // every uploader whose name starts that way. A file with no recorded
-    // uploader (everything before 2026-09-10) never matches an @ search.
+    // Words search the file name, and "@" the uploader: matched from the name's
+    // start, longest first, so "@Hired Killer kick" works and the rest searches the
+    // file name. A file with no recorded uploader never matches an @ search.
     function mediaSearch(raw) {
         const query = String(raw || '').trim().toLowerCase();
         if (!query.startsWith('@')) return { uploader: null, words: query };
@@ -509,14 +427,9 @@ window.initMediaLibrary = function() {
             return;
         }
 
-        // Names only (owner, 2026-11-19). A card used to be a <video
-        // preload="metadata"> per clip, and one page of 24 downloaded 52.2 MB
-        // of those clips' 120.7 MB on 2026-11-19 before anyone hovered. Now
-        // nothing is fetched until a row is picked, and then only that file.
-        //
-        // file.name and the uploader's name are escaped: file names come from
-        // the uploader's disk, and get_public_profiles reads display_name out
-        // of raw_user_meta_data, which is whatever the person typed.
+        // Names only: nothing is fetched until a row is picked, and then only that file.
+        // The file name and the uploader's name are escaped: one comes from a disk, the
+        // other is whatever the person typed.
         grid.innerHTML = paginatedFiles.map(file => {
             const uploader = window.mediaUploaderNames[file.name];
             const selected = file.name === window.mediaSelectedName;
@@ -533,18 +446,14 @@ window.initMediaLibrary = function() {
         return window.supabaseClient.storage.from('wiki-media').getPublicUrl(file.name).data.publicUrl;
     }
 
-    // The one file being looked at. Its button is the only way to use it:
-    // COPY LINK, or USE THIS when the library was opened by
-    // openMediaLibraryPicker (the Gallery bin), where a click used to pick at
-    // once. The picker now takes one more click, the price of seeing the file
-    // before handing it over.
+    // The file being looked at. Its button is the only way to use it: COPY LINK, or
+    // USE THIS when the picker opened the library.
     function renderMediaPreview(file) {
         const box = document.getElementById('media-lib-preview');
         if (!box) return;
         if (!file) { box.innerHTML = MEDIA_PREVIEW_EMPTY; return; }
 
-        // The URL is built from the file name, so it is escaped into the
-        // attribute like the name is: a bare quote would close src.
+        // Escaped into the attribute like the name: a quote would close src.
         const url = window.escapeHtml(publicUrlOf(file));
         const media = mediaKind(file.name) === 'VIDEO'
             ? `<video src="${url}" class="media-lib-preview-media" controls autoplay muted loop playsinline></video>`
@@ -583,9 +492,8 @@ window.initMediaLibrary = function() {
 
         if (e.target.closest('[data-media-use]')) {
             if (typeof window.mediaPickHandler !== 'function') return;
-            // Captured first, then closed: closeMediaLibrary is what disarms
-            // the handler, so a handler that throws still cannot leave the
-            // library armed for the next caller.
+            // Taken, then closed: closeMediaLibrary disarms the handler, so one that throws
+            // cannot leave the library armed.
             const pick = window.mediaPickHandler;
             window.closeMediaLibrary();
             pick(url, file);
@@ -623,19 +531,10 @@ window.initMediaLibrary = function() {
         window.renderMediaGrid();
     });
 
-    // Upload Logic
-    // Thin UI wrapper. All the actual rules - extension handling, WebP
-    // conversion, the overwrite guard - live in window.uploadWikiMedia above
-    // so the gallery editor can upload without reimplementing any of it.
-    //
-    // The handler used to read files[0] and drop the rest, on a library whose
-    // whole use is bulk: seven clips uploaded one at a time inside fifty
-    // minutes, measured 2026-08-09.
-    //
-    // Sequential rather than parallel, deliberately. The overwrite guard reads
-    // a snapshot of the bucket, so uploads in flight together can both pass it
-    // for the same name; and the WebP conversion is canvas work competing for
-    // the same main thread anyway.
+    // Uploading several files, one after another: the overwrite guard reads one
+    // snapshot of the bucket, so two at once could both pass it for one name, and
+    // the WebP conversion shares the main thread anyway. The rules are in
+    // uploadWikiMedia.
     let uploadInProgress = false;
 
     function renderUploadQueue(entries) {
@@ -643,8 +542,7 @@ window.initMediaLibrary = function() {
         if (!box) return;
 
         box.hidden = entries.length === 0;
-        // File names come from the uploader's disk, so they are escaped like
-        // any other value reaching innerHTML.
+        // File names come from the uploader's disk, so they are escaped.
         box.innerHTML = entries.map(entry => `
             <div class="media-upload-row media-upload-row-${entry.state}">
                 <span class="media-upload-row-name">${window.escapeHtml(entry.name)}</span>
@@ -653,11 +551,9 @@ window.initMediaLibrary = function() {
         `).join('');
     }
 
-    // The weight question (v0.20 V2 fix 4), asked inside the library rather
-    // than in the editor's confirmation modal: that one is the red delete
-    // dialog, and this is advice, not a warning about losing anything. Above
-    // the queue rather than in it, because the queue scrolls and the buttons
-    // must not scroll away. Resolves true for "upload anyway".
+    // The weight question, in the library rather than the red delete dialog (it is
+    // advice), and above the queue so its buttons do not scroll away. True for
+    // "upload anyway".
     let heavyChoice = null;
     function askAboutHeavy(count, firstName) {
         const queue = document.getElementById('media-upload-queue');
@@ -692,8 +588,7 @@ window.initMediaLibrary = function() {
     async function handleUploads(files) {
         if (!files.length) return;
 
-        // A second batch starting mid-run would interleave with the first and
-        // race the same overwrite guard.
+        // A second batch mid-run would race the same overwrite guard.
         if (uploadInProgress) {
             window.editorAlert('An upload is already running. Wait for it to finish before starting another.');
             return;
@@ -707,8 +602,7 @@ window.initMediaLibrary = function() {
         const entries = files.map(file => ({ name: file.name, state: 'queued', detail: 'Waiting' }));
         renderUploadQueue(entries);
 
-        // Weighed before anything uploads, all at once, so one question covers
-        // the whole drop. Skipping only skips the heavy files; the rest go up.
+        // One question covers the whole drop. Skipping skips only the heavy files.
         const notes = await Promise.all(files.map(f => window.mediaWeightNote(f).catch(() => null)));
         const heavy = entries.filter((entry, i) => notes[i]);
         if (heavy.length) {
@@ -722,8 +616,7 @@ window.initMediaLibrary = function() {
             renderUploadQueue(entries);
         }
 
-        // Names accepted so far this run. The bucket listing the guard uses
-        // was taken before any of them existed.
+        // Names accepted this run; the bucket listing was taken before them.
         const uploadedNames = [];
 
         for (let i = 0; i < files.length; i++) {
@@ -740,8 +633,7 @@ window.initMediaLibrary = function() {
                 uploadedNames
             );
 
-            // One rejected file does not cancel the rest. A duplicate name
-            // halfway through a run of ten used to mean starting the run over.
+            // One refused file does not cancel the rest.
             if (result.error) {
                 entry.state = 'failed';
                 entry.detail = String(result.error).split('\n')[0];
@@ -756,8 +648,7 @@ window.initMediaLibrary = function() {
         if (uploadText) { uploadText.textContent = oldText; uploadText.style.color = ""; }
         uploadInProgress = false;
 
-        // Once, at the end - refreshing per file re-lists the whole bucket
-        // between every upload.
+        // Once, at the end: per file would list the whole bucket each time.
         if (uploadedNames.length > 0) await window.loadMediaGallery();
 
         const failed = entries.filter(entry => entry.state === 'failed');
@@ -769,8 +660,7 @@ window.initMediaLibrary = function() {
         }
     }
 
-    // The zone's original words, kept so a lock lifted by a later open (the
-    // owner ticked the box mid-session) restores them.
+    // The zone's own words, put back when a later open lifts the lock.
     const uploadTextNode = document.getElementById('media-upload-text');
     const unlockedText = uploadTextNode ? uploadTextNode.textContent : '';
     let uploadLocked = false;
@@ -792,8 +682,7 @@ window.initMediaLibrary = function() {
 
     fileInput.addEventListener('change', (e) => {
         const files = Array.from(e.target.files);
-        // Cleared before handling, so picking the same file again still fires
-        // a change event - otherwise a retry after a failure looks dead.
+        // Cleared first, so picking the same file again still fires change.
         e.target.value = '';
         handleUploads(files);
     });

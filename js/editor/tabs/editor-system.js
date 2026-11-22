@@ -1,23 +1,25 @@
 /**
- * Dogslamloop Wiki - Editor: System Page Engine (V0.4 dynamic system pages -
- * tabs/sections/blocks for non-character pages like framedata guides,
- * terminologies, the tier list's own descriptive tabs, etc.)
+ * The system page editor: tabs, sections and their Blocks for pages that are not
+ * characters (guides, Terminologies, the tier list's own tabs), and the deltas a
+ * system or tier list page submits.
+ * @since v0.4, as part of editor.js
+ * @touches desc_data.tabs, indexSystemSections (site_data.js), reorderStripControls
+ *   and setReorderRefresh (editor-reorder.js), the Block editor
+ * @watch a system page submits one delta per section, tab metadata and tier table,
+ *   never the whole document: two tickets for one page each carrying a snapshot
+ *   would revert each other
+ * @see docs/editor.md
  */
 
-// =====================================================================
-// V0.4 DYNAMIC SYSTEM PAGE ENGINE
-// =====================================================================
-
 window.renderSystemEditor = function(container) {
-    // Not while VIEW DIFF has another version in the editor's place
-    // (js/editor/core/editor-sync.js): this reloads the Workspace from the page's data.
+    // Not while VIEW DIFF has another version in the editor's place: this reloads the
+    // Workspace from the page's data.
     if (typeof window.afterDrawingApart === 'function' && window.afterDrawingApart(() => window.renderSystemEditor(container))) return;
     let descData = window.currentEditorDescData;
     if (!descData.tabs || descData.tabs.length === 0) {
         descData.tabs = [{ tabId: 'overview', tabLabel: 'Overview', sections: [{ sectionTitle: 'New Section', layout: 'full', blocks: [] }] }];
     }
 
-    // 1. RENDER MAIN TABS
     let tabHTML = window.reorderStripControls('desc.tabs');
     tabHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
     descData.tabs.forEach((tab, tIdx) => {
@@ -34,7 +36,6 @@ window.renderSystemEditor = function(container) {
     let activeTab = descData.tabs[window.currentSystemTabIdx];
     if (!activeTab) { container.innerHTML = tabHTML; return; }
 
-    // 2. RENDER SECTIONS WITHIN ACTIVE TAB
     let secHTML = window.reorderStripControls(`desc.tabs.${window.currentSystemTabIdx}.sections`);
     secHTML += `<div class="daw-variant-tabs system-section-tabs-row">`;
     if (!activeTab.sections) activeTab.sections = [];
@@ -42,8 +43,7 @@ window.renderSystemEditor = function(container) {
         let active = sIdx === window.currentSystemSecIdx ? 'active' : '';
         secHTML += `<div class="daw-tab-item">`;
         secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${window.escapeHtml(sec.sectionTitle || 'Section ' + (sIdx+1))}</button>`;
-        // Reordering here is exactly what item 6b's `order` delta carries, so a
-        // move ships as an order change rather than as every section's content.
+        // A move ships as an order change, not as every section's content.
         secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" title="Delete Section">✖</button>`;
         secHTML += `</div>`;
     });
@@ -51,12 +51,11 @@ window.renderSystemEditor = function(container) {
     secHTML += `<button class="daw-tab-btn btn-sys btn-sys-purple system-tab-add-btn" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
     secHTML += `</div>`;
 
-    // 3. RENDER METADATA & BLOCK BUILDER
     let activeSec = activeTab.sections[window.currentSystemSecIdx];
     let editorArea = '';
 
     if (activeSec) {
-        // MIGRATION HELPER
+        // Older sections stored a layout name instead of a width.
         let secWidth = activeSec.width !== undefined ? activeSec.width : (activeSec.layout === 'split-left' || activeSec.layout === 'split-right' ? 48 : (activeSec.layout === 'centered' ? 80 : 100));
         let secAlign = activeSec.alignment || (activeSec.layout === 'centered' ? 'center' : (activeSec.layout === 'split-right' ? 'right' : 'left'));
         let secBreak = activeSec.forceBreak !== undefined ? activeSec.forceBreak : (activeSec.layout === 'split-left' || activeSec.layout === 'split-right' ? false : true);
@@ -107,13 +106,12 @@ window.renderSystemEditor = function(container) {
     if (activeSec) initStrategyBlockBuilder('strategy-block-target', activeSec.blocks || []);
 };
 
-// The system editor rebuilds itself rather than going through
-// initFullTabEditor, so the reorder module is told how to refresh it.
+// This editor redraws itself rather than through initFullTabEditor, so the
+// reorder bar is told how.
 if (typeof window.setReorderRefresh === 'function') {
     window.setReorderRefresh(function () {
-        // Declines on every other page type. #interactive-builder is the shared
-        // builder host, so without this check a reorder on a CHARACTER page
-        // would draw the system editor over it.
+        // Declines on every other page type: #interactive-builder is shared, and a
+        // reorder on a character page would draw this editor over it.
         const type = window.currentEditorPageType;
         if (type !== 'system' && type !== 'tierlist') return false;
 
@@ -124,10 +122,8 @@ if (typeof window.setReorderRefresh === 'function') {
     });
 }
 
-// Switching draws the preview even under Preview only on Sync, the way a
-// character page's section switch does: the preview follows the Workspace.
-// So does VIEW DIFF, which compares one tab (js/editor/tabs/editor-tabs.js does the same
-// for a character page).
+// Switching draws the preview even under Preview only on Sync, and VIEW DIFF
+// follows the tab, as on a character page.
 window.switchSystemTab = function(idx) {
     window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0;
     window.renderSystemEditor(document.getElementById('interactive-builder'));
@@ -177,20 +173,9 @@ window.updateSystemMeta = function(field, value, isCheckbox = false, isNumber = 
     if (field === 'tabLabel') {
         tab.tabLabel = value;
 
-        // THE ID ONLY TRACKS THE LABEL WHILE THE TAB IS NEW.
-        //
-        // This used to re-slug on every keystroke, which made tabId a display
-        // name wearing an id's clothes: renaming a tab changed its identity, so
-        // a submission had to re-send every section underneath it - and a
-        // re-sent section carries the contributor's copy of prose somebody else
-        // may have edited in the meantime. That is the whole-document bug
-        // reappearing one level down.
-        //
-        // A tab that already exists in the cloud keeps its id forever. A tab
-        // created in this session has no identity to protect yet, so it still
-        // gets a readable id from whatever it ends up being called. It is also
-        // the DOM id, so the same rule keeps `#tab-basics` from moving under
-        // anyone who linked to it.
+        // The id follows the label only while the tab is new. A tab in the cloud keeps
+        // its id: renaming it must not change what it is, or a submission would re-send
+        // every section under it. It is the DOM id too, so links to it hold.
         const cloudTabs = (window.originalCloudDescData && window.originalCloudDescData.tabs) || [];
         const existsInCloud = cloudTabs.some(t => t && t.tabId === tab.tabId);
         if (!existsInCloud) {
@@ -210,23 +195,11 @@ window.updateSystemMeta = function(field, value, isCheckbox = false, isNumber = 
     }, 400);
 };
 
-// =====================================================================
-// SUBMISSION: ONE DELTA PER SECTION, NOT ONE PAYLOAD PER PAGE
-// =====================================================================
-//
-// Every system and tier list submission used to ship the whole desc_data as a
-// single `system_data / full` payload, which meant approving two tickets for
-// one page silently reverted the first: each carried a snapshot of the page as
-// its author found it, and the second wrote that snapshot over the first's
-// approved change. Proven end to end before this was written.
-//
-// Gallery and tool pages were already scoped. The tool branch's own comment
-// gives the reason, and it applies here word for word: "the config is the
-// owner's and the prose is everyone's, so a contributor fixing the intro must
-// not be able to carry a URL change with it."
-//
-// Keys are derived by window.indexSystemSections (js/utility/site_data.js) - see the
-// note there on why nothing here stores an id.
+/**
+ * The deltas a system or tier list page submits, one per section, tab metadata
+ * and tier table. Keys come from indexSystemSections (site_data.js).
+ * @since v0.15
+ */
 window.buildSystemDeltas = function(local, cloud, pageType) {
     const differs = (a, b) => JSON.stringify(a === undefined ? null : a) !== JSON.stringify(b === undefined ? null : b);
     const deltas = [];
@@ -236,31 +209,21 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
     const localSecs = window.indexSystemSections(local || {});
     const cloudSecs = window.indexSystemSections(cloud || {});
 
-    // Content lives in its own scopes, never in the tab's metadata: `sections`
-    // ships per section, `tiers` and `changelog` per tab below. Copying them in
-    // here as well would send the same edit twice, and the metadata copy would
-    // be the stale one - a reorder or a rename would carry an old set of tiers
-    // along with it and undo whatever had landed in between.
+    // Content travels in its own scopes, never in the tab's metadata, or a reorder
+    // or rename would carry an old copy and undo what landed in between.
     const CONTENT_FIELDS = ['sections', 'tiers', 'changelog'];
     const tabMeta = (tab, sectionKeys) => {
         const meta = {};
         Object.keys(tab || {}).forEach(k => { if (!CONTENT_FIELDS.includes(k)) meta[k] = tab[k]; });
-        // The order travels as a list of KEYS. A reorder that carried section
-        // content would let moving a section overwrite an edit somebody else
-        // made to it in the meantime - the whole-document bug in miniature.
+        // The order is a list of keys: carrying content, a move could overwrite another
+        // edit to that section.
         meta.order = sectionKeys;
         return meta;
     };
 
-    // --- Tabs: metadata, section order, additions and removals ---
-    //
-    // WHERE A DELTA SITS IN THE LIST MATTERS (2026-10-24). Approval applies them
-    // in order, and a tab's metadata places its sections by key, so it can only
-    // place sections that exist by then. Listed before the sections, it left a
-    // new section, or one moved in from another tab, at the bottom of its tab
-    // whatever the author saw. So a NEW tab is listed first (its sections need
-    // somewhere to land), the sections next, an existing tab's metadata after
-    // them, and the tab order last.
+    // The order of the deltas matters: approval applies them in turn, and a tab's
+    // metadata places its sections by key. So a new tab first, then the sections,
+    // then an existing tab's metadata, then the tab order.
     const newTabDeltas = [];
     const changedTabDeltas = [];
     localTabs.forEach(({ tabKey, tab }) => {
@@ -283,9 +246,7 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
         }
     });
 
-    // --- Sections ---
-    // Tier list tabs hold tiers and a changelog rather than sections, so this
-    // loop simply finds nothing for them and the branch below covers them.
+    // Tier list tabs hold tiers and a changelog, not sections: covered below.
     localSecs.forEach(({ key, section }) => {
         const before = cloudSecs.find(s => s.key === key);
         if (differs(section, before ? before.section : null)) {
@@ -299,24 +260,12 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
         }
     });
 
-    // An existing tab's metadata, with its section order: after the sections,
-    // so every section it names is there to be placed.
+    // After the sections, so every section it names is there to place.
     deltas.push(...changedTabDeltas);
 
-    // --- The order of the tabs themselves (v0.18 B2) ---
-    //
-    // Every scan above is keyed by tabKey and pairs local against cloud by it,
-    // so a tab that only MOVED has a byte-identical partner and produces
-    // nothing at all. The strip has offered ◀ ▶ since v0.15 item 8 and the move
-    // was discarded in silence - the same fault item 8 fixed for character
-    // pages, in the one place it was never wired up.
-    //
-    // Compared with where approval leaves the tabs WITHOUT an order delta: the
-    // cloud's surviving tabs in their order, then the new ones appended. Only
-    // when the author's order differs from that does the order travel, so an
-    // ordinary add at the end still sends none. Until 2026-10-24 it travelled
-    // only when no tab was added or removed, and a new tab moved left landed at
-    // the end.
+    // The order of the tabs: a tab that only moved has an identical partner and
+    // would produce nothing. Sent only when the author's order differs from where
+    // approval would leave the tabs without it, so an add at the end sends none.
     const localTabKeys = localTabs.map(t => t.tabKey);
     const isCloudTab = (key) => cloudTabs.some(t => t.tabKey === key);
     const withoutOrder = cloudTabs.map(t => t.tabKey).filter(k => localTabKeys.includes(k))
@@ -325,10 +274,8 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
         deltas.push({ scope: 'system_tab_order', key: 'full', payload: localTabKeys });
     }
 
-    // --- Tier lists ---
-    // Not split per tier: moving a character from A to S changes two tiers at
-    // once, so a per-tier scope would manufacture a conflict out of one
-    // ordinary edit.
+    // Tier lists are not split per tier: moving a character from A to S changes two
+    // tiers at once.
     if (pageType === 'tierlist') {
         localTabs.forEach(({ tabKey, tab }) => {
             const before = cloudTabs.find(t => t.tabKey === tabKey);

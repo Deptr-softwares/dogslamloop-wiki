@@ -1,20 +1,13 @@
 /**
- * Dogslamloop Wiki - Editor: tool pages (page_type 'tool')
- *
- * js/pages/types/tool_page.js shipped a renderer that reads desc_data.tool, and nothing
- * ever wrote it - so a tool page could exist but never be pointed at anything.
- * This is the other half.
- *
- * A tool page is three things, and they are edited separately because they
- * belong to different people: the CONFIG (where the tool lives, whether it
- * embeds) is the owner's, while the INTRO and NOTES are ordinary wiki prose
- * that any contributor can improve. Splitting them means a note fixing a typo
- * never carries a change to the tool's URL along with it.
- *
- * Tools with their own registered renderer (window.registerWikiTool) ignore
- * the link/embed config entirely - it is the fallback for a tool that is
- * genuinely just a link, like the Skill Builder ID Reader. The form says so
- * rather than pretending otherwise.
+ * The tool page editor: the config (where the tool lives, whether it embeds) and
+ * two Block lists of prose, the intro and the notes, edited apart.
+ * @since v0.12
+ * @touches desc_data.tool, desc_data.intro and notes, window.WIKI_TOOLS
+ *   (tool_page.js), the Block editor
+ * @watch the config is the owner's and the prose everyone's, so they are separate
+ *   scopes: a typo fix in the notes never carries a URL change. A tool with its
+ *   own renderer ignores the link and embed config, and the form says so.
+ * @see docs/editor.md
  */
 
 (function () {
@@ -38,9 +31,8 @@
 
     window.switchToolSection = async function(sectionId) {
         if (sectionId === window.currentToolSection) return;
-        // Flush first: currentStrategyBlocks only reaches desc_data on sync, so
-        // switching without this drops the paragraph being typed - into the
-        // other section, at that.
+        // Flushed first: the buffer reaches desc_data only on sync, and would land in the
+        // other section.
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
         window.currentToolSection = sectionId;
         window.renderToolEditor(document.getElementById('interactive-builder'));
@@ -57,9 +49,8 @@
         }
         const active = SECTIONS.find(s => s.id === window.currentToolSection);
 
-        // A tool with its own renderer does not use the link/embed fallback,
-        // and saying so beats leaving someone to wonder why the URL they typed
-        // changes nothing.
+        // A tool with its own renderer does not use the link fallback; better said than
+        // left to wonder.
         const hasOwnRenderer = !!(window.WIKI_TOOLS && window.WIKI_TOOLS[window.currentEditorCharId]);
 
         const sectionTabs = SECTIONS.map(s => `
@@ -148,7 +139,10 @@
         }
     };
 
-    // Called by the sync engine, which owns when the block buffer is flushed.
+    /**
+     * Writes the buffer back into the intro or the notes; the sync engine decides
+     * when.
+     */
     window.flushToolBlocks = function() {
         const desc = window.currentEditorDescData;
         if (!desc) return;
@@ -157,16 +151,9 @@
     };
 
     /**
-     * The deltas a tool page submits.
-     *
-     * Three scopes rather than one whole-page payload, for the same reason the
-     * gallery emits one delta per item: the config belongs to the owner and the
-     * prose belongs to everyone, so a contributor improving the intro must not
-     * be able to carry a change to the tool's URL with them - and a reviewer
-     * approving one must not silently apply the other.
-     *
-     * Exported so it can be driven directly; editor-core.js's submit handler is
-     * otherwise reachable only through auth, the QA modal and a live insert.
+     * The deltas a tool page submits: three scopes, never one whole-page payload, so
+     * approving the prose never applies a config change with it. Here so it can be
+     * tested directly.
      */
     window.buildToolDeltas = function(local, cloud) {
         const localDesc = local || {};

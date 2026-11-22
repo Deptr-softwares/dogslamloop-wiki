@@ -1,6 +1,15 @@
-/* =========================================
-   DOGSLAMLOOP WIKI - CMS EDITOR STYLES
-   ========================================= */
+/* The editor and the staff pages' editing chrome: the Workspace, the splitter
+   and the header, the Block editor and its popups, the Frame Track, folders, the
+   modals, the Media Library, VIEW DIFF and the side by side, Config, the tour and
+   the Manual of Style, the Playground, and the phone layout.
+   Since v0.4.
+   Touches: edit.html, owner.html, post-editor.html, tier-editor.html and the
+   Overseer load it; Buttons.css holds .btn-sys.
+   Watch: owner.html, post-editor.html and tier-editor.html reuse .editor-layout
+   around one workspace, so the split is keyed on .editor-layout-split. A rule
+   that ties a shared base rule is written as a compound selector, never left to
+   file order.
+   See: docs/editor.md */
 
 body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 
@@ -33,24 +42,14 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     position: relative;
 }
 
-/* --- THE SPLITTER (v0.16 fine-tuning 9) ---
-   30/70 was fixed, which meant the place you type was 384px wide on a 1280px
-   screen - about 46 characters a line - whether or not you were looking at the
-   preview at that moment.
-
-   Everything below is scoped to min-width: 901px on purpose. Under that the
-   layout turns into a column and both panes are width:100% !important, so a
-   flex-basis here would silently become a HEIGHT and the splitter would be
-   dividing the wrong axis. */
+/* The splitter, only above 900px: below it the panes stack at width:100%, and a
+   flex-basis would become a height. */
 @media (min-width: 901px) {
-    /* .editor-layout-split, NOT .editor-layout. owner.html, post-editor.html
-       and tier-editor.html all reuse .editor-layout as a wrapper around a
-       SINGLE workspace - keying off the layout class squeezed all three to 30%
-       of the window, which CI caught on owner.html as a 420px workspace where
-       the page expects 1100. */
+    /* .editor-layout-split, not .editor-layout: three staff pages wrap a single
+       workspace in .editor-layout. */
     .editor-layout-split {
-        /* The one number the drag writes. Percent so it survives a window
-           resize; js/editor/core/editor-core.js clamps it in px before writing. */
+        /* The one number the drag writes, in percent so it survives a resize;
+           editor-core.js clamps it in pixels first. */
         --editor-split: 30%;
     }
 
@@ -59,7 +58,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
         width: auto;
     }
 
-    /* Takes whatever is left rather than a second number to keep in step. */
+    /* Takes what is left, rather than a second number to keep in step. */
     .editor-layout-split > .live-preview-pane {
         flex: 1 1 0;
         width: auto;
@@ -104,9 +103,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
         background: #fff;
     }
 
-    /* Sitting exactly on the default while dragging. Without a cue the snap
-       reads as the drag sticking rather than as landing on something. Green
-       because it means "this is the view a reader gets", not "warning". */
+    /* On the default while dragging, so the snap reads as landing on something.
+       Green: this is the view a reader gets. */
     .editor-splitter.is-snapped {
         background: #22c55e;
     }
@@ -116,9 +114,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
         height: 48px;
     }
 
-    /* While dragging, the panes must not eat the pointer or start selecting
-       text - both make the drag stutter and the second is visible as a blue
-       smear across the preview. */
+    /* While dragging, the panes must not take the pointer or start selecting text. */
     .editor-layout-split.is-resizing {
         user-select: none;
         cursor: col-resize;
@@ -135,18 +131,9 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     .editor-splitter { display: none; }
 }
 
-/* --- SLEEK HEADER UI ---
-
-   These rules replace the inline styles that used to carry the whole header,
-   2026-08-14. They had to come out to make the header collapsible: a class
-   cannot fold away what an inline style is holding open.
-
-   Scoped through .editor-header-top / .editor-header-titles rather than styling
-   bare .editor-title and .editor-subtitle. Those two class names are also on
-   admin.html's heading, where .admin-title supplies the look at the SAME 0-1-0
-   specificity - so a bare rule here would be settled by which stylesheet that
-   page happens to load last. That is the exact trap the sidebar dock fell into
-   two days ago. */
+/* The header. Scoped through .editor-header-top and .editor-header-titles:
+   .editor-title and .editor-subtitle are on the Overseer's heading too, where a
+   bare rule would be settled by file order. */
 .editor-header {
     flex-shrink: 0;
     display: flex;
@@ -197,24 +184,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 
 .editor-hub-link { padding: 0.2rem 0.4rem; font-size: 0.6rem; }
 
-/* Shown only by the mobile media query further down, which is what the inline
-   display:none used to do.
-   
-   SCOPED TO ITS PARENT ON PURPOSE. As a bare class this rule lost to a
-   `{ display: inline-flex }` on the button's own base class at equal
-   specificity, so the hide never applied and SHOW PREVIEW sat in the desktop
-   header. (That base was editor.css's own duplicate of the .btn-sys family
-   until v0.18 A3 moved the shared class to style/Buttons.css; the losing
-   condition is unchanged, because Buttons.css sets the same property and a
-   different stylesheet does not make a bare class win.) (It computes
-   to `flex` rather than `inline-flex` because .editor-header-side is a flex
-   container and blockifies its children, which is why it does not look like a
-   button-sizing rule doing it.)
-   
-   Fourth instance of the equal-specificity/source-order family in this project.
-   Raising specificity rather than reordering, because reordering only holds
-   until the next rule is appended. The mobile override below is an ID plus
-   !important and still wins. */
+/* SHOW PREVIEW, shown only by the phone layout below. Scoped to its parent: as a
+   bare class it ties the button's own display and loses on file order. */
 .editor-header-side .editor-mobile-preview-btn { display: none; }
 .editor-mobile-preview-btn { font-size: 0.6rem; padding: 0.3rem; }
 
@@ -224,15 +195,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     gap: 0.25rem;
 }
 
-/* --- COLLAPSING THE HEADER (owner's fine-tuning item, 2026-08-14) ---
-
-   The title, the subtitle, HUB and four of the five action buttons fold away.
-   Submit does not: it is the one control you cannot make somebody expand a
-   panel to reach, and a contributor who has finished writing should never have
-   to hunt for it.
-
-   The tab strip below is deliberately outside this. You collapse the chrome to
-   get room for writing, and you still switch tabs while writing. */
+/* The header collapses: the title, the subtitle and most buttons fold away, but
+   never Submit, and never the tab strip, which is used while writing. */
 .editor-chrome-toggle {
     background: none;
     border: 1px solid #333;
@@ -250,16 +214,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-header.is-collapsed .editor-subtitle,
 .editor-header.is-collapsed .header-actions > .btn-sys:not(#submit-payload-btn) { display: none; }
 
-/* HUB SURVIVES THE COLLAPSE (v0.16 fine-tuning 4). .editor-header-side used to
-   be hidden here along with the subtitle, which took HUB with it - so leaving
-   the editor meant expanding the header first, for the one control that is
-   about not being in the editor any more. It sits at the end of
-   .editor-header-top, which is the flex:1 half, so collapsed it lands directly
-   beside Submit exactly as asked.
-
-   This also gives the mobile SHOW PREVIEW button back: it lives in the same
-   container and is display:none on desktop anyway, so it only reappears where
-   it is the only way to see the preview at all. */
+/* HUB survives the collapse, beside Submit, and so does the phone's SHOW
+   PREVIEW, which is hidden on a desktop anyway. */
 
 /* Collapsed, the two rows become one: the title on the left, Submit on the
    right. */
@@ -268,7 +224,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-header.is-collapsed .editor-title { font-size: 0.85rem; }
 .editor-header.is-collapsed .header-actions { flex-shrink: 0; }
 
-/* --- BLOCK BUILDER UI --- */
+/* The Block editor */
 .block-editor-container {
     display: flex;
     flex-direction: column;
@@ -290,16 +246,9 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     position: relative;
     transition: border-color 0.1s ease, background 0.1s ease;
     margin-bottom: -1px;
-    /* The virtualization engine below pins an unloaded card open at the height
-       it measured with getBoundingClientRect - a BORDER-box height. There is no
-       global box-sizing reset in this project, so under the default content-box
-       that assignment made every card 18px taller than it had just been
-       (0.5rem top + bottom padding, plus the 1px borders). Cards crossing the
-       observer's margin therefore changed the height of the content above the
-       reader, who got shoved up and down as they scrolled - v0.16 bug 2.
-       This is the only rule that sets an explicit height on a .block-card, so
-       border-box changes nothing else: with height:auto the two box models
-       lay out identically. */
+    /* The virtualization below pins an unloaded card at its measured border-box
+       height; with no global box-sizing reset, content-box made each card 18px
+       taller and shoved the page as it scrolled. */
     box-sizing: border-box;
 }
 .block-card:hover { border-left-color: rgba(59, 130, 246, 0.5); }
@@ -328,37 +277,23 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .block-card.collapsed:hover { border-left-color: #666; }
 .block-actions .btn-collapse { font-weight: bold; font-family: monospace; }
 
-/* --- BLOCK SELECTION (v0.19 C2) ---
-   Scoped to #block-list on purpose. `.block-card` is also rendered by
-   editor-tabs.js, editor-system.js and editor-framedata.js, none of which has
-   a selection, and an unscoped rule would be waiting for one of them to reuse
-   the class name.
-
-   The left border is already this card's state channel - #333 idle, blue on
-   hover, accent blue on focus-within - so selection speaks the same language
-   one step louder rather than inventing a second one. The `#block-list` in the
-   selector is also what makes it win: `.block-card.collapsed:hover` is three
-   classes, and without an id in the selector, hovering a selected collapsed
-   card would paint the selection away. */
+/* A selected Block. Scoped to #block-list: other tabs draw .block-card with no
+   selection. The left border is already the card's state, so selection is the
+   same signal, louder. The id in the selector is what beats
+   .block-card.collapsed:hover. */
 #block-list .block-card.block-card-selected {
     border-left-color: var(--accent-yellow);
     background: #14120a;
 }
 
-/* Copy is the one action that changes nothing on screen, so it has to say so
-   itself. A class, not the inline outline this used to set - the editor's
-   inline styles were moved into classes across six PRs and new ones should
-   not start the collection again. */
+/* Copy changes nothing on screen, so the copied cards say so themselves. */
 #block-list .block-card.block-card-copied {
     outline: 2px solid var(--accent-blue);
     outline-offset: 2px;
 }
 
-/* Drawn only while something is selected, so it is never idle chrome. NOT
-   sticky: the per-card up/down/delete already act on the whole selection when
-   the card is part of it, so the actions are never far from the pointer, and a
-   sticky bar inside the scrolling workspace is the shape that produced v0.19's
-   clipped colour popup. */
+/* Drawn only while something is selected. Not sticky: a sticky bar in the
+   scrolling Workspace is the shape that clipped the colour popup. */
 .block-selection-bar {
     display: flex;
     align-items: center;
@@ -385,7 +320,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     gap: 0.35rem;
 }
 
-/* --- FORM ELEMENTS (Inputs, Textareas) --- */
+/* Fields */
 .editor-input, .editor-textarea {
     width: 100%;
     background: rgba(255,255,255,0.03);
@@ -405,10 +340,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-input:disabled, .editor-textarea:disabled { opacity: 0.5; }
 .editor-textarea { min-height: 50px; max-height: 260px; overflow-y: auto; resize: vertical; line-height: 1.4; }
 
-/* A combo route is one step per line and gets long. It scrolls at a sensible
-   height rather than growing until it pushes everything else off the pane -
-   owner, 2026-08-17. Monospace so the steps line up as they are typed, which
-   is the same reason the rendered chips are monospace. */
+/* A combo route is a step a line: it scrolls at a sensible height rather than
+   pushing everything off the pane. Monospace, so the steps line up. */
 .combo-field-grid .editor-textarea[data-combo-field="sequence"],
 .combo-card-fields .editor-textarea[data-card-field="sequence"],
 .editor-textarea[data-field="sequence-lines"] {
@@ -418,7 +351,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-row { display: flex; gap: 0.25rem; }
 .editor-row > div { flex: 1; }
 
-/* --- STYLIZED DROPDOWNS (SELECT) --- */
+/* Dropdowns */
 .editor-select {
     appearance: none;
     width: 100%;
@@ -433,9 +366,9 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     box-sizing: border-box;
     transition: border-color 0.1s, background 0.1s;
     cursor: pointer;
-    /* The owner's 8px arrow (medias/icons/dropdown.png, v1.2), white as they
-       drew it: a background cannot take the field's color the way a .px-icon
-       does. 8px exactly, so its pixels stay square. */
+    /* The site's 8px arrow (medias/icons/dropdown.png), white as drawn: a background
+       cannot take the field's colour as a .px-icon does. 8px exactly, so its pixels
+       stay square. */
     background-image: url('/medias/icons/dropdown.png');
     background-repeat: no-repeat;
     background-position: right 0.4rem center;
@@ -451,7 +384,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     padding: 0.5rem;
 }
 
-/* --- STYLIZED CHECKBOXES --- */
+/* Checkboxes */
 input[type="checkbox"] {
     appearance: none;
     width: 14px;
@@ -471,7 +404,7 @@ input[type="checkbox"]:hover {
 input[type="checkbox"]:checked {
     background-color: var(--accent-blue);
     border-color: var(--accent-blue);
-    /* The owner's 8px tick (medias/icons/check.png, v1.2), white as drawn. */
+    /* The site's 8px tick (medias/icons/check.png), white as drawn. */
     background-image: url('/medias/icons/check.png');
     background-size: 8px 8px;
     background-position: center;
@@ -479,7 +412,7 @@ input[type="checkbox"]:checked {
     image-rendering: pixelated;
 }
 
-/* --- DAW FRAME EDITOR UI --- */
+/* The Frame Track (DAW in the code) */
 .daw-container { background: #050505; border: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 1rem; margin-top: 0; border-radius: 0; }
 .daw-variant-tabs { 
     display: flex; 
@@ -489,11 +422,9 @@ input[type="checkbox"]:checked {
     padding-bottom: 0px; 
     flex-shrink: 0;
 }
-/* The frame data editor's variant tabs wrap (owner's pick, 2026-10-29). As one
-   row, the fourth new variant on a 1280px screen pushed + ADD VARIANT out of
-   the workspace and scrolled the whole workspace sideways. Scoped to the
-   variant wrapper: .daw-variant-tabs is also the move row, the system section
-   row, the Config tabs and the tier editor's tabs, which scroll instead. */
+/* The variant tabs wrap, so a new variant never pushes + ADD VARIANT out of the
+   Workspace. Only here: .daw-variant-tabs is also the move row, the system
+   section row, the Config tabs and the tier editor's tabs, which scroll. */
 .daw-variant-wrapper > .daw-variant-tabs { flex-wrap: wrap; }
 .daw-tab-btn { background: transparent; color: #666; border: 1px solid transparent; border-bottom: 2px solid transparent; padding: 0.3rem 0.6rem; border-radius: 0; cursor: pointer; font-family: var(--text-mono); font-weight: bold; font-size: 0.7rem; text-transform: uppercase; transition: all 0.1s; margin-bottom: -1px; }
 .daw-tab-btn.active { background: var(--accent-blue); color: #000; border-bottom-color: var(--accent-blue); }
@@ -504,29 +435,22 @@ input[type="checkbox"]:checked {
 .daw-phase-block:hover { color: #fff; filter: brightness(1.2); }
 .daw-phase-block.selected { border: 2px solid #fff; z-index: 10; }
 
-/* A phase recorded as an estimate rather than counted. The live bar shows this
-   by having no frame divisions at all; the editor track has no divisions to
-   drop, so it says so in the block's own label ("~Short") and softens the
-   fill - enough for a contributor scanning a track to see which phases still
-   need someone to actually count them. */
+/* An estimated phase: its label says "~Short" and its fill is softer, so a
+   track shows which phases still need counting. */
 .daw-phase-block.daw-phase-estimated {
     opacity: 0.75;
     font-style: italic;
 }
 .daw-inspector { background: #0a0a0a; padding: 1rem; border: 1px solid #222; border-left: 3px solid #ef4444; border-radius: 0; }
 
-/* --- CUSTOM MODAL UI --- */
+/* Modals */
 .editor-modal-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: rgba(0, 0, 0, 0.8);
     z-index: 10006;
     backdrop-filter: none !important;
-    /* display intentionally not set here - style/Modals.css's shared
-       .modal-overlay, .editor-modal-overlay rule provides display:flex.
-       This rule used to also set display:none, silently overriding that
-       (same specificity, later in load order) - harmless historically
-       only because every toggle used a higher-specificity inline style,
-       never a plain class. */
+    /* No display here: Modals.css's shared overlay rule gives display:flex, and a
+       display:none at equal specificity would override it. */
     align-items: center; justify-content: center;
 }
 .editor-modal-box {
@@ -544,7 +468,7 @@ input[type="checkbox"]:checked {
 }
 .editor-modal-actions { display: flex; gap: 1rem; }
 
-/* --- DRAG & DROP INDICATORS --- */
+/* Drag and drop */
 .block-card.drag-over-top {
     box-shadow: 0 -3px 0 0 var(--accent-blue) !important;
     z-index: 20;
@@ -554,10 +478,8 @@ input[type="checkbox"]:checked {
     z-index: 20;
 }
 
-/* Marks where a block landed after a reorder. Fades rather than sitting
-   there, so it reads as "this just happened" instead of as a selection
-   state - a reorder used to give no feedback at all beyond the list
-   re-rendering, which in a long section meant hunting for the block. */
+/* Where a Block landed. It fades, so it reads as "this just happened", not as a
+   selection. */
 .block-card.block-just-moved {
     animation: block-moved-flash 1.4s ease-out;
 }
@@ -568,17 +490,14 @@ input[type="checkbox"]:checked {
     100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
 }
 
-/* The flash is decorative; anyone who asked for less motion just gets the
-   outline, held briefly, with no animation. */
-/* html.reduce-motion: the device's preference or Site settings (js/utility/site_utils.js). */
+/* With less motion asked for (the device or Site Settings), the outline is held
+   briefly, with no animation. */
 html.reduce-motion .block-card.block-just-moved {
     animation: none;
     box-shadow: 0 0 0 2px var(--accent-blue);
 }
-/* Small pill that follows the pointer during a block-list drag (add-block-btn
-   or drag-handle reorder), created/destroyed by startBlockPointerDrag in
-   js/editor/blocks/editor-blocks.js. pointer-events: none so elementFromPoint() hit-tests
-   the real card underneath it, not the ghost itself. */
+/* The pill that follows the pointer while dragging (startBlockPointerDrag).
+   pointer-events: none, so elementFromPoint finds the card under it. */
 .block-drag-ghost {
     position: fixed; z-index: 9999; pointer-events: none;
     transform: translate(12px, 12px);
@@ -588,8 +507,7 @@ html.reduce-motion .block-card.block-just-moved {
 }
 .block-card.block-card-dragging { opacity: 0.4; }
 
-/* A whole folder on the move (v1.1): faded while it is dragged, a line where
-   it will land, the same flash as a block once it has. */
+/* A whole folder on the move: faded, a line where it lands, the same flash. */
 .block-folder.block-card-dragging { opacity: 0.4; }
 .block-folder.drag-over-top { box-shadow: 0 -3px 0 0 var(--accent-blue); }
 .block-folder.drag-over-bottom { box-shadow: 0 3px 0 0 var(--accent-blue); }
@@ -599,24 +517,10 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .block-header:active {
     cursor: grabbing !important;
 }
-/* `.editor-textarea { overflow: hidden }` used to sit here, to keep a scrollbar
-   off a field that grew to fit whatever was typed into it. Fields stopped
-   growing without limit when the 260px cap arrived (line 240, owner 2026-08-17)
-   and the rule outlived its reason - but it is the same 0-1-0 selector as that
-   cap's `overflow-y: auto`, further down the file, so it won on source order and
-   turned every capped field into 260px of text with no way to reach the rest.
+/* No overflow:hidden on .editor-textarea: it ties the 260px cap's
+   overflow-y:auto further down, and won on file order. */
 
-   The block editor never showed it, because autoSizeEditorTextarea writes
-   style.overflowY inline and an inline style beats both rules. Everything else
-   using this class had no scrollbar and no wheel scrolling: the combo card's
-   route and notes fields (js/editor/tabs/editor-tabs.js), the QA changelog on the submit
-   modal (js/editor/core/editor-core.js), the tier changelog (js/pages/tier-lists/tierlist.js).
-
-   Fifth time an equal-specificity pair in this project has been settled by
-   source order rather than by intent - so the cap keeps `overflow-y: auto` and
-   nothing here contradicts it. */
-
-/* --- ALIGNMENT TOGGLE BUTTONS --- */
+/* Alignment buttons */
 .align-group {
     display: flex;
     width: 100%;
@@ -655,12 +559,10 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     box-shadow: none;
 }
 
-/* --- FORMATTING TOOLBAR --- */
-/* TWO ROWS (v0.16 fine-tuning 7). A grid with two explicit rows and column
-   flow, rather than flex-wrap with a width cap: wrapping would give two rows at
-   one pane width and three at another, while this is two rows at every width
-   and for any number of buttons. The wrappers inside stay position:relative
-   hosts for their popups, which grid does not affect. */
+/* The format toolbar */
+/* Two rows at every width, for any number of buttons: a grid with two rows and
+   column flow, not flex-wrap. The wrappers stay position:relative for their
+   popups. */
 .format-toolbar {
     display: grid;
     grid-template-rows: repeat(2, auto);
@@ -685,54 +587,34 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     background: #0a0a0a;
     border: 1px solid #333;
     padding: 0.6rem;
-    /* Square and hard-shadowed, like the rest of the editor chrome. It kept a
-       6px radius and a soft blur from when it was one row of seven swatches
-       and read as a small popup; at three labelled sections it reads as a
-       panel, and looked borrowed from somewhere else. */
+    /* Square and hard-shadowed, like the rest of the editor's chrome. */
     border-radius: 0;
     box-shadow: 4px 4px 0px var(--manga-shadow, #000);
     z-index: 100;
-    /* Was min-width: 140px with seven swatches in it. The picker now offers
-       the character and frame-data palettes too (~45), and this popup opens
-       upward from the toolbar - so left to grow it runs off the top of the
-       screen and the last group becomes unreachable. Wide enough for nine per
-       row, then it scrolls. */
+    /* Wide enough for nine swatches a row, then it scrolls: about 45 swatches in a
+       popup that opens upward would run off the top of the screen. */
     min-width: 248px;
-    /* The popup itself no longer scrolls: .format-color-presets-scroll does,
-       so the custom picker below it stays pinned and visible. It used to be
-       inside the scrolling region and sat under the fold.
-
-       320px is a CEILING, not a preference. The popup opens upward from the
-       toolbar, and at 420px its top reached into the editor's tab strip -
-       which paints over it, so the upper swatches resolved as visible and
-       enabled and then swallowed every click. Pinning the picker is what
-       makes the smaller height affordable: the swatches lose the room, and
-       they are the part that is allowed to scroll. */
+    /* The swatch groups scroll, not the popup, so the custom picker stays pinned.
+       320px is a ceiling: higher, its top reached under the editor's tab strip,
+       which painted over it and swallowed the clicks. */
     max-height: 320px;
     display: flex;
     flex-direction: column;
-    /* Positioning is handled in js/editor/blocks/editor-blocks.js (keepColorPopupOnScreen),
-       not here: the popup overflows the editor pane by an amount that depends
-       on where along the toolbar the button sits, which no static rule knows.
-       An earlier attempt reserved a scrollbar gutter here on the theory that
-       the popup's own scrollbar was doing the clipping. Measurement said
-       otherwise - the pane clips it - and the extra padding only made the
-       popup wider, so it is gone. */
+    /* Positioned by keepColorPopupOnScreen (editor-blocks.js): the overflow depends
+       on where the button sits, which no static rule knows. */
 }
 .format-btn-italic { font-style: italic; }
 .format-btn-underline { text-decoration: underline; }
 .format-btn-strikethrough { text-decoration: line-through; }
-/* Compound: .format-btn's own base rule sets font-size: 0.85rem at the same
-   specificity - same lesson as every other compound-selector fix. */
+/* Compound: .format-btn sets font-size at the same specificity. */
 .format-btn.format-btn-code { font-size: 0.65rem; }
 .format-btn-color-trigger { display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem; }
 .format-color-wrapper { position: relative; display: inline-flex; align-items: center; }
 .format-color-swatch-icon { width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%; }
 
-/* --- SECTION LINK PICKER (v0.15 item 5) --- */
-/* Same chrome as the colour popup - square, hard-shadowed, opening upward from
-   the toolbar - because it is the same kind of control in the same strip, and
-   two popups from one toolbar that look unrelated read as two features. */
+/* The section link picker */
+/* The colour popup's chrome: two popups from one toolbar should look like one
+   kind of control. */
 .format-jump-wrapper { position: relative; display: inline-flex; align-items: center; }
 .format-jump-popup {
     display: block;
@@ -768,9 +650,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     margin-bottom: 0.4rem;
 }
 .format-jump-search:focus { outline: none; border-color: var(--accent-blue); }
-/* Capped and scrolled: a filled-in character page has dozens of sections, and
-   the popup opens upward - left to grow it runs off the top of the screen and
-   the first entries become unreachable. Same failure the colour popup had. */
+/* Capped and scrolled: a filled-in page has dozens of sections, and the popup
+   opens upward. */
 .format-jump-list { max-height: 220px; overflow-y: auto; }
 .format-jump-group {
     font-family: var(--text-mono);
@@ -781,8 +662,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     margin: 0.5rem 0 0.2rem;
 }
 .format-jump-group:first-child { margin-top: 0; }
-/* The section and its caret sit on one line, so the caret lines up down the
-   right edge the way the table of contents' does. */
+/* The section and its caret on one line, the caret down the right edge as in the
+   table of contents. */
 .format-jump-row { display: flex; align-items: stretch; gap: 2px; }
 .format-jump-row .format-jump-item { flex: 1; min-width: 0; }
 .format-jump-toggle {
@@ -797,8 +678,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .format-jump-toggle:hover { color: var(--accent-blue); }
 .format-jump-toggle[aria-expanded="false"] { transform: rotate(-90deg); }
-/* Indented and dimmed, so the two levels are distinguishable at a glance
-   without a second colour - the group labels already own the accent. */
+/* Indented and dimmed: two levels without a second colour. */
 .format-jump-children { margin-left: 0.6rem; border-left: 1px solid #333; padding-left: 0.3rem; }
 .format-jump-children.hidden { display: none; }
 
@@ -813,9 +693,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     padding: 0.25rem 0.35rem;
     cursor: pointer;
 }
-/* After .format-jump-item, not before: it sets colour and size at the same
-   specificity, so declared above this rule would be dead. Same source-order
-   trap admin.css documents in its own comments. */
+/* After .format-jump-item, which sets colour and size at the same specificity. */
 .format-jump-item-minor { font-size: 0.68rem; color: var(--text-muted); }
 
 .format-jump-item:hover, .format-jump-item:focus-visible {
@@ -828,20 +706,19 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     color: var(--text-muted);
     margin: 0.3rem 0;
 }
-/* The icon picker (v1.2) is the section-link popup with the icon first on
-   each row. After .format-jump-item for the same source-order reason. */
+/* The icon picker: the section-link popup with the icon first. After
+   .format-jump-item, for the same reason. */
 .format-icon-item { display: flex; align-items: center; gap: 0.45rem; }
 .format-icon-glyph { display: inline-flex; }
 .format-icon-character { width: 20px; height: 20px; flex: none; object-fit: contain; }
 .format-icon-popup .loading-msg { font-size: 0.7rem; margin: 0.3rem 0; }
 .format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
-/* Separates the groups without putting a gap above the first one. */
+/* Separates the groups without a gap above the first. */
 .format-color-presets-row + .format-color-popup-label,
 [data-recent-slot]:not(:empty) + .format-color-popup-label { margin-top: 0.6rem; }
 .format-color-presets-row { display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap; }
-/* Square, to match the editor. The hover outline is the only affordance a
-   swatch can carry - it has no label and no icon, so without one there is
-   nothing to say it is a control rather than a colour sample. */
+/* Square, like the editor. The hover outline is the only sign a swatch is a
+   control and not a colour sample. */
 .color-preset-btn {
     width: 20px; height: 20px;
     border-radius: 0;
@@ -856,21 +733,13 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .color-preset-btn:focus-visible { outline-color: var(--accent-blue); }
 .format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
 
-/* --- THE VISUAL COLOUR PICKER (v0.14) ---
-
-   Replaces <input type="color">, which opened the operating system's own
-   colour dialog over the wiki. Drawn with CSS gradients rather than a canvas:
-   the maths is four lines in js/editor/blocks/editor-blocks.js and a canvas would be a
-   second way to draw the same square.
-
-   The saturation/brightness square is one hue-coloured background with white
-   painted left-to-right and black bottom-to-top over it, which is exactly what
-   an HSV square is. */
+/* The visual colour picker, drawn with CSS gradients: one hue-coloured
+   background, white painted left to right and black bottom to top over it,
+   which is an HSV square. */
 .cp-surface {
     position: relative;
     width: 100%;
-    /* Shorter than a comfortable picker would be, to buy the swatch list back
-       some of the room the pinned picker takes from it. */
+    /* Short, to give the swatch list back some of the room the pinned picker takes. */
     height: 88px;
     margin: 0.35rem 0;
     border: 1px solid #333;
@@ -894,9 +763,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 
 .cp-hue:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 
-/* One thumb style for both surfaces. transform centres it on its own
-   coordinate so the point under the cursor is the colour picked, not the
-   corner of a box near it. */
+/* One thumb for both surfaces, centred on its own point, so the point under the
+   cursor is the colour picked. */
 .cp-thumb {
     position: absolute;
     width: 12px;
@@ -932,9 +800,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 
 .cp-apply { flex-shrink: 0; font-size: 0.6rem; padding: 0.25rem 0.45rem; }
 
-/* The custom gradient (v1.1, js/editor/blocks/editor-blocks.js wireGradientBuilder): one
-   chip per colour, the chip being edited outlined, a ✕ on each once there
-   are more than two, and the result in a strip. */
+/* The custom gradient: a chip per colour, the one being edited outlined, a
+   remove button on each past two, and the result in a strip. */
 .cp-gradient-toggle { display: block; width: 100%; text-align: left; cursor: pointer; }
 .cp-gradient-toggle:hover, .cp-gradient-toggle[aria-expanded="true"] { color: var(--text-white, #fff); }
 .cp-gradient { display: flex; flex-direction: column; gap: 0.4rem; align-self: stretch; }
@@ -962,7 +829,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .cp-gradient-strip { height: 12px; border: 1px solid #333; }
 .cp-gradient [data-gradient-use] { align-self: flex-start; }
 
-/* --- ADD BLOCK POPUP MENU --- */
+/* The Add Block menu */
 .add-block-menu-wrapper { position: relative; }
 .add-block-popup {
     position: absolute; bottom: 100%; right: 0; margin-bottom: 0.75rem;
@@ -979,7 +846,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .btn-add-block-toggle { gap: 0.5rem; }
 .add-block-icon { font-size: 1.25rem; line-height: 0.8; font-weight: normal; }
 
-/* --- VIRTUALIZATION ENGINE --- */
+/* Virtualization */
 .block-card.virtual-unloaded:not([draggable="true"]) > * {
     display: none !important;
 }
@@ -989,7 +856,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     background: transparent !important;
 }
 
-/* --- AUTH MODAL SPECIFICS --- */
+/* The sign-in modal's editor parts */
 .auth-modal-box {
     width: 400px;
     border-top: 3px solid var(--accent-blue);
@@ -1027,15 +894,10 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     justify-content: flex-end;
 }
 
-/* --- QA MODAL (js/editor/core/editor-core.js openQAModal) --- */
+/* The QA modal (openQAModal) */
 .editor-intercept-label { color: #a855f7; }
 .qa-modal-elevated { z-index: 10005; }
-/* Compound selector: .auth-modal-box's own base rule also sets width (400px)
-   at the same single-class specificity - a bare .qa-modal-box rule would
-   only win the tie by source-order luck (same lesson as the tierlist.js PR's
-   .tier-nav-overall-btn). No visible effect
-   today since the inline max-width already clips to 400px at normal
-   viewport widths, but this is the correct fix regardless. */
+/* Compound: .auth-modal-box sets width at the same specificity. */
 .auth-modal-box.qa-modal-box { width: 100%; transition: max-width 0.3s ease; }
 .qa-modal-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; }
 .qa-form-container { display: flex; flex-direction: column; text-align: left; }
@@ -1049,23 +911,21 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .qa-textarea-short { min-height: 80px; }
 .qa-textarea-long { min-height: 150px; }
 
-/* --- MOVE ID MODAL (js/editor/tabs/editor-tabs.js promptForMoveId) --- */
+/* The move id modal (promptForMoveId) */
 .move-id-modal-elevated { z-index: 10006; }
 .auth-modal-box.move-id-modal-box { border-top-color: #22c55e; width: 100%; max-width: 400px; }
 .move-id-modal-title { color: #22c55e; font-family: var(--font-label), sans-serif; }
 .move-id-form-fields { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
 
-/* --- TIER LIST EDITOR: LIVE PREVIEW DISABLED NOTICE (initFullTabEditor) --- */
+/* The tier list editor's notice where the preview would be */
 .tierlist-preview-disabled-notice { padding: 2rem; color: #888; text-align: center; border: 1px dashed #333; margin-top: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
 .tierlist-preview-disabled-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
 .tierlist-preview-disabled-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
-/* --- TOOL PAGE SETUP (js/editor/tabs/editor-tool.js) ---
-   Short explanations sitting under a control rather than a tooltip on it: the
-   two things worth saying here (an embed can silently render blank, and a
-   tool with its own renderer ignores the link settings) are exactly the kind
-   of thing someone only discovers after it has already confused them. */
+/* The tool page editor: short notes under a control, since what they say (an
+   embed can render blank, a tool with its own renderer ignores the link) is
+   learned only after it has confused someone. */
 .tool-editor-hint {
     margin: 0.4rem 0 0;
     font-family: var(--text-mono);
@@ -1075,11 +935,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .tool-embed-toggle { margin-top: 0.85rem; }
 
-/* --- PORTRAIT CROP FOCUS (js/editor/tabs/editor-tabs.js renderProfileForm) ---
-   Character portraits render as a fixed square (style/Layout.css
-   .profile-portrait), so a non-square source is cropped. These nine dots aim
-   that crop, matching object-position's own keyword pairs, with a live square
-   preview beside them so the result is seen rather than imagined. */
+/* Portrait crop focus: the portrait is a fixed square (.profile-portrait), so
+   nine dots aim the crop, as object-position's keyword pairs, beside a live
+   square preview. */
 .portrait-focus-row {
     display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;
     margin-top: 0.75rem;
@@ -1109,8 +967,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .portrait-focus-dot.active { background: var(--accent-yellow); border-color: var(--accent-yellow); }
 .portrait-focus-dot:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
 
-/* The preview is the real thing: same aspect-ratio and object-fit as
-   .profile-portrait, so what it shows is what the page will show. */
+/* The preview has .profile-portrait's aspect ratio and object-fit, so it shows
+   what the page will. */
 .portrait-focus-preview {
     width: 96px; aspect-ratio: 1 / 1;
     background: var(--bg-main);
@@ -1119,8 +977,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     overflow: hidden;
 }
 .portrait-focus-preview img { width: 100%; height: 100%; object-fit: cover; }
-/* The Banner field's preview (v1.2): the shape the roster popup shows it in
-   (.roster-banner-image), so what it shows is what readers will see. */
+/* The Banner field's preview, in the roster popup's shape (.roster-banner-image). */
 .profile-banner-preview { margin-top: 0.5rem; max-width: 360px; }
 .profile-banner-preview img {
     display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
@@ -1130,19 +987,12 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     font-family: var(--text-mono); font-size: 0.6rem; color: var(--text-muted); text-align: center;
 }
 
-/* --- CHARACTER STATE TOGGLE (edit.html, driven by js/editor/core/editor-modes.js) ---
-   Sits above the major tab strip, mirroring the live page exactly: the
-   chips are style/Layout.css's .character-mode-chip, deliberately shared so
-   the editor and the page a contributor is previewing look the same.
-
-   That makes this the second consumer of .character-mode-chip - the first
-   being .character-mode-bar on character pages. Nothing below overrides the
-   chip itself; only the bar's spacing and the two editor-only additions
-   (the + STATE button and the rename/delete row) live here. */
+/* The character state toggle, above the major tab strip as on the live page: the
+   chips are Layout.css's .character-mode-chip, shared on purpose. Only the bar's
+   spacing and the editor's own additions (+ STATE, the rename row) are here. */
 .editor-mode-bar { margin-top: 0; margin-bottom: 0.25rem; }
 
-/* Outlined rather than filled: it creates a state, it does not select one,
-   and it must not read as a fourth state sitting next to the real ones. */
+/* Outlined, not filled: it makes a state, and must not read as one. */
 .character-mode-chip.editor-mode-add {
     background: transparent;
     border-style: dashed;
@@ -1182,8 +1032,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     border: 1px solid var(--border-color);
 }
 
-/* The id, shown because it is what a shared link carries and it never
-   changes when the name does. */
+/* The id, shown because a shared link carries it and a rename never changes it. */
 .editor-mode-id-hint {
     font-family: var(--text-mono);
     font-size: 0.65rem;
@@ -1192,13 +1041,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     padding-bottom: 0.35rem;
 }
 
-/* --- MAJOR TAB STRIP (edit.html, driven by switchEditorTab) ---
-   Sits directly above the .daw-variant-tabs sub-nav, giving the editor the
-   same two-level hierarchy the live page has: major tab, then sub-tab.
-   Scoped to its own class rather than reusing .character-nav, which is
-   deliberately scoped to .character-header in style/Layout.css. Nothing
-   here touches .btn-manga itself - that is shared with the roster filters,
-   the systems directory and the tier list. */
+/* The major tab strip, above the .daw-variant-tabs sub-nav: two levels, like the
+   live page. Its own class, since .character-nav is scoped to the page's
+   header; .btn-manga itself is shared and untouched. */
 .editor-tab-nav {
     display: flex;
     flex-wrap: wrap;
@@ -1209,15 +1054,12 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     border-bottom: 2px solid var(--accent-blue);
 }
 
-/* The editor pane is narrow and shares its width with the preview, so the
-   strip runs at the sub-nav's type scale rather than the live page's. */
+/* The editor pane is narrow, so the strip runs at the sub-nav's type scale. */
 .editor-tab-nav .btn-manga { padding: 0.3rem 0.7rem; }
 .editor-tab-nav .btn-manga-text { font-size: 0.7rem; }
 
-/* --- EDITOR TAB NAV BARS (js/editor/tabs/editor-tabs.js initFullTabEditor: moves/overview/
-   matchups/counterplay sub-nav rows). Compound selector against
-   .daw-variant-tabs: its own base rule sets margin-bottom/border-bottom/
-   padding-bottom at the same single-class specificity. --- */
+/* The editor's sub-nav rows. Compound: .daw-variant-tabs sets margin, border and
+   padding at the same specificity. */
 .daw-variant-tabs.daw-editor-nav-row { margin-bottom: 0.5rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center; }
 .daw-tab-item { display: inline-flex; align-items: center; position: relative; margin-bottom: -1px; }
 .daw-tab-btn.daw-tab-btn-removable { padding-right: 1.5rem; }
@@ -1226,9 +1068,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .daw-empty-state { color: var(--text-muted); font-size: 0.75rem; padding: 0.5rem; }
 .editor-empty-dashed { padding: 2rem; border: 1px dashed #333; background: transparent; text-align: center; }
 
-/* --- EDITOR SECTION BANNERS (repeated ~10x across initFullTabEditor,
-   loadOverviewSectionIntoEditor, loadMatchupIntoEditor,
-   loadCounterplayIntoEditor, loadMoveIntoEditor, initPerMoveEditor) --- */
+/* The section banners across the tab editors */
 .editor-section-banner { background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center; }
 .editor-section-banner-spaced { margin-top: 0.5rem; }
 .editor-section-banner-text { color: var(--accent-blue); font-family: inherit; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
@@ -1236,36 +1076,31 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-extra-title-row { display: flex; align-items: center; gap: 0.75rem; width: 100%; }
 .editor-extra-title-input { margin: 0; max-width: 300px; font-size: 0.85rem; font-family: var(--text-mono); border-radius: 0; padding: 0.4rem 0.6rem; text-transform: uppercase; }
 .daw-editor-target-spacing { padding-bottom: 1rem; }
-/* The fold button on "1. STATS & FRAME DATA" (js/editor/tabs/editor-tabs.js), pushed to the
-   banner's right end. */
+/* The fold button on "1. STATS & FRAME DATA", at the banner's right end. */
 .editor-stats-fold { margin-left: auto; }
-/* The [outline] button previews its own effect: a black letter with the white
-   outline, since a white letter would hide it. */
+/* The [outline] button shows its own effect: a black letter, white outline. */
 .format-btn-outline .sc-outline { color: #000; font-weight: bold; }
-/* A one-line field being edited past its width (js/editor/blocks/editor-blocks.js,
-   growEditorField). Its width, margin and offset are set inline from a
-   measurement; this lifts it above its neighbours and keeps a flex row from
-   shrinking it back. The shadow is the manga one, so it reads as raised. */
+/* A one-line field widened past its box while edited (growEditorField): width,
+   margin and offset are set inline from a measurement. This lifts it above its
+   neighbours and keeps a flex row from shrinking it back. */
 .editor-input.editor-input-grown {
     position: relative; z-index: 40; flex: none; max-width: none;
     background: #0a0a0a; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
 }
 .editor-field-label-sm { font-size: 0.65rem; color: #888; }
 .editor-input-spaced { margin-top: 0.25rem; }
-/* Compound selector: .block-editor-container's base rule sets margin-top: 1rem
-   at the same specificity - genuinely different here (0, not 1rem). */
+/* Compound: .block-editor-container sets margin-top at the same specificity. */
 .block-editor-container.block-editor-container-tight { margin-top: 0; margin-bottom: 1rem; }
 
-/* --- DAW FRAME EDITOR (js/editor/tabs/editor-framedata.js initDawEditor) --- */
+/* The Frame Data editor (initDawEditor) */
 .daw-empty-notice { color: var(--text-muted); font-size: 0.85rem; padding-bottom: 1rem; }
 .editor-row-spaced-sm { margin-bottom: 0.25rem; }
 .daw-stat-actions { display: flex; align-items: center; gap: 0.5rem; width: auto; flex: 0 0 auto; }
 .editor-checkbox-label { color: var(--text-muted); font-size: 0.75rem; }
 .daw-variant-media-row { margin: 0 0 0.75rem; }
 .daw-no-frames-hint { margin: 0.25rem 0 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; line-height: 1.5; }
-/* The Accolades field (v1.2): every accolade as a chip, icon and name, muted
-   until ticked and then in the color its badge has on the Skill Card
-   (js/pages/core/framedata.js). The icon follows the chip's color (.px-icon). */
+/* The Accolades field: every accolade as a chip, muted until ticked, then in its
+   badge's colour on the Skill Card. The icon follows the chip's colour. */
 .accolade-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
 .accolade-chip {
     display: inline-flex; align-items: center; gap: 0.3rem;
@@ -1278,8 +1113,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     color: var(--accolade-color, var(--text-primary)); background: var(--bg-main);
     border-color: var(--accolade-color, var(--text-primary));
 }
-/* Compound selectors: .btn-sys's own base rule sets padding at the same
-   single-class specificity. */
+/* Compound: .btn-sys sets padding at the same specificity. */
 .btn-sys.daw-stat-del-btn { padding: 0.3rem 0.5rem; }
 .btn-sys.daw-add-stat-btn { padding: 0.15rem 0.4rem; }
 .daw-variant-wrapper { margin-bottom: 1rem; }
@@ -1289,9 +1123,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .daw-track-header-row { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.25rem; }
 .daw-track-input-row { display: flex; gap: 0.25rem; align-items: center; }
 .daw-track-inp.daw-track-inp-flex { margin: 0; flex: 1; }
-/* Compound selector: .editor-select's own base rule sets width: 100% at the
-   same specificity - same lesson as every other compound-selector fix in
-   this workstream. */
+/* Compound: .editor-select sets width at the same specificity. */
 .editor-select.daw-track-color-select { margin: 0; width: 125px; flex: none; font-weight: bold; }
 .daw-inspector-spaced { margin-top: 1rem; }
 .daw-inspector-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
@@ -1306,25 +1138,18 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .daw-container-header-actions { display: flex; gap: 0.25rem; }
 .editor-input.daw-variant-label-inp { margin: 0; }
 .editor-input.daw-variant-scale-inp { margin: 0; width: 80px; }
-/* Compound selector: applied alongside .daw-container, which has its own
-   padding: 1rem at the same specificity - same lesson as .daw-track-color-select. */
+/* Compound: .daw-container sets padding at the same specificity. */
 .daw-container.daw-branch-empty-notice { text-align: center; padding: 3rem 1rem; }
 .daw-branch-title { color: var(--accent-blue); font-family: inherit; font-size: 1.1rem; margin-bottom: 1rem; text-transform: uppercase; }
 .daw-branch-label-row { display: flex; justify-content: center; margin-bottom: 1.5rem; }
 .editor-input.daw-branch-label-inp { max-width: 250px; text-align: center; font-size: 0.9rem; }
 .daw-branch-hint { color: var(--text-muted); font-family: var(--text-mono); margin-bottom: 1.5rem; }
-/* Wraps for the same reason: an empty variant's three buttons are wider than
-   the workspace on a 1280px screen. */
+/* Wraps: an empty variant's three buttons are wider than the Workspace. */
 .daw-branch-actions-row { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
 .btn-sys.daw-narrow-btn { max-width: 200px; }
-/* Compound selectors: .editor-select option (style/editor.css:150) sets its
-   own color: #d1d5db at higher specificity (0,1,1) than a bare class
-   (0,1,0), so these were silently losing outright, not just tying - the
-   root cause of the "color does not load in" bug in the track-color
-   dropdown. Values reference ColorCoding.css's --track-color-* custom
-   properties, the same single source of truth js/pages/core/framedata.js's live
-   .text-* rendering uses, so the editor preview and the live page can't
-   drift apart again. */
+/* Compound with `option`: .editor-select option sets colour at higher
+   specificity than a bare class. The values are ColorCoding.css's
+   --track-color-*, which the live page reads too. */
 .editor-select option.daw-option-default { color: #ffffff; }
 .editor-select option.daw-option-red-400 { color: var(--track-color-red-400); }
 .editor-select option.daw-option-red-600 { color: var(--track-color-red-600); }
@@ -1336,38 +1161,29 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-select option.daw-option-cyan-400 { color: var(--track-color-cyan-400); }
 .editor-select option.daw-option-gray-400 { color: var(--track-color-gray-400); }
 
-/* --- CONTENT BLOCK BUILDER (js/editor/tabs/editor-tabs.js initProfileEditor, initPlaystyleEditor;
-   js/editor/blocks/editor-blocks.js initStrategyBlockBuilder, renderBlockList) --- */
-/* Compound selectors: .block-editor-container's own base rule sets
-   margin-top: 1rem at the same specificity - same lesson as .block-editor-container-tight. */
+/* The Block editor's containers (initStrategyBlockBuilder, renderBlockList, the
+   Profile and Playstyle forms) */
+/* Compound: .block-editor-container sets margin-top at the same specificity. */
 .block-editor-container.block-editor-container-notop { margin-top: 0; }
 .block-editor-container.block-editor-container-splitgrid { margin-top: 0; display: flex; gap: 1rem; flex-wrap: wrap; }
 .block-editor-container.block-editor-container-blocklist { margin-top: 0; margin-bottom: 3rem; }
 .block-card-split { flex: 1; min-width: 300px; }
-/* Compound: .block-type-badge's own base rule sets color: #000 at the same specificity. */
+/* Compound: .block-type-badge sets colour at the same specificity. */
 .block-type-badge.block-type-badge-positive { color: #22c55e; }
 .block-type-badge.block-type-badge-negative { color: #ef4444; }
 .strategy-toolbar-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .strategy-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-/* The block builder's row has nothing on its left any more - MEDIA LIBRARY
-   moved to the footer - so space-between would drag undo/redo/clear across to
-   it. A modifier rather than a change to .strategy-toolbar-row, which the
-   structured-form toolbar in js/editor/tabs/editor-tabs.js still uses with two children. */
+/* The Block editor's row has nothing on its left, so space-between would drag
+   UNDO, REDO and CLEAR across. A modifier: the Profile form's toolbar still
+   uses .strategy-toolbar-row with two children. */
 .strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
-/* Two dropdowns share this row since v0.15 item 9, and the shared
-   .manga-select-wrapper rule in Forms.css is `flex: 1` with `min-width: 0` -
-   which is `flex-basis: 0%` and free to collapse. In a row that shrink-wraps to
-   its content that resolves to width ZERO, and .manga-select-trigger is
-   position:relative rather than clipped, so it spilled out over the folder
-   picker instead of just being narrow (owner, 2026-08-18).
-
-   Both overrides are scoped to .block-type-row on purpose: .manga-select-wrapper
-   is site-wide furniture - the DAW footer sizes on it, and the comment in
-   Forms.css says as much. Wrapping rather than fixed widths because the editor
-   pane is resizable and the mobile rules below squeeze this row further. */
+/* Two dropdowns share this row, and Forms.css's .manga-select-wrapper is
+   flex:1 with min-width:0, which in a shrink-wrapping row resolves to zero width
+   and spilled over the folder picker. Scoped to .block-type-row, since the
+   wrapper is site-wide. It wraps, as the pane is resizable. */
 .block-type-row {
     display: flex;
     align-items: center;
@@ -1382,24 +1198,16 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     min-width: 7rem;
 }
 
-/* --- BLOCK FOLDERS (v0.15 item 9) ---
-   Editor-only grouping, so it is deliberately quieter than the purple
-   accordion banner above: an accordion is a thing the READER gets, a folder is
-   furniture only the author ever sees, and the two sitting in the same list
-   must not look like the same kind of object. */
-/* v0.16 fine-tuning 3: a folder is not a card and should stop looking like a
-   quieter one. No filled box, no full border - a transparent strip with a
-   folder icon, held together by the left rule alone. The height matters as
-   much as the colour: this list is mostly folders now that everything opens
-   collapsed, so every row of chrome is a row of blocks pushed off screen. */
+/* Block folders: editor-only, so quieter than an accordion, which readers get. */
+/* Not a card: no box, no full border, a transparent strip held together by its
+   left rule, and as short as it can be, since the list is mostly folders. */
 .block-folder {
     border: none;
     border-left: 2px solid #3f4652;
     background: transparent;
     margin-bottom: 0.15rem;
 }
-/* A folder's own colour (v1.1) is that same left rule, a pixel wider so it
-   reads as chosen rather than as the default gray. */
+/* A folder's own colour is that left rule, a pixel wider so it reads as chosen. */
 .block-folder.has-color { border-left: 3px solid var(--folder-color); }
 .block-folder-head {
     display: flex;
@@ -1419,8 +1227,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .block-folder-color.is-none { border-style: dashed; background: transparent; }
 .block-folder-color:hover, .block-folder-color[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
 .block-folder-color:focus-visible { outline-color: var(--accent-blue); }
-/* Only while it holds something open, so an expanded folder still reads as a
-   container rather than a stack of loose blocks under a heading. */
+/* Only while open, so an open folder still reads as a container. */
 .block-folder:not(.is-collapsed) > .block-folder-body {
     border-left: 1px dotted #2a2a2a;
     margin-left: 0.45rem;
@@ -1429,13 +1236,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 
 .block-folder.is-collapsed .block-folder-body { display: none; }
 
-/* A chevron, the sign for "this opens" (v1.1). It was the folder icon, which
-   an editor never read as the dropdown; the ＋ beside it is what they took
-   for one. Stripped of the btn-sys chrome it inherits: a bordered box around
-   one glyph is most of the height this rule is trying to remove. */
+/* A chevron, the sign for "this opens", without the btn-sys box around it. */
 .block-folder-toggle {
-    /* No cut corner either: on a bare glyph it clips the icon and the clipped
-       corner stops taking clicks (it is a clip-path). */
+    /* No cut corner: on a bare glyph the clip-path clips it and stops clicks. */
     --sys-cut: 0px;
     flex: 0 0 auto;
     background: none;
@@ -1447,8 +1250,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     color: #9ca3af;
 }
 .block-folder-toggle:hover { background: none; filter: brightness(1.4); }
-/* Transparent until touched, so the header reads as a title rather than a form
-   row - but still a real input, which is the whole rename interaction. */
+/* Transparent until touched, so the header reads as a title, but still a real
+   input: that is the rename. */
 .block-folder-name-input {
     flex: 1 1 auto;
     min-width: 0;
@@ -1473,7 +1276,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     font-size: 0.7rem;
     text-transform: uppercase;
 }
-/* Glyph-only, so they take a glyph's worth of room. */
+/* Glyph-only, so a glyph's worth of room. */
 .block-folder-add,
 .block-folder-ungroup,
 .block-folder-discard {
@@ -1483,11 +1286,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     padding: 0.1rem 0.3rem;
     min-width: 0;
 }
-/* Gray like any neutral button, sweep and all, and only once the sweep has
-   filled the button does it turn green (＋ FOLDER) or red (ungroup, discard)
-   (owner, 2026-10-20). The delay is the sweep's own 0.18s, and the colours
-   can fade because Buttons.css registers them. Leaving, it turns gray again
-   at once: the delay belongs to the hover rule only. */
+/* Gray like any neutral button, and green (+ FOLDER) or red (ungroup, discard)
+   only once the sweep has filled it: the delay is the sweep's own 0.18s, and the
+   colours fade because Buttons.css registers them. Gray again at once on leaving. */
 .block-folder-add:hover:not(:disabled),
 .block-folder-ungroup:hover:not(:disabled),
 .block-folder-discard:hover:not(:disabled) {
@@ -1501,9 +1302,8 @@ html.reduce-motion .block-folder-add:hover:not(:disabled),
 html.reduce-motion .block-folder-ungroup:hover:not(:disabled),
 html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none; }
 
-/* An empty folder exists only for this editing session - it has no blocks, so
-   there is no `folder` string anywhere for it to be saved in. Dashed to say
-   so, rather than looking like a folder whose contents failed to load. */
+/* An empty folder exists only for this session: dashed, so it does not look like
+   a folder whose contents failed to load. */
 .block-folder.is-empty { border-left-style: dashed; border-left-color: #6b7280; }
 .block-folder-empty {
     padding: 0.6rem 0.75rem;
@@ -1515,31 +1315,20 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     margin: 0.35rem;
 }
 
-/* The drop affordance for a folder HEADER. Distinct from .drag-over-top /
-   .drag-over-bottom on a card, which are edges: this is a container, and the
-   whole thing lights up because the block lands inside it rather than beside
-   it. Reachable when the folder is collapsed and has no cards to aim at. */
+/* Dropping onto a folder's header: the whole header lights, since the Block lands
+   inside, not beside. The way into a shut folder. */
 .block-folder-head.drag-over-folder {
     background: rgba(59, 130, 246, 0.18);
     outline: 1px dashed var(--accent-blue);
     outline-offset: -2px;
 }
 
-/* --- THE FOLDER PICKER ---
-   Reuses .manga-select-wrapper / .manga-select-options / .manga-option from
-   Forms.css, so it opens and animates like every other dropdown on the site.
-   What it adds is the thing a native select could not: "No folder" and "Create
-   new folder" are not folders, and as three near-identical rows the menu was
-   unreadable.
-
-   NOT built by initializeMangaSelects, and deliberately not a <select> at all -
-   that engine flattens each option to plain textContent, which is exactly the
-   distinction being drawn here. It also only converts select.editor-select,
-   a class the delegated input handler in editor-blocks.js treats as a block
-   field. */
-/* Compound with .block-type-row so it outranks the :not() rule above, which
-   would otherwise win on specificity and hand this one a 7rem minimum it does
-   not want. */
+/* The folder picker, on Forms.css's .manga-select-* so it opens like every other
+   dropdown, with its own classes for "No folder" and "Create new folder", which
+   are not folders. Not a <select>: initializeMangaSelects flattens options to
+   text, and the Block editor treats select.editor-select as a Block field. */
+/* Compound with .block-type-row, to outrank the :not() rule above and its 7rem
+   minimum. */
 .block-type-row .block-folder-picker {
     flex: 0 1 11rem;
     width: auto;
@@ -1573,8 +1362,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     color: #4b5563;
 }
 .block-folder-trigger:hover { color: #fff; border-color: #444; }
-/* Filed in a folder reads differently from loose, at a glance, without opening
-   anything - the folder mark is the state, so it is on the trigger. */
+/* Filed in a folder reads differently from loose, on the trigger itself. */
 .block-folder-trigger.has-folder { color: #e5e7eb; border-color: #4b5563; }
 .block-folder-trigger.has-folder::before { content: '\1F4C1\00a0'; }
 
@@ -1597,7 +1385,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .folder-option-new { color: #22c55e !important; border-top: 1px solid #222; }
 .folder-option-new:hover { background: #22c55e !important; color: #000 !important; }
 
-/* A group label, not a choice - never clickable, never hover-highlighted. */
+/* A group label, never a choice. */
 .folder-option-sep {
     padding: 0.35rem 0.75rem 0.2rem;
     font-family: var(--text-mono);
@@ -1609,31 +1397,29 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     cursor: default;
 }
 
-/* The drop affordance for nesting a block INSIDE an accordion or theorybox.
-   Green rather than the blue used for reordering, because the outcome is
-   different in kind: the block leaves this level entirely. */
+/* Nesting a Block inside an accordion or Combo Card: green, not the reorder blue,
+   since the Block leaves this level. */
 .accordion-inner-block-wrapper.drag-over-nest {
     background: rgba(34, 197, 94, 0.18);
     outline: 1px dashed #22c55e;
     outline-offset: -2px;
 }
-/* touch-action: none so a touch-drag on the handle doesn't also scroll the
-   page - startBlockPointerDrag (js/editor/blocks/editor-blocks.js) owns the gesture entirely
-   once it starts. */
+/* touch-action: none, so a drag on the handle does not also scroll the page. */
 .drag-handle { color: #666; font-size: 1rem; line-height: 1; cursor: grab; touch-action: none; }
-/* Compound: .editor-select's own base rule sets border/padding at the same specificity. */
+/* Compound: .editor-select sets border and padding at the same specificity. */
 .editor-select.block-type-selector { cursor: pointer; border: none; outline: none; padding-right: 0.2rem; }
-/* Compound: .editor-input's own base rule sets font-family/color at the same specificity. */
+/* Compound: .editor-input sets font and colour at the same specificity. */
 .editor-input.block-heading-input { font-family: inherit; font-size: 1.1rem; color: #fff; }
 .block-video-controls-row { display: flex; align-items: center; }
 .block-video-controls-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
 .block-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #333; border-radius: 4px; }
 .block-table { width: 100%; border-collapse: collapse; }
-/* Compound: .editor-input's own base rule sets margin-bottom/border/background at the same specificity. */
+/* Compound: .editor-input sets margin, border and background at the same
+   specificity. */
 .editor-input.table-header-input { margin: 0; border-radius: 0; border: none; border-bottom: 2px solid #444; border-right: 1px solid #333; font-weight: bold; background: rgba(0,0,0,0.4); text-align: center; }
 .editor-input.table-cell-input { margin: 0; border-radius: 0; border: none; border-bottom: 1px solid #222; border-right: 1px solid #333; }
-/* The picked cell's row and column (js/editor/blocks/editor-blocks.js, editorTablePick):
-   the cells' fields are see-through, so the tint shows under them. */
+/* The picked table cell's row and column (editorTablePick): the fields are
+   see-through, so the tint shows. */
 .block-table td.table-picked { background: color-mix(in srgb, var(--accent-blue) 12%, transparent); }
 .block-table-actions-row { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; border-radius: 0rem; }
 .btn-table-add-row, .btn-table-add-col, .btn-table-del-row, .btn-table-del-col { flex: 1; }
@@ -1643,7 +1429,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .block-field-label-sm { font-size: 0.65rem; color: #888; }
 .block-unsupported-msg { color: var(--text-muted); font-style: italic; }
 
-/* --- MEDIA LIBRARY UI --- */
+/* The Media Library */
 #media-modal-overlay {
     backdrop-filter: none !important;
     background: rgba(5, 5, 5, 0.98) !important;
@@ -1667,11 +1453,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-status-msg { color: #888; font-family: var(--text-mono); font-size: 0.75rem; padding: 2rem; text-align: center; grid-column: 1 / -1; }
 .media-error-msg { color: #ef4444; grid-column: 1 / -1; }
 
-/* --- MEDIA LIBRARY: A LIST OF NAMES AND ONE PREVIEW (v1.2) ---
-   Owner, 2026-11-19: no thumbnails. One page of the old grid of video cards
-   downloaded 52.2 MB before anyone hovered; a row is text, and only the file
-   picked into the preview is fetched. Side by side on a desktop, the preview
-   above the list on a phone (the mobile block below). */
+/* A list of names and one preview, no thumbnails: only the file picked is
+   fetched. Side by side on a desktop, the preview above the list on a phone. */
 .media-browser { flex: 1; min-height: 0; display: flex; gap: 1rem; }
 
 .media-row {
@@ -1693,7 +1476,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-row.is-selected { border-color: var(--accent-blue); background: rgba(96, 165, 250, 0.12); }
 .media-row-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .media-row-type { flex: none; color: var(--accent-blue); font-size: 0.6rem; }
-/* A credit, not a label: muted, a size down, and cut before the name is. */
+/* A credit, not a label: muted, a size down, cut before the name is. */
 .media-row-uploader { flex: 0 1 auto; max-width: 35%; color: var(--text-muted); font-size: 0.6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .media-lib-preview { flex: 1 1 45%; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -1702,15 +1485,13 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-lib-preview-media { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .media-lib-preview-name { margin: 0; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-white); overflow-wrap: anywhere; }
 .media-lib-preview-uploader { margin: 0; font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); overflow-wrap: anywhere; }
-/* Pinned to the bottom of the preview: when a long name or a short screen
-   makes the preview scroll, the button stays in view. */
+/* Pinned to the bottom of the preview, so the button stays in view. */
 .media-lib-preview-actions { display: flex; gap: 0.5rem; position: sticky; bottom: 0; padding-top: 0.25rem; background: #0a0a0a; }
 .media-lib-preview-empty { margin: auto; color: #888; font-family: var(--text-mono); font-size: 0.75rem; text-align: center; }
 
-/* --- MEDIA LIBRARY UPLOAD QUEUE (js/editor/tools/editor-media.js handleUploads) --- */
-/* Per-file status for a batch upload. Capped and scrollable because a drop
-   of thirty files should not push the upload zone and the pager off screen -
-   the controls have to stay reachable while the run is going. */
+/* The upload queue (handleUploads) */
+/* Capped and scrolled, so a drop of thirty files keeps the zone and the pager
+   reachable. */
 .media-upload-queue {
     max-height: 7rem;
     overflow-y: auto;
@@ -1728,17 +1509,16 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 }
 .media-upload-row:last-child { border-bottom: none; }
 .media-upload-row-name { color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Bounded rather than flex-shrink: 0 - a rejection reason is a sentence, and
-   at its natural width it pushes the file name out of the row entirely. */
+/* Bounded: a refusal is a sentence, and would push the file name out of the row. */
 .media-upload-row-detail { color: #888; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .media-upload-row-queued .media-upload-row-name { color: #888; }
 .media-upload-row-working .media-upload-row-detail { color: var(--accent-blue); }
 .media-upload-row-done .media-upload-row-detail { color: #22c55e; }
-/* A failure has to survive the rest of the run finishing on top of it. */
+/* A failure stays visible after the rest of the run. */
 .media-upload-row-failed .media-upload-row-detail { color: #ef4444; }
 .media-upload-row-failed .media-upload-row-name { color: #ef4444; }
-/* v0.20: a clip heavier than the wiki needs, waiting on the question above the
-   queue. Yellow, the site's "look at this" colour, not red: nothing failed. */
+/* A heavy clip waiting on the question above: yellow, the site's "look at this",
+   not red, since nothing failed. */
 .media-upload-row-heavy .media-upload-row-detail { color: #f4cc43; }
 .media-upload-row-skipped .media-upload-row-name,
 .media-upload-row-skipped .media-upload-row-detail { color: #666; }
@@ -1754,29 +1534,20 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-upload-ask-text { margin: 0 0 0.6rem; color: #f4cc43; line-height: 1.5; }
 .media-upload-ask-actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
 
-/* --- CUSTOM MODAL THEMES --- */
+/* Modal layers */
 .editor-modal-overlay { z-index: 10000; }
 .editor-modal-overlay.alert-layer { z-index: 10001; }
 
-/* THE CONFIRM AND ALERT LAYERS MUST OUTRANK EVERY OTHER MODAL.
-   They are a RESPONSE to something another modal asked, so they can never be
-   the one underneath. Every overlay sat at 10000 and #editor-custom-modal is
-   declared first in edit.html, so at equal specificity and equal z-index DOM
-   order decided - and every modal declared after it covered it.
-   That was not hypothetical: DELETE COMBO inside the combo row modal (item 3)
-   opened a confirmation the reviewer could see and could not click, and the
-   Find & Replace panel hit the same wall on REPLACE ALL.
-   Above the two inline 10005s (the QA and gallery-item modals) as well. */
+/* The confirm and alert layers outrank every other modal: they answer something
+   another modal asked. At equal z-index, file order decided, and a confirmation
+   opened from the combo row modal could be seen and not clicked. Above the two
+   inline 10005s (the QA and gallery item modals) too. */
 #editor-custom-modal.editor-modal-overlay { z-index: 10020; }
 #editor-alert-modal.editor-modal-overlay { z-index: 10021; }
 
-/* v0.18 F6/F7 - the first-visit notices. Above the Media Library (10000) and
-   the QA and gallery-item modals (10005), because the Media Library notice is a
-   RESPONSE to opening that modal and would otherwise be the one underneath.
-   Below the confirm and alert layers, which outrank everything by the rule
-   above. Stated rather than left to DOM order: the notice is appended to body
-   at runtime so it would win at 10000 today, and that is the fragile mechanism
-   the comment above is about. */
+/* The first-visit notices: above the Media Library and the 10005 modals, since
+   the library's notice answers opening it, and below the confirm layers. Stated,
+   not left to DOM order. */
 .editor-notice-overlay.editor-modal-overlay { z-index: 10010; }
 
 .modal-danger .editor-modal-box { border-top-color: #ef4444; width: 450px; }
@@ -1800,16 +1571,10 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 }
 .modal-prompt-text.pre-wrap { white-space: pre-wrap; }
 
-/* The field window.customPrompt inserts between the prompt text and the buttons
-   (js/editor/blocks/editor-blocks.js). It is created per call rather than living in the
-   markup, because #editor-custom-modal is shared with customConfirm on both
-   edit.html and post-editor.html and a stray text field would otherwise appear
-   on every delete confirmation.
-
-   The negative top margin eats part of .modal-prompt-text's 2rem, which is
-   spacing meant for text sitting directly above the buttons. text-align is
-   explicit because .auth-body-centered centres this modal's contents, and a
-   centred URL is hard to read and harder to edit. */
+/* The field customPrompt adds between the text and the buttons, made per call
+   since the modal is shared with every delete confirmation. The negative margin
+   eats part of the text's spacing, and it is left-aligned: a centred address is
+   hard to edit. */
 .editor-modal-input {
     display: block;
     width: 100%;
@@ -1824,7 +1589,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     justify-content: center;
 }
 
-/* --- MEDIA LIBRARY MODAL --- */
+/* The Media Library modal */
 .media-modal-box { width: 800px; max-width: 95vw; border-top-color: var(--accent-blue); }
 .media-modal-box .auth-header h3 { color: var(--accent-blue); }
 .media-modal-body { height: 60vh; display: flex; flex-direction: column; }
@@ -1868,8 +1633,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     font-size: 0.75rem;
 }
 
-/* v0.20: no upload media permission. The zone stays, as the sentence saying
-   why; the hover and drag-over states that invite a drop are cancelled. */
+/* No upload permission: the zone stays, as the sentence saying why, without the
+   states that invite a drop. */
 #media-upload-zone.media-upload-zone-locked,
 #media-upload-zone.media-upload-zone-locked:hover {
     cursor: not-allowed;
@@ -1878,7 +1643,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     background: transparent !important;
 }
 
-/* Keep the native select looking okay as a fallback before JS loads */
+/* The native select before the script loads. */
 .editor-select {
     width: 100%; background-color: rgba(255,255,255,0.03); border: 1px solid #222;
     color: #d1d5db; padding: 0.3rem 0.4rem; border-radius: 0; margin-bottom: 0.25rem;
@@ -1894,7 +1659,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         overflow: hidden;
     }
 
-    /* 1. Editor Workspace Takes Full Screen */
+    /* The phone layout: the Workspace takes the screen. */
     .editor-workspace {
         width: 100% !important;
         height: 100vh;
@@ -1902,7 +1667,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         padding-bottom: 3rem; /* Buffer for scrolling */
     }
 
-    /* 2. Preview Pane is Hidden & Absolute by default */
+    /* The preview is hidden, and absolute. */
     .live-preview-pane {
         display: none !important; 
         width: 100% !important;
@@ -1912,15 +1677,12 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         left: 0;
         z-index: 50;
         background-color: #000;
-        /* No padding here - .main-content-area (a direct child) already
-           supplies content padding, exactly matching the real live page's
-           structure. Padding on both compounded into a real bug: the mobile
-           preview read narrower/more cramped than the actual published page
-           it's supposed to be a faithful preview of. */
+        /* No padding: .main-content-area already pads, as on the live page, and both
+           made the preview narrower than the page. */
         padding: 0 !important;
     }
 
-    /* 3. Toggled State (Show Preview, Hide Editor) */
+    /* SHOW PREVIEW: the preview shows, the Workspace hides. */
     body.mobile-preview-active .editor-workspace {
         display: none !important;
     }
@@ -1928,7 +1690,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         display: flex !important;
     }
 
-    /* 4. Mobile Toggle Buttons */
+    /* The toggle buttons */
     #mobile-preview-toggle {
         display: block !important;
     }
@@ -1952,18 +1714,13 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         cursor: pointer;
     }
 
-    /* 5. Aggressive UI Compacting to maximize screen space */
+    /* Compact, to give the Workspace the screen. */
     .editor-header { padding: 0.5rem 0.75rem !important; }
     .editor-title { font-size: 0.8rem; }
     .editor-subtitle { font-size: 0.55rem; }
 
-    /* Buttons.css's site-wide 44px mobile touch-target minimum ate ~80px
-       of workspace here specifically: the header's 5-button toolbar
-       already wraps to 2 rows on narrow screens (by width, independent of
-       button height), and the HUB/SHOW PREVIEW pair stacks in a column -
-       so the 44px floor compounded 4x in a header that's fighting hard to
-       stay out of the way of the actual editing workspace below it.
-       Exempted back to the original compact size. */
+    /* Exempt from Buttons.css's 44px phone minimum: the header's buttons already wrap
+       to two rows, and the floor ate about 80px of Workspace. */
     .editor-header .btn-sys {
         min-height: 0;
     }
@@ -1975,7 +1732,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     .editor-input, .editor-select { font-size: 0.7rem !important; padding: 0.4rem !important; margin-bottom: 0.4rem !important;}
     .block-header { margin-bottom: 0.5rem !important; }
     
-    /* --- MOBILE MODAL OVERRIDES --- */
+    /* Modals on a phone */
     .editor-modal-box, .auth-modal-box, .media-modal-box {
         width: 95vw !important;
         max-width: 95vw !important;
@@ -1983,7 +1740,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         box-sizing: border-box;
     }
     
-    /* Stack the media gallery controls on mobile */
+    /* The library's controls stack. */
     .media-modal-footer {
         display: flex !important;
         flex-direction: column;
@@ -1998,42 +1755,32 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         gap: 0.5rem;
     }
     
-    /* The Media Library on a phone: the preview above the list, so the file
-       picked is on screen without scrolling the list away. */
-    /* Measured at 390x844: a 112px frame and a 55% cap leave the list 161px.
-       A long name with an uploader line overflows the cap and scrolls, with
-       COPY LINK pinned in view (above). */
+    /* The Media Library on a phone: the preview above the list, so the file picked
+       stays on screen. */
+    /* At 390x844 a 112px frame and a 55% cap leave the list 161px. A long name
+       scrolls, with COPY LINK pinned. */
     .media-browser { flex-direction: column; gap: 0.5rem; }
     .media-lib-preview { flex: none; max-height: 55%; order: -1; }
     .media-lib-preview-frame { aspect-ratio: auto; height: 112px; }
-    /* The footer stacks into three rows here, so the library takes more of
-       the screen to leave the list room. */
+    /* The footer stacks into three rows, so the library takes more of the screen. */
     .media-modal-body { height: 80vh; }
 
     .modal-actions-centered { flex-direction: column; }
     .auth-body { padding: 1rem !important; }
 }
 
-/* =========================================
-   STANDARDIZED SYSTEM BUTTONS (6-TIER)
-   ========================================= */
+/* Buttons */
    
-/* The .btn-sys family lives in style/Buttons.css only (v0.18 A3): this file
-   loaded after it and redefined the same class, so a fix to Buttons.css
-   stopped at the five pages that load this one.
-
-   The four legacy aliases this file used to style (.submit-btn,
-   .system-page-btn, .add-block-btn, .btn-action-delete) copied the old button
-   by hand, so the v1.1 restyle could not reach them. Every button that wore
-   one now wears .btn-sys and a colour tier instead. .add-block-btn stays on
-   the add-block menu's buttons, where it is the click and drag hook, and
-   keeps the menu's smaller, dimmer button. */
+/* .btn-sys lives in Buttons.css only: a copy here won on every page that loads
+   this file, and a fix there never reached them. .add-block-btn stays on the
+   Add Block menu's buttons as the click and drag hook, with the menu's smaller,
+   dimmer look. */
 .btn-sys.add-block-btn { --sys-edge: #333; padding: 0.35rem 0.6rem; font-size: 0.65rem; }
-/* touch-action: none only on the actual drag sources in the add-block popup
-   toolbar, so nothing else loses native touch scrolling. */
+/* touch-action: none on the drag sources only, so nothing else loses touch
+   scrolling. */
 #add-block-popup .add-block-btn { touch-action: none; }
 
-/* --- WORKSPACE SCROLL ENGINE --- */
+/* The Workspace scrolls */
 #interactive-builder {
     flex: 1; /* Forces the container to fill the remaining height under the header */
     overflow-y: auto; /* Restores the scrollbar */
@@ -2041,10 +1788,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     box-sizing: border-box;
 }
 
-/* MEDIA LIBRARY and ADD BLOCK, together at the end of the footer row
-   (v0.16 fine-tuning 7), stacked with ADD BLOCK on top since v1.1, one width.
-   flex-shrink:0 so the two-row format toolbar beside them takes the squeeze
-   instead - it wraps by design, and these do not. */
+/* MEDIA LIBRARY and ADD BLOCK at the end of the footer row, stacked, one width.
+   flex-shrink: 0, so the two-row toolbar beside them takes the squeeze. */
 .add-block-footer-actions {
     display: flex;
     flex-direction: column;
@@ -2055,7 +1800,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .add-block-footer-actions > .btn-sys,
 .add-block-footer-actions > .add-block-menu-wrapper > .btn-sys { width: 100%; }
 
-/* --- STICKY FORMATTING TOOLBAR --- */
+/* The footer toolbar sticks */
 .add-block-toolbar {
     display: flex;
     justify-content: space-between;
@@ -2070,7 +1815,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     box-shadow: 0 -15px 25px rgba(0,0,0,0.9); /* Shadows the blocks scrolling behind it */
 }
 
-/* --- FLOATING PREVIEW BADGE FIX --- */
+/* The preview badge */
 .preview-badge {
     position: absolute;
     top: 1.5rem;
@@ -2087,7 +1832,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     border-radius: 4px;
 }
 
-/* --- SMART DIFF VIEWER --- */
+/* The change list */
 .diff-container {
     display: flex;
     flex-direction: column;
@@ -2108,15 +1853,13 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     padding-bottom: 0.5rem;
     margin: 0;
 }
-/* js/editor/core/editor-sync.js's raw/JSON diff branch (renderDiffView) - the border/
-   box-shadow differ from the default (inline-blocks) .diff-container above. */
+/* The raw and JSON branch (renderDiffView): a different border and shadow. */
 .diff-container.diff-container-raw { border: 2px solid var(--border-color, #333); box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
-/* Referenced by js/overseer/admin-preview.js's own diff view too (<div class="diff-inline-
-   target">) but never had a CSS rule until this pass. */
+/* admin-preview.js uses it too. */
 .diff-inline-target { width: 100%; }
 .editor-diff-empty-msg { color: var(--text-muted); font-style: italic; border: 1px dashed #333; padding: 2rem; text-align: center; }
 
-/* Inline Text Highlighters */
+/* Inline changes */
 ins.diff-add {
     background-color: rgba(34, 197, 94, 0.25);
     color: #4ade80;
@@ -2136,10 +1879,9 @@ del.diff-del {
     opacity: 0.8;
 }
 
-/* --- SIDE-BY-SIDE DIFF (v1.2, js/utility/side-by-side.js) ---
-   The Overseer's DIFF VIEW and the editor's VIEW DIFF: the old version on the
-   left (what goes, red), the new one on the right (what comes, green), each
-   drawn as the page draws it, with rows pushed level by spacers. */
+/* The side by side (side-by-side.js), for the Overseer's DIFF VIEW and the
+   editor's VIEW DIFF: the old version on the left in red, the new one on the
+   right in green, each drawn as the page draws it, rows pushed level. */
 .sbs { display: flex; flex-direction: column; width: 100%; }
 .sbs-top {
     position: sticky;
@@ -2170,32 +1912,28 @@ del.diff-del {
 .sbs-heads .sbs-head-left { border-right: 2px solid var(--border-color); }
 .sbs-col { min-width: 0; padding: 1rem 0.75rem; box-sizing: border-box; }
 .sbs-col-left { border-right: 2px solid var(--border-color); }
-/* Each column's own heading shows only when the columns stack (below). */
+/* Each column's heading shows only when the columns stack. */
 .sbs-col > .sbs-head { display: none; }
 .sbs-note { color: var(--text-muted); font-style: italic; border: 1px dashed var(--border-color); padding: 1rem; margin: 1rem 0 0; }
-/* The editor's "Compare with" picker (js/editor/core/editor-sync.js). */
+/* The editor's "Compare with" picker. */
 .sbs-compare { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
 .sbs-compare .editor-select { min-width: 16rem; }
-/* Where the editor draws a version for the side-by-side, out of sight and out
-   of the way, but laid out, so a clip or a picture can measure itself. */
+/* Where the editor draws a version: out of sight but laid out, so a clip or a
+   picture can measure itself. */
 .sbs-render-host { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; pointer-events: none; }
-/* The editor's side-by-side takes the pane's whole width, not the page's
-   1000px column, and the Workspace folds away while it is up (the
-   WORKSPACE button in its bar brings it back; js/editor/core/editor-sync.js). */
+/* The editor's side by side takes the pane's whole width, and the Workspace
+   folds away meanwhile (the bar's WORKSPACE button brings it back). */
 #diff-view-container.main-content-area:has(> .sbs) { max-width: none; }
 @media (min-width: 901px) {
     .editor-layout-split.sbs-workspace-folded > .editor-workspace,
     .editor-layout-split.sbs-workspace-folded > .editor-splitter { display: none; }
 }
-/* One column on a phone: there is no Workspace beside it to fold. */
+/* One column on a phone: no Workspace beside it to fold. */
 @media (max-width: 900px) { .sbs-workspace-toggle { display: none; } }
 
-/* Each half lays out for its own width. The page's own rules go by the
-   screen, so a Skill Card in a narrow half kept its desktop row and squeezed
-   its stats to one letter a line. Below 756px the card stacks, as the page
-   does: the page only uses that row once a card is 756px wide (a 1280px
-   screen), and narrower it wrapped a stat one word a line. (The Frame Data
-   legend follows its own width everywhere: style/FrameData.css.) */
+/* Each half lays out for its own width: the page's rules go by the screen, and a
+   Skill Card in a narrow half squeezed its stats to a letter a line. Below 756px
+   the card stacks, as the page does. */
 .sbs-col { container-type: inline-size; }
 @container (max-width: 755px) {
     .sbs-col .skill-entry-body { flex-direction: column; }
@@ -2217,15 +1955,14 @@ del.diff-del {
     overflow: hidden;
 }
 
-/* Outlines, not borders: an outline takes no room, so it cannot move the row
-   it is lining up. */
+/* Outlines, not borders: an outline takes no room, so it cannot move its row. */
 .sbs-col-left .sbs-gone, .sbs-col-left .sbs-changed { outline: 2px solid #ef4444; outline-offset: 2px; }
 .sbs-col-left .sbs-gone { background-color: rgba(239, 68, 68, 0.12); }
 .sbs-col-right .sbs-new, .sbs-col-right .sbs-changed { outline: 2px solid #22c55e; outline-offset: 2px; }
 .sbs-col-right .sbs-new { background-color: rgba(34, 197, 94, 0.12); }
 
-/* A Micro Variant or Section Box tab whose hidden content changed: the same
-   blue dot the Overseer's tab strip puts on a changed tab (admin.css). */
+/* A Micro Variant or Section Box tab whose hidden content changed: the blue dot
+   the Overseer's tab strip uses. */
 .sbs .sbs-tab-changed { border-color: var(--accent-blue); }
 .sbs .btn-manga.sbs-tab-changed .btn-manga-text::after,
 .sbs .sbox-tab.sbs-tab-changed::after {
@@ -2239,8 +1976,8 @@ del.diff-del {
     background: var(--accent-blue);
 }
 
-/* The Overseer and the editor go to one column at this width, and so does
-   this: the old version, then the new one, each under its own heading. */
+/* One column here, like the Overseer and the editor: the old version, then the
+   new, each under its heading. */
 @media (max-width: 900px) {
     .sbs-heads { display: none; }
     .sbs-cols { grid-template-columns: minmax(0, 1fr); }
@@ -2248,12 +1985,9 @@ del.diff-del {
     .sbs-col > .sbs-head { display: block; padding-left: 0; }
 }
 
-/* Stacked Layout (For complex data like JSON/Frames) */
-/* overflow-x/max-width are the fallback for content the <pre>'s own wrapping
-   can't break (see .diff-stacked-pre below) - a serialized JSON blob with no
-   whitespace at all would otherwise push past the viewport edge with no way
-   to scroll it back into view. Not mobile-only: this overflows at any width,
-   it's just most visible on a phone. */
+/* Stacked, for JSON and frame data */
+/* The fallback for what the <pre>'s own wrapping cannot break: a JSON blob with
+   no whitespace would run past the edge. */
 .diff-stacked-old {
     border: 1px solid #ef4444;
     background: rgba(239, 68, 68, 0.05);
@@ -2283,21 +2017,15 @@ del.diff-del {
 .diff-stacked-label.old { color: #ef4444; }
 .diff-stacked-label.new { color: #22c55e; }
 
-/* Structured field-diff (js/overseer/admin-diff.js's renderStructuredDiff) - replaces
-   the stacked-JSON layout above for admin.html's move-stats/metadata diffs
-   specifically (Phase 2 of the reviewer-workflow redesign). */
+/* The structured field diff (renderStructuredDiff) for the Overseer's move stats
+   and metadata. */
 .diff-structured { display: flex; flex-direction: column; gap: 0.5rem; }
 .diff-field-row { font-family: var(--text-mono); font-size: 0.8rem; line-height: 1.6; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.02); border-left: 2px solid #333; }
 .diff-field-key { color: var(--text-muted); font-weight: bold; margin-right: 0.4rem; }
 .diff-field-nested { margin-top: 0.4rem; margin-left: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
 .diff-field-unchanged { color: var(--text-muted); font-style: italic; border-left-color: transparent; }
-/* Referenced by js/overseer/admin-preview.js's own raw/JSON diff view too (<pre class="diff-
-   stacked-pre old/new">) but never had a CSS rule until this pass.
-   <pre> defaults to white-space: pre, which never wraps - a long serialized
-   JSON line ran straight off the side of the screen. pre-wrap keeps the real
-   newlines/indentation that make the dump readable while still wrapping;
-   break-word additionally breaks mid-token when a single unbroken string is
-   wider than the container on its own. */
+/* admin-preview.js's raw view uses it too. pre-wrap keeps the dump's newlines and
+   indentation while wrapping, and break-word breaks a string wider than the box. */
 .diff-stacked-pre {
     font-family: var(--text-mono);
     font-size: 0.65rem;
@@ -2308,7 +2036,7 @@ del.diff-del {
 .diff-stacked-pre.old { color: #fca5a5; }
 .diff-stacked-pre.new { color: #86efac; }
 
-/* --- LOCAL DRAFT MANAGER (js/editor/core/editor-drafts.js openDraftManager) --- */
+/* The Draft Manager (openDraftManager) */
 .draft-empty-msg { color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333; }
 .draft-row { display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
 .draft-row-label { color: var(--accent-blue); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
@@ -2317,31 +2045,23 @@ del.diff-del {
 .draft-row-timestamp { color: #666; font-family: var(--text-mono); font-size: 0.65rem; }
 .draft-row-submitted { color: #f59e0b; font-family: var(--text-mono); font-size: 0.65rem; margin-top: 0.15rem; }
 .draft-row-actions { display: flex; gap: 0.5rem; align-items: center; }
-/* Compound: .btn-sys's own base rule sets padding and font at the same
-   specificity. */
+/* Compound: .btn-sys sets padding and font at the same specificity. */
 .btn-sys.draft-resume-btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; }
 .draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
 .btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: var(--font-label), sans-serif; font-size: 0.65rem; }
 
-/* --- SYSTEM PAGE EDITOR (js/editor/tabs/editor-system.js renderSystemEditor) ---
-   The tab/section-tab row reuses .daw-tab-item/.daw-tab-btn-removable/
-   .daw-tab-remove-btn (initFullTabEditor's tab-with-a-remove-button
-   pattern) and .daw-editor-nav-row, all already established. */
-/* Compound: .daw-variant-tabs's own base rule sets border-bottom at the
-   same specificity; margin-bottom already matches the base rule's own
-   1rem, so no override needed for that property here. */
+/* The system page editor (renderSystemEditor), on the tab strip's established
+   classes. */
+/* Compound: .daw-variant-tabs sets border-bottom at the same specificity. */
 .daw-variant-tabs.system-section-tabs-row { overflow-x: auto; align-items: center; border-bottom: 1px solid #333; background: rgba(0,0,0,0.2); }
-/* Compound: .daw-tab-btn's own base rule sets color: #666 at the same specificity. */
+/* Compound: .daw-tab-btn sets colour at the same specificity. */
 .daw-tab-btn.system-section-tab-btn { color: #a855f7; }
-/* Compound: .daw-tab-btn's own base rule sets font-size: 0.7rem at the same specificity. */
+/* Compound: .daw-tab-btn sets font-size at the same specificity. */
 .daw-tab-btn.system-tab-add-btn { font-size: 0.65rem; }
 .editor-row-divider { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; }
 .system-checkbox-row { display: flex; align-items: center; }
 .system-checkbox-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; cursor: pointer; }
-/* --- GALLERY BIN (edit.html, js/editor/tabs/editor-gallery.js) ---
-   A list of rows rather than the block editor: a gallery item is a file and a
-   name, and routing that through blocks/sections/tabs would be three screens
-   of machinery for two fields. */
+/* The gallery bin: rows of a file and a name, not the Block editor. */
 .gallery-bin-toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
 .gallery-bin-count { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
 .gallery-bin-list { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -2359,13 +2079,8 @@ del.diff-del {
 .gallery-bin-fields .editor-input { margin: 0; font-size: 0.75rem; }
 .gallery-bin-remove { flex-shrink: 0; padding: 0.3rem 0.5rem; }
 
-/* "One tab per submission" (edit.html). Sits at the top of the workspace
-   column, above the state toggle and tab strip - not in the left sidebar,
-   which is chrome rather than the thing being worked on.
-
-   Deliberately quiet: it is a standing fact about how the editor works, not a
-   warning about the current state, so it must not compete with the alerts that
-   are. Remove it when v0.13 makes multi-tab submission possible. */
+/* The scope tip at the top of the Workspace column, quiet: a standing fact about
+   the editor, not a warning about now. */
 .editor-scope-tip {
     position: relative;
     margin: 0 0 0.75rem;
@@ -2379,9 +2094,7 @@ del.diff-del {
 }
 .editor-scope-tip strong { color: var(--text-primary); }
 
-/* Dismissible since 2026-08-14. It is a thing you read once, and it was
-   charging every later edit for that. Right padding above keeps the text off
-   the button rather than letting it run underneath. */
+/* Dismissible: it is read once. The right padding keeps the text off the button. */
 .editor-tip-dismiss {
     position: absolute;
     top: 0.25rem;
@@ -2404,9 +2117,8 @@ del.diff-del {
     margin-bottom: 0.35rem;
 }
 
-/* Heads the custom picker. Deliberately not .format-color-popup-label, which
-   labels a swatch group - there are exactly three of those and a fourth
-   would misdescribe the picker as a palette. */
+/* Heads the custom picker. Not .format-color-popup-label, which labels a swatch
+   group: the picker is not a palette. */
 .cp-label {
     font-size: 0.6rem;
     text-transform: uppercase;
@@ -2417,10 +2129,8 @@ del.diff-del {
     padding-top: 0.4rem;
 }
 
-/* --- COMBO ROWS EDITOR (v0.15 item 3) --- */
-/* The rows of one combo group. A row is a button showing its route, because
-   the route is how an author recognises which combo they are editing - an
-   index or a damage number is not something anyone remembers. */
+/* Combo rows */
+/* A row is a button showing its route: how an author knows which combo it is. */
 .combo-rows-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem; }
 .combo-row-item { display: flex; gap: 0.35rem; align-items: stretch; }
 .combo-row-open {
@@ -2430,28 +2140,21 @@ del.diff-del {
 .combo-row-item.active .combo-row-open { border-color: var(--accent-blue); color: var(--accent-blue); }
 .combo-row-remove { flex: 0 0 auto; }
 
-/* v0.18 F4 - move a row up or down within its list.
-   Stacked, so the pair occupies one row's height rather than widening the line
-   and squeezing the summary that is already ellipsised. Scoped to
-   .combo-row-move on purpose: .btn-sys is shared site-wide and a bare rule for
-   these sizes would reach every consumer of it. */
+/* Up and down within the list, stacked so the pair is one row tall. Scoped to
+   .combo-row-move: .btn-sys is shared site-wide. */
 .combo-row-move { flex: 0 0 auto; display: flex; flex-direction: column; gap: 1px; }
 .combo-row-move .btn-sys {
     padding: 0 0.35rem; line-height: 1; font-size: 0.55rem; min-height: 0; flex: 1;
 }
 .combo-row-move .btn-sys:disabled { opacity: 0.35; cursor: default; }
 
-/* The row form lives in a modal (edit.html #combo-row-modal), not in the
-   sidebar: the editor's left pane shares the screen with the live preview, and
-   a dozen fields in it was mostly scroll. Owner's call, 2026-08-16.
-
-   Three columns of short fields in the modal, one below 720px. The route and
-   the notes span the full width because they are the only two that are long. */
+/* The row form is a modal, not the sidebar, which shares the screen with the
+   preview. Three columns of short fields, one below 720px; the route and the
+   notes span the width. */
 .combo-row-modal-box {
     width: min(860px, 94vw);
-    /* The default .editor-modal-box top border is red, which belongs to the
-       delete-confirm modal this shares markup with. This is an edit form, and
-       a red bar across the top of it reads as a warning about nothing. */
+    /* Blue: the red top border belongs to the delete confirmation it shares markup
+       with. */
     border-top-color: var(--accent-blue);
 }
 .combo-row-modal-body { padding: 0.9rem 1.1rem; text-align: left; max-height: 72vh; overflow-y: auto; }
@@ -2464,14 +2167,10 @@ del.diff-del {
 @media (max-width: 900px) { .combo-field-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 720px) { .combo-field-grid { grid-template-columns: 1fr; } }
 
-/* --- COMBO CARD FIELDS --- */
-/* Three columns of short fields with the long ones spanning, same grid as the
-   Combo List row modal. This one is in the sidebar rather than a modal because
-   a card has six fields, not twelve, and the write-up below it is where the
-   time goes. */
-/* Dense on purpose. These are a dozen short fields in a pane that is sharing
-   the screen with a live preview, and the default editor-row spacing turned
-   the form into a scroll before anyone had typed - owner, 2026-08-17. */
+/* Combo Card fields */
+/* The row modal's grid: three columns, the long fields spanning. In the sidebar,
+   since a card has six fields and the write-up below is where the time goes. */
+/* Dense on purpose, in a pane shared with the preview. */
 .combo-card-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem 0.6rem; }
 .combo-card-fields label { display: block; margin-bottom: 0.15rem; font-size: 0.6rem; }
 .combo-card-fields .editor-input, .combo-card-fields .editor-select { padding: 0.3rem 0.45rem; }
@@ -2480,10 +2179,9 @@ del.diff-del {
 @media (max-width: 1100px) { .combo-card-fields { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 720px) { .combo-card-fields { grid-template-columns: 1fr; } }
 
-/* --- FIND AND REPLACE (v0.15 item 7) --- */
-/* Taller than the other editor modals: the list is the feature. A mass replace
-   across a page with 127 combo rows is not something to run blind, and the
-   list is also how a contributor spots the matches they did not mean to catch. */
+/* Find and Replace */
+/* Taller than the other modals: the list is the feature, and how a contributor
+   spots matches they did not mean. */
 .find-replace-box { width: min(720px, 94vw); }
 .find-replace-body { display: flex; flex-direction: column; gap: 0.75rem; max-height: 70vh; }
 .find-replace-controls { display: flex; flex-direction: column; gap: 0.3rem; }
@@ -2493,8 +2191,7 @@ del.diff-del {
 }
 .find-replace-options label { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; }
 
-/* The results scroll, not the modal - the controls and the REPLACE ALL button
-   must stay reachable however many matches there are. */
+/* The results scroll, not the modal, so the controls stay reachable. */
 .find-replace-results {
     flex: 1; min-height: 0; overflow-y: auto;
     border-top: 1px solid var(--border-color); padding-top: 0.5rem;
@@ -2514,8 +2211,7 @@ del.diff-del {
     flex: 1; min-width: 0; font-size: 0.75rem; color: var(--text-muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* The hit itself, in the same green the diff view uses for an addition - this
-   is the text that is about to change. */
+/* The hit, in the change list's addition green: the text about to change. */
 .find-replace-hit {
     background: rgba(34, 197, 94, 0.25); color: var(--text-white);
     padding: 0 0.15rem; font-weight: bold;
@@ -2523,10 +2219,8 @@ del.diff-del {
 .find-replace-one { flex-shrink: 0; padding: 0.15rem 0.5rem; font-size: 0.65rem; }
 .find-replace-empty { font-size: 0.78rem; color: var(--text-muted); margin: 0.4rem 0; }
 
-/* --- REORDER AND INSERT IN PLACE (v0.15 item 8) --- */
-/* Small and square, sitting between the tab's own button and its remove button.
-   Deliberately quieter than either: they are adjustments to a strip, not the
-   two actions (open, delete) that already own it. */
+/* Reorder and insert in place */
+/* Small and square, quieter than the strip's own open and delete. */
 .daw-tab-move-btn, .daw-tab-insert-btn {
     background: transparent;
     border: 1px solid #333;
@@ -2544,30 +2238,20 @@ del.diff-del {
     color: var(--text-white);
     background: rgba(255, 255, 255, 0.08);
 }
-/* Kept in place rather than hidden at the ends: removing it would shift every
-   other control sideways and make the row jump as the selection moves. */
+/* Kept at the ends, disabled: hiding it would shift the row as the selection
+   moves. */
 .daw-tab-move-btn:disabled { opacity: 0.25; cursor: default; }
 .daw-tab-insert-btn { color: #22c55e; font-weight: bold; }
 .daw-tab-insert-btn:hover { background: rgba(34, 197, 94, 0.15); }
 
-/* Touch targets. The strip is horizontal and these are the smallest controls
-   in the editor, so they get the same 44px floor the rest of the site's mobile
-   buttons were raised to in v0.6. */
+/* The 44px phone minimum the rest of the site's buttons have. */
 @media (max-width: 767px) {
     .daw-tab-move-btn, .daw-tab-insert-btn { min-width: 32px; min-height: 44px; font-size: 0.7rem; }
 }
 
-/* ITS OWN ROW, ABOVE THE STRIP. Two earlier placements were both wrong for the
-   same reason - the controls moved with the content:
-
-     per item      the buttons travelled with the entry being moved, so a
-                   second nudge meant chasing them along the row
-     end of strip  a character with twenty skills had to scroll the whole
-                   strip right to reach them, every single time
-
-   Above the strip they sit at a fixed spot no matter how long the strip is or
-   how far it has scrolled, and they act on whatever is selected - so repeated
-   nudges are the same click in the same place. */
+/* Its own row above the strip, where the controls stay put however long the
+   strip is or how far it has scrolled: per item they moved with the entry, and
+   at the strip's end they had to be scrolled to. */
 .daw-reorder-bar {
     display: flex;
     align-items: center;
@@ -2583,17 +2267,12 @@ del.diff-del {
 }
 .daw-reorder-group { display: inline-flex; align-items: stretch; }
 
-/* --- COLLAPSED BLOCK LABEL (v0.16 fine-tuning 2) --- */
-/* Everything in the workspace starts collapsed now, so a card has to say what
-   it holds without being opened. Only while collapsed: an expanded card shows
-   the real thing directly underneath, and repeating it above would be noise.
-   min-width:0 with the ellipsis is what stops a long paragraph pushing the
-   action buttons off the row - the header is a flex line. */
+/* A shut Block's label */
+/* Only while shut: open, the real thing is right underneath. min-width: 0 with the
+   ellipsis keeps a long paragraph from pushing the buttons off the row. */
 .block-card-summary { display: none; }
-/* The type row is `flex: 1 1 auto` so it can fill the header on its own. With
-   a summary beside it, two growing items compete and the type row wraps its
-   own contents onto a second line - which is what it did. Collapsed, the
-   selector only needs its natural width. */
+/* Shut, the type row takes its natural width, or it competes with the summary and
+   wraps. */
 .block-card.collapsed .block-type-row { flex: 0 0 auto; flex-wrap: nowrap; }
 .block-card.collapsed .block-card-summary {
     display: block;
@@ -2608,36 +2287,21 @@ del.diff-del {
     padding: 0 0.5rem;
 }
 
-/* The folder picker is the block saying where it lives. Owner, 2026-08-25:
-   "When I open a folder, I already know that those blocks are in that folder."
-   A collapsed block sits visibly inside its folder, so the row repeats what the
-   indent has already said - and it is the widest thing on the header, which
-   squeezed the one-line summary down to two characters.
-
-   Tried once and reverted, because it left block-folders.spec.js's
-   picker-vs-dropdown overlap test with no picker to measure. That test now
-   expands the block first, which is the honest shape: the picker only exists
-   on an expanded block, so that is where an overlap can happen. */
+/* No folder picker on a shut Block: it sits visibly inside its folder, and the
+   picker squeezed the summary to two characters. */
 .block-card.collapsed .block-folder-picker { display: none; }
 
 
-/* --- THE EDITOR TUTORIAL (v0.19 F2, js/editor/tools/editor-tutorial.js) ---------------
-   A spotlight over the editor: everything dims, one element stays lit, and a
-   text box explains it.
-
-   The dimming is done with a huge box-shadow on the CUT-OUT rather than with
-   four positioned panels around it. One element, one rectangle to move, and no
-   arithmetic that can leave a seam when the target is near an edge. */
+/* The tour: everything dims but one element and a text box. The dim is a huge
+   box-shadow on the cut-out, one rectangle to move, with no seams at an edge. */
 .tutorial-overlay {
     position: fixed; inset: 0; z-index: 10020;
-    /* Above the v0.18 notice (editor-notice-overlay) because the notice hands
-       over to this one and is removed first; above the editor's own 10005
-       modals so a tour started from MoS is never behind it. */
+    /* Above the notices, which hand over and are removed first, and above the
+       editor's 10005 modals, so a tour from MoS is never behind one. */
     pointer-events: none;
 }
 
-/* No background of its own: the shadow on .tutorial-hole IS the dim layer.
-   When there is nothing to point at, this paints it instead. */
+/* With nothing to point at, this paints the dim instead. */
 .tutorial-overlay.is-centred::before {
     content: ''; position: fixed; inset: 0;
     background: rgba(0, 0, 0, 0.72);
@@ -2658,8 +2322,7 @@ del.diff-del {
     background: var(--bg-main); border: 2px solid var(--accent-blue);
     box-shadow: 6px 6px 0 var(--manga-shadow);
     padding: 1rem 1.25rem; box-sizing: border-box;
-    /* The overlay is click-through so the dim does not swallow the page; the
-       box itself has to take clicks or none of its buttons work. */
+    /* The overlay is click-through; the box takes clicks. */
     pointer-events: auto;
 }
 
@@ -2692,15 +2355,12 @@ del.diff-del {
 .tutorial-actions-right { display: flex; gap: 0.5rem; }
 
 @media (max-width: 640px) {
-    /* The editor is cramped on a phone and the box would cover the very thing
-       it is pointing at, so it gives up the spotlight and takes the screen. */
+    /* On a phone the box would cover what it points at, so it takes the screen. */
     .tutorial-box { bottom: 0; max-height: 60vh; width: 100vw; }
 }
 
-/* --- THE MANUAL OF STYLE (v0.19 F3) --------------------------------------
-   Reuses the notice modal's box so the two Writing-Guide surfaces in the
-   editor look like the same thing, with more room because this one carries a
-   list of nine rules rather than one paragraph. */
+/* The Manual of Style, in the notice's box, so the two Writing Guide surfaces
+   look alike, with room for a list of rules. */
 .mos-modal-box { width: min(640px, calc(100vw - 2rem)); }
 
 .mos-body { text-align: left; max-height: 70vh; overflow-y: auto; }
@@ -2724,23 +2384,14 @@ del.diff-del {
 
 .mos-actions { display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; }
 
-/* Paused while a notice is up: the tour keeps its place and its step, but
-   stops covering a modal whose button lands where the text box sits.
-   Hidden rather than removed so resuming is a class toggle, not a rebuild. */
+/* Paused while a notice is up: hidden, not removed, so resuming is a class. */
 .tutorial-overlay.is-paused .tutorial-box,
 .tutorial-overlay.is-paused .tutorial-hole { display: none; }
 .tutorial-overlay.is-paused.is-centred::before { display: none; }
 
-/* v0.19: gradient presets in the same popup, inserting [multicolor=a,b].
-
-   A STANDALONE class rather than a .color-preset-btn variant. It was a variant
-   first, and that made it a member of a family whose every other member
-   carries data-color - which the picker sweep in color-presets.spec.js checks.
-   The few duplicated lines below cost less than sharing a class with a
-   different contract.
-
-   Wider than a plain swatch because a 20px square cannot show a sweep: at that
-   size the two ends are four pixels apart and every preset looks the same. */
+/* Gradient presets. Not a .color-preset-btn variant: every member of that class
+   carries data-color (a test checks). Wider than a swatch: at 20px a sweep's ends
+   are four pixels apart. */
 .gradient-preset-btn {
     width: 44px; height: 20px;
     border-radius: 0;
@@ -2754,7 +2405,7 @@ del.diff-del {
 .gradient-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
 .gradient-preset-btn:focus-visible { outline-color: var(--accent-blue); }
 
-/* --- SECTION BOX EDITOR (v0.19 C3) --- */
+/* The Section Box editor */
 .sbox-editor-sections { margin-top: 0.6rem; border-top: 1px dashed #333; padding-top: 0.6rem; }
 .sbox-editor-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
@@ -2763,10 +2414,10 @@ del.diff-del {
 .sbox-editor-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
 .sbox-editor-row .editor-input { flex: 1; min-width: 0; }
 .sbox-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
-/* Which PART of a Section Box the author descended into, beside its title. */
+/* Which part of a Section Box the author went into, beside its title. */
 .accordion-back-part { color: var(--accent-blue); }
 
-/* --- COMBO CARD SECTIONS, IN THE EDITOR (v0.19 C3b) --- */
+/* A Combo Card's sections in the editor */
 .cardsec-switch { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem; }
 .cardsec-strip { border: 1px dashed #333; padding: 0.5rem; margin-bottom: 0.6rem; }
 .cardsec-label {
@@ -2775,9 +2426,8 @@ del.diff-del {
 }
 .cardsec-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
 
-/* --- NOTATION STYLE FIELDS (v0.20, js/editor/blocks/editor-blocks.js comboNotationFieldsHTML)
-   The same dashed box and blue label as the Combo Card's section strip above,
-   because it is the same kind of thing: optional structure hung off a combo. */
+/* Notation style fields (comboNotationFieldsHTML): the section strip's dashed box
+   and blue label, since it is the same kind of optional structure. */
 .nstyle-editor { border: 1px dashed #333; padding: 0.5rem; margin: 0.5rem 0 0.6rem; }
 .nstyle-editor-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
@@ -2787,7 +2437,7 @@ del.diff-del {
 .nstyle-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
 .nstyle-row-head { display: flex; gap: 0.4rem; align-items: center; }
 .nstyle-row-head .editor-input { flex: 1; min-width: 0; }
-/* The names this page already uses, under a focused style name (v1.1). */
+/* The names this page already uses, under a focused style name. */
 .nstyle-names {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem;
     font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted);
@@ -2801,12 +2451,11 @@ del.diff-del {
 .nstyle-names-note { flex-basis: 100%; color: var(--accent-yellow); }
 .nstyle-names-note:empty { display: none; }
 
-/* A Collaborator's links that will not show (v1.2), named the same way. */
+/* A Collaborator's links that will not show, named the same way. */
 .collaborator-links-note { color: var(--accent-yellow); font-family: var(--text-mono); font-size: 0.7rem; margin: 0.35rem 0 0; }
 
-/* --- WRITING CHECKS (v1.1, js/editor/tools/editor-writing-checks.js) ---
-   A line under the field for each character name or broken tag, and the list
-   at Submit. */
+/* Writing checks: a line under the field for each name or broken tag, and the
+   list at Submit. */
 .writing-checks {
     display: flex; flex-direction: column; gap: 0.25rem; margin: 0.3rem 0;
     font-family: var(--text-mono); font-size: 0.68rem; line-height: 1.4; color: var(--accent-yellow);
@@ -2819,14 +2468,10 @@ del.diff-del {
 }
 .writing-checks-where { color: var(--text-muted); }
 
-/* --- THE CONFIG PANEL (v1.1) ---
-   Settings saved per device by js/editor/core/editor-config.js, each one a class on
-   <body>. Every rule below the panel's own is keyed on its body.cfg-* class,
-   so with the panel untouched none of them applies and the editor is exactly
-   as it was. */
-/* Never taller than the screen: the overlay centres the box and does not
-   scroll, so a taller box lost its title off the top with no way back to it.
-   The body scrolls instead, under a header that stays put. */
+/* The Config panel. Each setting is a class on <body>, and every rule below is
+   keyed on its body.cfg-* class, so untouched the editor is as it was. */
+/* Never taller than the screen: the overlay does not scroll, so the body does,
+   under a header that stays. */
 .config-modal-box { max-width: 560px; max-height: calc(100vh - 2rem); display: flex; flex-direction: column; }
 .config-body { display: flex; flex-direction: column; gap: 0.75rem; text-align: left; overflow-y: auto; min-height: 0; }
 .config-panel { display: flex; flex-direction: column; gap: 0.6rem; }
@@ -2851,9 +2496,8 @@ del.diff-del {
     text-transform: uppercase; color: var(--accent-blue);
 }
 
-/* Config > Page (v1.1). The word list does not scroll on its own: the colour
-   popup opens inside a row, and a scrolling list trapped its custom picker
-   below the list's own fold. The Config body scrolls instead. */
+/* Config > Page. The word list does not scroll on its own: the colour popup opens
+   inside a row, and a scrolling list trapped its picker below the fold. */
 .config-words { display: flex; flex-direction: column; gap: 0.4rem; }
 .config-words:empty { display: none; }
 .config-word-row { display: flex; flex-direction: column; gap: 0.2rem; }
@@ -2873,7 +2517,7 @@ del.diff-del {
 }
 .config-word-popup .format-color-presets-scroll { max-height: 180px; }
 
-/* A Heading Block's side bar (v1.1, js/editor/blocks/editor-blocks.js headingBarRowHTML). */
+/* A Heading Block's side bar (headingBarRowHTML). */
 .heading-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 .heading-bar-swatch {
     width: 28px; height: 28px; padding: 0; cursor: pointer;
@@ -2885,7 +2529,7 @@ del.diff-del {
 }
 .heading-bar-swatch:hover, .heading-bar-swatch[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
 .heading-bar-swatch:focus-visible { outline-color: var(--accent-blue); }
-/* Behind a colour swatch: the heading Side bar and a folder's colour. */
+/* Behind a colour swatch: a heading's side bar, a folder's colour. */
 .swatch-popup {
     flex-basis: 100%;
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem;
@@ -2896,20 +2540,18 @@ del.diff-del {
 .config-house-style { width: 100%; box-sizing: border-box; resize: vertical; margin: 0; }
 .house-style-empty { margin: 0; color: #9ca3af; font-style: italic; }
 
-/* Hide Block Type dropdown: the type as a badge instead. initializeMangaSelects
-   hides the real select and draws its dropdown as the NEXT sibling, not
-   around it, so that sibling is what goes. */
+/* Hide Block Type dropdown: the type as a badge. initializeMangaSelects draws its
+   dropdown as the next sibling of the select, so that sibling goes. */
 .block-type-label { display: none; }
 body.cfg-hide-block-type .block-type-row .block-type-selector,
 body.cfg-hide-block-type .block-type-row .block-type-selector + .manga-select-wrapper { display: none; }
 body.cfg-hide-block-type .block-type-row .block-type-label { display: inline-block; }
 
-/* Hide Drag-and-drop area: the card's left edge becomes the handle. 12px from
-   the outer edge, which must match BLOCK_DRAG_EDGE_PX in js/editor/blocks/editor-blocks.js:
-   the 3px border and the start of the padding, where no content sits. */
+/* Hide Drag-and-drop area: the card's left edge becomes the handle. 12px, which
+   must match BLOCK_DRAG_EDGE_PX in editor-blocks.js: the border and the start of
+   the padding, where no content sits. */
 body.cfg-hide-drag-handle .block-card .drag-handle { display: none; }
-/* A folder's header gives up the same strip (js/editor/blocks/editor-blocks.js, the
-   pointerdown listener). */
+/* A folder's header gives up the same strip. */
 body.cfg-hide-drag-handle .block-folder-handle { display: none; }
 body.cfg-hide-drag-handle .block-folder:not(.is-empty) > .block-folder-head { position: relative; }
 body.cfg-hide-drag-handle .block-folder:not(.is-empty) > .block-folder-head::before {
@@ -2933,21 +2575,18 @@ body.cfg-hide-drag-handle .block-card::before {
     touch-action: none;
 }
 
-/* Hide Block Folder dropdown. CREATE FOLDER and dropping onto a folder's
-   header still file blocks. */
+/* Hide Block Folder dropdown. CREATE FOLDER and dropping on a header still file
+   Blocks. */
 body.cfg-hide-folder-picker .block-type-row .block-folder-picker { display: none; }
 
-/* Formatting on top: the row that carries a Block's alignment moves above its
-   content. A column flexbox lays these fields out as before (they carry only
-   bottom margins, so nothing was collapsing), and `order` moves the row
-   without touching the markup or a single handler. */
+/* Formatting on top: a column flexbox and `order` move the alignment row above
+   the content, with no change to the markup or a handler. */
 body.cfg-format-top .block-body:not(.minimized) { display: flex; flex-direction: column; }
 body.cfg-format-top .block-body > .editor-row:has(.align-group) { order: -1; margin-bottom: 0.25rem; }
 
-/* Compact Blocks: less padding and smaller text, so more Blocks fit. The side
-   padding stays, because a card's content lines up with the toolbars above it
-   and the left edge is the drag edge when the handle is hidden. Scoped to the
-   block list: .block-card is drawn by other editors too. */
+/* Compact Blocks: less padding and smaller text. The side padding stays: content
+   lines up with the toolbars, and the left edge can be the drag edge. Scoped to
+   the Block list. */
 body.cfg-compact-blocks #block-list .block-card { padding-top: 0.2rem; padding-bottom: 0.2rem; }
 body.cfg-compact-blocks #block-list .block-header { margin-bottom: 0.2rem; padding-bottom: 0.1rem; }
 body.cfg-compact-blocks #block-list .block-type-badge,
@@ -2956,15 +2595,13 @@ body.cfg-compact-blocks #block-list .editor-input,
 body.cfg-compact-blocks #block-list .editor-textarea { padding: 0.15rem 0.3rem; margin-bottom: 0.15rem; font-size: 0.7rem; }
 body.cfg-compact-blocks #block-list .editor-textarea { min-height: 32px; }
 
-/* Disable Preview Panel. Beats the phone layout's own !important rules for the
-   preview and its SHOW PREVIEW button. */
+/* Disable Preview Panel, over the phone layout's own !important rules. */
 body.cfg-no-preview .editor-layout-split > .live-preview-pane,
 body.cfg-no-preview .editor-layout-split > .editor-splitter,
 body.cfg-no-preview #mobile-preview-toggle { display: none !important; }
 
-/* Click a Block to edit it (v1.1, js/editor/core/editor-config.js jumpToBlock): the Block
-   under the pointer in the Preview is outlined, which is what says a click
-   will open it. */
+/* Click a Block to edit it: the Block under the pointer in the preview is
+   outlined, which says a click opens it. */
 body.cfg-preview-jump .live-preview-pane [data-preview-block]:hover {
     outline: 1px dashed var(--accent-blue);
     outline-offset: 2px;
@@ -2974,27 +2611,23 @@ body.cfg-preview-jump .live-preview-pane [data-preview-block]:hover {
     body.cfg-no-preview .editor-layout-split > .editor-workspace { flex: 1 1 auto; border-right: none; }
 }
 
-/* Sticky top elements, once they differ from the defaults: the workspace
-   scrolls instead of #interactive-builder, and js/editor/core/editor-config.js stacks each
-   bar that stays at a measured top. The footer toolbar's -1.5rem offset was
-   for the builder's padding, which is no longer the scroll edge. */
+/* Sticky top elements, once they differ from the defaults: the Workspace scrolls
+   instead of #interactive-builder, and editor-config.js stacks each bar at a
+   measured top. The footer's -1.5rem offset was for the builder's padding. */
 body.cfg-workspace-scrolls .editor-layout-split > .editor-workspace { overflow-y: auto; }
 body.cfg-workspace-scrolls #interactive-builder { flex: none; overflow: visible; }
 body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 .cfg-stuck { position: sticky; z-index: 45; }
-/* The bars that are transparent get the workspace's own colour, or the blocks
-   scrolling under them show through. The header has it already, and the tip
-   keeps its own. */
+/* Transparent bars take the Workspace's colour, or the Blocks under them show
+   through. */
 .editor-mode-bar.cfg-stuck,
 .editor-mode-controls.cfg-stuck,
 .editor-tab-nav.cfg-stuck,
 .daw-editor-nav-row.cfg-stuck,
 .strategy-toolbar-row.cfg-stuck { background: #050505; }
 
-/* --- THE EDITOR PLAYGROUND (v1.1) ---
-   edit.html?playground (js/editor/tools/editor-playground.js). The banner takes the scope
-   tip's place and is loud where the tip is quiet: it is the one thing on
-   screen saying this editor sends nothing. */
+/* The Editor Playground's banner takes the scope tip's place, and is loud where
+   the tip is quiet: it says this editor sends nothing. */
 .playground-banner {
     margin: 0 0 0.75rem;
     padding: 0.55rem 0.8rem;

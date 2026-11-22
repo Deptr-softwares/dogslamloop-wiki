@@ -1,7 +1,11 @@
-// The editor's message and confirm boxes, #editor-alert-modal and
-// #editor-custom-modal. Only edit.html and post-editor.html carry that markup,
-// so only they load this file: code shared with other pages checks
-// `typeof window.customConfirm` and does without where it is missing.
+/**
+ * The editor's message and confirm boxes, #editor-alert-modal and
+ * #editor-custom-modal, on window.runDialog (site_utils.js).
+ * @since v0.4, as part of editor.js
+ * @watch only edit.html and post-editor.html carry that markup and load this
+ *   file: shared code checks `typeof window.customConfirm` and does without
+ * @see docs/editor.md
+ */
 
 window.editorAlert = function(message) {
     document.getElementById('editor-alert-msg').textContent = message;
@@ -10,13 +14,12 @@ window.editorAlert = function(message) {
     });
 };
 
-// cancelText is optional: most confirms are "do it or don't", but a choice
-// between two real actions needs both buttons named. The markup's own label is
-// kept and put back when no cancelText is given.
-//
-// altText adds a third button, for a choice between two actions that can
-// still be called off (+ STATE: start empty or copy the base kit). It
-// resolves 'alt', so a caller that never passes it only ever sees true/false.
+/**
+ * A confirm box, resolving true or false. cancelText (optional) names the cancel
+ * button for a choice between two real actions; altText adds a third button for
+ * a choice that can still be called off (+ STATE: start empty or copy the base
+ * kit), resolving 'alt'.
+ */
 window.customConfirm = function(message, confirmText = "DELETE", isDanger = true, cancelText = null, altText = null) {
     const modal = document.getElementById('editor-custom-modal');
     const textEl = document.getElementById('editor-modal-text');
@@ -26,8 +29,8 @@ window.customConfirm = function(message, confirmText = "DELETE", isDanger = true
     if (btnCancel.dataset.defaultLabel === undefined) btnCancel.dataset.defaultLabel = btnCancel.textContent;
     btnCancel.textContent = cancelText || btnCancel.dataset.defaultLabel;
 
-    // Made on first use, so neither page carrying this modal needs new
-    // markup for a button most of its confirms never show.
+    // Made on first use, so neither page needs markup for a button most confirms
+    // never show.
     let btnAlt = document.getElementById('editor-modal-alt');
     if (altText && !btnAlt) {
         btnAlt = document.createElement('button');

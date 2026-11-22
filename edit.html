@@ -6,23 +6,23 @@
     <title>Wiki Contributor Editor</title>
     
     <!-- 1. FOUNDATIONS -->
-    <link rel="stylesheet" href="style/Common.css?v=9c1251a7">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=9c1251a7">
+    <link rel="stylesheet" href="style/Common.css?v=45b18ffc">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=45b18ffc">
     
     <!-- 2. COMPONENTS (The DSL) -->
-    <link rel="stylesheet" href="style/Buttons.css?v=9c1251a7">
-    <link rel="stylesheet" href="style/Modals.css?v=9c1251a7">
-    <link rel="stylesheet" href="style/Forms.css?v=9c1251a7">
-    <link rel="stylesheet" href="style/Badges.css?v=9c1251a7">
-    <link rel="stylesheet" href="style/Alerts.css?v=9c1251a7">
-    <link rel="stylesheet" href="style/Cards.css?v=9c1251a7">
-    <link rel="stylesheet" href="style/FrameData.css?v=9c1251a7">
+    <link rel="stylesheet" href="style/Buttons.css?v=45b18ffc">
+    <link rel="stylesheet" href="style/Modals.css?v=45b18ffc">
+    <link rel="stylesheet" href="style/Forms.css?v=45b18ffc">
+    <link rel="stylesheet" href="style/Badges.css?v=45b18ffc">
+    <link rel="stylesheet" href="style/Alerts.css?v=45b18ffc">
+    <link rel="stylesheet" href="style/Cards.css?v=45b18ffc">
+    <link rel="stylesheet" href="style/FrameData.css?v=45b18ffc">
 
     <!-- 3. PAGE LAYOUT -->
-    <link rel="stylesheet" href="style/Layout.css?v=9c1251a7">
+    <link rel="stylesheet" href="style/Layout.css?v=45b18ffc">
 
     <!-- 4. DEPENDENCIES & EDITOR-SPECIFIC OVERRIDES -->
-    <link rel="stylesheet" href="style/editor.css?v=9c1251a7">
+    <link rel="stylesheet" href="style/editor.css?v=45b18ffc">
 </head>
 <body>
     <div id="editor-custom-modal" class="editor-modal-overlay modal-danger hidden">
@@ -391,49 +391,49 @@
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and editor-tabs.js its major strip. -->
-    <script src="js/utility/character_tabs.js?v=9c1251a7"></script>
-    <script src="js/utility/input_slots.js?v=9c1251a7"></script>
-    <script src="js/utility/site_utils.js?v=9c1251a7"></script>
-    <script src="js/utility/site_data.js?v=9c1251a7"></script>
-    <script src="js/utility/site_media.js?v=9c1251a7"></script>
-    <script src="js/utility/site_account.js?v=9c1251a7"></script>
-    <script src="js/utility/site_meta.js?v=9c1251a7"></script>
-    <script src="js/pages/core/pagebuilder.js?v=9c1251a7"></script>
-    <script src="js/utility/search.js?v=9c1251a7"></script>
-    <script src="js/pages/core/framedata.js?v=9c1251a7"></script>
-    <script src="js/pages/core/description.js?v=9c1251a7"></script>
-    <script src="js/pages/core/internalstyling.js?v=9c1251a7"></script>
+    <script src="js/utility/character_tabs.js?v=45b18ffc"></script>
+    <script src="js/utility/input_slots.js?v=45b18ffc"></script>
+    <script src="js/utility/site_utils.js?v=45b18ffc"></script>
+    <script src="js/utility/site_data.js?v=45b18ffc"></script>
+    <script src="js/utility/site_media.js?v=45b18ffc"></script>
+    <script src="js/utility/site_account.js?v=45b18ffc"></script>
+    <script src="js/utility/site_meta.js?v=45b18ffc"></script>
+    <script src="js/pages/core/pagebuilder.js?v=45b18ffc"></script>
+    <script src="js/utility/search.js?v=45b18ffc"></script>
+    <script src="js/pages/core/framedata.js?v=45b18ffc"></script>
+    <script src="js/pages/core/description.js?v=45b18ffc"></script>
+    <script src="js/pages/core/internalstyling.js?v=45b18ffc"></script>
     <!-- Before every editor module: ?playground decides which page opens. -->
-    <script src="js/editor/tools/editor-playground.js?v=9c1251a7"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=9c1251a7"></script>
-    <script src="js/editor/core/editor-config.js?v=9c1251a7"></script>
-    <script src="js/editor/core/editor-modes.js?v=9c1251a7"></script>
-    <script src="js/editor/core/editor-core.js?v=9c1251a7"></script>
-    <script src="js/editor/tabs/editor-tabs.js?v=9c1251a7"></script>
-    <script src="js/editor/tabs/editor-framedata.js?v=9c1251a7"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=9c1251a7"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=9c1251a7"></script>
-    <script src="js/editor/tools/editor-previews.js?v=9c1251a7"></script>
-    <script src="js/utility/diff-markers.js?v=9c1251a7"></script>
-    <script src="js/utility/side-by-side.js?v=9c1251a7"></script>
-    <script src="js/editor/core/editor-sync.js?v=9c1251a7"></script>
-    <script src="js/editor/core/editor-drafts.js?v=9c1251a7"></script>
-    <script src="js/editor/tools/editor-media.js?v=9c1251a7"></script>
-    <script src="js/editor/tabs/editor-system.js?v=9c1251a7"></script>
-    <script src="js/pages/types/tool_page.js?v=9c1251a7"></script>
-    <script src="js/editor/tabs/editor-tool.js?v=9c1251a7"></script>
-    <script src="js/pages/types/gallery.js?v=9c1251a7"></script>
-    <script src="js/editor/tabs/editor-gallery.js?v=9c1251a7"></script>
-    <script src="js/pages/tier-lists/tierlist.js?v=9c1251a7"></script>
+    <script src="js/editor/tools/editor-playground.js?v=45b18ffc"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=45b18ffc"></script>
+    <script src="js/editor/core/editor-config.js?v=45b18ffc"></script>
+    <script src="js/editor/core/editor-modes.js?v=45b18ffc"></script>
+    <script src="js/editor/core/editor-core.js?v=45b18ffc"></script>
+    <script src="js/editor/tabs/editor-tabs.js?v=45b18ffc"></script>
+    <script src="js/editor/tabs/editor-framedata.js?v=45b18ffc"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=45b18ffc"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=45b18ffc"></script>
+    <script src="js/editor/tools/editor-previews.js?v=45b18ffc"></script>
+    <script src="js/utility/diff-markers.js?v=45b18ffc"></script>
+    <script src="js/utility/side-by-side.js?v=45b18ffc"></script>
+    <script src="js/editor/core/editor-sync.js?v=45b18ffc"></script>
+    <script src="js/editor/core/editor-drafts.js?v=45b18ffc"></script>
+    <script src="js/editor/tools/editor-media.js?v=45b18ffc"></script>
+    <script src="js/editor/tabs/editor-system.js?v=45b18ffc"></script>
+    <script src="js/pages/types/tool_page.js?v=45b18ffc"></script>
+    <script src="js/editor/tabs/editor-tool.js?v=45b18ffc"></script>
+    <script src="js/pages/types/gallery.js?v=45b18ffc"></script>
+    <script src="js/editor/tabs/editor-gallery.js?v=45b18ffc"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=45b18ffc"></script>
     <!-- Before the strips that call reorderControls while rendering. -->
-    <script src="js/editor/blocks/editor-reorder.js?v=9c1251a7"></script>
+    <script src="js/editor/blocks/editor-reorder.js?v=45b18ffc"></script>
     <!-- Last: it walks whatever the other editors have put in desc_data, and
          reads the keyed-section registry to name where a match is. -->
-    <script src="js/editor/tools/editor-find-replace.js?v=9c1251a7"></script>
-    <script src="js/editor/tools/editor-writing-checks.js?v=9c1251a7"></script>
+    <script src="js/editor/tools/editor-find-replace.js?v=45b18ffc"></script>
+    <script src="js/editor/tools/editor-writing-checks.js?v=45b18ffc"></script>
     <!-- Order-independent: it binds its own DOMContentLoaded and a delegated
          click, and touches nothing another editor module owns. -->
-    <script src="js/editor/tools/editor-notices.js?v=9c1251a7"></script>
-    <script src="js/editor/tools/editor-tutorial.js?v=9c1251a7"></script>
+    <script src="js/editor/tools/editor-notices.js?v=45b18ffc"></script>
+    <script src="js/editor/tools/editor-tutorial.js?v=45b18ffc"></script>
 </body>
 </html>

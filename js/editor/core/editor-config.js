@@ -1,29 +1,24 @@
 /**
- * THE CONFIG PANEL (v1.1)
- *
- * Owner, 2026-10-18: "Config lets editor choose setting for their editor and
- * perform mass action", in three parts, Editor, Actions and Page.
- *
- * Editor: "Settings saved per device", one JSON object in localStorage, read
- * once at load. Most settings are a class on <body> and style/editor.css does
- * the rest. Sticky is the exception, because it needs measured offsets.
- *
- * Page: settings that belong to the PAGE and travel with it through review
- * (see PAGE SETTINGS below).
- *
- * Loaded by edit.html only. The delete confirmations it can switch off live in
- * js/editor/blocks/editor-blocks.js (window.confirmDelete), which every editor page loads;
- * they read the switch through window.editorConfig when this file is present.
+ * The Config panel, in three parts. Editor: settings saved per device, one JSON
+ * object in localStorage, most of them a class on <body> that editor.css does
+ * the rest for. Actions: mass minimize and maximize, and the Edit Conflict
+ * Check. Page: settings that belong to the page and travel with it through
+ * review (desc_data.pageConfig).
+ * @since v1.1
+ * @touches localStorage dsl_editor_config, desc_data.pageConfig,
+ *   get_open_submission_scopes, collectEditorDeltas (editor-core.js), the colour
+ *   popup (editor-blocks.js), window.editorConfig
+ * @watch edit.html loads this file alone: confirmDelete (editor-blocks.js) reads
+ *   the switch through window.editorConfig where it exists
+ * @see docs/editor.md
  */
 (function () {
     const STORE_KEY = 'dsl_editor_config';
 
-    // The owner's defaults. stickHeader and stickPageNav being on is how the
-    // editor always behaved: those two sit above the area that scrolls.
-    //
-    // confirmDeletes keeps its stored name and meaning under its v1.1 label,
-    // "Skip delete confirmations": the box is ticked when it is false, so a
-    // device that already turned the prompts off still has them off.
+    // The defaults. Sticky header and section nav on is how the editor always
+    // behaved. confirmDeletes keeps its stored name under the label "Skip delete
+    // confirmations", ticked when it is false, so a device that turned the prompts
+    // off still has them off.
     const DEFAULTS = Object.freeze({
         hideBlockType: false,
         hideDragHandle: false,
@@ -42,7 +37,7 @@
         confirmDeletes: true,
     });
 
-    // The settings CSS can carry on its own, by the class each one sets.
+    // The settings CSS carries on its own, by the class each one sets.
     const BODY_CLASSES = {
         hideBlockType: 'cfg-hide-block-type',
         hideDragHandle: 'cfg-hide-drag-handle',
@@ -58,8 +53,7 @@
             const parsed = JSON.parse(window.localStorage.getItem(STORE_KEY) || '{}');
             return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
         } catch (e) {
-            // Storage blocked, or a value nobody here wrote: the defaults, and
-            // the editor still works.
+            // Storage blocked, or a value nobody here wrote: the defaults.
             return {};
         }
     }
@@ -83,19 +77,11 @@
 
     window.editorConfig = { get, set, DEFAULTS };
 
-    // --- STICKY TOP ELEMENTS ---
-    //
-    // At the owner's defaults nothing here runs and the layout is the one the
-    // editor always had: the header and the tab strip sit ABOVE
-    // #interactive-builder, which is what scrolls. Any other choice needs the
-    // header to be able to scroll away, so the whole workspace scrolls instead
-    // (body.cfg-workspace-scrolls), and each bar that stays is stacked under
-    // the ones above it at a measured offset.
-    //
-    // Each group lists its elements top to bottom. The section nav is only the
-    // tab's own row (a direct child of the builder): the rows inside a group or
-    // a card are a level below it, and pinning those as well would eat the
-    // workspace.
+    // Sticky top elements. At the defaults nothing here runs: the header and the tab
+    // strip sit above #interactive-builder, which scrolls. Otherwise the whole
+    // Workspace scrolls (body.cfg-workspace-scrolls), and each bar that stays is
+    // stacked under the ones above at a measured offset. The section nav is the
+    // tab's own row only: pinning the rows inside a group would eat the Workspace.
     const STICKY_GROUPS = [
         { key: 'stickHeader', find: () => ['editor-header', 'editor-scope-tip'].map(id => document.getElementById(id)) },
         { key: 'stickPageNav', find: () => ['editor-mode-bar', 'editor-mode-controls', 'editor-tab-nav'].map(id => document.getElementById(id)) },
@@ -114,8 +100,10 @@
         return document.querySelector('.editor-layout-split > .editor-workspace');
     }
 
-    // The element that scrolls the workspace, for js/editor/blocks/editor-blocks.js's card
-    // virtualization. Null means the usual one, #interactive-builder.
+    /**
+     * The element that scrolls the Workspace, for the Block list's card
+     * virtualization. null means the usual one, #interactive-builder.
+     */
     window.editorScrollBox = function () {
         return customSticky() ? workspace() : null;
     };
@@ -142,9 +130,8 @@
         });
     }
 
-    // Re-stacked whenever something it measured can have changed: the header
-    // folds, a tab re-renders the builder (a new section nav and a new actions
-    // row), the window resizes. One pass per frame however many fire.
+    // Re-stacked when something measured can have changed (the header folds, a tab
+    // redraws, the window resizes), once per frame.
     let stickyQueued = false;
     function queueSticky() {
         if (stickyQueued) return;
@@ -156,19 +143,9 @@
         });
     }
 
-    // --- THE WORKSPACE FOOTER STAYS AT THE BOTTOM (v1.1) ---
-    //
-    // Owner, 2026-10-19: "The Workspace Footer is always stuck at the bottom of
-    // the Workspace regardless if the Workspace itself is current shortened".
-    // The footer is sticky, which only holds it down once the content is
-    // taller than the Workspace, so on a short section it sat right under the
-    // last Block. Now the empty space below goes above it instead, and it
-    // rests where a long section's footer rests at the end of its scroll.
-    //
-    // Measured, not laid out by CSS. A flex column with the footer at
-    // margin-top:auto did pin it, and moved fifty other elements on the skills
-    // and tool pages, because margins between siblings stop collapsing inside
-    // a flex container. This touches the footer's margin and nothing else.
+    // The Workspace footer rests at the bottom of the Workspace even on a short
+    // section: the empty space goes above it. Measured, not a flex column, which
+    // moved fifty other elements (sibling margins stop collapsing in flex).
     const shown = (el) => !!el && el.getClientRects().length > 0 && !['absolute', 'fixed'].includes(getComputedStyle(el).position);
 
     function lastShownChild(el) {
@@ -181,10 +158,8 @@
         return null;
     }
 
-    // Sized by whatever holds the footer, so a Block that grows as it is typed
-    // into moves it the frame after. A size it set itself is reported once
-    // and then settles, because the second pass finds it in place and writes
-    // nothing.
+    // Sized by what holds the footer, so a growing Block moves it a frame later. A
+    // size it set itself settles on the second pass, which writes nothing.
     let footerSizes = null;
     let footerWatched = [];
     function watchFooter(footer, scroller) {
@@ -197,15 +172,10 @@
         footerWatched = chain;
     }
 
-    // Measured where the footer is, and written only when that moves it. Every
-    // pass used to clear the margin, measure and set it again, so anything that
-    // answers a change in the Workspace could keep the footer flipping between
-    // its two places many times a second (reported from macOS, 2026-11-01).
-    //
-    // A footer still being sent back to where it just was, a few times in two
-    // seconds, stays where it sits unpinned for the rest of that section: a
-    // short section looking as it did before v1.1 beats a jittering one. A
-    // Block typed into only ever moves it one way, so typing never trips this.
+    // Written only when it moves the footer, or anything answering a change in the
+    // Workspace could flip it between two places many times a second. A footer sent
+    // back to where it just was three times in two seconds stays unpinned for that
+    // section: a still one beats a jittering one. Typing moves it one way only.
     const PIN_BOUNCES = 3;
     const PIN_WINDOW_MS = 2000;
     const pinHistory = new WeakMap();
@@ -228,11 +198,8 @@
             - parseFloat(getComputedStyle(scroller).paddingBottom);
         const end = last.getBoundingClientRect().bottom + parseFloat(getComputedStyle(last).marginBottom);
 
-        // The margin that puts the footer's bottom on the Workspace's: the gap
-        // above it now plus the room still below it. The block list above
-        // carries a bottom margin and the two collapse into the larger, so a
-        // margin no bigger than the list's own leaves the footer where it
-        // sits unpinned, and a section too tall for the Workspace gets none.
+        // The gap above the footer now plus the room still below it. The Block list's
+        // bottom margin collapses with it, so a section too tall gets none.
         const prev = prevShownSibling(footer);
         const gap = prev ? footer.getBoundingClientRect().top - prev.getBoundingClientRect().bottom : 0;
         const room = gap + inner - end;
@@ -260,8 +227,7 @@
             const sizes = new ResizeObserver(queueSticky);
             ['editor-header', 'editor-scope-tip', 'editor-mode-bar', 'editor-mode-controls', 'editor-tab-nav']
                 .forEach(id => { const el = document.getElementById(id); if (el) sizes.observe(el); });
-            // The Workspace itself, for the footer: the header folding, the
-            // window resizing, a scrolling mode changing what scrolls.
+            // The Workspace itself: the header folding, a resize, a change in what scrolls.
             [document.getElementById('interactive-builder'), workspace()].forEach(el => { if (el) sizes.observe(el); });
         }
         const builder = document.getElementById('interactive-builder');
@@ -272,23 +238,17 @@
     function apply() {
         if (!document.body) return;
         Object.keys(BODY_CLASSES).forEach(key => document.body.classList.toggle(BODY_CLASSES[key], get(key)));
-        // The marks on each Block serve both: following it, and jumping to it.
+        // The marks on each Block serve following it and jumping to it.
         if (get('previewFollows') || get('previewJump')) window.previewBlockAnchor = anchorBlock;
         else delete window.previewBlockAnchor;
         layoutSticky();
-        // A setting can change how tall the section is (Compact Blocks) or
-        // what scrolls (Sticky), and with it where the footer belongs.
+        // A setting can change the section's height (Compact Blocks) or what scrolls.
         queueSticky();
     }
 
-    // --- PREVIEW FOLLOWS THE BLOCK ---
-    //
-    // The block renderer (js/pages/core/description.js) hands each top-level Block's
-    // markup to window.previewBlockAnchor, which marks its first element with
-    // the Block's position and a fingerprint of its data. Position alone is
-    // not enough: the Overview tab draws Overview, General Strategy and every
-    // custom tab in one preview, and each has a Block 0. The fingerprint picks
-    // the one whose data is the Block being edited.
+    // The preview follows the Block being edited. description.js marks each top-level
+    // Block's first element with its position and a fingerprint of its data: the
+    // Overview tab draws several sections in one preview, each with a Block 0.
     function blockSignature(block) {
         const text = JSON.stringify(block) || '';
         let hash = 0x811c9dc5;
@@ -303,16 +263,14 @@
         return html.replace(/^(\s*<[a-zA-Z][\w-]*)/, `$1 data-preview-block="${Number(index)}" data-preview-sig="${blockSignature(block)}"`);
     }
 
-    // Once per Block: moving between the fields of one Block, or typing in it,
-    // does not scroll the preview out from under the author again.
+    // Once per Block: moving between its fields does not scroll the preview again.
     let followedBlock = null;
     function followBlock(e) {
         if (!get('previewFollows') || get('disablePreview')) return;
         const card = e.target && e.target.closest && e.target.closest('#block-list .block-card[data-index]');
         if (!card || typeof currentStrategyBlocks === 'undefined') return;
 
-        // Inside an accordion, the list on screen is nested, and the preview
-        // marks only the top level: follow the accordion that holds it.
+        // Inside an accordion, follow the accordion: the preview marks the top level only.
         const path = window.activeAccordionPath || [];
         const step = path[0];
         const index = path.length ? (typeof step === 'object' ? step.index : step) : Number(card.getAttribute('data-index'));
@@ -324,8 +282,8 @@
         if (!pane) return;
         const shown = Array.from(pane.querySelectorAll(`[data-preview-block="${index}"]`)).filter(el => el.getClientRects().length);
         const sig = blockSignature(block);
-        // A preview waiting for Sync was drawn from older data, so a lone
-        // Block at that position is taken when no fingerprint matches.
+        // A preview waiting for Sync was drawn from older data: a lone Block at that
+        // position is taken when no fingerprint matches.
         const target = shown.find(el => el.getAttribute('data-preview-sig') === sig) || (shown.length === 1 ? shown[0] : null);
         if (!target) return;
 
@@ -339,23 +297,15 @@
     document.addEventListener('focusin', followBlock);
     document.addEventListener('click', followBlock);
 
-    // --- CLICK A BLOCK IN THE PREVIEW TO EDIT IT (v1.1) ---
-    //
-    // The first step towards editing in the Preview (an editor's feedback,
-    // 2026-10-19): click a Block there, and the Workspace opens it. Found by
-    // the marks above, by data: the section whose Block at that position has
-    // the same fingerprint. A Block inside an accordion is marked by its
-    // accordion, so the accordion is what opens. Whatever in the Preview
-    // already does something on a click keeps doing it, and so does
-    // selecting text.
-    //
-    // Sections other than the open one are found on the tabs below. On the
-    // rest (Combos, Techs, moves), only the open section's Blocks jump.
+    // Click a Block in the preview to edit it: found by the same marks, by data. A
+    // Block inside an accordion opens its accordion. What already does something on
+    // a click keeps doing it, and so does selecting text. Other sections are found on
+    // the tabs below; on the rest, only the open section's Blocks jump.
     const PREVIEW_CONTROLS = 'a, button, summary, input, select, textarea, label, video, audio, iframe, '
         + '[role="button"], [data-player-toggle], [data-sbox-tab]';
 
-    // The sections of the tab on screen that hold Blocks, and how each one
-    // opens: the loader its own section button calls.
+    // The sections of the tab on screen that hold Blocks, and the loader each one's
+    // own button calls.
     function jumpSections() {
         const d = window.currentEditorDescData || {};
         const tab = window.currentEditorTabId;
@@ -380,8 +330,8 @@
         return [];
     }
 
-    // The Block's card, opened up: out of an accordion's inner list, its
-    // folder and itself expanded, scrolled to and flashed like a moved Block.
+    // The Block's card opened: out of an accordion's list, its folder and itself
+    // opened, scrolled to and flashed like a moved Block.
     function showCard(index) {
         if (Array.isArray(window.activeAccordionPath)) window.activeAccordionPath.length = 0;
         const block = window.getActiveBlocks()[index];
@@ -413,9 +363,8 @@
         const sig = mark.getAttribute('data-preview-sig');
         const holds = (blocks) => Array.isArray(blocks) && !!blocks[index] && blockSignature(blocks[index]) === sig;
 
-        // The open section first, from the Workspace's own copy of it, which
-        // is newer than the page data until it syncs. Only while its list is
-        // on screen: Overview's Profile Card keeps no list.
+        // The open section first, from the Workspace's copy, newer than the page data
+        // until it syncs. Overview's Profile Card keeps no list.
         if (holds(currentStrategyBlocks) && document.getElementById('block-list')) {
             showCard(index);
             return;
@@ -428,13 +377,9 @@
 
     document.addEventListener('click', jumpToBlock);
 
-    // --- MASS MINIMIZE / MAXIMIZE ---
-    //
-    // The blocks of the list on screen, through the same state each block's own
-    // minimize button writes. Maximize opens folders too: a block maximized
-    // inside a shut folder is still out of sight, which is not what the button
-    // promised. Returns how many blocks it touched, so the panel can say when
-    // there were none.
+    // Mass minimize and maximize, through each Block's own state. Maximize opens
+    // folders too, or the Block would still be out of sight. Returns how many it
+    // touched.
     function setAllBlocksOpen(open) {
         const list = document.getElementById('block-list');
         if (!list || typeof window.getActiveBlocks !== 'function' || typeof window.setEditorBlockExpanded !== 'function') return 0;
@@ -452,23 +397,13 @@
 
     window.setAllEditorBlocksOpen = setAllBlocksOpen;
 
-    // --- EDIT CONFLICT CHECK (v1.1) ---
-    //
-    // Owner, 2026-10-19: "run a quick check against the current submission
-    // queue and see if any edits on the same page will clash with the current
-    // edits detected right now". The edits are Submit's own list
-    // (collectEditorDeltas in js/editor/core/editor-core.js). The queue side comes from
-    // get_open_submission_scopes, because an ordinary editor cannot read
-    // anyone else's submissions: it says where, who and when, never what.
-    //
-    // Two changes clash when they name the same part: the same scope and key,
-    // a character state's wrapping included, so an edit to the base kit does
-    // not clash with one to an ultimate. A whole-page upload from before the
-    // delta model clashes with everything.
+    // The Edit Conflict Check: Submit's own list of edits against the queue's, from
+    // get_open_submission_scopes, since an editor cannot read others' submissions
+    // (it says where, who and when, never what). Two edits clash when they name the
+    // same scope and key, a character state's wrapping included. A whole-page upload
+    // clashes with everything.
 
-    // A part of the page in words, from the same vocabularies the editor's
-    // tabs are named by. The review queue has its own (js/overseer/admin-preview.js);
-    // this one only has to say where.
+    // A part of the page in words, from the vocabularies the tabs are named by.
     function describePart(scope, key) {
         if (!scope) return 'the whole page';
         const k = String(key == null ? '' : key);
@@ -517,7 +452,7 @@
         btn.disabled = true;
         say('Checking...');
         try {
-            // What is being typed right now counts, the way Submit flushes first.
+            // What is being typed counts, as Submit flushes first.
             if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
             const mine = await window.collectEditorDeltas();
             if (!mine.length) {
@@ -531,7 +466,7 @@
                 return;
             }
 
-            // Never the submission being edited right now, against itself.
+            // Never the submission being edited, against itself.
             const rows = (Array.isArray(data) ? data : []).filter(r => r && r.revision_id !== window.activeEditTicketId);
             const subs = new Map();
             rows.forEach(r => {
@@ -568,16 +503,10 @@
         }
     }
 
-    // --- PAGE SETTINGS (v1.1) ---
-    //
-    // Owner, 2026-10-18: auto-colour words "JUST FOR THAT PAGE", and a "Page
-    // house style document" that "would also appear as a red-colored button
-    // next to MoS". Unlike everything above, these belong to the page: they
-    // live in desc_data.pageConfig and travel in a submission as their own
-    // scope, so anyone can change them and a reviewer sees the change first.
-    // Page-level on a character with states, like the list of states itself.
-    //
-    // Gallery and tier list pages have no prose for words to colour.
+    // Page settings: words this page colours, and its house style document (a red
+    // button beside MoS). They live in desc_data.pageConfig and go in a submission
+    // as their own scope, so a reviewer sees the change first. Page-level on a
+    // character with states. Gallery and tier list pages have no prose to colour.
     window.PAGE_CONFIG_PAGE_TYPES = ['character', 'system', 'tool'];
 
     function pageDesc() {
@@ -600,8 +529,7 @@
         };
     }
 
-    // An empty config is removed rather than stored, so clearing everything
-    // leaves the page's data as it was and Submit finds nothing to send.
+    // An empty config is removed, so clearing everything leaves the data as it was.
     function writePageConfig(state) {
         const desc = pageDesc();
         if (!desc) return;
@@ -619,8 +547,9 @@
         if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
     }
 
-    // On every page that has a Config > Page, written or not (owner,
-    // 2026-10-19: "always visible even if nothing is written yet").
+    /**
+     * Shows the House Style button on every page with a Config > Page, written or not.
+     */
     function refreshHouseStyleButton() {
         const btn = document.getElementById('btn-house-style');
         if (!btn) return;
@@ -645,8 +574,8 @@
         box.setAttribute('aria-modal', 'true');
         box.setAttribute('aria-label', 'House Style');
 
-        // The block renderer escapes the text, and the styling pass then turns
-        // its format tags into formatting, the same contract as a page.
+        // The renderer escapes the text, then the styling pass turns its tags into
+        // formatting, as on a page.
         box.innerHTML = `
             <div class="editor-modal-box auth-modal-box mos-modal-box">
                 <div class="auth-header"><h3>HOUSE STYLE</h3></div>
@@ -695,11 +624,9 @@
             </div>`;
     }
 
-    // One colour popup for the whole list, moved to whichever row opened it:
-    // fifty rows of ~45 swatches each is a lot of DOM for one open picker.
-    // The picker's markup is js/editor/blocks/editor-blocks.js's, and its IDs repeat the
-    // toolbar's, which is safe because initColorPicker only looks inside the
-    // container it is handed (the tier editor does the same).
+    // One colour popup for the whole list, moved to the row that opened it. Its
+    // markup is the Block editor's, ids included: initColorPicker looks only inside
+    // the container it is handed.
     function wordColorPopup() {
         const el = document.createElement('div');
         el.className = 'config-word-popup hidden';
@@ -736,9 +663,8 @@
             writePageConfig(state);
         });
 
-        // Through the CSSOM, never a style attribute: an unparseable value is
-        // dropped by the browser rather than written into markup. Cleared
-        // first, because a dropped value would leave the previous colour.
+        // Through the CSSOM, never a style attribute, cleared first: the browser drops a
+        // bad value, which would leave the last colour.
         function paintSwatch(swatch, colors) {
             const safe = colors.filter(c => window.safeColor(c));
             swatch.style.background = '';
@@ -802,8 +728,7 @@
 
         addBtn.addEventListener('click', () => {
             if (state.words.length >= window.PAGE_WORD_LIMIT) return;
-            // Starts with the first Basic swatch, so a new word does something
-            // the moment it is typed.
+            // The first Basic swatch, so a new word does something at once.
             const groups = typeof colorPresetGroups === 'function' ? colorPresetGroups() : [];
             const first = groups[0] && groups[0].swatches[0] ? groups[0].swatches[0].color : '#ffffff';
             state.words.push({ word: '', colors: [first] });
@@ -841,7 +766,7 @@
                 if (!reopen) return;
                 popupIndex = i;
                 row.appendChild(popup);
-                // A word that already has a gradient opens on it.
+                // A word with a gradient opens on it.
                 const colors = state.words[i].colors;
                 if (gradientBuilder) gradientBuilder.load(colors.length > 1 ? colors : null);
                 const recentSlot = popup.querySelector('[data-recent-slot]');
@@ -860,8 +785,7 @@
             if (preset) { setColors([preset.getAttribute('data-color')]); return; }
         });
 
-        // The custom gradient (js/editor/blocks/editor-blocks.js) hands over two to six
-        // colours, each from the picker, so there is nothing left to check.
+        // The custom gradient's stops all come from the picker: nothing left to check.
         const gradientBuilder = typeof wireGradientBuilder === 'function' ? wireGradientBuilder(popup, setColors) : null;
         if (typeof initColorPicker === 'function') {
             initColorPicker(popup, (hex) => setColors([hex]), gradientBuilder ? gradientBuilder.pickerChanged : null);
@@ -875,11 +799,8 @@
         renderRows();
     }
 
-    // --- THE PANEL ---
-
-    // The Editor tab's three sections (owner, 2026-10-19: "Workspace, Block,
-    // and Preview Panel"). `invert` ticks the box when the stored value is
-    // false (see DEFAULTS).
+    // The Editor tab's three sections: Workspace, Block and Preview Panel. `invert`
+    // ticks the box when the stored value is false.
     const WORKSPACE_OPTIONS = [
         { key: 'confirmDeletes', invert: true, label: 'Skip delete confirmations', hint: 'Disable the delete confirmation prompt for most of the destructive actions. Only recommended for experienced editors.' },
     ];
@@ -1004,9 +925,8 @@
             if (!input) return;
             const key = input.getAttribute('data-config-key');
             set(key, input.hasAttribute('data-config-invert') ? !input.checked : input.checked);
-            // The preview on screen was drawn before the marks existed, or
-            // was held for a Sync that turning the hold off now stands in for.
-            // Gallery and tier list pages have no preview this draws.
+            // The preview on screen was drawn before the marks, or held for a Sync this now
+            // stands in for. Gallery and tier list pages have no such preview.
             if ((key === 'previewFollows' || key === 'previewOnSync' || key === 'previewJump') && window.currentEditorDescData
                 && ['character', 'system', 'tool'].includes(window.currentEditorPageType || 'character')
                 && typeof window.drawLivePreviewNow === 'function') window.drawLivePreviewNow(true);
@@ -1051,9 +971,8 @@
         return true;
     };
 
-    // Applied now rather than on DOMContentLoaded: this file loads at the end
-    // of <body>, so the classes are on before the first paint and the editor
-    // never flashes its default layout first.
+    // Now, not on DOMContentLoaded: this file is at the end of <body>, so the classes
+    // are on before the first paint.
     apply();
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => { watchSticky(); queueSticky(); });

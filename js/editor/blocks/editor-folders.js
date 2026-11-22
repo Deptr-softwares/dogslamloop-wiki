@@ -1,42 +1,22 @@
 /**
- * Dogslamloop Wiki - Editor: Block Folders (v0.15 item 9)
- *
- * Groups the block list into named, collapsible folders so a long section can
- * be navigated instead of scrolled.
- *
- * EDITOR-FACING ONLY, and that is a property of the data shape rather than a
- * promise: membership is a plain `folder` string on the block, and
- * js/pages/core/description.js renders by dispatching on block.type through an if/else
- * chain that reads named fields. An unrecognised property is not skipped by a
- * rule someone has to maintain - there is nothing that could look at it. A
- * visitor's page is byte-identical whether the blocks are foldered or not.
- *
- * THE CONTIGUITY INVARIANT
- *
- * Array order IS the order a visitor reads, so a folder cannot gather blocks
- * scattered through a section without silently rewriting the page. A folder is
- * therefore a CONTIGUOUS RUN of blocks sharing a `folder` value, and every
- * operation here preserves that:
- *
- *   - joining a folder MOVES the block to the end of the run,
- *   - leaving one steps it out past the run's end rather than tearing a hole
- *     in the middle, which would render as two folders with the same name,
- *   - reconcileFolderAt() repairs the invariant after a positional move,
- *     because a drag can drop a block straight through a folder it was never
- *     assigned to and the gesture never touches `folder` itself.
- *
- * Own file, and an IIFE, for the reason spelled out at the top of
- * editor-blocks.js: these are classic scripts sharing one global lexical
- * scope, and a bare top-level const here can abort an unrelated file.
+ * Block folders: named, collapsible groups in the Workspace's Block list, so a
+ * long section can be moved around in rather than scrolled.
+ * @since v0.15
+ * @touches a Block's `folder` and `folderColor` (editor-only: the page renderer
+ *   reads named fields and never these), renderBlockList (editor-blocks.js)
+ * @watch a folder is a contiguous run of Blocks sharing a `folder` value, since
+ *   array order is the order a reader reads. Joining moves the Block to the end
+ *   of the run, leaving steps it out past the end, and reconcileFolderAt repairs
+ *   the run after any move. An IIFE: a bare top-level const here could clash in
+ *   the shared global scope.
+ * @see docs/block-editor.md
  */
 
 (function () {
     'use strict';
 
-    // Long enough for "Corner routes (Dragon Install)", short enough that the
-    // header stays one line. Contributor-authored, so it is also the point
-    // where an absurd value stops being stored rather than being escaped
-    // forever after.
+    // Long enough for "Corner routes (Dragon Install)", one line in the header.
+    // Contributor-written, so this is where an absurd value stops being stored.
     const MAX_FOLDER_NAME = 60;
 
     function nameOf(block) {
@@ -52,12 +32,8 @@
     window.blockFolderName = nameOf;
     window.normalizeFolderName = normalize;
 
-    // --- READING ---
-
-    // Contiguous runs, in document order. Two runs CAN share a name if the
-    // data arrives that way (a hand-edited payload, an older ticket merged
-    // over a newer one); they render as two folders, which is honest about
-    // what the array actually says rather than hiding it.
+    // Contiguous runs, in order. Two runs can share a name if the data arrives that
+    // way (a hand-edited payload); they draw as two folders, as the array says.
     window.collectBlockFolders = function (blocks) {
         const runs = [];
         if (!Array.isArray(blocks)) return runs;
@@ -96,15 +72,9 @@
     window.blockFolderRunContaining = runContaining;
     window.blockFolderRunNamed = runNamed;
 
-    // --- COLOUR (v1.1, from an editor's feedback) ---
-    //
-    // "add coloring to folders for visual sorting", picked per folder by the
-    // editor, saved with the page and reviewed like any edit (owner,
-    // 2026-10-19). Stored the way the name is, as `folderColor` on every
-    // member, so it moves with the blocks and nothing outside them has to be
-    // kept in step. Every write in this file keeps a run's members agreeing,
-    // and a block in no folder carries none. Still editor-only: the page
-    // renderer reads named fields, and this is not one of them.
+    // A folder's colour is stored on every member as `folderColor`, like its name, so
+    // it moves with the Blocks. Every write here keeps a run's members agreeing, and
+    // a Block in no folder carries none.
     function colorOf(block) {
         return block && typeof block.folderColor === 'string' ? block.folderColor : '';
     }
@@ -114,8 +84,8 @@
         else delete block.folderColor;
     }
 
-    // The colour a block takes on joining folder `name`: whatever the folder's
-    // other members carry. Read before the block is counted as a member.
+    // The colour a Block takes on joining folder `name`: the other members'. Read
+    // before the Block counts as a member.
     function joiningColor(blocks, block, name) {
         // Already in it (dropped on its own folder's header): nothing to join.
         if (nameOf(block) === name) return colorOf(block);
@@ -132,8 +102,11 @@
         return run ? colorOf(blocks[run.start]) : '';
     };
 
-    // Empty `color` takes the colour off. The caller vets the value
-    // (window.safeColor): this only keeps the members in step.
+    /**
+     * Sets folder `name`'s colour on every member; an empty `color` takes it off.
+     * The caller vets the value with safeColor.
+     * @since v1.1
+     */
     window.setBlockFolderColor = function (blocks, name, color) {
         const target = normalize(name);
         if (!Array.isArray(blocks) || !target) return 0;
@@ -144,16 +117,10 @@
         return n;
     };
 
-    // --- EMPTY FOLDERS ---
-    //
-    // Membership is a per-block string, so a folder holding no blocks does not
-    // exist in the data at all. Empty folders are held here for the session
-    // instead: created from a folder header's ＋, rendered as an empty drop
-    // zone, and promoted into real data the moment a block joins one. Losing
-    // them on reload is correct rather than a gap - there was nothing to save.
-    //
-    // `after` anchors one to the folder it was created from BY NAME, not by
-    // index, so reordering blocks around it cannot strand it somewhere else.
+    // Empty folders exist only for the session: membership is a string on each
+    // Block, so a folder with none is not in the data. Made from a header's +,
+    // drawn as an empty drop zone, and made real once a Block joins. `after` anchors
+    // one to its folder by name, so a reorder cannot strand it.
     let pending = [];
 
     window.pendingBlockFolders = function () {
@@ -163,10 +130,7 @@
     window.addPendingBlockFolder = function (blocks, afterFolder) {
         const name = window.nextFolderName(blocks, 'New Folder');
         pending.push({ name: name, after: normalize(afterFolder) });
-        // Open, for the same reason a newly added block is: folders now start
-        // collapsed (v0.16 fine-tuning 2), and a brand new one that appeared
-        // shut would need a click before it could be named or filled - which
-        // is the opposite of what pressing "new folder" asked for.
+        // Open: a new folder is made to be named and filled.
         if (typeof window.setBlockFolderCollapsed === 'function') {
             window.setBlockFolderCollapsed(name, false);
         }
@@ -186,16 +150,15 @@
         return null;
     }
 
-    // A name is taken if EITHER a real run or an empty folder holds it -
-    // otherwise renaming onto an empty folder would produce two of them.
+    // Taken by a real run or an empty folder, or renaming onto an empty one would
+    // make two.
     function nameTaken(blocks, name) {
         return !!(runNamed(blocks, name) || pendingNamed(name));
     }
     window.blockFolderNameTaken = nameTaken;
 
-    // Moves the block to where the empty folder is DRAWN. Without this, filing
-    // a block into an empty folder would create it wherever that block already
-    // sat, which is rarely where the author was pointing.
+    // Moves the Block to where the empty folder is drawn, which is where the author
+    // pointed.
     function promotePending(blocks, index, name) {
         const spec = pendingNamed(name);
         if (!spec) return -1;
@@ -205,18 +168,17 @@
         let insertAt = anchor ? anchor.end + 1 : blocks.length;
 
         blocks.splice(index, 1);
-        if (index < insertAt) insertAt -= 1;   // the removal shifted the anchor down
+        if (index < insertAt) insertAt -= 1; // the removal shifted the anchor down
         blocks.splice(insertAt, 0, block);
 
         window.dropPendingBlockFolder(name);
         return insertAt;
     }
 
-    // --- WRITING ---
-
-    // Moves block `index` into folder `rawName`, or out of any folder when
-    // rawName is empty. Returns the block's index AFTER the move, or -1 if the
-    // call was a no-op, so the caller can flash the card where it landed.
+    /**
+     * Moves Block `index` into folder `rawName`, or out of any folder for "". Returns
+     * the Block's index after the move, or -1 for a no-op, so the caller can flash it.
+     */
     window.assignBlockToFolder = function (blocks, index, rawName) {
         if (!Array.isArray(blocks) || index < 0 || index >= blocks.length) return -1;
 
@@ -235,16 +197,14 @@
             return run.end;
         }
 
-        // Read the run BEFORE the assignment, so `existing` describes where the
-        // folder was rather than where this block is about to be counted.
+        // Read before the assignment, so `existing` is where the folder was.
         const existing = runNamed(blocks, target);
         paint(block, joiningColor(blocks, block, target));
         block.folder = target;
 
         if (!existing) {
-            // An empty folder already has a place on screen, so joining it
-            // means going there. A name nobody is using at all becomes a
-            // one-block folder exactly where the block already sits.
+            // An empty folder has a place on screen, so joining it means going there. A name
+            // nobody uses becomes a one-Block folder where the Block is.
             const promoted = promotePending(blocks, index, target);
             return promoted >= 0 ? promoted : index;
         }
@@ -255,9 +215,10 @@
         return insertAt;
     };
 
-    // Puts the block at the TOP of a folder instead of the end. This is what
-    // dropping onto the folder header means, and it is the only way to reach
-    // the inside of a COLLAPSED folder, which shows no cards to drop between.
+    /**
+     * Puts the Block at the top of a folder: dropping on a folder's header, the only
+     * way into a shut folder.
+     */
     window.dropBlockIntoFolderHead = function (blocks, index, rawName) {
         if (!Array.isArray(blocks) || index < 0 || index >= blocks.length) return -1;
 
@@ -279,11 +240,10 @@
         return insertAt;
     };
 
-    // Called after any positional move - a drag, or the up/down buttons. The
-    // gesture moves an array element and says nothing about membership, so
-    // without this a block can be dragged into the middle of a folder and
-    // render inside it while carrying no `folder` at all, splitting the run in
-    // two.
+    /**
+     * Settles folder membership at `index` after any move (a drag, the up and down
+     * buttons), which says nothing about folders itself.
+     */
     window.reconcileFolderAt = function (blocks, index) {
         if (!Array.isArray(blocks) || index < 0 || index >= blocks.length) return;
 
@@ -305,9 +265,8 @@
         // last member.
         if (!own || own === prevName || own === nextName) return;
 
-        // Touching neither side. If other blocks still carry the name it was
-        // dragged OUT; if none do it is a one-block folder that simply moved,
-        // and clearing that would make solo folders impossible to reposition.
+        // Touching neither side: dragged out if others still carry the name, or a
+        // one-Block folder that moved, which must stay one.
         const stillPopulated = blocks.some(function (b, i) {
             return i !== index && nameOf(b) === own;
         });
@@ -317,18 +276,13 @@
         }
     };
 
-    // --- MOVING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
-    //
-    // "let folders be arranged for faster organization in group batches
-    // instead of one at a time". A folder is a contiguous run, so moving it
-    // is cutting one slice of the array out and splicing it back in.
-    //
-    // `memberIndex` is any block in the folder (an index rather than a name,
-    // so two runs that happen to share a name stay two folders). `slot` is
-    // an insert-before position in the array as it stands, and must not fall
-    // strictly inside another folder, which would split that one in two:
-    // folderDropSlot snaps a drop to a folder's edge first. Returns the
-    // folder's new first index, or -1 when it would not move.
+    /**
+     * Moves a whole folder: one slice of the array cut out and spliced back.
+     * `memberIndex` is any Block in it (two runs sharing a name stay two folders);
+     * `slot` is an insert-before position, never strictly inside another folder
+     * (folderDropSlot snaps it to an edge). Returns the new first index, or -1.
+     * @since v1.1
+     */
     window.moveBlockFolder = function (blocks, memberIndex, slot) {
         const run = Array.isArray(blocks) ? runContaining(blocks, memberIndex) : null;
         if (!run || slot < 0 || slot > blocks.length) return -1;
@@ -339,8 +293,11 @@
         return at;
     };
 
-    // Where a folder dropped at insert-before position `index` lands.
-    // Folders do not nest, so a position inside one moves to its nearer edge.
+    /**
+     * Where a folder dropped at insert-before position `index` lands: folders do not
+     * nest, so a position inside one moves to its nearer edge.
+     * @since v1.1
+     */
     window.folderDropSlot = function (blocks, index) {
         const runs = window.collectBlockFolders(blocks);
         for (let i = 0; i < runs.length; i++) {
@@ -352,9 +309,10 @@
         return index;
     };
 
-    // False when the name is already taken - two runs sharing a name would
-    // render as two folders called the same thing, and the author would have
-    // no way to tell them apart.
+    /**
+     * Renames a folder. False when the name is taken: two runs with one name could
+     * not be told apart.
+     */
     window.renameBlockFolder = function (blocks, oldName, rawNew) {
         const from = normalize(oldName);
         const next = normalize(rawNew);
@@ -369,16 +327,15 @@
         blocks.forEach(function (b) {
             if (nameOf(b) === from) b.folder = next;
         });
-        // Anything anchored to the old name follows it, or it would jump to
-        // the end of the list the moment its neighbour was renamed.
+        // What is anchored to the old name follows it.
         pending.forEach(function (p) { if (p.after === from) p.after = next; });
         return true;
     };
 
-    // Dissolves the folder and KEEPS every block, in place. Deleting content
-    // is what the per-block ✖ is for; a folder is organisation, and losing a
-    // section's writing to a misread icon is not a recoverable mistake for a
-    // contributor who has not saved.
+    /**
+     * Dissolves the folder and keeps every Block in place. Deleting content is what
+     * a Block's own delete button is for.
+     */
     window.ungroupBlockFolder = function (blocks, name) {
         const target = normalize(name);
         if (!Array.isArray(blocks) || !target) return 0;
@@ -390,7 +347,7 @@
         return n;
     };
 
-    // "New Folder", "New Folder 2", ... - a name that is free at this level.
+    // "New Folder", "New Folder 2", ...: a name free at this level.
     window.nextFolderName = function (blocks, base) {
         const stem = normalize(base) || 'New Folder';
         if (!nameTaken(blocks, stem)) return stem;
@@ -401,27 +358,11 @@
         return stem + ' ' + Date.now();
     };
 
-    // --- COLLAPSED STATE ---
-    //
-    // In memory, not localStorage. The requirement is that it survives
-    // renderBlockList(), which runs on nearly every edit; surviving a reload
-    // would mean inventing a storage key scoped to page + section + folder,
-    // and a stale one would collapse a folder the author has never seen.
-    //
-    // Keyed by the accordion path as well as the name, because an inner
-    // theorybox write-up can hold a folder called the same thing as one in the
-    // section around it.
+    // Which folders are open, in memory: it must survive renderBlockList, and a
+    // stored one could shut a folder the author never saw. Keyed by the accordion
+    // path too, since a Combo Card's write-up can hold a folder with an outer one's
+    // name. It tracks what is open, so every folder starts shut.
 
-    // TRACKS WHAT IS OPEN, NOT WHAT IS CLOSED (v0.16 fine-tuning 2).
-    //
-    // This was a set of collapsed folders, so the default was expanded and a
-    // section with a dozen folders opened as a wall. The owner asked for the
-    // workspace to open quiet: everything closed, and opening is the opt-in.
-    //
-    // Inverting the SET rather than adding a "startCollapsed" flag keeps one
-    // source of truth. A flag would have to be consulted everywhere the set
-    // already is, and the two would disagree the first time somebody added a
-    // third state.
     let expanded = new Set();
 
     function collapseKey(name) {

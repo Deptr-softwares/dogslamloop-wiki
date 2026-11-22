@@ -1,33 +1,21 @@
 /**
- * Dogslamloop Wiki - Editor: reorder and insert in place (v0.15 item 8)
- *
- * Every author-ordered list in the editor could only be appended to. Adding a
- * variant next to Skill 1 meant deleting and re-entering every skill after it.
- *
- * ONE MECHANISM FOR EVERY STRIP. The editor draws eight of them - moves,
- * overview extras, matchups, each keyed section, combo groups, combo tables,
- * system tabs, system sections - and they already share a shape:
- *
- *     <div class="daw-tab-item">
- *         <button class="daw-tab-btn">…</button>
- *         <button class="daw-tab-remove-btn">✖</button>
- *     </div>
- *
- * So the controls are injected into that shape and resolved through one
- * delegated listener, rather than eight copies of the same three handlers.
- * A ninth strip added later gets reordering by declaring where its array lives.
- *
- * The array is named by a data attribute rather than looked up in a registry
- * here, because the strip already knows what it is rendering and a registry
- * would be a second list to keep in step - the drift this version has spent
- * item 0 and item 6 removing elsewhere.
+ * Reorder and insert in place for every list strip in the editor (moves, overview
+ * extras, matchups, keyed sections, combo groups and tables, system tabs and
+ * sections), through one delegated listener over the strips' shared shape
+ * (.daw-tab-item, its .daw-tab-btn and remove button).
+ * @since v0.15
+ * @touches window.currentEditorDescData and the frame data (data-reorder-list
+ *   paths), triggerManualSync (editor-sync.js), each strip's own add flow
+ * @watch a strip names its array in a data attribute, so a new strip needs no
+ *   change here
+ * @see docs/block-editor.md
  */
 
 (function () {
     'use strict';
 
-    // `data-reorder-list` is a dotted path, rooted at one of the editor's two
-    // data objects: "desc.matchups", "frame.skills", "desc.tabs.0.sections".
+    // `data-reorder-list` is a dotted path from one of the editor's two data objects:
+    // "desc.matchups", "frame.skills", "desc.tabs.0.sections".
     function resolveList(spec) {
         if (!spec) return null;
         const parts = String(spec).split('.');
@@ -44,23 +32,9 @@
     }
 
     /**
-     * ONE FIXED GROUP PER STRIP, acting on whatever is selected.
-     *
-     * These were per-item to begin with, and the owner found the real problem
-     * with that immediately: you do not "ride along" with the section you are
-     * moving. The selection stayed put while the item slid out from under it,
-     * AND the buttons moved with the item, so a second nudge meant chasing them
-     * across the row. Both go away when the controls sit still and act on the
-     * active entry.
-     *
-     * Rendered at the end of the strip, beside + ADD - section-level actions
-     * stay on the section row rather than mixing in with the block toolbar's
-     * undo/redo, and the moves strip renders that toolbar far below its stats
-     * and DAW editor.
-     *
-     * The active index is read from the DOM at click time rather than passed in
-     * here. Six strips track their selection in six different globals, and this
-     * needs none of them.
+     * The strip's one group of controls, fixed in its own row above the strip, acting
+     * on the entry selected (read from the page at click time, since six strips keep
+     * their selection in six different globals).
      */
     window.reorderStripControls = function (listSpec) {
         if (!listSpec) return '';
@@ -77,22 +51,15 @@
              + `</span></div>`;
     };
 
-    // Which entry is selected, and where its strip is. Read from the rendered
-    // strip so no per-strip selection global has to be plumbed through.
+    // The selected entry and its strip, read from the page.
     function activeIndexIn(row) {
         if (!row) return -1;
         const items = [...row.querySelectorAll('.daw-tab-item')];
         return items.findIndex(item => item.querySelector('.daw-tab-btn.active'));
     }
 
-    // The strip is the next .daw-variant-tabs AFTER the bar.
-    //
-    // The bar has now been in three places. Per item, it travelled with the
-    // entry being moved, so a second nudge meant chasing it along the row. At
-    // the END of the strip, a character with twenty skills had to scroll the
-    // whole strip right to reach it - every time, because the strip scrolls
-    // back on re-render. Both faults are the same one: the controls moved with
-    // the content. Its own row above the strip is the fixed spot.
+    // The strip is the next .daw-variant-tabs after the bar: controls that moved with
+    // the content had to be chased, so they sit still above it.
     function rowFor(el) {
         if (!el || !el.closest) return null;
         const bar = el.closest('.daw-reorder-bar');
@@ -102,9 +69,8 @@
         return node || null;
     }
 
-    // Re-selecting by CLICKING the strip's own button, rather than by setting a
-    // selection global: each strip loads a different editor on selection, and
-    // the button already carries whichever one that is.
+    // By clicking the strip's own button: each strip loads a different editor, and
+    // the button already carries which.
     function reselect(listSpec, index) {
         const group = document.querySelector(`.daw-reorder-group[data-reorder-list="${listSpec}"]`);
         const row = rowFor(group);
@@ -123,13 +89,9 @@
         return true;
     };
 
-    // INSERTING REUSES THE STRIP'S OWN ADD FLOW, then moves the new entry into
-    // place. Building the entry here instead would mean a second copy of every
-    // shape - and those flows do more than build an object: addMove prompts for
-    // an id and validates it, and seeds moveStrategies alongside the move.
-    // Duplicating that is how the two halves drift.
-    //
-    // So an inserter is just "run the add", and the relocation is this file's.
+    // Inserting runs the strip's own add flow, then moves the new entry into place:
+    // a flow does more than build an object (addMove asks for an id and seeds
+    // moveStrategies), and a second copy would drift.
     const inserters = {};
     window.registerInserter = function (listSpec, appendFn) {
         inserters[listSpec] = appendFn;
@@ -144,13 +106,11 @@
 
         await append();
 
-        // Re-resolved: an add flow re-renders and can hand back a different
-        // array object than the one measured a moment ago.
+        // Again: an add flow re-renders and can hand back a different array.
         const after = resolveList(listSpec);
-        if (!after || after.length !== lengthBefore + 1) return false;   // cancelled, or refused
-        // Nothing selected, or the selection is already last: the add flow
-        // appended, which is where it belongs. Guarding index < 0 explicitly,
-        // because -1 + 1 would otherwise relocate the new entry to the front.
+        if (!after || after.length !== lengthBefore + 1) return false; // cancelled, or refused
+        // Nothing selected, or the last: the add appended, which is right. -1 + 1 would
+        // move the new entry to the front.
         if (index < 0 || index >= after.length - 1) return true;
 
         const [entry] = after.splice(after.length - 1, 1);
@@ -158,15 +118,13 @@
         return true;
     };
 
-    // Re-rendering is the strip's business too: they are built by six different
-    // functions and each knows which selection to keep.
+    // Each strip re-renders itself: six functions build them, and each knows which
+    // selection to keep.
     let refresh = null;
     window.setReorderRefresh = function (fn) { refresh = fn; };
 
-    // A refresh hook may DECLINE by returning false - the system editor
-    // registers one at file load, and that file is loaded on character pages
-    // too. Without a way to decline it would rebuild the system editor over a
-    // character page, because both render into #interactive-builder.
+    // A refresh hook can decline with false: the system editor's is registered on
+    // character pages too, and both render into #interactive-builder.
     function afterChange() {
         const handled = typeof refresh === 'function' ? refresh() : false;
         if (handled) {
@@ -184,21 +142,15 @@
         if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
     }
 
-    // The open entry's blocks sit in a buffer, and every loader writes that
-    // buffer back to the entry the selection names before opening another. A
-    // move or insert changes the array under the selection, so that write-back
-    // would land on whichever entry slid into the old slot: moving a matchup
-    // copied its text over every matchup it passed (editor QA note,
-    // 2026-10-23). So the selection is forgotten once the array has changed,
-    // the way reopenEditorTab does after Find & Replace, and reselect() opens
-    // the moved entry again from the data.
+    // The open entry's Blocks sit in a buffer that each loader writes back to the
+    // entry the selection names. A move changes the array under the selection, so
+    // that write-back would land on whichever entry slid into the slot: the selection
+    // is forgotten, and reselect() opens the moved entry from the data.
     function forgetSelection() {
         if (typeof window.clearPositionalSelection === 'function') window.clearPositionalSelection();
     }
 
-    // Delegated on the document, because every strip rebuilds its own markup
-    // and a listener bound to the buttons would be lost on the next render -
-    // the failure the tab strip registry in js/pages/core/pagebuilder.js already documents.
+    // On the document: every strip rebuilds its markup.
     document.addEventListener('click', async (e) => {
         const moveBtn = e.target.closest && e.target.closest('.daw-tab-move-btn');
         if (moveBtn && !moveBtn.disabled) {
@@ -209,15 +161,13 @@
             const index = activeIndexIn(rowFor(moveBtn));
             if (index < 0 || !resolveList(spec)) return;
 
-            // The buffer goes into its own entry first: forgetting the
-            // selection below drops it, and typing is only synced on its own
-            // after a pause.
+            // The buffer goes into its entry first: forgetting the selection drops it, and
+            // typing syncs only after a pause.
             if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
             const list = resolveList(spec);
 
-            // Nothing selected, or already at the end. Silent rather than an
-            // error: the buttons are always there, and a strip can legitimately
-            // have a non-movable section open (Overview's fixed four).
+            // Nothing selected, or at the end: silent, since a strip can have a fixed
+            // section open (Overview's four).
             if (!list || !window.moveListItem(list, index, dir)) return;
 
             forgetSelection();
@@ -235,9 +185,8 @@
             const index = activeIndexIn(rowFor(insertBtn));
             window.insertListItemAfter(spec, index).then(inserted => {
                 if (!inserted) return;
-                // Every add flow that opens a buffer syncs before it appends,
-                // and the buffer now holds the new entry, which has nothing to
-                // keep yet.
+                // The add flows sync before they append, and the buffer now holds the new
+                // entry, with nothing to keep yet.
                 forgetSelection();
                 afterChange();
                 const list = resolveList(spec);

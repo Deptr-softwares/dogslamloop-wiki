@@ -1,22 +1,17 @@
 /**
- * Dogslamloop Wiki - Editor: Live Preview Renderers (overview/matchups/
- * counterplay - rebuilds the character page's read-only preview panels from
- * the in-memory edit buffer)
+ * The editor's preview of the Overview, Matchups and keyed sections, redrawn
+ * from the edit buffer with the reader's own renderers where they exist.
+ * @since v0.4, as part of editor.js
+ * @touches populateTextSection and the keyed-section renderers (description.js),
+ *   resolveMatchupTier (site_utils.js), getKeyedSection (character_tabs.js)
+ * @watch every topic reaches innerHTML here too, and a reviewer reads this
+ *   preview to decide on a ticket, so it escapes as the reader does
+ * @see docs/editor.md
  */
 
-// populateTextSection wraps whatever it renders in its own
-// <section class="wiki-section"> (js/pages/core/description.js). These previews append it
-// INSIDE a card that is already a .wiki-section, so the card gets drawn twice -
-// a bordered box inside a bordered box, which is what the owner reported on
-// 2026-08-16.
-//
-// The reader has stripped this since v0.13; the editor's preview never did, for
-// matchups OR counterplay. It only became visible when Starter Guide made
-// someone look at an empty topic, where the inner box has nothing in it to
-// distract from the extra border.
-//
-// Stripping the class rather than unwrapping the node, the same way the reader
-// page does (js/pages/core/description.js), so the two keep the same structure.
+// populateTextSection wraps what it draws in its own .wiki-section, and these
+// previews put it inside a card that is one already: a box inside a box. The
+// class is stripped, not the node, as the reader page does.
 function unwrapInjectedSection(contentWrapper) {
     const injected = contentWrapper.querySelector('section.wiki-section');
     if (injected) injected.classList.remove('wiki-section');
@@ -123,8 +118,7 @@ function renderMatchupsPreview() {
     }
 
     descData.matchups.forEach(mu => {
-        // Same single definition the live page reads (js/utility/site_utils.js), so
-        // the preview cannot disagree with what publishing will produce.
+        // The live page's definition, so the preview agrees with what publishing makes.
         const tier = window.resolveMatchupTier(mu.tier);
         const safeOpponent = (mu.opponent || 'Unknown').replace(/\s+/g, '-');
 
@@ -162,16 +156,11 @@ function renderMatchupsPreview() {
     if (typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
 }
 
-// The editor's live preview of a keyed section (js/utility/character_tabs.js).
-//
-// This was renderCounterplayPreview with 'counterplay' written through it.
-// Starter Guide is the same shape, and a second copy is how the two drift -
-// the reader's renderer and this one already have to agree, and now there is
-// one of each rather than one of each PER SECTION.
-//
-// Deliberately mirrors description.js's keyed-section renderer, including the
-// escaping: a topic reaches innerHTML here too, and this is the surface a
-// REVIEWER looks at while deciding whether to approve it.
+/**
+ * The preview of any keyed section (character_tabs.js), one renderer for all of
+ * them, mirroring description.js's keyed-section renderer.
+ * @since v0.15
+ */
 function renderKeyedSectionPreview(tabId) {
     const descData = window.currentEditorDescData;
     if (!descData) return;
@@ -182,9 +171,7 @@ function renderKeyedSectionPreview(tabId) {
     const container = document.getElementById(`tab-${section.tab}`);
     if (!container) return;
 
-    // A section with its own renderer draws itself, so the editor's preview
-    // and the live page cannot disagree about what publishing will look like -
-    // which is the whole point of a live preview.
+    // A section with its own renderer draws itself, as on the live page.
     if (section.rendererFn && typeof window[section.rendererFn] === 'function') {
         window[section.rendererFn](descData);
         if (typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
@@ -211,7 +198,7 @@ function renderKeyedSectionPreview(tabId) {
         let metaHTML = '';
         if (section.metaField) {
             const value = entry[section.metaField];
-            // Selected by the value, never supplied by it.
+            // Picked by the value, never supplied by it.
             const colour = (section.metaColors || {})[value] || '#9ca3af';
             metaHTML = `<span class="card-tier-label" style="color: ${colour};">${window.escapeHtml(value || '')}</span>`;
         }

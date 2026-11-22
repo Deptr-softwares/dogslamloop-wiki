@@ -1,25 +1,13 @@
 /**
- * Dogslamloop Wiki - Editor: Find and Replace (v0.15 item 7)
- *
- * Renaming a character or a move meant opening every tab and hunting through
- * dozens of blocks by eye. A combo table alone can carry 127 rows.
- *
- * WALKS THE DATA GENERICALLY RATHER THAN ENUMERATING BLOCK TYPES. A block type
- * added later is searched without anybody coming back here - which matters,
- * because this version alone added two (theorybox, and the combo row shape) and
- * the last thing that enumerated block types by hand missed two of six sites.
- *
- * What it will not touch is therefore the interesting half, and it is a list of
- * FIELD NAMES rather than a list of types:
- *
- *   - structure and enums (type, align, size, difficulty...) - replacing text
- *     inside these silently breaks rendering or sorting rather than showing an
- *     error. A typo'd difficulty sorts the row to the bottom and says nothing.
- *   - links and media (src, videoId, video, image) - a rename that rewrites a
- *     URL breaks the media rather than renaming anything.
- *   - credit (author) - whose work it is, not what it says.
- *   - identity (id, uid, anchor) - an anchor is what in-page links resolve
- *     against (item 5), so rewriting one breaks every link pointing at it.
+ * Find and Replace across a whole page: every tab and every character state.
+ * @since v0.15
+ * @touches window.currentEditorDescData and the master desc_data (editor-modes.js),
+ *   triggerManualSync (editor-sync.js), reopenEditorTab (editor-tabs.js)
+ * @watch it walks the data, not a list of Block types, so a new type is searched
+ *   with no change here. What it never touches is a list of field names below:
+ *   structure, links and media, credit and identity (an anchor is what in-page
+ *   links resolve against).
+ * @see docs/block-editor.md
  */
 
 (function () {
@@ -29,22 +17,18 @@
         // Structure and enums.
         'type', 'align', 'size', 'style', 'intent', 'layout', 'width', 'alignment',
         'padding', 'controls', 'difficulty', 'status', 'tier', 'importance',
-        // A colour: renaming "Red" would turn a heading's bar into an invalid
-        // value, which draws no bar and says nothing.
+        // A colour: renaming "Red" would make the bar's value invalid, and no bar.
         'sideBar',
         // Links and media.
         'src', 'videoId', 'video', 'image', 'media', 'url', 'href', 'thumbnail',
         // Credit and identity.
         'author', 'uploader', 'id', 'uid', 'anchor', 'tabId',
-        // Editor-only organisation (item 9). A folder name is not page text -
-        // renaming "Ryu" would silently regroup the block list as a side
-        // effect of a content edit.
+        // Editor-only organisation: renaming a folder would regroup the Block list.
         'folder',
-        // Its colour (v1.1), a colour value and not text either.
+        // A colour value, not text.
         'folderColor',
-        // v1.2: which grid a Color Swatches Block draws, and a Collaborator's
-        // kind, badge colour and avatar address. Replacing "line" or "frames"
-        // would quietly change what the Block is.
+        // Which grid a Color Swatches Block draws, and a Collaborator's kind, badge
+        // colour and avatar: replacing "line" would change what the Block is.
         'set', 'kind', 'badge', 'avatar',
     ]);
 
@@ -53,14 +37,11 @@
         const o = opts || {};
         if (!needle) return null;
         let body = window.escapeRegExp(needle);
-        // \b would not fire against a term starting or ending in punctuation,
-        // which "M1" and "R+4" both can - so the boundary is asserted as "not
-        // adjacent to a word character" instead.
+        // \b does not fire next to punctuation, which "M1" and "R+4" can end in, so the
+        // boundary is "not next to a word character".
         if (o.wholeWord) body = `(?<![\\w-])${body}(?![\\w-])`;
         return new RegExp(body, o.matchCase ? 'g' : 'gi');
     };
-
-    // --- WALKING ---
 
     function walkStrings(node, path, visit) {
         if (typeof node === 'string') { visit(node, path); return; }
@@ -76,8 +57,7 @@
         }
     }
 
-    // The writing checks (js/editor/tools/editor-writing-checks.js) read the same text this
-    // does, so the two cannot disagree about what a page says.
+    // The writing checks read the same text, so the two agree on what a page says.
     window.walkEditorStrings = walkStrings;
     window.isEditorSkipField = (key) => SKIP_FIELDS.has(key);
 
@@ -92,11 +72,8 @@
         parent[path[path.length - 1]] = value;
     };
 
-    // --- NAMING WHERE A MATCH IS ---
-    //
-    // A path is ['matchups', 3, 'content', 1, 'content']. On its own that tells
-    // a contributor nothing, and the whole point of listing matches is so they
-    // can decide about each one.
+    // Naming where a match is: ['matchups', 3, 'content'] tells a contributor
+    // nothing, and the list is for deciding about each match.
     const FIELD_LABELS = {
         overview: 'Character Overview',
         strategy: 'General Strategy',
@@ -116,8 +93,7 @@
         title: 'Title',
         sectionTitle: 'Section name',
         combo: 'Combo route',
-        // v0.20: a combo's extra routes. Walked like everything else, so a
-        // rename reaches them; named so a match inside one says where it is.
+        // A combo's extra routes, named so a match there says where it is.
         notations: 'Notation style',
     };
 
@@ -127,8 +103,7 @@
         const fixed = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.field === field);
         if (fixed) return fixed.label;
         if (FIELD_LABELS[field]) return FIELD_LABELS[field];
-        // humanFieldName lives in js/overseer/admin-diff.js, which the editor does not
-        // load - so this needs its own fallback rather than assuming it.
+        // humanFieldName is in admin-diff.js, which the editor does not load.
         if (typeof window.humanFieldName === 'function') return window.humanFieldName(field);
         return String(field)
             .replace(/[_-]+/g, ' ')
@@ -136,13 +111,12 @@
             .replace(/^\w/, c => c.toUpperCase());
     }
 
-    // The name an array ENTRY goes by - a matchup's opponent, a combo group's
-    // title - so a match reads "Matchups > vs. Vessel" rather than "Matchups > 3".
+    // The name an entry goes by (a matchup's opponent, a group's title), so a match
+    // reads "Matchups > vs. Vessel", not "Matchups > 3".
     function entryName(container, index) {
         const entry = container && container[index];
         if (!entry || typeof entry !== 'object') return `#${index + 1}`;
-        // `label` last: a notation style has nothing else to go by, and every
-        // entry that has one of the others is still named by it.
+        // `label` last: a notation style has nothing else to go by.
         const named = entry.opponent || entry.topic || entry.title || entry.starter
             || entry.sectionTitle || entry.tabLabel || entry.combo || entry.name || entry.label;
         return named ? String(named) : `#${index + 1}`;
@@ -180,8 +154,6 @@
         return parts.filter(Boolean).join(' › ');
     };
 
-    // --- FINDING ---
-
     window.findEditorMatches = function (root, needle, opts) {
         const pattern = window.buildFindPattern(needle, opts);
         if (!pattern || !root) return [];
@@ -203,17 +175,14 @@
                     where: window.describeEditorPath(root, path),
                 });
                 occurrence++;
-                if (m[0] === '') pattern.lastIndex++;   // never spin on an empty match
+                if (m[0] === '') pattern.lastIndex++; // never spin on an empty match
             }
         });
         return matches;
     };
 
-    // --- REPLACING ---
-
-    // One occurrence, identified by path and position within that string. Done
-    // by index rather than by re-running the pattern, so replacing the second
-    // "Ryu" in a paragraph cannot land on the first.
+    // One occurrence, by path and position, not by running the pattern again, so the
+    // second "Ryu" in a paragraph cannot land on the first.
     window.replaceOneMatch = function (root, match, replacement) {
         const value = window.getAtPath(root, match.path);
         if (typeof value !== 'string') return false;
@@ -236,26 +205,19 @@
             const next = value.replace(pattern, () => { count++; return replacement; });
             edits.push({ path, next });
         });
-        // Collected first, written after: mutating a string while walking is
-        // safe here, but writing during the walk makes the traversal depend on
-        // its own output, which is how a replacement gets re-scanned and
-        // replaced twice when the new text contains the old.
+        // Collected first, written after: writing during the walk would scan its own
+        // output, and replace twice when the new text holds the old.
         edits.forEach(e => window.setAtPath(root, e.path, e.next));
         return count;
     };
 })();
 
-// =====================================================================
-// THE PANEL
-// =====================================================================
+// The panel.
 (function () {
     'use strict';
 
-    // The WHOLE page, every tab and every character state - not the slice the
-    // editor is showing. window.currentEditorDescData points at the active
-    // state (js/editor/core/editor-modes.js), so searching that would quietly miss the
-    // other kit, which is exactly the axis three separate bugs have already
-    // been lost along in this project.
+    // The whole page, every tab and every character state:
+    // window.currentEditorDescData is only the state on screen.
     function searchRoot() {
         return window.editorMasterDescData || window.currentEditorDescData || null;
     }
@@ -269,18 +231,9 @@
 
     let lastMatches = [];
 
-    // ONE LEVEL OF UNDO, FOR THIS OPERATION ONLY.
-    //
-    // The editor already has an undo (btn-undo, Ctrl+Z) and it does not cover
-    // this: its history is the block buffer of the section currently OPEN, and
-    // a replace writes across every tab and both character states. Worse, the
-    // re-render afterwards calls initStrategyBlockBuilder, which resets that
-    // history to the post-replace state - so the button comes back disabled and
-    // Ctrl+Z does nothing. Confirmed by driving it, not assumed.
-    //
-    // That failure is at least SAFE: partially reverting one open section while
-    // the rest of the page stayed renamed would be worse than nothing. But a
-    // mass replace across 127 rows still needs a way back.
+    // One UNDO for this operation only. The editor's own UNDO covers the open
+    // section's Blocks, and the redraw afterwards resets it, while a replace writes
+    // across every tab and both states.
     let undoSnapshot = null;
     let undoLabel = '';
 
@@ -298,10 +251,8 @@
         btn.textContent = undoSnapshot ? `UNDO ${undoLabel}` : 'UNDO';
     }
 
-    // Restored IN PLACE. window.currentEditorDescData is a live sub-reference
-    // of the master (js/editor/core/editor-modes.js), so reassigning the master would leave
-    // the editor pointing at an object nothing writes to any more - which is
-    // the bug that shape has already produced once in this project.
+    // In place: window.currentEditorDescData is a live part of the master, so a new
+    // master would leave the editor writing to an object nothing reads.
     function restoreInto(target, source) {
         Object.keys(target).forEach(k => { delete target[k]; });
         Object.keys(source).forEach(k => { target[k] = JSON.parse(JSON.stringify(source[k])); });
@@ -351,14 +302,10 @@
         results.innerHTML = html;
     }
 
-    // Flushing first is not optional. currentStrategyBlocks is a buffer that is
-    // only written back into desc_data on sync, so without this the text being
-    // edited right now is not searchable - and worse, the re-render afterwards
-    // would load the stale buffer back over a replacement that had just landed.
-    //
-    // The redraw afterwards goes through reopenEditorTab, not initFullTabEditor
-    // directly: the section loaders write the old buffer back on entry, which
-    // undid the replace in the section that was open (js/editor/tabs/editor-tabs.js).
+    // Flushed first: the open section's Blocks reach desc_data only on sync, so the
+    // text being edited would be missed, and the redraw would load the stale buffer
+    // over the replacement. The redraw goes through reopenEditorTab, since the
+    // section loaders write the old buffer back on entry.
     async function withFlushedData(fn) {
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
         const result = fn();
@@ -370,8 +317,7 @@
     window.openFindReplace = async function () {
         const modal = document.getElementById('find-replace-modal');
         if (!modal) return;
-        // A stale snapshot is worse than none: reopening the panel after doing
-        // other work and pressing UNDO would roll that work back too.
+        // A stale snapshot would roll back work done since.
         undoSnapshot = null;
         refreshUndoButton();
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
@@ -399,8 +345,7 @@
         const closeBtn = document.getElementById('find-replace-close');
         if (closeBtn) closeBtn.addEventListener('click', closePanel);
 
-        // Delegated: the rows are rebuilt on every keystroke, and a match index
-        // baked into an inline handler would point at the previous list.
+        // Delegated: the rows are rebuilt on every keystroke.
         const results = document.getElementById('find-replace-results');
         if (results) {
             results.addEventListener('click', async (e) => {
@@ -410,8 +355,7 @@
                 if (!match) return;
                 const replacement = (document.getElementById('replace-input') || {}).value || '';
                 await withFlushedData(() => {
-                    // Snapshot INSIDE the flush, so it captures the buffer that
-                    // was just written back rather than the state before it.
+                    // Inside the flush, so it holds the buffer just written back.
                     takeUndoSnapshot('replace');
                     return window.replaceOneMatch(searchRoot(), match, replacement);
                 });
@@ -426,10 +370,8 @@
                 const root = searchRoot();
                 if (!root) return;
 
-                // DELIBERATELY NOT flushed first. triggerManualSync writes the
-                // open block buffer into desc_data, and that buffer holds the
-                // POST-replace blocks - syncing before restoring would put them
-                // straight back over the restored ones.
+                // Not flushed first: the open buffer holds the replaced Blocks, and a sync would
+                // put them back over the restored ones.
                 restoreInto(root, undoSnapshot);
                 undoSnapshot = null;
                 refreshUndoButton();

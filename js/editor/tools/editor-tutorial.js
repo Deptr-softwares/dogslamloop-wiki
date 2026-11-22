@@ -1,42 +1,15 @@
 /**
- * Dogslamloop Wiki - Editor: the guided tour and the Manual of Style
- * (v0.19 F2 and F3)
- *
- * A JRPG-style tour that spotlights each part of the editor in turn and reads
- * out what it does. Runs once per browser on a first visit, again from the
- * "GOT IT" button on the v0.18 editor notice, and on demand from the MoS
- * modal's "REWATCH TUTORIAL" (v0.19 F3).
- *
- * Both live here because they read the SAME Writing Guide tab and share the
- * rewatch wiring - splitting them would mean two fetches of one row and a
- * cross-file call for one button.
- *
- * THE SCRIPT IS NOT IN THIS FILE, AND THAT IS THE POINT
- *
- * Every word comes from the Writing Guide - page_data for `writing_guide`,
- * section "How to use the editor?" in whichever tab holds it - which is the same text a
- * contributor is told to read and which the owner edits through the site. A
- * copy in here would be a second source that goes stale silently, and the
- * Writing Guide is the one that decides whether an edit gets accepted.
- *
- * So the steps are DERIVED: the section's own `h3` headings are the steps, in
- * the order the guide puts them, and everything between two headings is that
- * step's body. Adding a sixth element to the guide adds a sixth step here with
- * no code change. The owner listed five - Workspace Header, Workspace
- * Navigation, Workspace, Workspace Footer, Preview Panel - and the guide's
- * headings are exactly those.
- *
- * Images in the guide are SKIPPED. They are screenshots of the editor, and the
- * tour is pointing at the real thing a few pixels away.
- *
- * WHAT IT POINTS AT
- *
- * SPOTLIGHTS maps a heading to a selector. A heading with no selector still
- * gets a step, centred, with no cut-out - which is what the guide's "UI"
- * preamble is. A selector that matches nothing does the same, because two of
- * these genuinely do not exist on every page type: the tab strip is hidden on
- * system and tool pages, and the footer is built at runtime by
- * editor-blocks.js and is absent until a block editor mounts.
+ * The editor's guided tour and the Manual of Style. The tour spotlights each
+ * part of the editor in turn and reads out what it does: once per browser, from
+ * GOT IT on the editor's notice, and from the MoS modal's REWATCH TUTORIAL.
+ * @since v0.19
+ * @touches page_data for writing_guide (both read it, one fetch),
+ *   localStorage dsl_editor_tutorial_seen, applyInternalStyling (internalstyling.js)
+ * @watch no word of the script is in this file: the steps come from the Writing
+ *   Guide's "How to use the editor?" section, one per h3 heading, in the guide's
+ *   order, so a heading added there is a step here. Images are skipped. A step
+ *   whose target is missing on this page type is drawn centred.
+ * @see docs/editor.md
  */
 
 (function () {
@@ -44,16 +17,11 @@
 
     const SEEN_KEY = 'dsl_editor_tutorial_seen';
 
-    // Same URL js/editor/tools/editor-notices.js points its two notices at, and for the same
-    // reason: the guide is what decides whether an edit is accepted. Duplicated
-    // rather than shared, which is this project's stated preference over a new
-    // cross-file dependency for one string.
+    // The notices' address too; a copy beats a cross-file dependency for one string.
     const GUIDE_URL = 'https://dogslamloop.com/systems/writing_guide/index.html';
 
-    // Heading text (shortcodes stripped, lowercased) -> what to spotlight.
-    // Keyed on the guide's own wording so the mapping is visible in one place
-    // rather than inferred from step order, which would silently re-point every
-    // spotlight the day somebody reorders the guide.
+    // Heading text (tags stripped, lowercased) -> what to spotlight. Keyed on the
+    // guide's wording, so reordering the guide cannot re-point a spotlight.
     const SPOTLIGHTS = {
         'workspace header': '#editor-header',
         'workspace navigation': '#editor-tab-nav',
@@ -72,13 +40,11 @@
     }
     function markSeen() {
         try { window.localStorage.setItem(SEEN_KEY, '1'); }
-        catch (e) { /* shows once more; the harmless direction */ }
+        catch (e) { /* shows once more, which is harmless */ }
     }
 
-    // Shortcodes are converted by js/pages/core/internalstyling.js AFTER this is in the
-    // DOM, so what goes in is escaped text and what comes out is styled markup.
-    // Stripping them here instead would show a contributor `[b]` in a tour
-    // about how to write, which is the one place it must not appear.
+    // Tags are styled after this is in the page: escaped text in, styled markup out.
+    // A tour about writing must never show a raw [b].
     const stripCodes = (v) => String(v == null ? '' : v).replace(/\[\/?[a-z][^\]]*\]/gi, '').trim();
 
     const blockText = (b) => (Array.isArray(b.content) ? b.content.join(' ') : String(b.content || ''));
@@ -100,9 +66,7 @@
             }
             if (!current) continue;
 
-            // h4 stays inside its step rather than starting one: "The QA" is
-            // part of the Workspace Header, and the owner's list has five
-            // elements, not six.
+            // An h4 stays inside its step: "The QA" is part of the Workspace Header.
             if (block.type === 'heading') {
                 current.body.push(`<h4 class="tutorial-subheading">${window.escapeHtml(stripCodes(blockText(block)))}</h4>`);
             } else if (block.type === 'paragraph') {
@@ -115,16 +79,14 @@
                         items.map(i => `<li>${window.escapeHtml(i)}</li>`).join('')}</ul>`);
                 }
             }
-            // image, video, divider: skipped. The guide's screenshots are of
-            // the editor this tour is standing in front of.
+            // Images, videos and dividers: the screenshots are of the editor the tour
+            // stands in front of.
         }
 
         return out.filter(s => s.body.length);
     }
 
-    // One fetch for both features, cached for the life of the page. The tour
-    // and the Manual of Style read two different sections of the same row, and
-    // fetching it twice would be two round trips for one row.
+    // One fetch for the tour and the MoS, kept for the page's life.
     let guideTabs = null;
 
     async function loadGuideSection(pattern) {
@@ -139,9 +101,8 @@
             guideTabs = tabs;
         }
 
-        // Any tab, not only Basics: the owner reorganises the guide through the
-        // site (2026-10-24, the editor section moved to a tab of its own), and a
-        // section is found by its title wherever it is.
+        // Any tab: the guide is reorganised through the site, so a section is found by
+        // its title wherever it is.
         for (const tab of guideTabs) {
             const section = ((tab && tab.sections) || []).find(s => s && pattern.test(s.sectionTitle || ''));
             if (section) return section;
@@ -164,9 +125,7 @@
         const hole = overlay.querySelector('.tutorial-hole');
         const target = step.selector ? document.querySelector(step.selector) : null;
 
-        // offsetParent is null for a display:none element - the tab strip on a
-        // system page is exactly that - so a target can exist and still have
-        // nothing to point at.
+        // offsetParent is null for display:none (the tab strip on a system page).
         const visible = target && target.offsetParent !== null;
         if (!visible) {
             hole.classList.add('hidden');
@@ -203,8 +162,7 @@
                 </div>
             </div>`;
 
-        // The guide's text carries shortcodes, and this is the one surface that
-        // must not show them raw - it is a tour about how to write.
+        // The guide's text carries tags, and this surface must not show them raw.
         if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
 
         positionSpotlight();
@@ -236,11 +194,8 @@
     }
 
     /**
-     * Opens the tour. `force` replays it for somebody who has already seen it,
-     * which is what the MoS modal's REWATCH button passes.
-     *
-     * Resolves to true when it actually opened, so a caller can tell "shown"
-     * from "already seen" without reading localStorage itself.
+     * Opens the tour; `force` replays it for someone who has seen it (REWATCH).
+     * Resolves true when it opened.
      */
     window.startEditorTutorial = async function (opts = {}) {
         if (overlay) return false;
@@ -249,10 +204,8 @@
         try {
             await loadSteps();
         } catch (e) {
-            // Silent unless asked for explicitly. On a first visit this is an
-            // extra nobody requested, and an error box in front of the editor
-            // would be worse than no tour; from REWATCH somebody pressed a
-            // button and is owed an answer.
+            // Silent unless asked for: on a first visit an error box in front of the editor
+            // is worse than no tour, and REWATCH is owed an answer.
             if (opts.force && typeof window.editorAlert === 'function') {
                 window.editorAlert('The tutorial could not be loaded - ' + e.message);
             } else {
@@ -272,19 +225,13 @@
         overlay.setAttribute('aria-label', 'Editor tutorial');
         overlay.innerHTML = '<div class="tutorial-hole hidden"></div><div class="tutorial-box"></div>';
 
-        // Opens PAUSED if a notice is already up. The tour is async - it waits
-        // on the Writing Guide fetch before it can draw anything - so the
-        // ordering is not the one it looks like from the call site: pressing
-        // GOT IT starts the tour, the contributor opens the Media Library
-        // while it is still loading, and the tour then arrives ON TOP of that
-        // notice. Pausing only from the notice side handled the other ordering
-        // and missed this one entirely, which is what the probe showed.
+        // Opens paused if a notice is up: the tour waits on its fetch, so it can arrive
+        // on top of a notice opened meanwhile.
         if (document.querySelector('.editor-notice-overlay')) overlay.classList.add('is-paused');
 
         document.body.appendChild(overlay);
 
-        // Delegated: the box is re-rendered per step, so a listener bound to a
-        // button would be gone by the time it was needed.
+        // Delegated: the box is redrawn per step.
         overlay.addEventListener('click', (e) => {
             const action = e.target.closest('[data-tutorial]');
             if (!action) return;
@@ -295,9 +242,7 @@
         });
 
         window.addEventListener('resize', positionSpotlight);
-        // Capture: the editor's panes scroll, not the window, so a bubbling
-        // listener on window would never see it and the cut-out would drift
-        // away from what it is pointing at.
+        // Capture: the editor's panes scroll, not the window, and the cut-out would drift.
         window.addEventListener('scroll', positionSpotlight, true);
         document.addEventListener('keydown', onKeydown);
 
@@ -311,21 +256,9 @@
     };
 
     /**
-     * Steps out of the way for a modal, and steps back afterwards.
-     *
-     * The tour's text box sits at the bottom of the screen, which is exactly
-     * where the v0.18 notices put their GOT IT button - so a notice raised
-     * during the tour rendered visible and could not be clicked. Caught by
-     * tests/editor-notices.spec.js timing out on that click.
-     *
-     * Pausing rather than refusing the notice, which was the first fix and was
-     * worse: it meant a first-time contributor never saw the Media Library
-     * notice at all, because the tour is always open by the time they get
-     * there. Both of these are the owner's features and neither should cost
-     * the other.
-     *
-     * Returns true if it actually paused something, so a caller knows whether
-     * it owes a resume.
+     * Steps out of the way for a modal and back afterwards: the tour's box sits where
+     * a notice's GOT IT lands. True if it paused something, so the caller owes a
+     * resume.
      */
     window.pauseEditorTutorial = function () {
         if (!overlay || overlay.classList.contains('is-paused')) return false;
@@ -336,33 +269,17 @@
     window.resumeEditorTutorial = function () {
         if (!overlay) return false;
         overlay.classList.remove('is-paused');
-        // The page may have scrolled or resized behind the modal.
+        // The page may have moved behind the modal.
         positionSpotlight();
         return true;
     };
 
 
-    // --- THE MANUAL OF STYLE (v0.19 F3) -----------------------------------
-    //
-    // A red MoS button in the Workspace Header opens the Writing Guide's
-    // "Universal Rules > Basics" without leaving the editor, plus a statement
-    // of the language standard, plus a way back into the tour.
-    //
-    // Same sourcing rule as the tour above: the rules come from the guide, not
-    // from this file. A contributor who reads the modal and a reviewer who
-    // rejects against the guide have to be reading the same words, and two
-    // copies of a style guide is how they stop being.
-    //
-    // The ONE thing authored here is the language standard, because the guide
-    // does not state one and the owner asked for help with it ("I actually
-    // don't know much about this"). "Written in English" is not a rule anybody
-    // can follow or enforce; a variety plus a baseline is. The last sentence is
-    // the one that does the work in practice - it settles whether a move is
-    // "Domain Expansion" or "domain expansion", which no general style guide
-    // can answer for a Roblox fighter.
-    //
-    // American English because the guide's own Basics writes "capitalize".
-    // Trivially changed here if the owner wants otherwise.
+    // The Manual of Style: a red MoS button opens the Writing Guide's "Universal
+    // Rules > Basics" without leaving the editor, with the language standard and the
+    // way back into the tour. The rules come from the guide, so a contributor and a
+    // reviewer read the same words. The language standard is the one thing written
+    // here, since the guide states none.
     const LANGUAGE_STANDARD = [
         'This wiki is written in <strong>American English</strong>, following '
         + "Wikipedia's Manual of Style for capitalization, headings and numbers.",
@@ -379,9 +296,7 @@
         for (const block of blocks) {
             if (!block || typeof block !== 'object') continue;
             if (block.type === 'heading') {
-                // Anchored on the guide's own heading, and STOPS at the next
-                // one: "Character Pages" and "Ground for Rejection" follow it
-                // in the same section, and the owner asked for the Basics.
+                // From the guide's own heading to the next one: the Basics only.
                 inBasics = /^basics$/i.test(stripCodes(blockText(block)));
                 continue;
             }
@@ -418,9 +333,7 @@
         box.setAttribute('aria-modal', 'true');
         box.setAttribute('aria-label', 'Manual of Style');
 
-        // Escaped, then styled: the guide's items carry shortcodes and the
-        // strikethroughs in them are load-bearing - "[s]Yuji[/s], Vessel" is
-        // the rule demonstrating itself.
+        // Escaped, then styled: "[s]Yuji[/s], Vessel" is the rule showing itself.
         box.innerHTML = `
             <div class="editor-modal-box auth-modal-box mos-modal-box">
                 <div class="auth-header"><h3>MANUAL OF STYLE</h3></div>
@@ -454,8 +367,7 @@
             const action = e.target.closest('[data-mos]');
             if (!action) return;
             if (action.getAttribute('data-mos') === 'ok') { shut(); return; }
-            // Closed FIRST: the tour spotlights the editor behind this modal,
-            // and leaving it up would point a cut-out at something covered.
+            // Closed first, or the tour would spotlight something this modal covers.
             shut();
             window.replayEditorTutorial();
         });
@@ -466,8 +378,7 @@
         return true;
     };
 
-    // Exposed for tests: the parse is the half with real logic in it, and
-    // driving it through the database to check a heading became a step would
-    // be testing Supabase.
+    // For tests: the parsing is the real logic, and checking it through the database
+    // would test Supabase.
     window.__editorTutorial = { buildSteps, readBasics, SPOTLIGHTS, LANGUAGE_STANDARD };
 })();
