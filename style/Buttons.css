@@ -1,8 +1,12 @@
-/* =========================================
-   DESIGN SYSTEM: BUTTON COMPONENTS (Buttons.css)
-   ========================================= */
+/* Buttons: the global reset, the system buttons (.btn-sys and its colour tiers),
+   the manga buttons and filters, navigation buttons, ghost buttons, and the
+   phone's bigger touch targets.
+   Since v0.4.
+   Watch: .btn-sys is defined here alone (editor.css keeps only its old aliases),
+   and it is on every page with a button: check each page a change reaches.
+   See: docs/looks.md */
 
-/* --- GLOBAL BUTTON RESET --- */
+/* Global reset */
 button {
     border: none;
     background: transparent;
@@ -13,39 +17,18 @@ button {
     outline: none;
 }
 
-/* =========================================
-   FAMILY 1: SYSTEM BUTTONS
-   ========================================= */
-/* THE definition of .btn-sys. style/editor.css carried a byte-identical copy
-   of this whole family until v0.18 A3 - unscoped, and loaded after this file,
-   so the editor's copy silently won on every editor page. A fix made here did
-   not reach admin.html, edit.html, owner.html, post-editor.html or
-   tier-editor.html, which is the trap CLAUDE.md's "check every consumer" rule
-   is about. editor.css now defines only its legacy aliases.
-
-   `cursor: pointer` moved up from that copy rather than being dropped with it:
-   a <button> defaults to an arrow, so .btn-sys had no pointer anywhere except
-   the editor. Its `outline: none` was deliberately NOT carried over - it
-   suppressed the keyboard focus ring, and browsers gate that behind
-   :focus-visible anyway, so mouse users see no change and keyboard users get
-   the ring back on editor pages. */
-/* THE LOOK (v1.1, owner's pick from three mockups, 2026-10-20): option B's
-   cut top-right corner and its hover fill sweeping in from the left, option
-   A's hard shadow, option C's faint tint of the button's own colour, a 1px
-   lift on hover and a 1px nudge on a press.
-
-   The corner is a clip-path, and a clip-path cuts away everything outside it,
-   box-shadow included. So the clip runs 6px past the right and bottom edges,
-   where the shadow sits. The shadow's offset (3px, 3px) lies along the same
-   45 degree line as the cut, so the one diagonal cuts both the button and its
-   shadow. The cut's own border is the first background layer: a 1.5px line
-   on that diagonal, since border cannot draw one.
-
-   A colour tier sets --sys-edge (border, cut line, tint) and --sys-fill (the
-   hover fill and the shadow it darkens). Everything else is shared. */
-/* Registered so a hover can change a button's colour gradually (the folder
-   header's buttons, style/editor.css): an unregistered custom property cannot
-   transition, it jumps. The initial values are .btn-sys's own. */
+/* System buttons */
+/* cursor: pointer, since a <button> defaults to an arrow. No outline: none, so a
+   keyboard user keeps the focus ring. */
+/* The look: a cut top-right corner, a hover fill sweeping in from the left, a hard
+   shadow, a faint tint of the button's own colour, a 1px lift on hover and a 1px
+   nudge on a press. The corner is a clip-path running 6px past the right and bottom
+   edges, where the shadow sits, along the cut's 45 degree line, so one diagonal
+   cuts the button and its shadow; the cut's own line is the first background layer.
+   A colour tier sets --sys-edge (border, cut line, tint) and --sys-fill (the hover
+   fill and its shadow). */
+/* Registered, so a hover can change a button's colour gradually: an unregistered
+   custom property jumps. The initial values are .btn-sys's own. */
 @property --sys-edge { syntax: '<color>'; inherits: true; initial-value: #555; }
 @property --sys-fill { syntax: '<color>'; inherits: true; initial-value: #888; }
 .btn-sys {
@@ -87,28 +70,21 @@ html.reduce-motion .btn-sys { transition: none; }
 html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:active:not(:disabled) { transform: none; }
 
 .btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
-/* Blue is a fixed value, not var(--accent-blue): a character page's theme
-   (js/utility/site_meta.js applyCharacterTheme) sets --accent-blue to the character's
-   own colour, which made the editor's blue Media Library button gray on
-   Boomcat (owner, 2026-10-20). The value is the site's default accent. */
+/* Blue is a fixed value, not var(--accent-blue), which a character page's theme
+   sets to the character's colour. The value is the site's default accent. */
 .btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); color: hsl(213, 94%, 68%); }
 .btn-sys-green   { --sys-edge: #22c55e; --sys-fill: #22c55e; color: #22c55e; }
 .btn-sys-red     { --sys-edge: #ef4444; --sys-fill: #ef4444; color: #ef4444; }
 .btn-sys-yellow  { --sys-edge: #eab308; --sys-fill: #eab308; color: #eab308; }
 .btn-sys-purple  { --sys-edge: #a855f7; --sys-fill: #a855f7; color: #a855f7; }
 
-/* Filled Variants (For Modals). Always worn with .btn-sys and its colour tier,
-   whose hover shadow they keep: the glow they used to add on hover is gone
-   with the rest of the glows (v1.1). */
+/* Filled variants, for modals, always worn with .btn-sys and its colour tier. */
 .btn-danger-fill { background: #ef4444 !important; color: #000 !important; border-color: #ef4444 !important; }
 .btn-purple-fill { background: #a855f7 !important; color: #000 !important; border-color: #a855f7 !important; }
 
 
-/* =========================================
-   FAMILY 2: MANGA BUTTONS (Live Wiki / Action / Filters)
-   ========================================= */
+/* Manga buttons: the live wiki's actions and filters */
 
-/* --- 1. The Base Aesthetic Engine --- */
 .btn-manga, .filter-toggle {
     --manga-accent: var(--accent-blue);
     --manga-border: var(--border-color);
@@ -130,7 +106,6 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     box-sizing: border-box;
 }
 
-/* Hover Physics */
 .btn-manga:hover, .filter-toggle:hover {
     background: var(--bg-main);
     color: var(--text-white);
@@ -147,19 +122,16 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     font-weight: bold;
 }
 
-/* --- 2. Color Modifiers --- */
-/* Simply swap the local variable to instantly create new colored buttons! */
+/* A colour is one variable. */
 .btn-manga-gray   { --manga-accent: var(--text-muted); color: var(--text-muted); border-color: var(--border-color); }
 
 
-/* --- 3. Geometry Modifiers --- */
 .btn-manga-slanted { transform: skewX(-10deg); }
 .btn-manga-slanted:hover { transform: skewX(-10deg) translate(-2px, -2px); }
 .btn-manga-slanted.active { transform: skewX(-10deg); }
 
-/* A clicked tab punches out a little and settles (v1.1), in 0.2s. Only ever
-   added by a click (js/utility/site_utils.js), so a page opening on its first tab
-   stays still. */
+/* A clicked tab punches out a little and settles, in 0.2s. Added only by a click
+   (site_utils.js), so a page opening on its first tab stays still. */
 .btn-manga-slanted.tab-punch { animation: tab-punch 0.2s cubic-bezier(0.3, 1.6, 0.6, 1); }
 @keyframes tab-punch {
     from { transform: skewX(-10deg) scale(1.1); box-shadow: 7px 7px 0 var(--manga-accent); }
@@ -173,16 +145,13 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
 .btn-manga-box .btn-manga-content { transform: none; }
 .btn-manga-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* The box a dock button's icon sits in. The icon is the owner's pixel art
-   (.px-icon, 16px), never stretched or scaled on hover: a pixel between
-   whole sizes smears. */
+/* The box a dock button's icon sits in. The 16px pixel icon is never stretched or
+   scaled on hover: a pixel between whole sizes smears. */
 .btn-manga-icon { 
     display: flex; justify-content: center; align-items: center; 
     flex-shrink: 0; width: 1.2rem; height: 1.2rem; 
 }
-/* =========================================
-   FAMILY 3: NAVIGATION BUTTONS
-   ========================================= */
+/* Navigation buttons */
 .btn-nav {
     display: flex;
     width: 100%;
@@ -216,9 +185,7 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
 }
 
 
-/* =========================================
-   FAMILY 4: GHOST BUTTONS
-   ========================================= */
+/* Ghost buttons */
 .btn-ghost {
     display: inline-flex; align-items: center; gap: 0.5rem;
     color: var(--accent-blue);
@@ -234,12 +201,8 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     transform: translateX(3px);
 }
 
-/* =========================================
-   MOBILE TOUCH TARGETS
-   Below 1024px (the same breakpoint the sidebar switches to mobile
-   mode at), bump tappable buttons up toward the ~44px guideline
-   without changing their desktop padding/font-size.
-   ========================================= */
+/* Below 1024px (where the sidebar becomes a drawer), tappable buttons grow toward
+   44px, without changing their desktop size. */
 @media (max-width: 1023px) {
     .btn-sys, .btn-manga, .filter-toggle {
         min-height: 44px;
