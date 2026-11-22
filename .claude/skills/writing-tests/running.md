@@ -24,6 +24,7 @@ Locally, run the specs a change touches plus `npm run validate`, not the full su
   git diff -U0 | grep '^-' | grep -o '[a-z-]*="[a-z_-]*"' | sort -u
   ```
   Point such a test at the new source of truth rather than loosening it.
+- **Grep for how tests read the text you changed, not for the feature's name.** #302 put a `?v=` stamp on every stylesheet link and its specs were picked by the word "stamp". CI then failed two specs that matched links ending in `.css"`, which no link does any more. The old text's shape finds them: `grep -ln '\.css"' tests/*.spec.js`.
 - **A selector that exists in only one state encodes the default.** `.block-card-summary` exists only on a collapsed block, so flipping the default turned 18 tests into timeouts.
 
 ## Read the counts
