@@ -22,20 +22,22 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The suite in three parts, each on its own runner at the same time. On one
-  # runner it reached 26.7 of its 30 minutes (2,497 tests, 2026-10-22).
-  # Playwright does the split: every part reads the same list of tests and
-  # runs its own third (--shard), so the parts never need to talk.
+  # The suite in parts, each on its own runner at the same time. On one runner
+  # it reached 26.7 of its 30 minutes (2,497 tests, 2026-10-22); in three parts
+  # each took about 10 minutes (2,950 tests, 2026-11-22), about 40 s of it setup.
+  # Playwright does the split: every part reads the same list of tests and runs
+  # its own share (--shard), so the parts never need to talk. The number of
+  # parts is the length of the matrix list, and nothing else states it.
   shard:
-    name: shard ${{ matrix.shard }}/3
+    name: shard ${{ matrix.shard }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
-      # A red part must not stop the other two: their failures are what the
-      # next push needs to know about too.
+      # A red part must not stop the others: their failures are what the next
+      # push needs to know about too.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       # fetch-depth: 0 so the docs-only check below can diff against the base.
       - uses: actions/checkout@v4
@@ -122,7 +124,7 @@ jobs:
       # screenshot baselines are OS-specific, so the committed Windows set
       # can never match a Linux runner. It stays a local-only CSS tool.
       - if: steps.changed.outputs.docs_only != 'true'
-        run: npx playwright test --shard=${{ matrix.shard }}/3
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - if: ${{ !cancelled() && steps.changed.outputs.docs_only != 'true' }}
         uses: actions/upload-artifact@v4
@@ -132,7 +134,7 @@ jobs:
           retention-days: 14
 
   # The check both branch rulesets require, by the name they require it as,
-  # so the rulesets need no change. Green only when all three parts are.
+  # so the rulesets need no change. Green only when every part is.
   #
   # always(), not !cancelled(): a job skipped by its condition reports
   # SUCCESS to a required check, so a run cancelled on a PR's latest commit
@@ -145,5 +147,5 @@ jobs:
     timeout-minutes: 5
     steps:
       - run: |
-          echo "The three parts: ${{ needs.shard.result }}"
+          echo "The parts: ${{ needs.shard.result }}"
           [ "${{ needs.shard.result }}" = "success" ]
