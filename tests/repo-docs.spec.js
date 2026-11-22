@@ -176,3 +176,20 @@ test.describe('the rules in .claude/rules/', () => {
         expect(globRegExp('supabase/functions/**').test('supabase/functions/_shared/discord-relay-core.mjs')).toBe(true);
     });
 });
+
+test.describe('docs/glossary.md', () => {
+    test('every file its table names is in the repo, so the table follows a rename', () => {
+        const rows = read('docs/glossary.md').split('\n')
+            .filter(line => line.startsWith('|') && !/^\|[\s|:-]+\|\s*$/.test(line))
+            .slice(1);
+        const files = rows.flatMap(row => {
+            const cells = row.split('|').map(cell => cell.trim());
+            return [...cells[cells.length - 2].matchAll(/`([\w./-]+\.(?:js|css|html|json|md))`/g)].map(m => m[1]);
+        });
+        expect(files).toContain('editor-framedata.js');
+        for (const f of files) {
+            const found = f.includes('/') ? TRACKED.includes(f) : TRACKED.some(t => t === f || t.endsWith(`/${f}`));
+            expect(found, `the glossary names ${f}, which is not in the repo`).toBe(true);
+        }
+    });
+});

@@ -2,6 +2,7 @@
 
 How Dogslamloop Wiki's code is built, for the owner and anyone reading the code. Text readers see lives in the pages, not here.
 
+- `glossary.md`: what each thing is called on screen, in the code and in the data, and the renames planned.
 - `area-template.md`: the shape of an area page.
 - One page per area of the site (the editor, the character page, tier lists and so on), each with its files, its data, what to watch for, and a Decisions list. The history that sits in code comments today moves into these pages as the comments are trimmed.
 

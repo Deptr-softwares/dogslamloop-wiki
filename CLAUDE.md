@@ -101,6 +101,7 @@ This section is the index. A rule that names a practice file has its incidents, 
 **Before writing**
 - Read the code being changed and the code that calls it. Search for an existing helper by what it does, not only by its name, and reuse it (`practice-new-code.md`).
 - The current devlog is the spec. If it does not settle a data shape or a behaviour, ask; never invent one.
+- Names: `docs/glossary.md` says what each thing is called on screen, in the code and in the data, and which renames are planned. New code uses the name the screen shows.
 - Never use a function, column, table, flag, API or package you have not seen exist, in this repo or in the library's official docs. A plausible-looking name that does not exist is the commonest assistant error. A new dependency (a CDN `<script>`, an npm package) is the owner's call.
 
 **While writing**
