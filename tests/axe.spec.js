@@ -34,14 +34,12 @@ const PAGES = [
 
 const BASELINE = {
     '/index.html': [
-        'aria-allowed-attr #site-search-input',
         'color-contrast .mb-2',
         'color-contrast .site-footer-note',
         'color-contrast div > .game-info-label',
         'scrollable-region-focusable .scroll-sm',
     ],
     '/characters/Crow_charmer/index.html': [
-        'aria-allowed-attr #site-search-input',
         'color-contrast .author-badge',
         'color-contrast .combo-block > .combo-container > .is-1.combo-node.is-slotted',
         'color-contrast .combo-block > .combo-container > .is-2.combo-node.is-slotted',
@@ -61,15 +59,12 @@ const BASELINE = {
         'target-size li > .toc-link-minor.btn-nav',
     ],
     '/characters/index.html': [
-        'aria-allowed-attr #site-search-input',
         'color-contrast .site-footer-note',
     ],
     '/systems/tierlist/index.html': [
-        'aria-allowed-attr #site-search-input',
         'color-contrast .site-footer-note',
     ],
     '/privacy-policy.html': [
-        'aria-allowed-attr #site-search-input',
         'color-contrast .site-footer-note',
     ],
     '/edit.html?page=crow_charmer': [

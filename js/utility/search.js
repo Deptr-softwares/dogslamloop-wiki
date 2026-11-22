@@ -183,6 +183,7 @@
             <label class="sr-only" for="site-search-input">Search the wiki</label>
             <input type="search" id="site-search-input" class="site-search-input"
                    placeholder="Search the wiki..." autocomplete="off" spellcheck="false"
+                   role="combobox" aria-autocomplete="list"
                    aria-controls="site-search-results" aria-expanded="false">
             <div id="site-search-results" class="site-search-results hidden" role="listbox"></div>`;
         nav.parentNode.insertBefore(wrap, nav);
