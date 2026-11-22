@@ -620,6 +620,20 @@ test('the jump button shows a count, and nothing at all when there is none', asy
     await expect(page.locator('#jump-discussion-count')).toHaveText('');
 });
 
+test('the jump button is named by what it shows, so a screen reader says the count too', async ({ page }) => {
+    await mockThread(page, { rows: [post()], session: null, count: 7 });
+    await open(page);
+    const btn = page.locator('#btn-jump-discussion');
+    await expect(page.locator('#jump-discussion-count')).toHaveText('7');
+    await expect(btn).toHaveAccessibleName('Jump to the discussion 7');
+    await expect(btn).not.toHaveAttribute('aria-label');
+
+    await page.goto('about:blank');
+    await mockThread(page, { rows: [], session: null, count: 0 });
+    await open(page);
+    await expect(page.locator('#btn-jump-discussion')).toHaveAccessibleName('Jump to the discussion');
+});
+
 test('the jump button still scrolls when the thread fails to load', async ({ page }) => {
     // A control that does nothing because a query failed is worse than no
     // control, so it is wired before anything is fetched.

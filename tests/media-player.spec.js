@@ -169,6 +169,14 @@ test('youtube blocks are untouched', async ({ page }) => {
   expect(html).not.toContain('data-wiki-player');
 });
 
+test('a youtube embed has a name, so a screen reader can say what the frame is', async ({ page }) => {
+  await boot(page);
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML('beforeend', `<div id="yt-probe">${window.generateHTMLForBlocks([{ type: 'youtube', videoId: 'dQw4w9WgXcQ' }], '')}</div>`);
+  });
+  await expect(page.locator('#yt-probe iframe.wiki-video-embed')).toHaveAccessibleName('YouTube video');
+});
+
 test('the play button drives the video and the duration bar fills', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));

@@ -163,6 +163,20 @@ test('the keyboard can move it too', async ({ page }) => {
   expect((await panes(page)).pct, 'Home resets it').toBe(30);
 });
 
+test('a screen reader hears where it stands, and hears it move', async ({ page }) => {
+  await openEditor(page);
+  const splitter = page.locator('#editor-splitter');
+  await expect(splitter).toHaveAttribute('aria-valuenow', '30');
+
+  await splitter.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(splitter).toHaveAttribute('aria-valuenow', '31');
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(splitter).toHaveAttribute('aria-valuenow', '36');
+  await page.keyboard.press('Home');
+  await expect(splitter).toHaveAttribute('aria-valuenow', '30');
+});
+
 test('below the mobile breakpoint there is no splitter and both panes are full width', async ({ page }) => {
   // The layout turns into a column down here and both panes are width:100%
   // !important. A flex-basis from the splitter would have become a HEIGHT.

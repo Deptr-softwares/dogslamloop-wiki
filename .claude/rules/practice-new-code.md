@@ -36,6 +36,7 @@ paths:
 - `tests/site-utils-parts.spec.js`: every page loads the parts, in order.
 - `tests/global-scope-collisions.spec.js`: no two files a page loads declare the same top-level name.
 - `tests/one-escape-helper.spec.js`: one escaper.
+- `tests/page-weight.spec.js`: each kind of page has a budget for the scripts and stylesheets its tags load (gzipped, today plus 5%). A page that outgrows it fails; one that gets more than 5% lighter fails until its number is lowered in the same PR.
 
 ## Read more
 

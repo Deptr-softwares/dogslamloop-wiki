@@ -2182,10 +2182,11 @@
     // A bare icon gives nobody a reason to press it. The count is the whole
     // argument for going down there, so the button carries it - and says
     // nothing at all rather than "0" when the thread is empty, because an
-    // explicit zero reads as a dead feature.
+    // explicit zero reads as a dead feature. The button's name is its own
+    // text (a hidden "Jump to the discussion", then the count), so what a
+    // screen reader says always holds what is on screen.
     async function updateJumpCount() {
         const label = document.getElementById('jump-discussion-count');
-        const btn = document.getElementById('btn-jump-discussion');
         if (!label) return;
 
         let count = null;
@@ -2200,14 +2201,7 @@
             count = null;
         }
 
-        if (typeof count !== 'number' || count <= 0) {
-            label.textContent = '';
-            if (btn) btn.setAttribute('aria-label', 'Jump to the discussion');
-            return;
-        }
-
-        label.textContent = String(count);
-        if (btn) btn.setAttribute('aria-label', `Jump to the discussion (${count})`);
+        label.textContent = typeof count === 'number' && count > 0 ? String(count) : '';
     }
 
     // A composer outside a thread: the forum's NEW POST (v1.0 batch 2). The

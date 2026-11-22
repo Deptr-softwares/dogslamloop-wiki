@@ -24,21 +24,21 @@
     <!-- END GENERATED: hub-meta -->
 
     <!-- 1. FOUNDATIONS -->
-    <link rel="stylesheet" href="style/Common.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=3d8b8d71">
+    <link rel="stylesheet" href="style/Common.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=5dca1d8b">
     
     <!-- 2. COMPONENTS -->
-    <link rel="stylesheet" href="style/Buttons.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/Modals.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/Forms.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/Badges.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/Alerts.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/Cards.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/FrameData.css?v=3d8b8d71">
+    <link rel="stylesheet" href="style/Buttons.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/Modals.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/Forms.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/Badges.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/Alerts.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/Cards.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/FrameData.css?v=5dca1d8b">
 
     <!-- 3. PAGE LAYOUT -->
-    <link rel="stylesheet" href="style/Layout.css?v=3d8b8d71">
-    <link rel="stylesheet" href="style/look-classic.css?v=3d8b8d71">
+    <link rel="stylesheet" href="style/Layout.css?v=5dca1d8b">
+    <link rel="stylesheet" href="style/look-classic.css?v=5dca1d8b">
     <!-- The look picked in Site settings, set before the page paints so the
          other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
@@ -253,10 +253,11 @@
                 <div class="space-y-6">
                     <section class="wiki-section" id="credits-section">
                         <div class="dashboard-header-split">
-                            <h2 class="section-title section-title-clean m-0" data-heading-key="credits">&nbsp;</h2>
+                            <h2 class="section-title section-title-clean m-0" id="credits-heading" data-heading-key="credits">&nbsp;</h2>
                         </div>
-                        
-                        <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;">
+
+                        <!-- Focusable, so a keyboard can scroll a list that holds nothing else to focus. -->
+                        <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;" tabindex="0" role="region" aria-labelledby="credits-heading">
                             <ul class="credits-list" id="credits-dynamic-list">
                                 <li><p class="loading-msg loading-msg-busy">Loading credits...</p></li>
                             </ul>
@@ -302,25 +303,25 @@
          them too. -->
     <script defer src="js/vendor/supabase-js-2.118.0.js"></script>
 
-    <script defer src="js/utility/site_meta.js?v=3d8b8d71"></script>
-    <script defer src="js/utility/character_tabs.js?v=3d8b8d71"></script>
-    <script defer src="js/utility/input_slots.js?v=3d8b8d71"></script>
-    <script defer src="js/utility/site_utils.js?v=3d8b8d71"></script>
-    <script defer src="js/utility/site_data.js?v=3d8b8d71"></script>
-    <script defer src="js/utility/site_media.js?v=3d8b8d71"></script>
-    <script defer src="js/utility/site_account.js?v=3d8b8d71"></script>
-    <script defer src="js/dashboards/home_widgets.js?v=3d8b8d71"></script>
-    <script defer src="js/pages/core/pagebuilder.js?v=3d8b8d71"></script>
-    <script defer src="js/utility/search.js?v=3d8b8d71"></script>
+    <script defer src="js/utility/site_meta.js?v=5dca1d8b"></script>
+    <script defer src="js/utility/character_tabs.js?v=5dca1d8b"></script>
+    <script defer src="js/utility/input_slots.js?v=5dca1d8b"></script>
+    <script defer src="js/utility/site_utils.js?v=5dca1d8b"></script>
+    <script defer src="js/utility/site_data.js?v=5dca1d8b"></script>
+    <script defer src="js/utility/site_media.js?v=5dca1d8b"></script>
+    <script defer src="js/utility/site_account.js?v=5dca1d8b"></script>
+    <script defer src="js/dashboards/home_widgets.js?v=5dca1d8b"></script>
+    <script defer src="js/pages/core/pagebuilder.js?v=5dca1d8b"></script>
+    <script defer src="js/utility/search.js?v=5dca1d8b"></script>
     <!-- The homepage post widget lists posts only (escaped title/summary/date)
          and needs neither of these. The About Us section does: it renders
          authored blocks through generateHTMLForBlocks, which lives in
          description.js and relies on internalstyling.js for inline markup. -->
-    <script defer src="js/pages/core/description.js?v=3d8b8d71"></script>
-    <script defer src="js/pages/core/internalstyling.js?v=3d8b8d71"></script>
-    <script defer src="js/pages/community/posts.js?v=3d8b8d71"></script>
-    <script defer src="js/dashboards/hub_content.js?v=3d8b8d71"></script>
-    <script async src="js/others/analytics.js?v=3d8b8d71"></script>
+    <script defer src="js/pages/core/description.js?v=5dca1d8b"></script>
+    <script defer src="js/pages/core/internalstyling.js?v=5dca1d8b"></script>
+    <script defer src="js/pages/community/posts.js?v=5dca1d8b"></script>
+    <script defer src="js/dashboards/hub_content.js?v=5dca1d8b"></script>
+    <script async src="js/others/analytics.js?v=5dca1d8b"></script>
 
     <!-- A module rather than a plain script since v1.2: a module waits in the
          same queue as the deferred scripts above, so it still runs after them
