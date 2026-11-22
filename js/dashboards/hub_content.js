@@ -1,47 +1,23 @@
 /**
- * Dogslamloop Wiki - Hub dashboard prose, rendered from the CMS.
- *
- * The three hub dashboards had their intro copy written directly into the
- * markup, so changing a sentence meant a commit. This renders it from
- * page_data instead, reusing the pipeline every other body of text on the site
- * already goes through.
- *
- * A hub is not a tabbed page, so this deliberately does NOT call
- * loadPageDescriptions(): that function appends tab containers to
- * .main-content-area and would take the whole page over, wiping the roster
- * grid and the systems directory with it. Instead a hub's tabs are treated as
- * named slots, and one slot renders into one container - the same thing
- * posts.js's renderPostBody does for a blog post.
- *
- * Loaded on index.html, characters/index.html and systems/index.html, which
- * are all hand-authored (NEVER_TOUCH in scripts/generate-pages.js).
+ * The hub pages' authored parts (index.html, characters/index.html,
+ * systems/index.html): their prose slots, section headings, the Game Info panel
+ * and the ordered step lists, all from the CMS.
+ * @since v0.11
+ * @touches page_data (a hub's slots), the site_meta table, falling back to
+ *   data/site_meta.json
+ * @watch a hub is not a tabbed page: never call loadPageDescriptions here, which
+ *   would append tab containers and wipe the roster and the directory. A slot
+ *   renders into one container.
+ * @see docs/home.md
  */
 
-// One fetch per hub per page load. Several slots on the same page share a row,
-// and each of them calling Supabase separately would be three round trips for
-// one object.
+// One fetch per hub per page load, shared by its slots.
 const hubDataCache = {};
 
 /**
- * Site metadata for the three things this file renders: section headings, the
- * dashboard step lists, and the Game Info panel.
- *
- * Reads the site_meta table directly, falling back to data/site_meta.json.
- *
- * It originally read only the JSON file, which was wrong in a way the owner
- * hit immediately: that file is a committed artifact refreshed by the
- * regeneration workflow, so a save in owner.html reached the database and
- * changed nothing on the site. Worse, the tool said "Live immediately".
- *
- * The table is the source of truth, so it is what gets read. The JSON stays as
- * the fallback, which also keeps this working if Supabase is briefly
- * unreachable.
- *
- * Only the three hub pages load this file, and they already query Supabase
- * several times each, so this is one more round trip on three pages - not on
- * all forty. js/utility/site_meta.js still reads the JSON for the version and tagline
- * in the sidebar, which render on every page and genuinely do not need to be
- * instant.
+ * The site_meta table, read directly, falling back to data/site_meta.json: the
+ * JSON is refreshed by the nightly job, so reading only it made an owner's save
+ * change nothing on the site. Only the three hubs load this.
  */
 let siteMetaPromise = null;
 
@@ -120,19 +96,9 @@ function blocksForSlot(descData, slotId) {
 }
 
 /**
- * Render one authored slot into one container.
- *
- * Returns true if it rendered authored content.
- *
- * THE CMS IS THE ONLY COPY (v1.0 Part 3). The containers used to ship a
- * hand-written paragraph that stayed until this replaced it, so an outage
- * would still show text. It went stale instead: by 2026-10-08 the About Us a
- * reader saw for the first moment of every visit was text the owner had
- * rewritten long before, and the owner asked for it gone ("clear the old
- * hardcoded texts in place of the CMS generated texts"). The container now
- * ships "Loading...", and this always replaces it: with the slot's content,
- * with a line saying it could not be loaded, or with nothing when the slot is
- * empty.
+ * Renders one authored slot into one container, returning whether it rendered
+ * content. The CMS is the only copy: the container ships "Loading..." and this
+ * always replaces it, with the content, a line saying it could not load, or nothing.
  */
 window.renderHubSlot = async function(pageId, slotId, containerId) {
     const container = document.getElementById(containerId);
@@ -166,17 +132,11 @@ window.renderHubSlot = async function(pageId, slotId, containerId) {
     return true;
 };
 
-// --- SECTION HEADINGS -------------------------------------------------
-//
-// Rendered at runtime, not through the marked region that handles <title> and
-// OG tags. Headings are body content: no unfurler reads them, so the
-// build-time machinery buys nothing. A heading is only replaced when site_meta
-// carries a value for its key. Since v1.0 Part 3 a heading site_meta sets
-// ships as &nbsp; rather than a hand-written copy of its text; the few with
-// no site_meta value keep their markup text, which is then their only copy.
-//
-// Elements opt in with data-heading-key, so this can never rewrite a heading
-// that was not meant to be editable.
+/**
+ * Section headings from site_meta, at runtime, since no unfurler reads a heading.
+ * Only elements with data-heading-key are rewritten, and only when site_meta has a
+ * value.
+ */
 window.applyHubHeadings = async function(pageId) {
     const targets = document.querySelectorAll('[data-heading-key]');
     if (targets.length === 0) return 0;
@@ -187,9 +147,7 @@ window.applyHubHeadings = async function(pageId) {
 
     targets.forEach(el => {
         const value = headings[el.dataset.headingKey];
-        // textContent, not innerHTML: a heading is a string, and this is the
-        // one place owner-authored text meets the DOM without going through
-        // the block renderer's escaping.
+        // textContent: a heading is a string.
         if (typeof value === 'string' && value.trim() !== '') {
             el.textContent = value;
             applied++;
@@ -198,16 +156,10 @@ window.applyHubHeadings = async function(pageId) {
     return applied;
 };
 
-// --- GAME INFO PANEL --------------------------------------------------
-//
-// Structured fields rather than authored blocks. The block editor is built for
-// prose, and pushing a labelled field list through it would produce a
-// paragraph that only looks like one - losing .game-info-label, the subtext
-// styling and the mobile layout.
-//
-// site_meta is the only copy (v1.0 Part 3): the panel ships "Loading...",
-// which this always replaces, with nothing when there is no game info.
-// fetchSiteMeta already falls back to the committed data/site_meta.json.
+/**
+ * The Game Info panel from site_meta's structured fields, not Blocks, which would
+ * flatten its labelled layout. site_meta is the only copy.
+ */
 window.renderGameInfo = async function(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return false;
@@ -254,15 +206,10 @@ window.renderGameInfo = async function(containerId) {
     return true;
 };
 
-// --- ORDERED STEP LISTS -----------------------------------------------
-//
-// Start Here and How to Contribute. Curated rather than generated: the page
-// registry knows these guides exist but has no opinion on which to read first,
-// and that opinion is the entire value of the section - so it is owner-edited
-// from owner.html rather than derived from navigation.json.
-//
-// site_meta is the only copy (v1.0 Part 3), as for the Game Info panel: the
-// list ships "Loading...", which this always replaces.
+/**
+ * An ordered step list (Start Here, How to Contribute) from site_meta, curated in
+ * the owner tools: which guide to read first is the whole value.
+ */
 window.renderHubList = async function(pageId, listId, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return false;

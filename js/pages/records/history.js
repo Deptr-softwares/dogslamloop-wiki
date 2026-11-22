@@ -1,56 +1,17 @@
 /**
- * Dogslamloop Wiki - history.html
- *
- * Renders the approved-revision ledger for one page: ?page=<page_id>, newest
- * first, one revision per page load (?rev=<id>), with NEWER/OLDER links.
- *
- * A revision approved since 20261029000001 shows the WHOLE page as it was
- * right after it (get_page_after_revision). One approved before that has no
- * approval time, so it shows what it changed, and says so.
- *
- * WHAT IT IS, AND WHAT IT IS NOT
- *
- * This is a READER of the same data admin.html reviews, on a page any visitor
- * can open. It reads approved_revisions, a view of approved submissions without
- * their review chat or votes (20261030000000), so the database is what keeps
- * unapproved work and the review discussion out of it, not this file.
- *
- * HOW IT REACHES THE REST OF THE SITE
- *
- * It owns no renderer. A revision is reconstructed into the shape the live
- * page renderers already expect, and then handed to them:
- *
- *   applyDeltaToData   site_data.js    rebuilds a delta revision into full
- *                                      desc/frame data (defined once there,
- *                                      loaded before this file)
- *   fetchCloudCharacterData            site_data.js. Every renderer reads the
- *                                      page through it, so servePageAs answers
- *                                      for this page with the historical
- *                                      content, and the live page's own code
- *                                      draws it
- *   buildPageSkeleton                  page_router.js, the live page's markup
- *   bootCharacterContent               page_boot.js, the live page's steps:
- *                                      tabs, moves, states, descriptions
- *   currentEditorDescData              tierlist.js still reads this, so the
- *                                      tier list branch sets it
- *   applyCharacterTheme                site_meta.js, so a historical page wears
- *                                      the character's colour like the live one
- *
- * That reuse is the point: a "history renderer" of its own would drift from
- * what the live pages show, and the diff a reviewer approved would stop
- * matching the diff a reader can inspect.
- *
- * THE INPUT THAT IS NOT TRUSTED
- *
- * Revision fields are contributor-submitted, so the card escapes them. Tab
- * ids now come from the vocabulary alone (page_router.js): a move delta's
- * target_key used to add a tab here, through an inline onclick until
- * 2026-09-06, which was executable.
- *
- * escapeHtml is duplicated here rather than imported, matching this codebase's
- * precedent (owner.js, submissions.js, recent-changes.js) of small per-file
- * duplication over new cross-file coupling: admin-core.js is not loaded on this
- * page.
+ * History (history.html): the approved-revision ledger for one page
+ * (?page=<page_id>), newest first, one revision per page load (?rev=<id>). A
+ * revision approved since approvals were timestamped shows the whole page as it was
+ * right after it; an older one shows what it changed, and says so.
+ * @since v0.4
+ * @touches approved_revisions, get_page_after_revision, and the live page's own
+ *   code: applyDeltaToData, buildPageSkeleton, bootCharacterContent,
+ *   fetchCloudCharacterData (answered with the historical content),
+ *   applyCharacterTheme
+ * @watch it owns no renderer: a revision is rebuilt into the shape the live
+ *   renderers expect and drawn by them, so History cannot drift from the live page.
+ *   Revision fields are contributor text, escaped.
+ * @see docs/page-data.md
  */
 
 window.historyRevisions = [];
@@ -60,10 +21,7 @@ window.currentHistoryIndex = 0;
 // drawCharacterPage).
 let historyPageName = null;
 
-// applyDeltaToData is defined once, in site_data.js (loaded before this file).
-
-// --- RELATIVE PATH CLEANER ---
-// Converts "../../medias/..." to "medias/..." so images load correctly from the root directory!
+// "../../medias/..." becomes "medias/...", since History sits at the root.
 const cleanPaths = (obj) => {
     if (typeof obj === 'string') return obj.replace(/\.\.\/\.\.\//g, '');
     if (Array.isArray(obj)) return obj.map(cleanPaths);
@@ -95,8 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (foundKey) exactCharName = foundKey;
     }
 
-    // 1. INJECT NATIVE CHARACTER THEME
-    // Set the title exactly to the character name FIRST so the theme engine finds it!
+    // The title is the character's name first, so the theme finds it; "HISTORY" comes
+    // after.
     const titleEl = document.getElementById('history-page-title');
     titleEl.textContent = exactCharName; 
     
@@ -104,7 +62,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.applyCharacterTheme();
     }
     
-    // Once colors are applied, append the "HISTORY" text
     titleEl.textContent = `${exactCharName} HISTORY`;
     historyPageName = exactCharName;
 
@@ -113,15 +70,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. FETCH ARRAY OF METADATA (Fast network request)
     const { data: revs, error } = await window.supabaseClient
         .from('approved_revisions')
         .select('*')
         .eq('page_id', pageId)
         .order('created_at', { ascending: false });
 
-    // A refused read is not an empty history. Reading it as one hid History
-    // failing for every logged-out reader in 2026-08 (20260803000000).
+    // A refused read is not an empty history: it is shown as an error.
     if (error) {
         document.getElementById('history-meta-card').innerHTML = `<div class="empty-tab-msg">Failed to load this page's history: ${window.escapeHtml(error.message)}</div>`;
         return;
@@ -134,9 +89,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.historyRevisions = revs;
 
-    // 3. RENDER ONE REVISION. One per page load, picked by ?rev=<id>: the
-    // live page's renderers draw into fixed ids and keep their own caches, so
-    // a second revision in the same document would be drawn over the first.
+    // One revision per page load, picked by ?rev=<id>: the live renderers draw into
+    // fixed ids and keep caches, so a second revision would draw over the first.
     const wanted = urlParams.get('rev');
     const found = wanted ? revs.findIndex(r => r.id === wanted) : 0;
     window.currentHistoryIndex = found >= 0 ? found : 0;
@@ -153,7 +107,6 @@ window.renderRevision = async function(index) {
     let scopeText = rev.is_delta ? `Target Scope: ${window.escapeHtml(rev.target_scope.toUpperCase())} [${window.escapeHtml(rev.target_key)}]` : `Target Scope: FULL OVERWRITE`;
     if (rev.target_scope === 'multi') scopeText = `Target Scope: BATCHED MULTI-EDIT (${rev.delta_payload.length} targets)`;
 
-    // --- RENDER PAGINATION & METADATA CARD ---
     const metaCard = document.getElementById('history-meta-card');
     metaCard.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; background: var(--bg-main); padding: 0.5rem 1rem; border: 1px solid var(--border-color); border-radius: 4px;">
@@ -182,9 +135,8 @@ window.renderRevision = async function(index) {
         </div>
     `;
 
-    // --- RECONSTRUCT THE PAYLOAD ---
-    // From the page list, not the revision's own page_type (the submitter's
-    // word): it picks the renderer below.
+    // The page's kind from the page list, not the revision's page_type (the
+    // submitter's word): it picks the renderer below.
     window.currentEditorPageType = (await window.registeredPageType(rev.page_id)) || 'character';
     window.activePreviewCharId = rev.page_id;
 
@@ -198,10 +150,8 @@ window.renderRevision = async function(index) {
         if (rev.is_delta) tierDesc = window.applyDeltaToData({}, {}, rev.target_scope, rev.target_key, rev.delta_payload).newDesc;
         window.currentEditorDescData = cleanPaths(tierDesc);
 
-        // Unlike the 'system' branch, tierlist.js's loadTierList() looks up
-        // its containers by a fixed set of global IDs (not a scoped query),
-        // so we can build them directly inside history's own container
-        // instead of building elsewhere and re-parenting.
+        // loadTierList finds its containers by fixed ids, so they are built straight into
+        // History's own container.
         mainArea.innerHTML = `
             <nav id="tier-tabs-container" class="character-nav" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">
                 <p class="loading-msg loading-msg-busy" style="margin:0;">Loading tabs...</p>
@@ -221,11 +171,10 @@ window.renderRevision = async function(index) {
         return;
     }
 
-    // The whole page as it was right after this revision (owner, 2026-10-29),
-    // from the snapshots the database keeps of every live change. Only a
-    // revision approved since 20261029000001 knows when it was approved; for
-    // the ones before, its delta is all there is, and the page says so. A full
-    // overwrite already is a whole page.
+    // The whole page as it was right after this revision, from the snapshots the
+    // database keeps of every live change. One approved before approvals were
+    // timestamped has only its delta, and the page says so. A full overwrite is a whole
+    // page already.
     const whole = await wholePageAfter(rev);
     const partial = !whole && rev.is_delta;
 
@@ -257,18 +206,18 @@ window.renderRevision = async function(index) {
         // Read by internalstyling.js for the page's own colour words.
         window.PAGE_ROUTE = { pageId: rev.page_id, pageType: 'system', title: historyPageName };
 
-        // Do NOT build the tabs here! Let description.js build the dynamic system UI natively.
+        // description.js builds a system page's tabs itself.
         if (typeof window.loadPageDescriptions === 'function') {
             await window.loadPageDescriptions(rev.page_id, 'system');
 
-            // Catch the auto-generated Navigation Bar and move it down into the History container
+            // Its tab strip moves into History's container.
             const sysNav = document.getElementById('system-dynamic-nav');
             if (sysNav) {
                 sysNav.style.marginTop = '0'; // Remove top margin to sit flush under the history card
                 mainArea.appendChild(sysNav);
             }
 
-            // Catch all the auto-generated Tab Content Containers and move them into the History container
+            // And its tab panels.
             document.querySelectorAll('main.main-content-area > .tab-content').forEach(tab => {
                 if (tab.parentElement !== mainArea) {
                     mainArea.appendChild(tab);
@@ -298,9 +247,8 @@ function historyStep(index, label) {
     return `<a class="btn-sys btn-sys-regular" href="${window.escapeHtml(href)}">${label}</a>`;
 }
 
-// NULL from the database means "not one it can answer for": a revision from
-// before approvals were timestamped. Until 20261029000001 reaches production
-// the function does not exist either, and that is the same answer.
+// NULL means a revision from before approvals were timestamped; a database without
+// the function gives the same answer.
 async function wholePageAfter(rev) {
     if (!rev.approved_at || !window.supabaseClient) return null;
     const { data, error } = await window.supabaseClient.rpc('get_page_after_revision', { target_revision_id: rev.id });
@@ -311,27 +259,20 @@ async function wholePageAfter(rev) {
     return data || null;
 }
 
-// Every renderer reads a page through window.fetchCloudCharacterData
-// (js/utility/site_utils.js), so answering for this page with the historical content
-// draws a past version with the live page's own code. The rest of the row
-// (which optional tabs the page has) is today's: page_history keeps content
-// only.
-//
-// It used to set currentEditorDescData and currentEditorFrameData instead,
-// and framedata.js reads neither: it fetched the live page, so every frame
-// data tab in History showed today's moves (a revision that changed only
-// Lapse Blue drew all seven of Honored One's current skills).
+// Every renderer reads a page through fetchCloudCharacterData, so answering it for
+// this page with the historical content draws a past version with the live page's
+// own code. The rest of the row (optional tabs) is today's: page_history keeps
+// content only.
 function servePageAs(pageId, desc, frame) {
     const fetchLive = window.fetchCloudCharacterData;
     window.fetchCloudCharacterData = async function(id) {
         const live = await fetchLive(id);
         if (id !== pageId) return live;
         window.rememberPageConfig(pageId, desc);
-        // A delta that edits a state (Ultimate and such) carries that state's
-        // content in modeData but not the list of states, which is
-        // frame_data.modes. Without the list the state bar never appears and
-        // the edit is invisible (25 revisions), so a version missing it
-        // borrows today's. A whole snapshot always has its own.
+        // A delta that edits a state carries its content in modeData but not
+        // frame_data.modes, the list of states, so the state bar would never show and the
+        // edit would be invisible: a version missing it borrows today's. A whole snapshot
+        // has its own.
         const liveModes = live && live.frame_data && live.frame_data.modes;
         const withModes = !frame.modes && frame.modeData && liveModes ? { ...frame, modes: liveModes } : frame;
         return { ...(live || { page_id: pageId }), desc_data: desc, frame_data: withModes };
@@ -359,7 +300,6 @@ async function drawCharacterPage(pageId, mainArea) {
     await window.bootCharacterContent(route);
 }
 
-// The owner's line, 2026-10-29.
 const PARTIAL_NOTE = 'This is an old edit with a different data structure, so the site can only show what was changed within it instead of a full page.';
 
 function partialNote() {

@@ -1,34 +1,18 @@
 /**
- * Dogslamloop Wiki - Dashboard widgets (Character Hub and Side Hub).
- *
- * Written as plain code against the data, deliberately. These are computed
- * views of what the wiki already knows - which pages are unfinished, what was
- * edited recently, where a character sits on the tier list - not text anyone
- * would want to reword. Only the hub intros are CMS-backed (js/dashboards/hub_content.js);
- * everything here is derived, so an authoring layer would be a layer with
- * nothing to author.
- *
- * Every widget follows the same three rules:
- *
- *   1. Nothing is fetched twice. The hubs already load the roster, and these
- *      add three or four more queries; each is scoped to what it renders.
- *   2. A failure renders an explanation, never an empty box. An empty widget
- *      and a broken widget look identical to a reader, and the second is the
- *      one worth reporting.
- *   3. Archived pages are filtered out. These read page_data, the revision
- *      feed and the tier list - none of which come from navigation.json, so
- *      none of which drop an archived page on their own. That gap is exactly
- *      what data/archived-pages.json and isEntryPointHidden exist for.
+ * The dashboard widgets on the hubs: what needs work, recent character edits, the
+ * tier snapshot, wiki stats, a terminology peek and the site-wide matchup grid.
+ * Computed from the data, so there is nothing to author.
+ * @since v0.11
+ * @touches data/navigation.json, site_pages, page_completeness, approved_revisions,
+ *   page_data (the tier list's, the Terminologies page's, every page's matchups),
+ *   data/archived-pages.json
+ * @watch nothing is fetched twice; a failure says so rather than leaving an empty
+ *   box; archived pages are filtered out (isEntryPointHidden), since these reads do
+ *   not come from navigation.json alone
+ * @see docs/home.md
  */
 
-/**
- * "3 days ago" for anything recent, a plain date beyond that.
- *
- * Local rather than shared: posts.js has its own formatDate producing a long
- * absolute date, which is right for a blog post and wrong for an activity
- * feed. Matching the project's preference for small per-file duplication over
- * a shared helper neither caller quite wants.
- */
+/** "3 days ago" for anything recent, a plain date beyond. Local: posts.js's long date suits a post, not a feed. */
 function relativeDate(value) {
     const then = new Date(value);
     if (isNaN(then)) return '';
@@ -75,25 +59,9 @@ async function liveCharacters() {
     return out;
 }
 
-// ---------------------------------------------------------------- what needs work
-
 /**
- * Characters the owner has flagged as work in progress.
- *
- * The list is driven by is_wip, not by measured completeness. That is a
- * deliberate choice by the owner and the right one: "needs work" is an
- * editorial judgement, and a page can be structurally complete while still
- * being wrong, or be missing a section nobody intends to write.
- *
- * Completeness still supplies the *detail* - which sections are empty - so the
- * panel says what to do rather than only who to do it to. That comes from the
- * page_completeness view rather than page_data, where the same information
- * costs 385 KB.
- *
- * is_wip is editable from owner.html's Page Details card. Until v0.11 it was
- * unmaintainable, and it shows: 21 of 22 characters carry it, so this list is
- * near-total until those flags get curated. That is now a data task rather
- * than a code one.
+ * The characters flagged work in progress (is_wip, an editorial call, not a
+ * measure), each with the sections it is missing, from the page_completeness view.
  */
 window.buildNeedsWork = async function(containerId, limit = 6) {
     const container = document.getElementById(containerId);
@@ -155,8 +123,6 @@ window.buildNeedsWork = async function(containerId, limit = 6) {
     }
 };
 
-// ---------------------------------------------------------------- recent character edits
-
 /** Approved edits to character pages, newest first. */
 window.buildRecentCharacterEdits = async function(containerId, limit = 6) {
     const container = document.getElementById(containerId);
@@ -209,14 +175,7 @@ window.buildRecentCharacterEdits = async function(containerId, limit = 6) {
     }
 };
 
-// ---------------------------------------------------------------- tier snapshot
-
-/**
- * The community tier list, compactly.
- *
- * Reads the tier list's own page_data rather than site_pages.tier, which is
- * "TBD" for every character and always has been.
- */
+/** The community tier list, compactly, from the tier list's own page_data. */
 window.buildTierSnapshot = async function(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -262,8 +221,6 @@ window.buildTierSnapshot = async function(containerId) {
     }
 };
 
-// ---------------------------------------------------------------- wiki stats
-
 /** Pages, contributors and approved edits. */
 window.buildWikiStats = async function(containerId) {
     const container = document.getElementById(containerId);
@@ -303,16 +260,9 @@ window.buildWikiStats = async function(containerId) {
     }
 };
 
-// ---------------------------------------------------------------- terminology
-
 /**
- * A few terms from the Terminologies page.
- *
- * Renders nothing at all when that page has no real content - which is the
- * case today: its only tab holds a single placeholder paragraph reading
- * "Write your strategy here...". An empty glossary box advertising that the
- * wiki has no glossary is worse than no box, so the section hides itself and
- * appears on its own once the page is written.
+ * A few terms from the Terminologies page, or nothing at all when it has no real
+ * content: an empty glossary box is worse than none.
  */
 window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) {
     const section = document.getElementById(sectionId);
@@ -355,23 +305,9 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
             </dl>
         `;
 
-        // `wiki-text` above is the whole fix (owner, 2026-09-20). A term and
-        // its definition are written in the editor like any other prose, so
-        // they carry shortcodes, and the reader was seeing
-        // `[color=#ff0000]Domain Expansion[/color]` as literal text here while
-        // the same words rendered correctly on the Terminologies page itself.
-        //
-        // NOT a missing call. internalstyling.js runs a MutationObserver over
-        // `<main>` with subtree:true and restyles on any added node, so this
-        // widget was already being passed over - it just matched none of the
-        // selectors, because applyInternalStyling picks its targets BY CLASS
-        // and `glossary-term` is not one of them. `wiki-text` is the marker for
-        // "this is prose, style it" and carries no CSS of its own, so adding it
-        // is an opt-in and nothing else.
-        //
-        // The observer is why this needs no explicit call, and why the section
-        // has to stay inside <main> - there is a test for that, because it is
-        // the kind of dependency a later layout change breaks silently.
+        // wiki-text marks this as prose for internalstyling.js, whose observer on <main>
+        // styles it, so format tags in a term render. The section must stay inside <main>
+        // (a test checks).
     } catch (e) {
         // Hidden rather than error-reported: this section is optional, and a
         // failure to load an optional extra should not shout at a reader.
@@ -380,53 +316,12 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
 };
 
 /**
- * The site-wide matchup grid, for the systems hub (v0.19 F4).
- *
- * Every character against every other, one cell per pairing, coloured by the
- * tier the row character's own page claims. Owner's request: a matchup table
- * on the Side Dashboard, under the Terminology section.
- *
- * WHY A GRID AND NOT A PEEK
- *
- * buildTerminologyPeek above shows six of something and links to the rest,
- * because a glossary is a list and six of it is a fair sample. A matchup chart
- * is not a list - its whole value is seeing the shape of the roster at once,
- * and six rows of it would say nothing. So this draws the full grid and
- * scrolls sideways rather than sampling.
- *
- * THE DATA, read from production on 2026-09-20
- *
- *   desc_data.matchups = [{ opponent, tier, content, author? }]
- *   22 pages carry one, 417 entries, and only 121 have any written content.
- *
- * `tier` is FREE TEXT and the data proves it: one entry reads "Aerial Circling
- * tier". resolveMatchupTier (js/utility/site_data.js) already returns something
- * renderable for any value, keeping unrecognised wording and colouring it
- * white rather than guessing at a neighbouring difficulty - so every value
- * goes through it and no tier is ever tested by name here.
- *
- * 266 of 417 are "Equal", so the finished grid is mostly grey. That is the
- * honest picture of a roster nobody has finished rating, not a rendering bug.
- *
- * CLASHES (v0.20)
- *
- * A pair whose two pages do not mirror each other: Advantage on one side
- * should read Disadvantage on the other, Equal should read Equal. The owner's
- * example is Honored One vs True Cannon at Equal while True Cannon vs Honored
- * One is Hopeless.
- *
- * ANY mismatch is a Clash, one step included (owner, 2026-09-24). Offered
- * "disagree on who wins" (86 pairs in production) and "three or more steps
- * apart" (46), they chose this one, 96 of the 178 pairs rated from both
- * sides. Do not loosen it to make the list shorter.
- *
- * The grid still reports both ratings exactly as written. A Clash is marked,
- * never resolved: picking a winner would invent a rating nobody wrote.
- *
- * Two things are never a Clash. A pair rated from one side only has nothing
- * to disagree with. A tier outside the ladder ("Aerial Circling tier") has no
- * mirror to compare against, and guessing one is the same guess
- * resolveMatchupTier refuses to make.
+ * The site-wide matchup grid on the systems hub: every character against every
+ * other, each cell coloured by the tier the row character's page claims, read
+ * through resolveMatchupTier so free-text tiers still draw.
+ * @watch any mismatch between a pair's two pages is a Clash, one step included, and
+ *   is marked, never resolved: picking a winner would invent a rating nobody wrote.
+ *   A pair rated from one side, or a tier off the ladder, is never one.
  */
 window.buildMatchupTable = async function (sectionId, containerId) {
     const section = document.getElementById(sectionId);
@@ -436,10 +331,8 @@ window.buildMatchupTable = async function (sectionId, containerId) {
     try {
         const rootPath = window.getRootPath ? window.getRootPath() : './';
 
-        // Narrowed with a PostgREST json selector rather than pulling desc_data
-        // whole: the full column is 533 KB across every page and this is 112 KB
-        // of it. `content` still rides along - PostgREST cannot project inside a
-        // json array - but it is empty on 296 of the 417 entries.
+        // Narrowed with a json selector rather than all of desc_data (content still rides
+        // along: PostgREST cannot project inside a json array).
         const [navData, rows] = await Promise.all([
             window.fetchJson(rootPath + 'data/navigation.json', { cache: true }),
             window.supabaseClient
@@ -448,14 +341,8 @@ window.buildMatchupTable = async function (sectionId, containerId) {
                 .then(r => { if (r.error) throw r.error; return r.data || []; }),
         ]);
 
-        // Roster order comes from navigation.json, so the grid reads in the
-        // same order as every menu on the site. Archived pages are already
-        // absent from it, which is rule 3 in this file's header.
-        //
-        // Hidden characters (private server only, `isHidden`) are left out as
-        // row AND column, owner's request 2026-09-24. Filtered here, before
-        // anything else reads the roster, so a Clash involving one is never
-        // computed either.
+        // In navigation.json's order, like every menu, without archived pages and without
+        // hidden characters, as row and column, so no Clash involves one.
         const roster = ((navData || {}).Characters || [])
             .filter(c => c && c.cms_config && c.cms_config.pageId && c.name && !c.isHidden);
         if (roster.length < 2) { section.hidden = true; return; }
@@ -506,9 +393,8 @@ window.buildMatchupTable = async function (sectionId, containerId) {
             return row ? row.get(colName) : undefined;
         };
 
-        // A rung on window.MATCHUP_TIERS, or -1 for wording off the ladder.
-        // Read through resolveMatchupTier so the two v0.13 renames compare as
-        // the words they became.
+        // A rung on MATCHUP_TIERS, or -1 for wording off the ladder, through
+        // resolveMatchupTier, so the two renamed tiers compare as the words they became.
         const ladder = window.MATCHUP_TIERS.map(t => t.id);
         const rung = (raw) => ladder.indexOf(window.resolveMatchupTier(raw).id);
 
@@ -592,12 +478,9 @@ window.buildMatchupTable = async function (sectionId, containerId) {
                 ? '<span class="matchup-legend-item"><span class="matchup-legend-swatch is-clash"></span>Clash</span>'
                 : '');
 
-        // One notice per pair, in the owner's own sentence: "Honored One vs
-        // True Cannon is Equal but True Cannon vs Honored One is Hopeless".
-        // Each half links to the page that wrote it, which is where a fix goes.
-        // Collapsed, because the list runs to about a hundred lines on
-        // production data and the grid is what the section is for. Absent
-        // entirely when there are none.
+        // One notice per pair, as a sentence ("Honored One vs True Cannon is Equal but True
+        // Cannon vs Honored One is Hopeless"), each half linking to the page that wrote it.
+        // Collapsed, since the grid is the point; absent when there are none.
         const side = (rowChar, colChar, tier) =>
             '<a href="' + window.escapeHtml(matchupHref(rowChar, colChar)) + '">'
             + window.escapeHtml(rowChar.name) + ' vs ' + window.escapeHtml(colChar.name) + '</a> is '
@@ -624,10 +507,8 @@ window.buildMatchupTable = async function (sectionId, containerId) {
 
         section.hidden = false;
     } catch (e) {
-        // Rule 2 in this file's header: a failure explains itself rather than
-        // rendering an empty box. Deliberately unlike the terminology peek
-        // above, which hides on failure - that is a sample of something one
-        // click away, and this is the only place the whole grid exists.
+        // A failure explains itself: unlike the terminology peek, this is the only place
+        // the grid exists.
         section.hidden = false;
         widgetError(container, 'The matchup grid could not be loaded - ' + e.message);
     }

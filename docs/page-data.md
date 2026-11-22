@@ -5,6 +5,7 @@ How a page's content is read, and how an approved edit is applied to it. Readers
 ## Files
 
 - `js/utility/site_data.js`: the roster, tier list entries, archived pages, character modes, matchup tiers, system page section keys, the page data fetcher, and `applyDeltaToData`. The delta engine is planned to leave reader pages in B-5.
+- `js/pages/records/history.js`: History, which replays approved revisions through the live page's own renderers.
 
 ## Data
 
@@ -25,6 +26,7 @@ How a page's content is read, and how an approved edit is applied to it. Readers
 Newest first. One entry per decision.
 
 - **2026-11-19, v1.2, #286.** A certified tier list may hold a character more than once, each copy told apart by a badge (owner, 2026-11-19). Each copy has its own key, so it is moved, noted and logged on its own.
+- **2026-10-29, v1.2, #262.** History shows the whole page as it was right after a revision, from the snapshots the database keeps of every live change, drawn by the live page's own code (owner, 2026-10-29). A revision from before approvals were timestamped shows what it changed, says so, and leaves out the sections it did not touch.
 - **2026-10-21, v1.1, #242.** Every tier list loads its roster through one function. There were three copies, and two read a field `navigation.json` never carries, so they drew guessed addresses, old art or a 404. Portraits come from the repo's own copies (`data/portraits.json`): a cross-origin image taints the canvas the image export draws on.
 - **2026-10-20, v1.1, #237.** A page's own settings (its words and house style) are one page-level delta, `pageConfig`, beside a character's states and never inside one.
 - **2026-09-08, v0.18, #178.** Reordering a system page's tabs submits: a page-level delta listing tab keys, never content, so moving a tab cannot overwrite an edit made to it meanwhile. Before, the editor said "no changes detected".

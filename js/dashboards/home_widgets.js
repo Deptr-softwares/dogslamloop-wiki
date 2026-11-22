@@ -1,13 +1,16 @@
 /**
- * Dogslamloop Wiki - Home Page Widgets Engine (Updates & FAQ)
- * Fully integrated with the V0.4 Design System (DSL)
+ * The home page's widgets: Recent Changes from the Update Log, the full Update Log
+ * page (systems/updatelog), the FAQ and the Credits list.
+ * @since v0.03
+ * @touches data/updates.json, data/faq.json,
+ *   systems/collaborators/collaborators_data.json
+ * @see docs/home.md
  */
 
 let cachedUpdates = [];
 
-// --- SHARED CHANGELOG RENDER HELPERS ---
-// Used by both the homepage "Recent Changes" widget and the full
-// systems/updatelog page, so the two views can't drift out of sync.
+// The Update Log's helpers, shared by Recent Changes and the full page, so the two
+// never drift.
 function getUpdateBadgeClass(type) {
     if (type === 'site') return 'badge-site';
     if (type === 'Beta Launch' || type === 'Alpha Launch') return 'badge-patch';
@@ -32,17 +35,9 @@ function buildUpdateTableHTML(tableData) {
     `;
 }
 
-// Every release is divided into Features, Fine-tuning and Bug fixes (owner,
-// 2026-09-03), so `changes` can carry headings as well as lines.
-//
-// ADDITIVE, and deliberately so: a heading is `{ heading: "Features" }` and a
-// change is still a plain string, so the eighteen entries written before this
-// render exactly as they did. Same mechanism as the ticket-chat `type` field -
-// the older shape is the fallback, not a migration.
-//
-// An object rather than a magic string ("Features" as a bare line) because a
-// heading and a change line would otherwise be indistinguishable, and one day
-// somebody writes a change that happens to read "Bug fixes".
+// A release's changes may carry headings ({ heading: "Features" }) beside plain
+// string lines: an object, so a change that reads "Bug fixes" is never taken for
+// one. An entry with no headings draws as one plain list.
 function buildUpdateChangesHTML(changes) {
     if (!changes || changes.length === 0) return '';
 
@@ -174,12 +169,8 @@ window.getUpdateBadgeClass = getUpdateBadgeClass;
 window.buildUpdateTableHTML = buildUpdateTableHTML;
 window.buildUpdateChangesHTML = buildUpdateChangesHTML;
 /**
- * Renders the main dashboard's Credits list.
- *
- * This used to be a hardcoded <ul> in index.html that duplicated
- * systems/collaborators/collaborators_data.json by hand - and the two had
- * already drifted, listing different people. Both now read the same file, so
- * editing credits in owner.html updates both places.
+ * The home page's Credits list, from the Collaborators page's Blocks
+ * (collaborators_data.json), so the two never drift.
  */
 async function loadCredits(containerId) {
     const container = document.getElementById(containerId);
