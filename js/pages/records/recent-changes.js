@@ -1,11 +1,12 @@
 /**
- * Dogslamloop Wiki - Recent Changes (public sitewide feed of approved edits)
- *
- * Phase 4 of the reviewer-workflow redesign (v0.6 item 4). Every page's
- * own approval history was already public via history.html?page=X - this
- * is the sitewide equivalent, so a visitor (or a reviewer casually
- * monitoring activity) doesn't have to check every page one at a time.
- * Public, no RBAC gate, same idiom as history.html.
+ * Recent Changes (recent-changes.html): every approved edit across the wiki,
+ * newest first, 20 a page, each linking to its page. Public, like a page's own
+ * history.
+ * @since v0.6
+ * @touches approved_revisions, primePageUrlIndex and buildPageUrl (site_utils.js)
+ * @watch a link is the page's real path from the page list (others/ and tools/
+ *   pages included), never a folder guessed from the submission's page_type
+ * @see docs/records.md
  */
 
 const PAGE_SIZE = 20;
@@ -46,10 +47,7 @@ async function loadRecentChanges() {
         return;
     }
 
-    // Every card links to its page by id, and where a page lives is data
-    // rather than convention - see buildPageUrl in js/utility/site_utils.js. Without
-    // this, a change to a tool, a gallery or a system page under others/
-    // rendered a link to a 404.
+    // Where a page lives is data, so the index is primed before any link is built.
     await window.primePageUrlIndex();
 
     listEl.innerHTML = revisions.map(renderChangeCard).join('');
@@ -58,7 +56,7 @@ async function loadRecentChanges() {
 
 function renderPagination(fetchedCount) {
     const hasNewer = currentOffset > 0;
-    const hasOlder = fetchedCount === PAGE_SIZE; // a full page came back - there might be more after it
+    const hasOlder = fetchedCount === PAGE_SIZE;
 
     const html = `
         <button class="btn-sys btn-sys-regular rc-newer-btn" ${hasNewer ? '' : 'disabled'}>◀ NEWER</button>
@@ -83,8 +81,7 @@ function renderChangeCard(rev) {
     const dateStr = new Date(rev.created_at).toLocaleString();
     const qa = rev.qa_metadata || {};
     const reviewer = qa.reviewed_by || 'Legacy System';
-    // No kind passed: the revision's page_type is only the submitter's word,
-    // and the index primed above already holds every listed page's path.
+    // No kind passed: the revision's page_type is only the submitter's word.
     const pageUrl = window.buildPageUrl(rev.page_id);
     const historyUrl = `history.html?page=${encodeURIComponent(rev.page_id)}`;
 

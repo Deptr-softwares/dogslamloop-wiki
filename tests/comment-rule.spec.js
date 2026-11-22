@@ -1,11 +1,10 @@
-// The comment rule (.claude/rules/practice-comments.md), in the files trimmed to
-// it so far. Node only.
+// The comment rule (.claude/rules/practice-comments.md), in every script and
+// stylesheet in js/ and style/. Node only.
 //
 // A comment says what the code is for and why. Dates, the owner's words, PR,
 // batch and item numbers go in the area's docs/ page and in git, and a comment
-// that holds one goes stale the day it is written. A file joins TRIMMED when
-// Stage B trims it, so new code in it meets the rule from then on; once the trim
-// is done the list is every file in js/ and style/.
+// that holds one goes stale the day it is written. A new file meets the rule
+// from its first commit.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -13,105 +12,17 @@ const espree = require('espree');
 
 const ROOT = path.join(__dirname, '..');
 
-const TRIMMED = [
-    'js/pages/core/description.js',
-    'js/pages/core/framedata.js',
-    'js/pages/core/internalstyling.js',
-    'js/pages/core/character_modes.js',
-    'js/utility/input_slots.js',
-    'js/utility/character_tabs.js',
-    'js/pages/core/page_router.js',
-    'js/pages/core/page_boot.js',
-    'js/pages/core/page_rescue.js',
-    'js/utility/search.js',
-    'js/pages/types/tool_page.js',
-    'js/pages/types/gallery.js',
-    'js/pages/core/pagebuilder.js',
-    'js/utility/site_utils.js',
-    'js/utility/site_data.js',
-    'js/utility/site_media.js',
-    'js/utility/site_account.js',
-    'js/utility/site_meta.js',
-    'js/utility/emoji.js',
-    'js/others/analytics.js',
-    'js/pages/community/posts.js',
-    'js/pages/community/forum.js',
-    'js/pages/community/discussions.js',
-    'js/pages/tier-lists/tierlist.js',
-    'js/pages/tier-lists/certified-tier-lists.js',
-    'js/dashboards/dashboards.js',
-    'js/dashboards/hub_content.js',
-    'js/dashboards/home_widgets.js',
-    'js/pages/records/history.js',
-    'style/Alerts.css',
-    'style/Badges.css',
-    'style/forum.css',
-    'style/Forms.css',
-    'style/look-classic.css',
-    'style/certified-tier-lists.css',
-    'style/Modals.css',
-    'style/FrameData.css',
-    'style/Buttons.css',
-    'style/Cards.css',
-    'style/Common.css',
-    'style/ColorCoding.css',
-    'style/discussions.css',
-    'style/Layout.css',
-    'js/editor/blocks/editor-blocks.js',
-    'js/editor/blocks/editor-folders.js',
-    'js/editor/blocks/editor-reorder.js',
-    'js/editor/tools/editor-find-replace.js',
-    'js/editor/tools/editor-media.js',
-    'js/editor/core/editor-core.js',
-    'js/editor/core/editor-config.js',
-    'js/editor/core/editor-modes.js',
-    'js/editor/core/editor-dialogs.js',
-    'js/editor/core/editor-drafts.js',
-    'js/editor/core/editor-sync.js',
-    'js/editor/tools/editor-previews.js',
-    'js/editor/tools/editor-playground.js',
-    'js/editor/tools/editor-notices.js',
-    'js/editor/tools/editor-tutorial.js',
-    'js/editor/tools/editor-writing-checks.js',
-    'js/utility/diff-markers.js',
-    'js/utility/side-by-side.js',
-    'js/editor/tabs/editor-tabs.js',
-    'js/editor/tabs/editor-framedata.js',
-    'js/editor/tabs/editor-gallery.js',
-    'js/editor/tabs/editor-system.js',
-    'js/editor/tabs/editor-tool.js',
-    'style/editor.css',
-    'js/overseer/admin-core.js',
-    'js/overseer/admin-queue.js',
-    'js/overseer/admin-preview.js',
-    'js/overseer/admin-diff.js',
-    'js/overseer/admin-modes.js',
-    'js/overseer/admin-actions.js',
-    'js/overseer/admin-tickets.js',
-    'js/overseer/admin-merge-compiler.js',
-    'js/overseer/admin-history.js',
-    'js/overseer/admin-media-queue.js',
-    'js/overseer/admin-reports.js',
-    'style/admin.css',
-    'js/owner/owner.js',
-    'js/owner/owner-nav.js',
-    'js/owner/owner-page-meta.js',
-    'js/owner/owner-page-experts.js',
-    'js/owner/owner-staff-perks.js',
-    'js/owner/owner-site-meta.js',
-    'js/owner/owner-hub-text.js',
-    'js/owner/owner-hub-lists.js',
-    'js/owner/owner-tier-lists.js',
-    'js/owner/owner-media-report.js',
-    'js/owner/post-editor.js',
-    'js/pages/tier-lists/tier-editor.js',
-    'js/pages/tools/free_submit_tier_list.js',
-    'js/pages/tools/create_tier_list.js',
-    'js/pages/tools/editor_playground.js',
-    'style/tier-editor.css',
-    'style/tools/free_submit_tier_list.css',
-    'style/tools/create_tier_list.css',
-];
+// Every script and stylesheet in js/ and style/. The vendor library is left
+// out: its licence header is not ours to change.
+function filesIn(dir) {
+    return fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap(entry => {
+        const file = `${dir}/${entry.name}`;
+        return entry.isDirectory() ? filesIn(file) : [file];
+    });
+}
+const FILES = [...filesIn('js'), ...filesIn('style')]
+    .filter(file => /\.(js|css)$/.test(file) && !file.startsWith('js/vendor/'))
+    .sort();
 
 // What a comment never holds. A PR number is #NNN on its own, never a colour,
 // and "(owner" is the owner's words, never a file name like "(owner.js)".
@@ -135,10 +46,16 @@ function commentsOf(file) {
     return ast.comments.map(c => ({ text: src.slice(c.range[0], c.range[1]), at: c.range[0], line: c.loc.start.line }));
 }
 
-test('every trimmed file opens with a block that says when it came in', () => {
+test('the list is every script and stylesheet, the vendor library left out', () => {
+    // A walk that found nothing would pass every test below.
+    expect(FILES).toContain('js/utility/site_utils.js');
+    expect(FILES).toContain('style/Layout.css');
+    expect(FILES.filter(file => file.startsWith('js/vendor/'))).toEqual([]);
+});
+
+test('every file opens with a block that says when it came in', () => {
     const wrong = [];
-    for (const file of TRIMMED) {
-        if (!fs.existsSync(path.join(ROOT, file))) { wrong.push(`${file}: not in the repo (renamed? update TRIMMED)`); continue; }
+    for (const file of FILES) {
         const first = commentsOf(file)[0];
         const opens = first && first.at === 0 && (file.endsWith('.css') ? first.text.startsWith('/*') : first.text.startsWith('/**'));
         const since = first && (file.endsWith('.css') ? /\bSince v\d+\.\d+/ : /@since v\d+\.\d+/).test(first.text);
@@ -147,9 +64,9 @@ test('every trimmed file opens with a block that says when it came in', () => {
     expect(wrong).toEqual([]);
 });
 
-test("no comment in a trimmed file holds a date, a PR or item number, or the owner's words", () => {
+test("no comment holds a date, a PR or item number, or the owner's words", () => {
     const found = [];
-    for (const file of TRIMMED) {
+    for (const file of FILES) {
         for (const c of commentsOf(file)) {
             for (const [pattern, what] of BANNED) {
                 const m = pattern.exec(c.text);
@@ -162,7 +79,7 @@ test("no comment in a trimmed file holds a date, a PR or item number, or the own
 
 test('every docs page a comment points at exists', () => {
     const missing = [];
-    for (const file of TRIMMED) {
+    for (const file of FILES) {
         for (const c of commentsOf(file)) {
             for (const m of c.text.matchAll(/\bdocs\/[\w-]+\.md\b/g)) {
                 if (!fs.existsSync(path.join(ROOT, m[0]))) missing.push(`${file}:${c.line}: ${m[0]}`);
