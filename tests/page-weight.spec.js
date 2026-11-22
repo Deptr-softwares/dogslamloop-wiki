@@ -33,7 +33,7 @@ const BUDGET = {
     'admin.html': { js: 300, css: 105 },
     'blog.html': { js: 193, css: 53 },
     'characters/index.html': { js: 205, css: 50 },
-    'edit.html': { js: 438, css: 87 },
+    'edit.html': { js: 408, css: 87 },
     'forum.html': { js: 230, css: 60 },
     'history.html': { js: 232, css: 52 },
     'index.html': { js: 201, css: 53 },

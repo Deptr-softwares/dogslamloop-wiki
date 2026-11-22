@@ -10,6 +10,10 @@ edit.html: where editors write a page and send it for review. The header and its
 - `js/editor/core/editor-dialogs.js`: the editor's message and confirm boxes.
 - `js/editor/core/editor-drafts.js`: the auto-save, Save, and the Draft Manager.
 - `js/editor/core/editor-sync.js`: Sync, the live preview, VIEW DIFF and the change list.
+- `js/editor/tabs/editor-tabs.js`: a character page's tabs: the major tab strip, each tab's sub-navigation (Overview, moves, Matchups, the keyed sections, Combos and Techs), and the Profile and Playstyle forms.
+- `js/editor/tabs/editor-system.js`: the system page editor, and the deltas a system or tier list page sends.
+- `js/editor/tabs/editor-gallery.js`: a gallery page's bin and a character's Gallery tab.
+- `js/editor/tabs/editor-tool.js`: the tool page editor.
 - `js/editor/tools/editor-previews.js`: the preview of the Overview, Matchups and keyed sections.
 - `js/editor/tools/editor-playground.js`: the Editor Playground.
 - `js/editor/tools/editor-notices.js`: the first-visit notices.
@@ -46,6 +50,7 @@ Newest first. One entry per decision.
 - **2026-11-02, v1.2, #268.** The Workspace footer is moved only when it needs to move, and one sent back and forth three times in two seconds stays unpinned for that section: it jittered many times a second (reported from macOS).
 - **2026-10-30, v1.2, #263.** Someone below a page's required role is told on opening the editor, not only at Submit (owner, 2026-10-29).
 - **2026-10-24, v1.2, #253.** The tour and the Manual of Style find their Writing Guide section in any tab: the owner reorganises the guide through the site.
+- **2026-10-24, v1.2, #255.** A system page's deltas are listed in the order approval needs: a new tab first, then the sections, then an existing tab's metadata, then the tab order. Listed otherwise, a new section or one moved in from another tab landed at the bottom of its tab, whatever the author saw.
 - **2026-10-21, v1.1, #242.** The Editor Playground: "a place where Editor can mess around with the Editor as much as they like without any consequences or worry" (owner, 2026-10-18). It starts as a blank character page, open to anyone, and Submit becomes Pull: "the editor can pull page_data from any page and edit them in the editor playground". It keeps one draft of its own.
 - **2026-10-20, v1.1, #241.** Writing checks: character names written the anime's way and broken format tags (owner, 2026-10-18), scoped to "only JJK equivalent name count, meme name and shortened name don't count", then "you should also warn on Higgy and Kuro" (owner, 2026-10-20). A yellow line with FIX while typing, and a list at Submit that can still be sent. Grammar waits for later.
 - **2026-10-20, v1.1, #239.** Clicking a Block in the preview opens it in the Workspace, the first step towards editing in the preview (an editor's feedback, 2026-10-19).
@@ -63,12 +68,17 @@ Newest first. One entry per decision.
 - **2026-09-20, v0.19, #196.** The Manual of Style: a red MoS button with the Writing Guide's Basics, a language standard, and REWATCH TUTORIAL. The language standard is written in the code, since the guide states none and the owner asked for help ("I actually don't know much about this"): American English, because the guide's Basics writes "capitalize".
 - **2026-09-09, v0.18, #185.** A system page's preview repaints only the section being edited, and only while a structural check passes, so a missed case costs a redraw, never a stale preview.
 - **2026-09-09, v0.18, #179.** Two first-visit notices, on the editor and the Media Library, both pointing at the Writing Guide. The copy is the owner's, word for word ("Do not change anything"), with the grammar pass they asked for (2026-09-08): "Local Resource" stays singular and capitalised, as the name of a guide section.
+- **2026-09-09, v0.18, #184.** A character's Gallery tab is edited with the gallery page's bin and modal, inside the usual Workspace footer (the owner's call), so a name can be styled and a file in the library reused. It writes into the page's data directly, which is what Submit's scan reads.
+- **2026-09-08, v0.18, #178.** A system page's tab order is sent when only the order changed, and a Combo List and the rows inside one can be reordered. The rows have buttons of their own: a row has no selection to act on, and in a vertical list the buttons stay on its line.
 - **2026-08-27, v0.17, #142.** An intercept whose ticket did not load is refused at Submit, routed on the URL's intent: clicking EDIT on your own submission had produced a second revision in the queue.
 - **2026-08-27, v0.17, #141.** An intercepted ticket with no single scope (a batch, or a whole-page upload) is scanned like a submission instead of rebuilt: the rebuild sent an empty delta, and the reviewer's edits vanished while the button said UPDATED (the "nothing changed" the owner reported).
 - **2026-08-25, v0.16, #135.** The editor's role check compares by rank, like the policy: a reviewer saw the Edit button, wrote a whole edit and was refused at Submit.
 - **2026-08-25, v0.16, #134.** A draggable splitter between the Workspace and the preview, at 30/70 by default so the preview shows a reader's proportions, snapping onto the default within 2% (owner, 2026-08-25). Its floors are in pixels.
 - **2026-08-20, v0.15, #121.** A list whose entries only moved is a change: Submit sends its order, and the change summary reports it.
 - **2026-08-20, v0.15, #120.** The editor offers only the tabs a character has: Techs was "not visible even in the editor and the admin preview".
+- **2026-08-20, v0.15, #120.** The Techs tab is edited with the Combos editor, its words taken from the tab vocabulary, rather than a second copy of the same 500 lines.
+- **2026-08-17, v0.15, #111.** A system or tier list page sends one delta per section, tab metadata and tier table, never the whole document: approving two tickets for one page reverted the first. A tab in the cloud keeps its id when renamed. A tier list is not split per tier, since one move changes two tiers.
+- **2026-08-17, v0.15, #108.** In a Combos group, the Block editor edits the open card's write-up: "you should not be able to Add Blocks when you haven't selected a TheoryBox" (owner, 2026-08-16). A combo row is edited in a modal, live on every keystroke, since twelve fields do not fit beside a preview.
 - **2026-08-16, v0.15, #106.** One preview renderer for every keyed section, mirroring the reader's: a second copy per section is how the two drift.
 - **2026-08-16, v0.15, #101.** Submit scans every character state, not only the one on screen.
 - **2026-08-14, v0.14, #89.** The editor's header collapses, remembered per browser: a preference about a screen, read before the editor draws (the owner's fine-tuning item).
@@ -77,4 +87,6 @@ Newest first. One entry per decision.
 - **2026-08-10, v0.12, #43.** Character states in the editor: the same toggle as the page, with the editor's data pointed at the active state's slice, so no writer had to learn about states.
 - **2026-08-10, v0.12, #41.** A gallery sends one delta per item, keyed by name, so two people adding different items never collide.
 - **2026-08-10, v0.12, #40.** Cancel is a chain of real exits: a reviewer intercepting a ticket arrives in a new tab with no history, where going back did nothing.
+- **2026-08-10, v0.12, #40.** The editor has the live page's major tab strip: it read ?tab= once and never moved, so intercepting a skill revision meant editing the address. Profile and Playstyle get the Media Library, UNDO and REDO like every other tab.
+- **2026-08-10, v0.12, #41.** A gallery page is edited as a bin of items and one modal that takes a file and a name, not with the Block editor: a gallery is a flat list of named media.
 - **2026-08-08, v0.10, #33.** A viewer is soft-banned from submitting, and told before the QA modal.
