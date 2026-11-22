@@ -309,11 +309,23 @@ test('a tier colour comes from the palette or a hex', async ({ page }) => {
     await popup.locator('.mk-hex-use').click();
     await expect(status(page)).toHaveText('"zz" is not a colour. Use a hex like #ff8800.');
     expect(await background(label(page, 1))).toBe(await resolveColour(page, 'hsl(180, 70%, 55%)'));
+    // The error reads in the site's red. Its variable was once never defined,
+    // so the line showed in plain text colour; checked for a value first, since
+    // an empty one would resolve to the plain colour and still match.
+    const red = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-red').trim());
+    expect(red, '--accent-red reaches the page').not.toBe('');
+    const errorColour = await status(page).evaluate(el => getComputedStyle(el).color);
+    expect(errorColour).toBe(await resolveColour(page, red));
+    // Red by hue, not one hex: a token re-pointed to grey still "matches itself".
+    const [r, g, b] = errorColour.match(/\d+/g).map(Number);
+    expect(r - Math.max(g, b), `the error line reads red (${errorColour})`).toBeGreaterThan(80);
 
     await popup.locator('.mk-hex').fill('123456');
     await popup.locator('.mk-hex').press('Enter');
     expect(await background(label(page, 1))).toBe('rgb(18, 52, 86)');
     expect(await background(swatch)).toBe('rgb(18, 52, 86)');
+    expect(await status(page).evaluate(el => getComputedStyle(el).color), 'a cleared status is not red')
+      .not.toBe(errorColour);
 
     // A click anywhere else puts the palette away.
     await swatch.click();

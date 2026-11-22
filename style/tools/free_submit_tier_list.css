@@ -58,7 +58,7 @@
 /* The unplaced row. Deliberately not coloured like a tier - it is not one, and
    giving it a tier's swatch would read as an F by another name. */
 .fs-tier-label-pending {
-    background: var(--bg-primary);
+    background: transparent;
     color: var(--text-muted);
     text-shadow: none;
     border: 2px dashed var(--border-color);

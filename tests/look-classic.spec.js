@@ -48,7 +48,8 @@ test('every reader page links the Classic stylesheet last, and no staff page doe
     const staff = [];
     for (const { rel, html } of pages) {
         const head = html.slice(0, html.indexOf('</head>'));
-        const sheets = [...head.matchAll(/<link rel="stylesheet" href="([^"]*)">/g)].map(m => m[1]);
+        // Which file, so the cache stamp (?v=) is left off.
+        const sheets = [...head.matchAll(/<link rel="stylesheet" href="([^"]*)">/g)].map(m => m[1].replace(/\?.*$/, ''));
         const linked = sheets.some(href => href.endsWith('style/look-classic.css'));
         if (STAFF.includes(rel)) { if (linked) staff.push(rel); continue; }
         // Last, so it wins any tie of specificity with the stylesheets before it.

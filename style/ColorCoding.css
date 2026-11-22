@@ -37,7 +37,8 @@
 
        CATEGORICAL, not ordinal - M1 and Skill 1 have no order between them, so
        they want distinct hues rather than a ramp. That is the opposite of
-       combo difficulty, which is ordinal and gets a green-to-red ramp. */
+       combo difficulty, which is ordinal and gets a green-to-red ramp.
+
        v0.18 FT1: FOUR OF THESE WERE DARK, AND WERE BRIGHTENED.
        Every slot now carries a BLACK outline (owner, 2026-09-08), and a dark
        fill inside a black outline is a dark smudge - so 4, R, Q and Shift had

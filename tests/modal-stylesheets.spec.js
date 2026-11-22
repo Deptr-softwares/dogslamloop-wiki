@@ -67,8 +67,8 @@ test('every page injecting the modals loads the stylesheets they need', () => {
     for (const page of INJECTORS) {
         for (const need of REQUIRED) {
             // Matches any depth of ../ prefix, since these pages sit at the
-            // root, one level down and two.
-            const linked = new RegExp(`href="[^"]*style/${need.file.replace('.', '\\.')}"`).test(page.src);
+            // root, one level down and two, with or without the cache stamp.
+            const linked = new RegExp(`href="[^"]*style/${need.file.replace('.', '\\.')}(\\?[^"]*)?"`).test(page.src);
             if (!linked) missing.push(`${page.rel} is missing style/${need.file} - needed for ${need.because}`);
         }
     }
