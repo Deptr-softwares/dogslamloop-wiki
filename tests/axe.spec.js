@@ -53,7 +53,6 @@ const BASELINE = {
         'color-contrast a',
         'color-contrast th',
         'frame-title iframe',
-        'label-content-name-mismatch #btn-jump-discussion',
         'target-size a',
         'target-size li > .toc-group-row > .toc-toggle-btn',
         'target-size li > .toc-link-minor.btn-nav',

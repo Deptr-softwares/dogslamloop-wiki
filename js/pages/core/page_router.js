@@ -197,8 +197,9 @@ ${withToc ? `
                 <div class="character-toolbar">
                     <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
 
-                    <button type="button" id="btn-jump-discussion" class="btn-sys btn-sys-regular btn-jump-discussion" aria-label="Jump to the discussion">
+                    <button type="button" id="btn-jump-discussion" class="btn-sys btn-sys-regular btn-jump-discussion">
                         ${uiIcon('discussion')}
+                        <span class="sr-only">Jump to the discussion</span>
                         <span id="jump-discussion-count" class="jump-discussion-count"></span>
                     </button>
                 </div>
