@@ -5,6 +5,7 @@ How the reader pages look: the shared stylesheets every reader page loads, the C
 ## Files
 
 - `style/Common.css`, `style/Layout.css`, `style/Cards.css`, `style/Buttons.css`, `style/Badges.css`, `style/Alerts.css`, `style/Modals.css`, `style/Forms.css`: the shared look, loaded by every reader page.
+- Split from `style/Layout.css`, each loaded by the pages that draw it, right after it: `style/Blocks.css` (`docs/character-page.md`), `style/dashboards.css` and `style/posts.css` (`docs/home.md`), `style/tierlist.css` (`docs/tier-lists.md`), `style/search-page.css` (`docs/records.md`) and `style/post-editor.css` (`docs/owner-tools.md`).
 - `style/ColorCoding.css`: the character, frame-data, overlay and input-slot colours, as custom properties.
 - `style/FrameData.css`: the Skill Card and the Frame Track (`docs/character-page.md`).
 - `style/look-classic.css`: the Classic look, reader pages only.
@@ -16,6 +17,7 @@ How the reader pages look: the shared stylesheets every reader page loads, the C
 - `.claude/rules/practice-css.md` holds the CSS traps: restate `[hidden]` for every class that sets `display`, check every page a shared class is on, read only defined variables, close every comment once.
 - Every stylesheet tag carries the shared `?v=` stamp (`tests/asset-stamping.spec.js`).
 - Which sheets a kind of page loads, and in what order, is its list in `scripts/page-scripts.js`. Of two rules that tie, the later sheet's wins, so moving a sheet in a list can change the page (`docs/page-shell.md`).
+- Moving a rule between `Layout.css` and a sheet split from it moves it in the cascade. A few rules stay in `Layout.css` for that reason, each marked: it loses a tie to a later `Layout.css` rule, as it always has. A rule that ends in `*`, like the `.space-y-*` spacing, can tie with any rule on its children.
 - The Classic look wins by its `html.look-classic` prefix and loads last; the editor and staff pages never load it.
 - `.tier-portrait` is shared between the Tier List page and the tier editor; its size on the page is raised in `certified-tier-lists.css` only.
 
@@ -23,6 +25,7 @@ How the reader pages look: the shared stylesheets every reader page loads, the C
 
 Newest first. One entry per decision.
 
+- **2026-11-24, silent release, #311.** `Layout.css` is split by job (the owner's pick, "By job, Blocks too"): the Blocks, the hubs, Update Log entries and posts, the tier list, the Search page and the post editor each have a sheet that only the pages drawing them load. Each loads right after `Layout.css`, so its rules keep their place against every other sheet. A character page loads 10% less CSS, and a page without Blocks a third less. Turned down: moving only the parts one or two pages use and keeping the Blocks, and leaving the file whole until the cascade layers.
 - **2026-11-20, v1.2, #287.** An open dropdown is at least as wide as its button and as its longest option, capped by the screen: pinned to the button, a narrow "ALL" button cut its options short (the owner's screenshot).
 - **2026-11-20, v1.2, #287.** An authored strategy block's heading is the card's heading, with a rule across the panel, so Overview & Strategy and the move write-ups read like the other tabs (owner, 2026-11-20: "This type of small heading and underline is seemingly only used in the Overview and Strategy, M1s, Skills, and Innate sections").
 - **2026-11-20, v1.2, #287.** The Classic look: a plain dark wiki, picked under Look in Site Settings, kept small (the owner: "minimal code"). It re-points the shared variables and takes away the slants, hard shadows, halftone dots and the striped ground; the layout, the frame data's colours and the editors' own colours stay. Panels have no box, like an article, the account buttons are a list of links, and content Blocks get thin rules and no motion (owner, 2026-11-20: "custom build blocks such as callout and dropdown could get its own version").

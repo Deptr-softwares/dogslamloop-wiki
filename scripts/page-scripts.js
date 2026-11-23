@@ -259,38 +259,47 @@ const PAGE_SCRIPTS = {
 // lists were made; one cascade order for every page is C-3's (docs/looks.md).
 // Every page that loads site_utils.js gets the sign-in, profile and alert
 // boxes, which Modals.css and Forms.css dress (tests/modal-stylesheets.spec.js).
-const READER_STYLES = ['Common.css', 'Layout.css', 'Cards.css', 'Buttons.css', 'Badges.css', 'ColorCoding.css', 'Alerts.css', 'Modals.css', 'Forms.css'];
+// The sheets split from Layout.css, each loaded by the kinds that draw what it
+// styles, right after Layout.css and in this order, so every rule keeps the
+// place it had in it (tests/load-by-need.spec.js).
+const BLOCKS = 'Blocks.css'; // the kinds that load page_render.js
+const DASHBOARDS = 'dashboards.css'; // the kinds that load hub_roster.js
+const POSTS = 'posts.css'; // the kinds that load posts.js
+const TIERLIST = 'tierlist.css'; // tierlist.js, tier-editor.js and the tier list tools
+const SPLIT_FROM_LAYOUT = [BLOCKS, DASHBOARDS, POSTS, TIERLIST, 'search-page.css', 'post-editor.css'];
+const layout = (...split) => ['Layout.css', ...split];
+const readerStyles = (...split) => ['Common.css', ...layout(...split), 'Cards.css', 'Buttons.css', 'Badges.css', 'ColorCoding.css', 'Alerts.css', 'Modals.css', 'Forms.css'];
 const COMPONENT_STYLES = ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', 'Alerts.css', 'Cards.css'];
 // Classic wins on a reader page by loading last. The editor and staff pages
 // have the one look.
 const CLASSIC = 'look-classic.css';
 
 const PAGE_STYLES = {
-    character: [...COMPONENT_STYLES, 'FrameData.css', 'discussions.css', 'Layout.css', CLASSIC],
-    system: [...READER_STYLES, CLASSIC],
-    gallery: [...READER_STYLES, CLASSIC],
+    character: [...COMPONENT_STYLES, 'FrameData.css', 'discussions.css', ...layout(BLOCKS), CLASSIC],
+    system: [...readerStyles(BLOCKS), CLASSIC],
+    gallery: [...readerStyles(BLOCKS), CLASSIC],
     // A tool's own sheet is style/tools/<pageId>.css, when it has one.
-    tool: [...READER_STYLES, OWN, CLASSIC],
+    tool: [...readerStyles(BLOCKS, TIERLIST), OWN, CLASSIC],
     // The archived and moved pages' one-paragraph notice.
-    notice: ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Layout.css'],
+    notice: ['Common.css', 'ColorCoding.css', 'Buttons.css', ...layout()],
 
-    'not-found': [...READER_STYLES, 'FrameData.css', CLASSIC],
-    home: [...COMPONENT_STYLES, 'FrameData.css', 'Layout.css', CLASSIC],
-    hub: [...READER_STYLES, CLASSIC],
-    'tier-lists': ['Common.css', 'Layout.css', 'certified-tier-lists.css', 'Cards.css', 'Buttons.css', 'Badges.css', 'ColorCoding.css', 'Alerts.css', 'Modals.css', 'Forms.css', CLASSIC],
-    'update-log': [...READER_STYLES, CLASSIC],
-    blog: [...READER_STYLES, 'FrameData.css', CLASSIC],
-    forum: [...READER_STYLES, 'FrameData.css', 'discussions.css', 'forum.css', CLASSIC],
-    history: ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', 'Layout.css', 'Cards.css', 'FrameData.css', CLASSIC],
-    'recent-changes': ['Common.css', 'Buttons.css', 'Badges.css', 'Layout.css', 'Cards.css', 'Modals.css', 'Forms.css', 'RecentChanges.css', CLASSIC],
-    search: ['Common.css', 'Buttons.css', 'Badges.css', 'Layout.css', 'Cards.css', 'Modals.css', 'Forms.css', CLASSIC],
-    policy: [...READER_STYLES, CLASSIC],
-    submissions: ['Common.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', 'Layout.css', 'Cards.css', 'Submissions.css', CLASSIC],
-    editor: [...COMPONENT_STYLES, 'FrameData.css', 'Layout.css', 'editor.css'],
-    'post-editor': [...COMPONENT_STYLES, 'Layout.css', 'editor.css', 'admin.css'],
-    'tier-editor': [...COMPONENT_STYLES, 'FrameData.css', 'Layout.css', 'editor.css', 'certified-tier-lists.css', 'tier-editor.css'],
-    overseer: [...COMPONENT_STYLES, 'FrameData.css', 'Layout.css', 'editor.css', 'admin.css'],
-    owner: [...COMPONENT_STYLES, 'Layout.css', 'editor.css', 'admin.css'],
+    'not-found': [...readerStyles(BLOCKS), 'FrameData.css', CLASSIC],
+    home: [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, DASHBOARDS, POSTS), CLASSIC],
+    hub: [...readerStyles(BLOCKS, DASHBOARDS), CLASSIC],
+    'tier-lists': ['Common.css', ...layout(BLOCKS, TIERLIST), 'certified-tier-lists.css', 'Cards.css', 'Buttons.css', 'Badges.css', 'ColorCoding.css', 'Alerts.css', 'Modals.css', 'Forms.css', CLASSIC],
+    'update-log': [...readerStyles(BLOCKS, POSTS), CLASSIC],
+    blog: [...readerStyles(BLOCKS, POSTS), 'FrameData.css', CLASSIC],
+    forum: [...readerStyles(BLOCKS), 'FrameData.css', 'discussions.css', 'forum.css', CLASSIC],
+    history: ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', ...layout(BLOCKS, TIERLIST), 'Cards.css', 'FrameData.css', CLASSIC],
+    'recent-changes': ['Common.css', 'Buttons.css', 'Badges.css', ...layout(), 'Cards.css', 'Modals.css', 'Forms.css', 'RecentChanges.css', CLASSIC],
+    search: ['Common.css', 'Buttons.css', 'Badges.css', ...layout('search-page.css'), 'Cards.css', 'Modals.css', 'Forms.css', CLASSIC],
+    policy: [...readerStyles(), CLASSIC],
+    submissions: ['Common.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', ...layout(), 'Cards.css', 'Submissions.css', CLASSIC],
+    editor: [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, TIERLIST), 'editor.css'],
+    'post-editor': [...COMPONENT_STYLES, ...layout(BLOCKS, POSTS, 'post-editor.css'), 'editor.css', 'admin.css'],
+    'tier-editor': [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, TIERLIST), 'editor.css', 'certified-tier-lists.css', 'tier-editor.css'],
+    overseer: [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, TIERLIST), 'editor.css', 'admin.css'],
+    owner: [...COMPONENT_STYLES, ...layout(), 'editor.css', 'admin.css'],
 };
 
 // Each hand-written page and the list its block is written from.
@@ -443,7 +452,7 @@ function main() {
 if (require.main === module) main();
 
 module.exports = {
-    PAGE_SCRIPTS, PAGE_STYLES, HAND_WRITTEN,
+    PAGE_SCRIPTS, PAGE_STYLES, SPLIT_FROM_LAYOUT, HAND_WRITTEN,
     scriptTags, styleTags, rewriteBlock, rewriteStyles, rewritePage, prefixFor,
     BEGIN, END, STYLES_BEGIN, STYLES_END,
 };

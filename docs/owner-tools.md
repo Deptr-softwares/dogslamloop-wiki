@@ -15,7 +15,7 @@ owner.html, the owner's own page: who holds which role and capability, the page 
 - `js/owner/owner-hub-lists.js`: Dashboard Steps.
 - `js/owner/owner-tier-lists.js`: the Tier List page's introduction, who has a list, and the Free Submit Tier List's settings and reset.
 - `js/owner/owner-media-report.js`: the broken-media report.
-- `post-editor.html` and `js/owner/post-editor.js`: the Post editor.
+- `post-editor.html`, `js/owner/post-editor.js` and `style/post-editor.css`: the Post editor.
 - `style/admin.css`: the look, shared with the Overseer (`docs/overseer.md`).
 
 ## Data

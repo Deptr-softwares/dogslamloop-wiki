@@ -10,6 +10,7 @@ How a page's Blocks become HTML, and how a character page draws its tabs. Reader
 - `js/utility/input_slots.js`: which input slot each move name belongs to, for colouring combo routes.
 - `js/utility/character_tabs.js`: the tab list and the keyed sections the rest of the site derives from.
 - `js/pages/core/format_tags.js`: the format tags, in `docs/format-tags.md`.
+- `style/Blocks.css`: the Blocks as the renderer draws them, loaded by every kind of page that loads `page_render.js`.
 
 ## Data
 

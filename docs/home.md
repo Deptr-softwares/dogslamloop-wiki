@@ -8,6 +8,8 @@ The three hand-written hub pages, the Main Dashboard (`index.html`), the Charact
 - `js/dashboards/dashboards.js`: the computed widgets: what needs work, recent character edits, the tier snapshot, wiki stats, the terminology peek and the matchup grid.
 - `js/dashboards/home_widgets.js`: Recent Changes and the full Update Log, the FAQ, and the Credits list.
 - `js/dashboards/hub_roster.js`: the character roster with its filters, icons and hover banners, the home page's category columns, and the Systems directory. Only the three hubs load it.
+- `style/dashboards.css`: the three hubs' widgets, grids, columns and matchup grid, loaded by the pages that load `hub_roster.js`.
+- `style/posts.css`: Update Log entries and their tables, the blog and hotfix notes, loaded by the pages that load `posts.js`.
 
 ## Data
 
