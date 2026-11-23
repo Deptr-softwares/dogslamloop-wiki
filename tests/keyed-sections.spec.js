@@ -56,12 +56,12 @@ test('no pipeline site handles a keyed section by name', () => {
   const FILES = [
     'editor/core/editor-core.js', 'editor/core/editor-sync.js', 'editor/tabs/editor-tabs.js', 'editor/tools/editor-previews.js',
     'overseer/admin-merge-compiler.js', 'overseer/admin-diff.js', 'overseer/admin-preview.js', 'pages/core/page_render.js',
-    // site_data.js holds applyDeltaToData - the step that actually WRITES an
+    // submission_delta.js holds applyDeltaToData - the step that actually WRITES an
     // approved edit. It was missing from this list, and that is exactly where
     // Starter Guide broke: every other stage worked, the reviewer saw a
     // success modal, and nothing was written. The most important file was the
     // one not being checked.
-    'utility/site_data.js',
+    'utility/submission_delta.js',
   ];
 
   // Only the sections that USE the shared machinery. Matchups keeps its own
@@ -109,7 +109,7 @@ test('a delta for every keyed section actually writes, including the first one',
   // The first-insert case is the one that broke: no existing page carries a
   // starterGuide key, so the very first topic on every character is an insert
   // into a field that does not exist yet.
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const results = await page.evaluate((sections) => {
     const out = {};
@@ -150,7 +150,7 @@ test('a delta for every keyed section actually writes, including the first one',
 test('a scope with no handler is loud, not silent', async ({ page }) => {
   // The property that would have caught the above on the first run. A delta
   // that cannot be applied must never look like one that was.
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const errors = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

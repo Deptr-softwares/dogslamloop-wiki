@@ -160,7 +160,7 @@ test('each delta lands in its own key when applied', async ({ page }) => {
 
 test('the older gallery_intro scope still applies', async ({ page }) => {
   // Tickets carrying it may already be sitting in the queue.
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const applied = await page.evaluate(() =>
     window.applyDeltaToData({}, {}, 'gallery_intro', 'full', [{ type: 'paragraph', content: 'Legacy.' }]).newDesc);

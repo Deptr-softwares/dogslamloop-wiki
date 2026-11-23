@@ -731,7 +731,7 @@ function applyInternalStyling() {
 
             // A refused address renders as its label. rel, because target="_blank" without it
             // hands the opened page window.opener. A fragment is an in-page link with no
-            // target: pagebuilder.js resolves .wiki-link-jump, across tabs too.
+            // target: page_shell.js resolves .wiki-link-jump, across tabs too.
             content = content.replace(/\[url=([^\]]+)\]((?:(?!\[url=)[\s\S])*?)\[\/url\]/gi,
                 (whole, rawUrl, label) => {
                     // Read back out of innerHTML, where a typed & < > are

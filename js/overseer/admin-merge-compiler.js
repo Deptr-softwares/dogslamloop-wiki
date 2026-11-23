@@ -3,7 +3,7 @@
  * lists every place two of them disagree with the live page, the reviewer picks a
  * version for each, and the choices ship as one batch of scoped deltas.
  * @since v0.4, as part of admin.js
- * @touches pending_revisions, page_data, applyDeltaToData (site_data.js),
+ * @touches pending_revisions, page_data, applyDeltaToData (submission_delta.js),
  *   getKeyedSections (character_tabs.js), loadQueue (admin-queue.js)
  * @watch a merge ships deltas, never a snapshot: a snapshot taken now and applied at
  *   approval would overwrite everything approved meanwhile. A scope the scan

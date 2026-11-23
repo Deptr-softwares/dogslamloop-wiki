@@ -11,9 +11,9 @@
 //
 // The worst instance was v0.16: the dynamic roster icons and the Show Hidden
 // control shipped and the owner could not see them on the live site, because
-// js/pages/core/pagebuilder.js was unstamped and the browser kept the copy it already had.
+// js/pages/core/page_shell.js was unstamped and the browser kept the copy it already had.
 // The release looked like it had not happened. That file is the reason this
-// test names pagebuilder.js specifically.
+// test names page_shell.js specifically.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -37,7 +37,7 @@ const PAGES = collectHtml(ROOT);
 
 test('every module in js/ is stamped, and the list is discovered', async () => {
     // A hand-kept list is a list somebody forgets to add to, and the file they
-    // forget is the next pagebuilder.js.
+    // forget is the next page_shell.js.
     //
     // Every folder, at any depth (v1.1, then the js/ folders). A tool page's own
     // script once sat one folder down, so the list never saw it and every tool
@@ -58,7 +58,7 @@ test('every module in js/ is stamped, and the list is discovered', async () => {
 
     // The three that used to be the whole list, plus the one whose absence
     // caused the incident.
-    for (const name of ['utility/site_utils.js', 'utility/character_tabs.js', 'utility/input_slots.js', 'pages/core/pagebuilder.js']) {
+    for (const name of ['utility/site_utils.js', 'utility/character_tabs.js', 'utility/input_slots.js', 'pages/core/page_shell.js']) {
         expect(SHARED_MODULES, `${name} is stamped`).toContain(name);
     }
 });
@@ -146,15 +146,15 @@ test('the check really looked at the whole site', async () => {
     expect(names.some(n => n.startsWith('characters/'))).toBe(true);
 });
 
-test('a character page stamps pagebuilder.js specifically', async () => {
+test('a character page stamps page_shell.js specifically', async () => {
     // Named rather than left to the sweep above, because this is the exact file
     // and exact page from the v0.16 incident.
     const page = PAGES.find(f => /characters[\\/][^\\/]+[\\/]index\.html$/.test(f));
     expect(page, 'a character page exists').toBeTruthy();
 
     const html = fs.readFileSync(page, 'utf8');
-    expect(html).toMatch(/js\/pages\/core\/pagebuilder\.js\?v=[0-9a-f]{8}/);
-    expect(html, 'and not the bare form').not.toMatch(/js\/pages\/core\/pagebuilder\.js"/);
+    expect(html).toMatch(/js\/pages\/core\/page_shell\.js\?v=[0-9a-f]{8}/);
+    expect(html, 'and not the bare form').not.toMatch(/js\/pages\/core\/page_shell\.js"/);
 });
 
 // --- THE HASH ITSELF ---
@@ -188,7 +188,7 @@ test('the version changes when any module changes, including a new one', async (
     // hash, which is what "every module is covered" actually means.
     const tools = SHARED_MODULES.filter(n => n.startsWith('pages/tools/'));
     expect(tools.length, 'a tool script to check').toBeGreaterThan(0);
-    for (const name of ['pages/core/pagebuilder.js', 'utility/site_utils.js', 'pages/community/discussions.js', ...tools]) {
+    for (const name of ['pages/core/page_shell.js', 'utility/site_utils.js', 'pages/community/discussions.js', ...tools]) {
         const without = SHARED_MODULES.filter(n => n !== name);
         expect(hashOf(without), `${name} contributes to the version`).not.toBe(sharedAssetVersion());
     }

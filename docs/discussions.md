@@ -4,7 +4,8 @@ Where readers write: a character page's discussion thread, the Forum, and the bl
 
 ## Files
 
-- `js/pages/community/discussions.js`: threads, posts and replies, images, KLIPY GIFs and the GIF picker, editing, reporting, moderation, and the jump-to-discussion button. The Forum's conversations use it too.
+- `js/pages/community/discussions.js`: threads, posts and replies, images, KLIPY GIFs and the GIF picker, editing, reporting and moderation. The Forum's conversations use it too.
+- `js/pages/core/page_boot.js`: on a character page, loads `emoji.js` and `discussions.js` as the thread nears the screen, and runs the jump-to-discussion button and its count.
 - `js/pages/community/forum.js`: the Forum's list, one post's title and category, the new-post form and moderation of a whole post.
 - `js/utility/emoji.js`: emojis in posts, and the emoji picker.
 - `js/pages/community/posts.js`: the blog and hotfix notes, reader side.
@@ -24,11 +25,13 @@ Where readers write: a character page's discussion thread, the Forum, and the bl
 - Only a reader's browser calls KLIPY, and only when a post is made or from the GIF picker (CLAUDE.md, Stack).
 - The custom emojis are named exactly as on the Discord server, and the relay's `CUSTOM_EMOJI` lists the same ones.
 - A thread that fails to load never blocks its page.
+- On a character page the thread's scripts load about a screen before the reader reaches it, at once for a `#post-` link or a press of the jump button, so anything that must run at load (the jump button's count) lives in `page_boot.js`, not `discussions.js`. The Forum loads them with the page. Test: `tests/discussion-on-approach.spec.js`.
 
 ## Decisions
 
 Newest first. One entry per decision.
 
+- **2026-11-23, silent release, #310.** A character page loads its discussion (about 29 KB gzipped of scripts) as the reader nears the thread rather than with the page (the owner's pick of three, over a button and over no change). Its stylesheet stays with the page, since it also styles the jump button at the top, and the count on that button still shows at load.
 - **2026-10-23, v1.1, #249.** Each Forum category has its own colour, on its filter button and on every post's tag (owner).
 - **2026-10-21, v1.1, #243.** Posts can hold emojis (owner, 2026-10-21): the wiki's own, named exactly as on the Discord server so the relay can turn one into the other, and every standard emoji in Discord's look (Twemoji's art, pinned). A post stores the name or the character itself. The picker gives a picture its address only when it is seen: opening it once fetched 744 pictures (measured 2026-10-21).
 - **2026-10-21, v1.1, #243.** The post box has a GIF picker, KLIPY's own search, built to KLIPY's production rules: the box says "Search KLIPY", every request and picture goes straight from the reader's browser to KLIPY, results show in KLIPY's order with nothing added or taken out, the strictest content filter (many readers are children), and no user id.

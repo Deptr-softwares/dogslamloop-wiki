@@ -419,7 +419,7 @@ test('the site\'s dropdown is a plain box in Classic', async ({ page }) => {
 // Owner, 2026-11-20: "I think you forget to change the buttons on the left
 // sidebar as well. I think it's fine to leave the character text colors in."
 test('the site menu on the left is plain links, a character keeps its colour, WIP is a word', async ({ page }) => {
-    // One entry as js/pages/core/pagebuilder.js builds a WIP character's, placed in the
+    // One entry as js/pages/core/page_shell.js builds a WIP character's, placed in the
     // real menu, so no roster content decides the answer.
     const read = async () => {
         await expect(page.locator('.global-sidebar-left .toc-list').first()).toBeAttached();

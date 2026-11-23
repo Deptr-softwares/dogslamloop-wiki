@@ -7,6 +7,7 @@ The three hand-written hub pages, the Main Dashboard (`index.html`), the Charact
 - `js/dashboards/hub_content.js`: the hubs' prose slots (from `page_data`), section headings, the Game Info panel and the step lists (from `site_meta`).
 - `js/dashboards/dashboards.js`: the computed widgets: what needs work, recent character edits, the tier snapshot, wiki stats, the terminology peek and the matchup grid.
 - `js/dashboards/home_widgets.js`: Recent Changes and the full Update Log, the FAQ, and the Credits list.
+- `js/dashboards/hub_roster.js`: the character roster with its filters, icons and hover banners, the home page's category columns, and the Systems directory. Only the three hubs load it.
 
 ## Data
 

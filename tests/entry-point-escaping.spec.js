@@ -1,4 +1,4 @@
-// Protects the v0.11 fold-in fix to pagebuilder.js's two entry-point
+// Protects the v0.11 fold-in fix to page_shell.js's two entry-point
 // generators.
 //
 // buildSystemsDirectory built owner-supplied values straight into an inline

@@ -70,7 +70,7 @@ Page rendering lives in `js/pages/core/page_router.js` (DOM skeleton) and `js/pa
 
 ## `tool` pages: editable or not
 
-Decided by where the tool lives (owner, 2026-08-15). A page that **wraps an external tool** is content and is editable (the Skill Builder ID Reader). A page whose **logic lives in the page** has no edit button and no History (Free Submit Tier List, Create Tier List). Restricting an editable page to one person is configuration: `site_pages.edit_role` is `open | elevated | locked`. `elevated` gates at submit, with a `page_permissions` row deciding who passes; `locked` hides the button (the `editRole === 'locked'` check in `js/pages/core/pagebuilder.js`).
+Decided by where the tool lives (owner, 2026-08-15). A page that **wraps an external tool** is content and is editable (the Skill Builder ID Reader). A page whose **logic lives in the page** has no edit button and no History (Free Submit Tier List, Create Tier List). Restricting an editable page to one person is configuration: `site_pages.edit_role` is `open | elevated | locked`. `elevated` gates at submit, with a `page_permissions` row deciding who passes; `locked` hides the button (the `editRole === 'locked'` check in `js/pages/core/page_shell.js`).
 
 ## Roles
 

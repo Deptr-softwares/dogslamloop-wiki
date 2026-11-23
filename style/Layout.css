@@ -228,7 +228,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 .sidebar-nav-title:first-child { margin-top: 0; }
 
-/* Collapsible category groups in the global sidebar menu (js/pages/core/pagebuilder.js
+/* Collapsible category groups in the global sidebar menu (js/pages/core/page_shell.js
    buildGlobalSidebarMenu) */
 /* Tight rows, so the categories leave Ko-fi above the fold as the list grows; the
    spacing is proportional, not a one-off nudge. */
@@ -276,7 +276,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .loading-msg-toc { padding: 0.25rem 0.75rem; }
 .loading-msg-error { color: #ef4444; }
 
-/* Auth/dock action buttons (js/pages/core/pagebuilder.js initAuthDock) */
+/* Auth/dock action buttons (js/pages/core/page_shell.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
 /* No padding and no font-size here: they tied with .btn-sys at 0-1-0 and the
    stylesheet loaded last won, so one button stood 45px tall on a character page
@@ -312,7 +312,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
 
-/* Character page sidebar dock (js/pages/core/pagebuilder.js populates #sidebar-dynamic-dock) */
+/* Character page sidebar dock (js/pages/core/page_shell.js populates #sidebar-dynamic-dock) */
 #sidebar-dynamic-dock {
     margin-top: auto; width: 100%; display: flex; flex-direction: column;
     gap: 0.75rem; padding-top: 2rem;
@@ -324,7 +324,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     width: 100%; display: flex;
     align-items: center; justify-content: center; gap: 0.5rem;
 }
-/* At the top of the right sidebar (js/pages/core/pagebuilder.js, placeKofiOnTheRight),
+/* At the top of the right sidebar (js/pages/core/page_shell.js, placeKofiOnTheRight),
    with the sidebar's own headings below it. */
 .local-sidebar-right > .kofi-btn-wrapper { margin: 0 0 1.5rem; }
 
@@ -410,7 +410,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    hence the wider column gap. */
 .system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
 
-/* Systems directory grid (js/pages/core/pagebuilder.js buildSystemsDirectory) */
+/* Systems directory grid (js/dashboards/hub_roster.js buildSystemsDirectory) */
 /* One solid line under every title, as .section-title has; dashed is for the lines
    between a list's rows. */
 .system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; }
@@ -785,7 +785,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .post-admin-row-title { color: var(--text-white); }
 .post-admin-row-actions { display: flex; gap: 0.4rem; }
 
-/* Sitewide footer (js/pages/core/pagebuilder.js buildSiteFooter) - appended to <body>,
+/* Sitewide footer (js/pages/core/page_shell.js buildSiteFooter) - appended to <body>,
    outside .site-layout, so it spans the full width below both sidebars rather
    than sitting inside the content column. */
 .site-footer { border-top: 2px solid var(--border-color); background: var(--bg-main); padding: 1.5rem 2rem; margin-top: 2rem; }
@@ -858,7 +858,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     border: 0;
 }
 
-/* Injected by pagebuilder.js on every page. Off-screen until focused, so a
+/* Injected by page_shell.js on every page. Off-screen until focused, so a
    keyboard user's first Tab offers a way past ~40 sidebar links instead of
    walking through them on every page. */
 .skip-link {

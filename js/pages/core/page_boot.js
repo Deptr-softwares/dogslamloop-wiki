@@ -4,7 +4,8 @@
  * tool, system).
  * @since v0.9
  * @touches setupTabs, loadMoveSection, initCharacterModes, loadPageDescriptions,
- *   loadPageAlerts, initPageDiscussions, renderGalleryPage, renderToolPage
+ *   loadPageAlerts, initPageDiscussions (loaded by loadSiteFile as the thread
+ *   nears), renderGalleryPage, renderToolPage
  * @watch it stays the last script on a stub, so site_lookups.js's DOMContentLoaded
  *   handler (the character theme) runs first. The character and system branches
  *   differ on purpose: a character page fires its fetches together and maps the
@@ -71,6 +72,84 @@ window.bootCharacterContent = function (route) {
 };
 
 /**
+ * The post count on a character page's jump-to-discussion button, the reason to
+ * press it, shown before the thread has loaded. Nothing for an empty thread, since
+ * a zero reads as a dead feature.
+ * @since v0.14, in discussions.js
+ * @touches page_discussions (a count of its visible posts), #jump-discussion-count
+ */
+window.showDiscussionCount = async function (pageId) {
+    const label = document.getElementById('jump-discussion-count');
+    if (!label || !window.supabaseClient || !pageId) return;
+
+    let count = null;
+    try {
+        const res = await window.supabaseClient
+            .from('page_discussions')
+            .select('id', { count: 'exact', head: true })
+            .eq('page_id', pageId)
+            .eq('status', 'visible');
+        if (!res.error) count = res.count;
+    } catch (e) {
+        // A hint on a button: without it the button still works.
+        count = null;
+    }
+
+    label.textContent = typeof count === 'number' && count > 0 ? String(count) : '';
+};
+
+const DISCUSSION_FILES = ['js/utility/emoji.js', 'js/pages/community/discussions.js'];
+const POST_LINK = /^#post-[A-Za-z0-9-]{1,64}$/;
+
+// The thread's scripts load when the reader is about a screen from it, or at once
+// for a link to a post. The count and the jump button work from the start.
+function bootDiscussion(pageId) {
+    const section = document.getElementById('discussion-section');
+    if (!section) return;
+
+    let started = false;
+    const onHash = () => { if (POST_LINK.test(window.location.hash)) start(); };
+    function start() {
+        if (started) return;
+        started = true;
+        window.removeEventListener('hashchange', onHash);
+        DISCUSSION_FILES.reduce((loaded, file) => loaded.then(() => window.loadSiteFile(file)), Promise.resolve())
+            .then(() => window.initPageDiscussions(pageId))
+            .catch(error => {
+                console.error('[Discussion] Could not load the thread:', error);
+                const title = document.createElement('h2');
+                title.className = 'section-title discussion-title';
+                title.textContent = 'Discussion';
+                const message = document.createElement('p');
+                message.className = 'discussion-error';
+                message.textContent = 'Could not load the discussion. Try refreshing.';
+                section.replaceChildren(title, message);
+            });
+    }
+
+    const jump = document.getElementById('btn-jump-discussion');
+    if (jump) {
+        // Going to the thread brings it near, which starts it.
+        jump.addEventListener('click', () => {
+            section.scrollIntoView({ behavior: window.scrollMotion(), block: 'start' });
+        });
+    }
+    window.showDiscussionCount(pageId);
+
+    if (POST_LINK.test(window.location.hash) || !('IntersectionObserver' in window)) {
+        start();
+        return;
+    }
+    window.addEventListener('hashchange', onHash);
+    const near = new IntersectionObserver(entries => {
+        if (!entries.some(entry => entry.isIntersecting)) return;
+        near.disconnect();
+        start();
+    }, { rootMargin: '100% 0px' });
+    near.observe(section);
+}
+
+/**
  * The boot sequence for a route. A function, not only a DOMContentLoaded handler,
  * because page_rescue.js boots a 404 long after that event, once Supabase has said
  * what lives at the address.
@@ -95,9 +174,7 @@ window.runPageBoot = async function (route) {
 
         // Not awaited: the thread sits below the tabs, and a slow discussion query must
         // never delay the frame data.
-        if (typeof window.initPageDiscussions === 'function') {
-            window.initPageDiscussions(pageId);
-        }
+        bootDiscussion(pageId);
 
         // The contents are mapped once every Block is in.
         setTimeout(() => {

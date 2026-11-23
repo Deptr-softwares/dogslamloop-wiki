@@ -72,7 +72,7 @@ test('the tab is editable, which is what puts it in both strips', () => {
 // --- APPLYING AN APPROVED EDIT (the Starter Guide check) ---
 
 test('an approved gallery delta actually writes, and writes to the right field', async ({ page }) => {
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+  await page.goto('/history.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate((items) => {
     const base = { gallery: [items[0]] };

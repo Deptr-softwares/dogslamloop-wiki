@@ -23,7 +23,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const editorCore = fs.readFileSync(path.join(ROOT, 'js', 'editor', 'core', 'editor-core.js'), 'utf8');
-const pageBuilder = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'pagebuilder.js'), 'utf8');
+const pageBuilder = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'page_shell.js'), 'utf8');
 
 // --------------------------------------------------------------------------
 // Bug 6: the edit link carries the state

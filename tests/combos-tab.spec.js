@@ -127,7 +127,7 @@ test('the three sections are declared with the scopes the pipeline keys off', ()
 test('every section survives a delta, including the first one', async ({ page }) => {
   // The bug that shipped for Starter Guide: a scope with no branch in
   // applyDeltaToData returns the data unchanged and reports success.
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const result = await page.evaluate(() => {
     const intro = window.applyDeltaToData({}, {}, 'comboIntro', 'full',

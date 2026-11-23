@@ -100,12 +100,12 @@ const SKIP_TABS = new Set(['matchups', 'page']);
  * collectSectionTargets reaches for four things on window. Three
  * (getCharacterTabLabels, GENERIC_SECTION_TITLES, FRAME_MOVE_CATEGORIES) are
  * defined in this same module, so they arrive with it. The fourth,
- * sectionAnchorSlug, lives in js/pages/core/pagebuilder.js - a DOM-heavy module that does
+ * sectionAnchorSlug, lives in js/pages/core/page_shell.js - a DOM-heavy module that does
  * not evaluate in Node - and collectSectionTargets carries an inline fallback
  * for exactly that case.
  *
  * That fallback is currently character-for-character identical to
- * pagebuilder.js's version, which is what makes the anchors this script writes
+ * page_shell.js's version, which is what makes the anchors this script writes
  * match the ids the page mints. It is an ASSUMPTION, not a guarantee, so
  * tests/search-index.spec.js asserts the two agree - if they ever drift, every
  * anchor in this file silently points at nothing.

@@ -17,7 +17,7 @@ paths:
 
 ## Where shared code lives
 
-- Every page loads `js/utility/site_utils.js` and the parts split from it by job first, in this order: `site_utils.js` (settings, paths, the Supabase client, escaping, roles, dialogs: `window.escapeHtml`, `window.escapeRegExp`, `window.showAccessDenied`), `site_data.js` (page data and the delta engine), `site_media.js` (media, the tooltip, math), `site_account.js` (sign-in, profiles, badges, notifications). A shared helper goes in the part for its job.
+- Every page loads `js/utility/site_utils.js` and the parts split from it by job first, in this order: `site_utils.js` (settings, paths, the Supabase client, escaping, roles, dialogs: `window.escapeHtml`, `window.escapeRegExp`, `window.showAccessDenied`), `site_data.js` (page data), `site_media.js` (media, the tooltip, math), `site_account.js` (sign-in, badges, and the openers of the profile, public profile and inbox boxes, which are `account_boxes.js`, loaded the first time one opens). A shared helper goes in the part for its job. A file only some pages need is loaded later through `window.loadSiteFile`, which gives it the page's own `?v=` stamp.
 - A part past about 1,500 lines is split by job the same way (owner, 2026-11-22). The new part is named `site_<job>.js`, loads right after the part it came from on every page (`PARTS` in `scripts/page-scripts.js`), and joins `PARTS` in `tests/site-utils-parts.spec.js`. Past six parts, the family moves into its own folder, `js/utility/site/`.
 - A new file goes in the `js/` folder for its purpose (CLAUDE.md, "Stack").
 

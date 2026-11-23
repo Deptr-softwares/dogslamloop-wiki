@@ -13,7 +13,7 @@
 const { test, expect } = require('@playwright/test');
 
 // getSession() is called by more than just the RBAC gate under test here -
-// js/pages/core/pagebuilder.js's login dock calls it too, independently, on every page
+// js/pages/core/page_shell.js's login dock calls it too, independently, on every page
 // - so a shared call-counter (this call is #0, the next is #1...) races
 // between callers in an undefined order and doesn't reliably target "the
 // RBAC gate's own first attempt". Time-based sequencing sidesteps that:
@@ -57,7 +57,7 @@ async function mockAuth(page, { sessionFailWindowMs = 0, roleResults }) {
               if (table === 'user_roles') {
                 // Chainable AND directly awaitable, matching real
                 // supabase-js query builders - admin-core.js/owner.js await
-                // the .eq(...) result directly, pagebuilder.js chains an
+                // the .eq(...) result directly, page_shell.js chains an
                 // extra .single() onto it.
                 const chain = {
                   select() { return chain; },

@@ -7,9 +7,9 @@
 // the rendered page actually mints.
 //
 // The most important test in this file is the LAST one. The generator runs in
-// Node, where js/pages/core/pagebuilder.js cannot be evaluated, so collectSectionTargets
+// Node, where js/pages/core/page_shell.js cannot be evaluated, so collectSectionTargets
 // falls back to its own inline copy of sectionAnchorSlug. That fallback happens
-// to be character-for-character identical to pagebuilder.js's version - which
+// to be character-for-character identical to page_shell.js's version - which
 // is an ASSUMPTION, not a guarantee. If the two ever drift, every anchor in the
 // committed index silently points at nothing and no other test would notice:
 // the file would still be valid JSON, still the right size, still full of
@@ -218,9 +218,9 @@ test('a hostile section title is escaped in the results panel', async ({ page })
 
 test('the Node slug and the browser slug produce identical anchors', async ({ page }) => {
     // scripts/fetch-search-index.js evaluates js/utility/character_tabs.js in Node,
-    // where js/pages/core/pagebuilder.js is unavailable - so collectSectionTargets uses
+    // where js/pages/core/page_shell.js is unavailable - so collectSectionTargets uses
     // its INLINE fallback for sectionAnchorSlug. The committed anchors are only
-    // correct while that fallback and pagebuilder.js's real function agree.
+    // correct while that fallback and page_shell.js's real function agree.
     //
     // Drift here breaks every link in the index at once and looks like nothing:
     // valid JSON, right size, plausible ids, all pointing at elements that do

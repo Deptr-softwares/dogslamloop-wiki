@@ -29,11 +29,11 @@ test('the role labels drop contributor and describe viewer honestly', async ({ p
 });
 
 test('logged-out visitors are not labelled with the ban role', async ({ page }) => {
-  // pagebuilder.js used 'viewer' as its logged-out placeholder. Once 'viewer'
+  // page_shell.js used 'viewer' as its logged-out placeholder. Once 'viewer'
   // means "banned", that default is backwards - harmless today because it
   // only picks a dock icon, but exactly the kind of default that becomes a
   // real bug the first time something gates on it.
-  const source = await (await page.request.get('/js/pages/core/pagebuilder.js')).text();
+  const source = await (await page.request.get('/js/pages/core/page_shell.js')).text();
   expect(source).toContain("let userRole = 'none'");
   expect(source).not.toContain("let userRole = 'viewer'");
 });

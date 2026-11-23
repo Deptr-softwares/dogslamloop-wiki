@@ -70,7 +70,7 @@ const EXPECTED_CHARACTER_TABS = (() => {
   }));
 })();
 
-// Ids the shared chrome in js/pages/core/pagebuilder.js, js/pages/core/page_render.js and
+// Ids the shared chrome in js/pages/core/page_shell.js, js/pages/core/page_render.js and
 // js/pages/core/skill_card.js look up directly. A router that omits any of them fails
 // silently - most of these lookups bail without throwing.
 const REQUIRED_CHROME_IDS = [
@@ -106,7 +106,7 @@ async function captureSignature(page) {
          'character-alerts-container', 'btn-edit-current-tab']
           .map(id => [id, !!document.getElementById(id)])
       ),
-      // js/pages/core/pagebuilder.js:120 resolves the active tab through this exact
+      // js/pages/core/page_shell.js:120 resolves the active tab through this exact
       // selector. It is the single most brittle contract the router inherits.
       activeNavButton: !!document.querySelector('nav.character-nav .btn-manga.active'),
       hasSidebarToggle: !!document.querySelector('.sidebar-toggle-btn'),

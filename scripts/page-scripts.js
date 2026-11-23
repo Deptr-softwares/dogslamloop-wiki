@@ -44,8 +44,12 @@ const PARTS = [
     'utility/site_lookups.js',
 ];
 const SITE = [SUPABASE, ...TABS, ...PARTS];
-// The sidebar, header and search box a reader page draws.
-const SHELL = ['pages/core/pagebuilder.js', 'utility/search.js'];
+// The delta engine: only the pages that apply a submission (the editor, the
+// Overseer, History).
+const DELTA = 'utility/submission_delta.js';
+// The sidebar, header and search box a reader page draws. The hubs add
+// dashboards/hub_roster.js, their roster and directories.
+const SHELL = ['pages/core/page_shell.js', 'utility/search.js'];
 // Blocks to markup, then format tags in that markup.
 const RENDER = ['pages/core/page_render.js', 'pages/core/format_tags.js'];
 // Reader pages only, never a staff or editor page (CLAUDE.md, Stack).
@@ -63,13 +67,13 @@ const deferred = list => list.map(entry => (typeof entry === 'string' ? { src: e
 
 const PAGE_SCRIPTS = {
     // The four kinds scripts/generate-pages.js writes (GENERATED_PAGE_TYPES).
+    // A character page's discussion (emoji.js, discussions.js) is loaded by
+    // page_boot.js as the thread nears the screen.
     character: [
         ...ROUTED,
         'pages/core/skill_card.js',
         'pages/core/page_render.js',
         'pages/core/character_modes.js',
-        'utility/emoji.js',
-        'pages/community/discussions.js',
         'pages/core/format_tags.js',
         ...BOOT,
     ],
@@ -108,13 +112,15 @@ const PAGE_SCRIPTS = {
         'utility/site_media.js',
         'utility/site_account.js',
         'dashboards/home_widgets.js',
-        ...SHELL, ...RENDER,
+        ...SHELL,
+        'dashboards/hub_roster.js',
+        ...RENDER,
         'pages/community/posts.js',
         'dashboards/hub_content.js',
         ANALYTICS,
     ]),
     // page_render.js and format_tags.js draw the hub's own text, which is Blocks.
-    hub: [...SITE, ...SHELL, ...RENDER, 'dashboards/hub_content.js', 'dashboards/dashboards.js', ANALYTICS],
+    hub: [...SITE, ...SHELL, 'dashboards/hub_roster.js', ...RENDER, 'dashboards/hub_content.js', 'dashboards/dashboards.js', ANALYTICS],
     // page_render.js draws each list's introduction and reasoning, which are
     // Blocks. It has no DOMContentLoaded handler, so it boots nothing here.
     'tier-lists': [...SITE, ...SHELL, ...RENDER, 'pages/tier-lists/tierlist.js', 'pages/tier-lists/certified-tier-lists.js', ANALYTICS],
@@ -138,11 +144,10 @@ const PAGE_SCRIPTS = {
         'utility/character_tabs.js',
         'pages/core/page_router.js',
         'utility/input_slots.js',
-        ...PARTS, ...SHELL,
+        ...PARTS, DELTA, ...SHELL,
         'pages/core/page_render.js',
         'pages/core/skill_card.js',
         'pages/core/character_modes.js',
-        'utility/emoji.js',
         'pages/core/format_tags.js',
         'pages/tier-lists/tierlist.js',
         'pages/core/page_boot.js',
@@ -154,7 +159,7 @@ const PAGE_SCRIPTS = {
     policy: [...SITE, ...SHELL, ANALYTICS],
     submissions: [...SITE, ...SHELL, 'pages/community/submissions.js'],
     editor: [
-        ...SITE, ...SHELL,
+        ...SITE, DELTA, ...SHELL,
         'pages/core/skill_card.js',
         ...RENDER,
         // Before every editor module: ?playground decides which page opens.
@@ -207,7 +212,7 @@ const PAGE_SCRIPTS = {
         'pages/tier-lists/tier-editor.js',
     ],
     overseer: [
-        ...SITE, ...SHELL,
+        ...SITE, DELTA, ...SHELL,
         'pages/core/skill_card.js',
         ...RENDER,
         'pages/tier-lists/tierlist.js',

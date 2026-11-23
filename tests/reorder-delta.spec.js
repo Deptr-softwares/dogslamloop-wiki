@@ -35,7 +35,7 @@ async function apply(page, baseDesc, baseFrame, scope, key, payload) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof window.applyDeltaToData === 'function');
 });
 

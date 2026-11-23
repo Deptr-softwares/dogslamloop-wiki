@@ -92,12 +92,14 @@ test('the auth modal really is the bigger consumer of .editor-input', () => {
     // the fix turns on: the owner saw the PROFILE fields unstyled, but the
     // login and register form uses the same class more, so an anonymous visitor
     // hit this before any signed-in one could.
+    // The sign-in markup, up to the alert box's, which follows it in site_account.js
+    // (the profile box is in account_boxes.js, loaded the first time it opens).
     const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_account.js'), 'utf8');
     const authStart = src.indexOf('const authModalHTML');
-    const profileStart = src.indexOf('const profileModalHTML');
+    const authEnd = src.indexOf('const alertModalHTML');
     expect(authStart, 'authModalHTML exists').toBeGreaterThan(-1);
-    expect(profileStart, 'profileModalHTML is defined after it').toBeGreaterThan(authStart);
+    expect(authEnd, 'alertModalHTML is defined after it').toBeGreaterThan(authStart);
 
-    const authUses = (src.slice(authStart, profileStart).match(/editor-input/g) || []).length;
+    const authUses = (src.slice(authStart, authEnd).match(/editor-input/g) || []).length;
     expect(authUses, 'the login form styles its inputs with .editor-input').toBeGreaterThan(0);
 });

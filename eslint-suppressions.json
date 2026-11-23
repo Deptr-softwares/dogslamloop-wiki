@@ -225,9 +225,9 @@
       "count": 1
     }
   },
-  "js/pages/core/pagebuilder.js": {
+  "js/pages/core/page_shell.js": {
     "no-unsanitized/property": {
-      "count": 12
+      "count": 8
     }
   },
   "js/pages/records/history.js": {
@@ -287,7 +287,7 @@
   },
   "js/utility/site_account.js": {
     "no-unsanitized/property": {
-      "count": 4
+      "count": 1
     }
   },
   "js/utility/site_media.js": {
@@ -298,6 +298,16 @@
   "js/utility/site_lookups.js": {
     "no-unsanitized/property": {
       "count": 1
+    }
+  },
+  "js/dashboards/hub_roster.js": {
+    "no-unsanitized/property": {
+      "count": 4
+    }
+  },
+  "js/utility/account_boxes.js": {
+    "no-unsanitized/property": {
+      "count": 3
     }
   }
 }
