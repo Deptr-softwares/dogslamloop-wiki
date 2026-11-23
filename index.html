@@ -292,17 +292,8 @@
 
     </div>
 
-    <!-- Deferred (v1.2, the owner's performance card). This is the one page
-         with a Content-Security-Policy meta tag, and Chrome stops fetching
-         ahead when it meets one, so these blocking scripts were fetched one at
-         a time, each when the parser reached it: twelve in a row, and the
-         page ready for its data at about 1.6s instead of 0.35s (measured,
-         2026-11-17). A deferred script never stops the parser, so it asks for
-         all of them at once; they still run in this order, once the page is
-         read, which is when they ran before. Below the policy, so it covers
-         them too. -->
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script defer src="js/vendor/supabase-js-2.118.0.js"></script>
-
     <script defer src="js/utility/site_meta.js?v=9d32449e"></script>
     <script defer src="js/utility/character_tabs.js?v=9d32449e"></script>
     <script defer src="js/utility/input_slots.js?v=9d32449e"></script>
@@ -313,15 +304,12 @@
     <script defer src="js/dashboards/home_widgets.js?v=9d32449e"></script>
     <script defer src="js/pages/core/pagebuilder.js?v=9d32449e"></script>
     <script defer src="js/utility/search.js?v=9d32449e"></script>
-    <!-- The homepage post widget lists posts only (escaped title/summary/date)
-         and needs neither of these. The About Us section does: it renders
-         authored blocks through generateHTMLForBlocks, which lives in
-         description.js and relies on internalstyling.js for inline markup. -->
     <script defer src="js/pages/core/description.js?v=9d32449e"></script>
     <script defer src="js/pages/core/internalstyling.js?v=9d32449e"></script>
     <script defer src="js/pages/community/posts.js?v=9d32449e"></script>
     <script defer src="js/dashboards/hub_content.js?v=9d32449e"></script>
     <script async src="js/others/analytics.js?v=9d32449e"></script>
+    <!-- END GENERATED: scripts -->
 
     <!-- A module rather than a plain script since v1.2: a module waits in the
          same queue as the deferred scripts above, so it still runs after them

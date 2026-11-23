@@ -177,7 +177,7 @@
 
     </div>
 
-    <!-- V0.4 SYSTEM SCRIPTS -->
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../../js/utility/character_tabs.js?v=9d32449e"></script>
     <script src="../../js/utility/input_slots.js?v=9d32449e"></script>
@@ -188,24 +188,12 @@
     <script src="../../js/utility/site_meta.js?v=9d32449e"></script>
     <script src="../../js/pages/core/pagebuilder.js?v=9d32449e"></script>
     <script src="../../js/utility/search.js?v=9d32449e"></script>
-    
-    <!-- Custom Tier List Engine -->
-    <!--
-        description.js is loaded for generateHTMLForBlocks alone, which renders
-        the block arrays behind each list's introduction and reasoning. It has
-        no DOMContentLoaded handler of its own, so it behaves as a library here
-        rather than booting anything.
-
-        Its absence was a real bug: the reasoning section shipped in PR #81 and
-        could never have rendered, because the function that renders it was not
-        on the page. Every test fixture had an empty reasoning array, so nothing
-        caught it.
-    -->
     <script src="../../js/pages/core/description.js?v=9d32449e"></script>
     <script src="../../js/pages/core/internalstyling.js?v=9d32449e"></script>
     <script src="../../js/pages/tier-lists/tierlist.js?v=9d32449e"></script>
     <script src="../../js/pages/tier-lists/certified-tier-lists.js?v=9d32449e"></script>
     <script async src="../../js/others/analytics.js?v=9d32449e"></script>
+    <!-- END GENERATED: scripts -->
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
