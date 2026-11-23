@@ -287,7 +287,7 @@
   },
   "js/utility/site_account.js": {
     "no-unsanitized/property": {
-      "count": 4
+      "count": 1
     }
   },
   "js/utility/site_media.js": {
@@ -303,6 +303,11 @@
   "js/dashboards/hub_roster.js": {
     "no-unsanitized/property": {
       "count": 4
+    }
+  },
+  "js/utility/account_boxes.js": {
+    "no-unsanitized/property": {
+      "count": 3
     }
   }
 }

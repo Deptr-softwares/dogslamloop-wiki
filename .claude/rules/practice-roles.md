@@ -3,6 +3,7 @@ paths:
   - "supabase/**"
   - "js/utility/site_utils.js"
   - "js/utility/site_account.js"
+  - "js/utility/account_boxes.js"
   - "js/overseer/**"
   - "js/owner/**"
   - "js/editor/core/editor-core.js"

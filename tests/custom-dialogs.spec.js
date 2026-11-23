@@ -189,6 +189,10 @@ async function inboxFixture(page) {
   const dialogs = [];
   page.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); });
   await page.goto(PUBLIC_PAGE, { waitUntil: 'domcontentloaded' });
+  // The inbox's code loads the first time a box opens (account_boxes.js), the
+  // way openNotificationModal loads it.
+  await page.waitForFunction(() => typeof window.loadSiteFile === 'function', { timeout: 45000 });
+  await page.evaluate(() => window.loadSiteFile('js/utility/account_boxes.js'));
   await page.waitForFunction(() => typeof window.clearAllNotifications === 'function', { timeout: 45000 });
 
   // The inbox modal as renderNotifications builds it, so the function under

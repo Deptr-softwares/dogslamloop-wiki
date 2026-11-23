@@ -85,3 +85,10 @@ test('only the Forum loads the discussion with its page; a character page loads 
         expect(fs.existsSync(path.join(ROOT, file)), file).toBe(true);
     }
 });
+
+test('no page loads the account boxes with its tags; site_account.js loads them on first open', () => {
+    const file = 'js/utility/account_boxes.js';
+    expect(pages().filter(page => page.files.includes(file)).map(page => page.name)).toEqual([]);
+    expect(read('js/utility/site_account.js')).toContain(`'${file}'`);
+    expect(fs.existsSync(path.join(ROOT, file)), file).toBe(true);
+});

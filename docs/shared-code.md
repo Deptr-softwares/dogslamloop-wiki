@@ -7,7 +7,8 @@ What every page loads before its own scripts: the reader's settings, paths and p
 - `js/utility/site_utils.js`: Site Settings, paths and page addresses, the Supabase client and its local-only override, the escapers, the role ladder, the system alert, the dropdowns, the dialog engine and the mobile preview switch.
 - `js/utility/site_data.js`: page data (`docs/page-data.md`). The delta engine is `js/utility/submission_delta.js`, which only the editor, the Overseer and History load.
 - `js/utility/site_media.js`: media framing, the blocked-media guard, the shared tooltip and math.
-- `js/utility/site_account.js`: signing in, profiles, badges, role badges and the inbox.
+- `js/utility/site_account.js`: signing in, the alert box, public profile lookups, badges and role badges, and the openers for the account boxes.
+- `js/utility/account_boxes.js`: the reader's own profile, another reader's public profile and the inbox, loaded the first time one opens (`window.loadSiteFile`, in `site_utils.js`).
 - `js/utility/site_lookups.js`: character colours (generated), aliases, accolades, the site's icons, character icon paths, frame colours, the version line and the character theme.
 
 They load in that order on every page, right after the Supabase library (`tests/site-utils-parts.spec.js`).
@@ -32,6 +33,7 @@ They load in that order on every page, right after the Supabase library (`tests/
 
 Newest first. One entry per decision.
 
+- **2026-11-23, silent release, #310.** The profile, a public profile and the inbox load the first time one opens (the owner's pick), from `account_boxes.js`; the inbox is no longer fetched at every page load, since the dock's unread dot has its own count. A file loaded later goes through `window.loadSiteFile`, which gives it the page's own `?v=` stamp, so it is never an older copy than the page.
 - **2026-11-21, silent release, #298.** A page's kind comes from the site's own page list (`registeredPageType`), not from the submission, which is only the submitter's word (owner, 2026-11-21).
 - **2026-11-21, silent release, #293.** One dialog engine (`runDialog`) runs every confirm, message and prompt box, and one question is open at a time, so a double click cannot run an action twice. One escaper (`window.escapeHtml`): 55 definitions were removed.
 - **2026-11-19, v1.2, #285.** The site's icons are the owner's own pixel art, replacing the SVGs an assistant drew and the copies of Feather and Lucide (owner, 2026-10-24). An icon's id is its file name, and text can show one as `[icon=ui/<id>]` (owner, 2026-11-19).

@@ -518,7 +518,7 @@ window.initAuthDock = async function() {
     if (btnSettings) btnSettings.onclick = () => window.openSiteSettings();
     window.syncMobileBottomAccount({ icon: loginIcon, signedIn: username !== 'LOGIN' });
 
-    // Opens the inbox modal site_account.js builds (initNotifications).
+    // Opens the inbox (account_boxes.js, loaded the first time).
     const btnInbox = document.getElementById('dock-btn-inbox');
     if (btnInbox) {
         btnInbox.onclick = () => {
