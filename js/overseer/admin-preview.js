@@ -4,7 +4,7 @@
  * CHANGE LIST of every changed part).
  * @since v0.4, as part of admin.js
  * @touches page_data, pending_revisions, window.currentLive* and currentPending*,
- *   applyDeltaToData (site_data.js), loadPageDescriptions (page_render.js),
+ *   applyDeltaToData (submission_delta.js), loadPageDescriptions (page_render.js),
  *   renderStructuredDiff and setActiveRevisionTab (admin-diff.js),
  *   initPreviewStates (admin-modes.js), SideBySide.mount (side-by-side.js)
  * @watch switchVersionView is one function on purpose: its diff renderers close

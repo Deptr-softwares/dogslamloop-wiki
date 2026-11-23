@@ -53,7 +53,7 @@ test('a page runs with all four parts and none of them fails to load', async ({ 
     await page.goto('/history.html');
     const present = await page.evaluate(() => ({
         utils: typeof window.escapeHtml,
-        data: typeof window.applyDeltaToData,
+        data: typeof window.fetchCloudCharacterData,
         media: typeof window.applyMediaFraming,
         account: typeof window.checkActiveSession,
     }));

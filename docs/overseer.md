@@ -18,7 +18,7 @@ overseer.html, the staff page: the revision queue, the media queue, the report q
 - `js/overseer/admin-media-queue.js`: the media queue and deleting a file.
 - `js/overseer/admin-reports.js`: the report queue.
 - `style/admin.css`: the Overseer's look, and the owner tools' (`owner.html`).
-- Shared with the editor: `js/utility/side-by-side.js` and `js/utility/diff-markers.js` (`docs/editor.md`), and the delta engine `applyDeltaToData` in `js/utility/site_data.js` (`docs/page-data.md`).
+- Shared with the editor: `js/utility/side-by-side.js` and `js/utility/diff-markers.js` (`docs/editor.md`), and the delta engine `applyDeltaToData` in `js/utility/submission_delta.js` (`docs/page-data.md`).
 
 ## Data
 

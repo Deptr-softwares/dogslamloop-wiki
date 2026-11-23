@@ -4,7 +4,7 @@
  * "nothing changed here" is told apart from "this is the wrong state".
  * @since v0.14
  * @touches window.activePreviewMode, window.changedModes, getCharacterModes,
- *   resolveModeFrame, resolveModeDesc and unwrapModeDelta (site_data.js),
+ *   resolveModeFrame and resolveModeDesc (site_data.js), unwrapModeDelta (submission_delta.js),
  *   setupTabs (page_shell.js), switchVersionView (admin-preview.js)
  * @watch not character_modes.js: that one is built for the live page (the address
  *   bar, its own fetch), and this one draws two versions held in memory.

@@ -44,6 +44,9 @@ const PARTS = [
     'utility/site_lookups.js',
 ];
 const SITE = [SUPABASE, ...TABS, ...PARTS];
+// The delta engine: only the pages that apply a submission (the editor, the
+// Overseer, History).
+const DELTA = 'utility/submission_delta.js';
 // The sidebar, header and search box a reader page draws. The hubs add
 // dashboards/hub_roster.js, their roster and directories.
 const SHELL = ['pages/core/page_shell.js', 'utility/search.js'];
@@ -141,7 +144,7 @@ const PAGE_SCRIPTS = {
         'utility/character_tabs.js',
         'pages/core/page_router.js',
         'utility/input_slots.js',
-        ...PARTS, ...SHELL,
+        ...PARTS, DELTA, ...SHELL,
         'pages/core/page_render.js',
         'pages/core/skill_card.js',
         'pages/core/character_modes.js',
@@ -157,7 +160,7 @@ const PAGE_SCRIPTS = {
     policy: [...SITE, ...SHELL, ANALYTICS],
     submissions: [...SITE, ...SHELL, 'pages/community/submissions.js'],
     editor: [
-        ...SITE, ...SHELL,
+        ...SITE, DELTA, ...SHELL,
         'pages/core/skill_card.js',
         ...RENDER,
         // Before every editor module: ?playground decides which page opens.
@@ -210,7 +213,7 @@ const PAGE_SCRIPTS = {
         'pages/tier-lists/tier-editor.js',
     ],
     overseer: [
-        ...SITE, ...SHELL,
+        ...SITE, DELTA, ...SHELL,
         'pages/core/skill_card.js',
         ...RENDER,
         'pages/tier-lists/tierlist.js',

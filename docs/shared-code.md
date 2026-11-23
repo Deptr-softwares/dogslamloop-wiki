@@ -5,7 +5,7 @@ What every page loads before its own scripts: the reader's settings, paths and p
 ## Files
 
 - `js/utility/site_utils.js`: Site Settings, paths and page addresses, the Supabase client and its local-only override, the escapers, the role ladder, the system alert, the dropdowns, the dialog engine and the mobile preview switch.
-- `js/utility/site_data.js`: page data and the delta engine (`docs/page-data.md`).
+- `js/utility/site_data.js`: page data (`docs/page-data.md`). The delta engine is `js/utility/submission_delta.js`, which only the editor, the Overseer and History load.
 - `js/utility/site_media.js`: media framing, the blocked-media guard, the shared tooltip and math.
 - `js/utility/site_account.js`: signing in, profiles, badges, role badges and the inbox.
 - `js/utility/site_lookups.js`: character colours (generated), aliases, accolades, the site's icons, character icon paths, frame colours, the version line and the character theme.

@@ -3,7 +3,7 @@
  * characters (guides, Terminologies, the tier list's own tabs), and the deltas a
  * system or tier list page submits.
  * @since v0.4, as part of editor.js
- * @touches desc_data.tabs, indexSystemSections (site_data.js), reorderStripControls
+ * @touches desc_data.tabs, indexSystemSections (submission_delta.js), reorderStripControls
  *   and setReorderRefresh (editor-reorder.js), the Block editor
  * @watch a system page submits one delta per section, tab metadata and tier table,
  *   never the whole document: two tickets for one page each carrying a snapshot
@@ -197,7 +197,7 @@ window.updateSystemMeta = function(field, value, isCheckbox = false, isNumber = 
 
 /**
  * The deltas a system or tier list page submits, one per section, tab metadata
- * and tier table. Keys come from indexSystemSections (site_data.js).
+ * and tier table. Keys come from indexSystemSections (submission_delta.js).
  * @since v0.15
  */
 window.buildSystemDeltas = function(local, cloud, pageType) {

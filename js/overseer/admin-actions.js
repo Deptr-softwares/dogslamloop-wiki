@@ -3,7 +3,7 @@
  * LIVE or FORCE APPROVE), reject or withdraw, OPEN TICKET and REQUEST CHANGES.
  * @since v0.4, as part of admin.js
  * @touches pending_revisions, page_data (archived to page_history by its trigger),
- *   user_notifications, applyDeltaToData (site_data.js), buildPageUrl and
+ *   user_notifications, applyDeltaToData (submission_delta.js), buildPageUrl and
  *   registeredPageType (site_utils.js), adminPrompt (admin-core.js)
  * @watch the page kind written to a live row comes from the page list, never the
  *   submission's page_type. A notification is skipped for an anonymized author
