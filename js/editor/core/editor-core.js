@@ -524,7 +524,7 @@ window.collectEditorDeltas = async function () {
         // per state. The states come from the data (modeData), so a state with content
         // but no declaration is still scanned, and scanning creates no empty buckets.
         const collectStates = () => {
-            const base = typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base';
+            const base = window.BASE_MODE_ID;
             const ids = [base];
             const seen = new Set(ids);
             [window.editorMasterDescData, window.editorMasterFrameData].forEach(master => {
@@ -1132,8 +1132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // originalCloudDescData is the active state's slice, so the row just read is
                     // narrowed the same way, or every state would warn of a collision.
                     const mode = window.editorActiveMode;
-                    const onBase = typeof window.isBaseMode === 'function'
-                        ? window.isBaseMode(mode) : (!mode || mode === 'base');
+                    const onBase = window.isBaseMode(mode);
                     const liveDesc = onBase ? liveData.desc_data : (liveData.desc_data?.modeData || {})[mode] || {};
                     const liveFrame = onBase ? liveData.frame_data : (liveData.frame_data?.modeData || {})[mode] || {};
 

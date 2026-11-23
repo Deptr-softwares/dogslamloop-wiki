@@ -100,7 +100,11 @@ test('no page re-introduces a second Edit/History pair in the body', async ({ pa
 // what tierlist-live-dedupe.spec.js exists to police, and this is the same
 // shape one file over.
 test('the stylesheet drops the rules for the buttons that were removed', async ({ page, request }) => {
-  const css = await (await request.get('/style/Layout.css')).text();
+  // Layout.css and the sheets split from it.
+  const { SPLIT_FROM_LAYOUT } = require('../scripts/page-scripts.js');
+  const sheets = await Promise.all(['Layout.css', ...SPLIT_FROM_LAYOUT]
+    .map(async name => (await request.get(`/style/${name}`)).text()));
+  const css = sheets.join('\n');
 
   // The comment recording the removal is allowed to name them; a rule is not.
   const rules = css.replace(/\/\*[\s\S]*?\*\//g, '');

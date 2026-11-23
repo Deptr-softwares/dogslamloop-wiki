@@ -1,14 +1,16 @@
-// Files only some pages need are loaded only by those pages. For each one, a
+// Files only some pages need are loaded only by those pages. For each script, a
 // page loads it exactly when something the page runs (its own inline scripts and
 // markup, or another file it loads) calls a function the file defines. Comments
-// do not count. Node only: the pages and scripts/page-scripts.js's lists, never
-// the generated content.
+// do not count. For each sheet split from Layout.css, a kind of page loads it
+// exactly when it loads what draws it, and a real page draws no class that only
+// a sheet it skips styles. Node, but for that last check: the pages and
+// scripts/page-scripts.js's lists, never the generated content.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const espree = require('espree');
 
-const { HAND_WRITTEN, scriptTags } = require('../scripts/page-scripts.js');
+const { HAND_WRITTEN, PAGE_SCRIPTS, PAGE_STYLES, SPLIT_FROM_LAYOUT, scriptTags } = require('../scripts/page-scripts.js');
 const { GENERATED_PAGE_TYPES } = require('../scripts/page-types.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -92,3 +94,74 @@ test('no page loads the account boxes with its tags; site_account.js loads them 
     expect(read('js/utility/site_account.js')).toContain(`'${file}'`);
     expect(fs.existsSync(path.join(ROOT, file)), file).toBe(true);
 });
+
+// What draws each sheet split from Layout.css: a kind of page loads the sheet
+// exactly when it loads one of these scripts. Every tool page loads tierlist.css,
+// since the tier list tools are tools.
+const TOOL_PAGE = 'a tool page';
+const DRAWN_BY = {
+    'Blocks.css': ['pages/core/page_render.js'],
+    'dashboards.css': ['dashboards/hub_roster.js'],
+    'posts.css': ['pages/community/posts.js'],
+    'tierlist.css': ['pages/tier-lists/tierlist.js', 'pages/tier-lists/tier-editor.js', TOOL_PAGE],
+    'search-page.css': ['pages/records/search-page.js'],
+    'post-editor.css': ['owner/post-editor.js'],
+};
+
+test('each sheet split from Layout.css loads right after it, on exactly the kinds that draw it', () => {
+    expect(Object.keys(DRAWN_BY).sort(), 'every split sheet says what draws it').toEqual([...SPLIT_FROM_LAYOUT].sort());
+    const wrong = [];
+    for (const [kind, sheets] of Object.entries(PAGE_STYLES)) {
+        const scripts = (PAGE_SCRIPTS[kind] || []).map(entry => (typeof entry === 'string' ? entry : entry.src));
+        const loads = SPLIT_FROM_LAYOUT.filter(sheet => sheets.includes(sheet));
+        const draws = SPLIT_FROM_LAYOUT.filter(sheet => DRAWN_BY[sheet]
+            .some(script => scripts.includes(script) || (script === TOOL_PAGE && kind === 'tool')));
+        if (loads.join() !== draws.join()) wrong.push(`${kind} loads [${loads}] but draws [${draws}]`);
+        // Right after Layout.css and in SPLIT_FROM_LAYOUT's order, so each rule
+        // keeps its place against every other sheet.
+        const at = sheets.indexOf('Layout.css');
+        if (sheets.slice(at + 1, at + 1 + loads.length).join() !== loads.join()) {
+            wrong.push(`${kind}: [${loads}] are not right after Layout.css`);
+        }
+    }
+    expect(wrong).toEqual([]);
+});
+
+// The classes a stylesheet's selectors name, comments left out. Each sheet read once.
+const sheetClasses = new Map();
+const classesIn = file => {
+    if (sheetClasses.has(file)) return sheetClasses.get(file);
+    const css = read(file).replace(/\/\*[\s\S]*?\*\//g, '');
+    const selectors = [...css.matchAll(/([^{}]+)\{/g)].map(m => m[1]).filter(s => !s.trim().startsWith('@'));
+    const names = new Set(selectors.flatMap(s => [...s.matchAll(/\.((?:\\.|[A-Za-z0-9_-])+)/g)]
+        .map(m => m[1].replace(/\\(.)/g, '$1'))));
+    sheetClasses.set(file, names);
+    return names;
+};
+
+for (const url of [
+    '/characters/Boomcat/index.html', '/systems/fundamentals/index.html', '/others/emotes/index.html',
+    '/tools/create-tier-list/index.html', '/index.html', '/characters/index.html', '/systems/index.html',
+    '/systems/tierlist/index.html', '/systems/updatelog/index.html', '/blog.html', '/forum.html',
+    '/history.html?page=boomcat', '/recent-changes.html', '/search.html?q=boomcat', '/privacy-policy.html',
+    '/submissions.html', '/edit.html?char=boomcat&type=character&tab=overview',
+]) {
+    test(`${url} draws no class that only a split sheet it skips would style`, async ({ page }) => {
+        await page.goto(url, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1500);
+        // What loads on approach, the discussion, comes in too.
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(1500);
+        const { sheets, drawn } = await page.evaluate(() => ({
+            sheets: [...document.querySelectorAll('link[rel="stylesheet"]')]
+                .map(l => new URL(l.href).pathname.replace(/^\//, '')),
+            drawn: [...new Set([...document.querySelectorAll('[class]')].flatMap(el => [...el.classList]))],
+        }));
+        expect(sheets, 'the page loads Layout.css').toContain('style/Layout.css');
+        const styledHere = new Set(sheets.flatMap(file => [...classesIn(file)]));
+        const skipped = SPLIT_FROM_LAYOUT.map(s => `style/${s}`).filter(file => !sheets.includes(file));
+        const unstyled = drawn.filter(name => !styledHere.has(name)
+            && skipped.some(file => classesIn(file).has(name)));
+        expect(unstyled, `classes only ${skipped.join(', ')} style`).toEqual([]);
+    });
+}

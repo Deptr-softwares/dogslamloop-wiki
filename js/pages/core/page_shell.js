@@ -316,9 +316,7 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
         // parameter. Base sends none, as character_modes.js does.
         const mode = window.activeCharacterMode
             || new URLSearchParams(window.location.search).get('mode');
-        const onBase = typeof window.isBaseMode === 'function'
-            ? window.isBaseMode(mode)
-            : (!mode || mode === 'base');
+        const onBase = window.isBaseMode(mode);
         const modeParam = onBase ? '' : `&mode=${encodeURIComponent(mode)}`;
 
         window.location.href = `../../edit.html?page=${pageId}&type=${pageType}&tab=${activeTabId}${modeParam}`;

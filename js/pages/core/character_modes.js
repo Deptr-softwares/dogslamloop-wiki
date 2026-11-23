@@ -18,22 +18,15 @@
 
     // The static strip, registered again with the Ultimate tab so the buttons bound at
     // boot hide it too. includeOptional, as page_boot.js passes it, or a Techs tab
-    // would lose its binding. Without character_tabs.js (a stale cached stub), the
-    // strip page_router built is the answer.
-    const staticTabIds = () => (window.getCharacterTabIds
-        ? window.getCharacterTabIds({ includeOptional: true })
-        : Array.from(document.querySelectorAll('.character-nav button[id^="nav-"]'))
-            .map(b => b.id.slice(4))
-            .filter(id => id !== ULTIMATE_TAB_ID));
+    // would lose its binding.
+    const staticTabIds = () => window.getCharacterTabIds({ includeOptional: true });
 
     // Read before DOMContentLoaded on purpose - see the header note. An
     // undeclared mode is corrected in initCharacterModes once the data lands.
     const requestedMode = new URLSearchParams(window.location.search).get('mode');
     if (requestedMode) window.activeCharacterMode = requestedMode;
 
-    // site_utils.js may be an older cached copy than this file: local fallbacks for
-    // the trivial predicates, and init bails, so the skew costs the toggle, not the page.
-    const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
+    const isBase = (m) => window.isBaseMode(m);
 
     async function findNavEntry(pageId) {
         if (typeof window.fetchNavigationData !== 'function') return null;
@@ -160,11 +153,6 @@
      * @watch a ?mode= this character does not have draws the page again for base
      */
     window.initCharacterModes = async function(pageId) {
-        if (typeof window.getCharacterModes !== 'function') {
-            console.warn('[Modes] site_utils.js is older than this file (likely a cached copy). The state toggle is off for this load; reload to restore it.');
-            return;
-        }
-
         const [cloud, navEntry] = await Promise.all([
             typeof window.fetchCloudCharacterData === 'function' ? window.fetchCloudCharacterData(pageId) : null,
             findNavEntry(pageId),
@@ -174,7 +162,7 @@
             || (window.cachedMasterFrameData && window.cachedMasterFrameData[pageId])
             || {};
 
-        const modes = typeof window.getCharacterModes === 'function' ? window.getCharacterModes(frameData) : [];
+        const modes = window.getCharacterModes(frameData);
         window.declaredCharacterModes = modes;
 
         // A base-only character gets the tab even when it is empty, so the team sees there

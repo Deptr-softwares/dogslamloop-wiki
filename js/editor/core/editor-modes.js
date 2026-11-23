@@ -22,10 +22,8 @@
         return !NON_CHARACTER_TYPES.has(window.currentEditorPageType);
     }
 
-    // Fallbacks for two one-line predicates, so a stale cached site_utils.js cannot
-    // throw partway through a render.
-    const BASE = () => (typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base');
-    const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === BASE()));
+    const BASE = () => window.BASE_MODE_ID;
+    const isBase = (m) => window.isBaseMode(m);
 
     // The masters; currentEditor* are views onto them.
     window.editorMasterDescData = null;
@@ -79,16 +77,7 @@
     };
 
     function declaredModes() {
-        if (typeof window.getCharacterModes !== 'function') return [];
         return window.getCharacterModes(window.editorMasterFrameData || {});
-    }
-
-    // After a deploy this file can meet an hour-old cached site_utils.js, and a bare
-    // call into it took the whole editor down. Cross-file calls check first.
-    function sharedHelpersReady() {
-        return typeof window.getCharacterModes === 'function'
-            && typeof window.isBaseMode === 'function'
-            && typeof window.BASE_MODE_ID === 'string';
     }
 
     // Ids are the delta keys and the ?mode= in shared links, fixed at creation: a
@@ -360,14 +349,6 @@
         window.editorMasterFrameData = frameData;
         window.originalCloudMasterDesc = window.originalCloudDescData;
         window.originalCloudMasterFrame = window.originalCloudFrameData;
-
-        // A stale cached site_utils.js: leave the whole page objects in place, which
-        // edits the base kit correctly. The next load picks up the fresh file.
-        if (!sharedHelpersReady()) {
-            console.warn('[Editor] Shared helpers are older than this file (likely a cached copy). Character states are off for this load; reload to restore them.');
-            window.editorActiveMode = BASE();
-            return;
-        }
 
         if (!editorSupportsModes()) {
             window.editorActiveMode = BASE();

@@ -6,7 +6,7 @@ The pages that look back over the wiki rather than at one page: My Submissions, 
 
 - `submissions.html`, `js/pages/community/submissions.js` and `style/Submissions.css`: My Submissions.
 - `recent-changes.html`, `js/pages/records/recent-changes.js` and `style/RecentChanges.css`: Recent Changes.
-- `search.html` and `js/pages/records/search-page.js`: the Search page. The sidebar's search box is `js/utility/search.js`, whose matcher this page shares.
+- `search.html`, `js/pages/records/search-page.js` and `style/search-page.css`: the Search page. The sidebar's search box is `js/utility/search.js`, whose matcher this page shares, styled in `style/Layout.css`.
 
 ## Data
 

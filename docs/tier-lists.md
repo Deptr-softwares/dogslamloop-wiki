@@ -6,6 +6,7 @@ The Tier List page, where each assigned person keeps a tier list under their own
 
 - `js/pages/tier-lists/certified-tier-lists.js`: the Tier List page: the picker, one person's list, its changelog and the portrait tooltips.
 - `js/pages/tier-lists/tierlist.js`: the original engine for a page's `desc_data.tabs` (an Overall tab and "vs" tabs), and its drag-and-drop builder.
+- `style/tierlist.css`: that engine's rows and builder, and the tier portraits every list shares, loaded by the pages that load `tierlist.js` or `tier-editor.js`, and by every tool page.
 - `tier-editor.html`, `js/pages/tier-lists/tier-editor.js` and `style/tier-editor.css`: the editor for a certified list.
 - `js/pages/tools/free_submit_tier_list.js` and `style/tools/free_submit_tier_list.css`: the Free Submit Tier List.
 - `js/pages/tools/create_tier_list.js` and `style/tools/create_tier_list.css`: Create Tier List.

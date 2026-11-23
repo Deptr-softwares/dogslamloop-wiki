@@ -1,0 +1,203 @@
+/* The older tier list (tierlist.js): its rows on the Tier List page, in the editor's
+   and the Overseer's previews and in History, and its editor; and the tier
+   portraits the Tier List page, the tier editor and the tier list tools share.
+   Since v0.4, as part of Layout.css.
+   Touches: js/pages/tier-lists/tierlist.js, certified-tier-lists.js and
+   tier-editor.js, and the tier list tools.
+   Watch: certified-tier-lists.css raises a portrait's size on the Tier List page.
+   See: docs/tier-lists.md */
+
+/* The older tier list (tierlist.js). .tier-list-container wraps #tier-list-ui on the
+   Tier List page and in History. */
+.tier-list-container { background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 6px 6px 0px var(--manga-shadow); display: flex; flex-direction: column; gap: 2px; }
+
+.tier-nav-overall-wrapper { display: flex; justify-content: center; width: 100%; margin-bottom: 1.5rem; }
+/* Compound (.btn-manga.x): .btn-manga's base rule sets padding and border at the
+   same specificity, so a bare class would win only by source order. */
+.btn-manga.tier-nav-overall-btn { padding: 0.85rem 3rem; border-color: var(--accent-blue); }
+.tier-nav-overall-text { font-size: 1.2rem; }
+.tier-nav-matchup-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); }
+.btn-manga.tier-nav-matchup-btn { border-color: var(--tier-nav-color); }
+.tier-nav-matchup-text { color: var(--tier-nav-color); text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+
+.tier-list-inner { display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-secondary); border: 2px solid var(--border-color); padding: 0.5rem; box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
+.tier-list-empty { padding: 2rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }
+.tier-list-row { display: flex; min-height: 80px; background: var(--bg-main); border: 1px solid var(--border-color); }
+.tier-list-row-label { width: 100px; background-color: var(--tier-row-color); display: flex; align-items: center; justify-content: center; border-right: 2px solid var(--bg-secondary); flex-shrink: 0; box-shadow: inset -4px 0px 8px rgba(0,0,0,0.2); }
+.tier-list-row-label-text { font-family: var(--font-label), sans-serif; font-size: 1.5rem; color: #000; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
+.tier-list-row-chars { flex: 1; padding: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; align-content: flex-start; }
+
+.tier-changelog-entry { background: rgba(255,255,255,0.02); border-left: 3px solid var(--accent-blue); padding: 1rem; }
+.tier-changelog-date { color: var(--accent-blue); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 0.5rem; font-weight: bold; }
+.wiki-block-list.tier-changelog-notes { margin: 0; padding-left: 1rem; }
+.tier-changelog-empty { color: var(--text-muted); font-family: var(--text-mono); font-style: italic; }
+
+.tier-portrait { width: 60px; height: 60px; position: relative; border: 2px solid var(--border-color); box-shadow: 3px 3px 0px var(--manga-shadow, #000); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0; }
+/* touch-action: none, so a touch-drag on a portrait does not also scroll the page:
+   bindTierDragAndDrop owns the gesture. */
+.tier-portrait.draggable-portrait { cursor: grab; touch-action: none; }
+.tier-portrait-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
+
+/* Icon mode: contain, not cover. A portrait is a tall crop that wants cropping to a
+   square; an icon is square already, and cropping trims the art. As
+   .roster-card-icon in Cards.css. */
+.tier-portrait-icon .tier-portrait-img { object-fit: contain; }
+
+/* In icon mode the colour moves from the fill to the border, copied from
+   .roster-card.has-icon (Cards.css): the same hatching, alpha and 3px border, so the
+   site gives one answer to what an icon box looks like. The colour arrives as
+   --char-color, since an inline background would beat every rule here. */
+.tier-portrait.tier-portrait-icon {
+    border-width: 3px;
+    border-color: var(--char-color, var(--border-color));
+    background-color: var(--bg-main);
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.06) 0px,
+        rgba(255, 255, 255, 0.06) 2px,
+        transparent 2px,
+        transparent 8px
+    );
+}
+
+/* The name behind the picture is the fallback for one that fails to load. An icon
+   is fitted, and most have see-through parts, so the name hides once the icon has
+   loaded (.is-icon-loaded). */
+.tier-portrait-icon.is-icon-loaded .tier-portrait-name { visibility: hidden; }
+
+/* The editor's draggable boxes, as big as the 96px drop zone that holds them
+   (tier-editor.css). Scoped to the editor's containers: the reader and History
+   keep their own sizes. The drag reads no dimension (elementFromPoint), so this
+   size is free to change. */
+.tier-editor-row .ctl-chars .tier-portrait,
+.tier-editor-tray .tier-portrait {
+    width: 96px;
+    height: 96px;
+}
+
+.tier-editor-row .ctl-chars .tier-portrait-name,
+.tier-editor-tray .tier-portrait-name { font-size: 0.62rem; }
+.tier-portrait-name { position: relative; z-index: 2; font-family: var(--font-label), sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
+
+/* Floating clone that follows the pointer during a drag (mouse or touch),
+   created/destroyed by bindTierDragAndDrop. pointer-events: none so
+   elementFromPoint() hit-tests the real dropzone underneath it, not the
+   ghost itself. Compound selector: .tier-portrait's own base rule sets
+   position: relative at the same specificity. */
+.tier-portrait.tier-portrait-ghost { position: fixed; z-index: 9999; pointer-events: none; opacity: 0.9; transform: translate(-50%, -50%) scale(1.05); box-shadow: 6px 6px 0px rgba(0,0,0,0.5); }
+.tier-portrait-dragging { opacity: 0.4; }
+/* A tier portrait's name rises from under it on hover, from attr(title), which
+   every renderer sets, so it needs no script. .tier-portrait-name stays behind the
+   image as the fallback a broken portrait shows. */
+@media (hover: hover) {
+    .tier-portrait::after {
+        content: attr(title);
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        /* Above .tier-portrait-img, which is z-index 3. */
+        z-index: 5;
+        /* Parked below the box and clipped away by .tier-portrait's own
+           overflow: hidden, so there is nothing to see until it rises. */
+        transform: translateY(100%);
+        transition: transform 0.18s ease;
+        background: rgba(0, 0, 0, 0.88);
+        color: #fff;
+        font-family: var(--font-label), sans-serif;
+        font-size: 0.5rem;
+        line-height: 1.15;
+        padding: 3px 2px;
+        text-align: center;
+        overflow-wrap: break-word;
+        /* The portrait is a link or a drag handle; the label must never be the
+           thing the pointer lands on. */
+        pointer-events: none;
+    }
+
+    .tier-portrait:hover::after,
+    .tier-portrait:focus-visible::after {
+        transform: translateY(0);
+    }
+
+    /* Not on the floating clone, and not on the portrait being dragged out of
+       a row - a label rising mid-drag reads as a bug and obscures the drop
+       target underneath the pointer. */
+    .tier-portrait.tier-portrait-ghost::after,
+    .tier-portrait.tier-portrait-dragging::after {
+        display: none;
+    }
+}
+
+/* Bigger boxes and tighter spacing on the older tier list's live rows, scoped to
+   .tier-list-row-chars. */
+.tier-list-row-chars {
+    gap: 0.3rem;
+    padding: 0.4rem;
+}
+
+.tier-list-row-chars .tier-portrait {
+    width: 78px;
+    height: 78px;
+}
+
+.tier-list-row-chars .tier-portrait-name { font-size: 0.56rem; }
+@media (max-width: 700px) {
+    .tier-list-row-chars .tier-portrait { width: 60px; height: 60px; }
+}
+
+/* The older tier list's editor (tierlist.js) */
+/* Compound: .daw-variant-tabs's own base rule sets border-bottom color/
+   padding-bottom at the same specificity. */
+.daw-variant-tabs.tier-editor-tabs-row { overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 1px solid #333; align-items: center; }
+/* Compound: .daw-tab-remove-btn's own base rule sets color: #ef4444 at the
+   same specificity - needed when its parent tab is the active one, whose
+   background is already light (var(--accent-blue)). */
+.daw-tab-remove-btn.on-active-tab { color: #000; }
+
+.tier-editor-row { margin-bottom: 1.5rem; padding-left: 0.5rem; }
+.tier-editor-row-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+.tier-color-input { width: 32px; height: 32px; cursor: pointer; border: 1px solid #333; padding: 0; background: none; flex-shrink: 0; border-radius: 4px; }
+/* Compound: .editor-input's own base rule sets margin-bottom/background at
+   the same specificity. */
+.editor-input.tier-name-input { margin: 0; font-family: var(--font-label), sans-serif; font-size: 1.1rem; flex: 1; background: #0a0a0a; }
+.tier-row-btn-group { display: flex; gap: 0.25rem; }
+/* Compound: .btn-sys's own base rule sets padding at the same specificity. */
+.btn-sys.btn-sys-compact { padding: 0.3rem 0.5rem; }
+
+/* Both drop zones, the tier rows and the pool; a tier row adds .tier-row-dropzone. */
+.tier-dropzone { background: rgba(0,0,0,0.2); border: 1px dashed #333; border-radius: 4px; padding: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start; min-height: 80px; }
+.tier-dropzone.tier-row-dropzone { min-height: 90px; }
+/* While a drag hovers the zone (the Pointer Events engine toggles it). */
+.tier-dropzone.drag-over { background-color: rgba(168, 85, 247, 0.1); }
+
+.tier-changelog-card { margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-left: 4px solid var(--accent-blue); }
+.tier-changelog-header-row { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.5rem; }
+.tier-changelog-date-field { flex: 1; }
+/* Compound: .editor-input's own base rule sets margin-bottom at the same
+   specificity. */
+.editor-input.tier-changelog-date-input { margin: 0; font-family: var(--text-mono); font-size: 0.85rem; }
+.btn-sys.btn-sys-compact.tier-changelog-delete-btn { margin-top: 1.2rem; }
+/* Compound: .editor-textarea's own base rule sets margin-bottom/min-height
+   at the same specificity. */
+.editor-textarea.tier-changelog-textarea { min-height: 80px; margin: 0; }
+.tier-max-logs-msg { color: #ef4444; font-size: 0.75rem; font-family: var(--text-mono); font-weight: bold; }
+
+.editor-row.tier-tab-meta-row { margin-bottom: 1.5rem; }
+.tier-tab-meta-field { flex: 1; }
+
+.tier-unassigned-container { margin-top: 0; margin-bottom: 1.5rem; border-top: 1px dashed #333; padding-top: 1rem; }
+.tier-unassigned-label-row { margin-bottom: 0.75rem; }
+/* Compound: .block-type-badge's own base rule sets padding at the same
+   specificity. */
+.block-type-badge.tier-section-badge { padding: 0.15rem 0.4rem; letter-spacing: 1px; }
+
+.tier-section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.tier-section-header-row.tier-section-header-row-spaced { margin-top: 2rem; }
+.tier-section-title { color: var(--accent-blue); font-family: inherit; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
+
+/* A tier portrait's change tooltip, inside the shared tooltip. */
+.ctl-tip-move { font-family: var(--text-mono); font-weight: bold; color: var(--accent-blue); }
+.ctl-tip-date { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+.ctl-tip-note { max-width: 32ch; line-height: 1.45; }
+.ctl-tip-author { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }

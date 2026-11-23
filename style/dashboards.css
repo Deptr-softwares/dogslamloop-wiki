@@ -1,0 +1,320 @@
+/* The home page and the two hubs: the dashboard widgets, the roster and
+   Systems directory grids, the roster filters, scroll boxes, the game info box,
+   the FAQ, the credits, the compact directory columns and the matchup grid.
+   Since v0.4, as part of Layout.css.
+   Touches: the markup js/dashboards/ writes, and the three hub pages.
+   Watch: loads right after Layout.css and Blocks.css, so a rule here wins a tie
+   with one there.
+   See: docs/home.md */
+
+/* Two columns, for the dashboard widgets; stacks below 900px like the 3-column grid. */
+.grid-layout-2col { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+@media (min-width: 900px) {
+    .grid-layout-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Dashboard widgets (dashboards.js) */
+
+/* Reading path and contribute steps: an <ol>, so the order is in the markup. */
+.reading-path { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: step; }
+.reading-step {
+    counter-increment: step;
+    position: relative;
+    padding: 0.6rem 0 0.6rem 2.5rem;
+    border-bottom: 2px dashed var(--border-color);
+}
+.reading-step:last-child { border-bottom: none; }
+.reading-step::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.6rem;
+    width: 1.7rem;
+    text-align: center;
+    font-family: var(--text-mono);
+    font-weight: bold;
+    color: var(--accent-blue);
+}
+.reading-step-title { display: block; color: var(--text-white); font-weight: bold; text-decoration: none; }
+a.reading-step-title:hover { color: var(--accent-blue); }
+.reading-step-desc { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* Needs-work and recent-edit lists share a row shape: a name, then muted
+   detail that wraps under it when there is no room. */
+.needs-work-list, .recent-edit-list { list-style: none; margin: 0; padding: 0; }
+.needs-work-row, .recent-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 2px dashed var(--border-color);
+}
+.needs-work-row:last-child, .recent-edit-row:last-child { border-bottom: none; }
+.needs-work-name, .recent-edit-name { color: var(--text-white); text-decoration: none; font-weight: bold; }
+.needs-work-name:hover, .recent-edit-name:hover { color: var(--accent-blue); }
+.needs-work-missing, .recent-edit-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--text-mono);
+    text-align: right;
+}
+.needs-work-more { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; }
+
+/* Tier snapshot: a coloured tier label, then that tier's characters. */
+.tier-snapshot-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem 0; }
+.tier-snapshot-label {
+    flex: 0 0 2.5rem;
+    text-align: center;
+    padding: 0.2rem 0;
+    font-family: var(--text-mono);
+    font-weight: bold;
+    color: #000;
+    border: 2px solid var(--border-color);
+}
+.tier-snapshot-names { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; }
+.tier-snapshot-name { font-size: 0.8rem; color: var(--text-primary); text-decoration: none; }
+.tier-snapshot-name:hover { color: var(--accent-blue); }
+
+/* Site statistics. auto-fit so three stats sit in a row on desktop and wrap
+   to two-plus-one on a narrow card, without a media query per breakpoint. */
+.wiki-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 1rem; }
+.wiki-stat { text-align: center; }
+.wiki-stat-value {
+    display: block;
+    font-family: var(--font-title), sans-serif;
+    font-size: 1.75rem;
+    color: var(--accent-blue);
+    text-shadow: 2px 2px 0px var(--manga-shadow);
+}
+.wiki-stat-label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-family: var(--text-mono); }
+
+/* Glossary peek. */
+.glossary-list { margin: 0; }
+.glossary-row { padding: 0.5rem 0; border-bottom: 2px dashed var(--border-color); }
+.glossary-row:last-child { border-bottom: none; }
+.glossary-term { color: var(--text-white); font-weight: bold; margin: 0; }
+.glossary-def { color: var(--text-muted); font-size: 0.85rem; margin: 0.15rem 0 0; }
+
+/* Grids & Galleries */
+.roster-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+.systems-grid-container { display: flex; flex-direction: column; gap: 2.5rem; }
+/* The gaps clear the hover state, not taste: a slanted button moves 2px and grows a
+   4px shadow on hover, painting 6px past its box, and leans about 3px sideways,
+   hence the wider column gap. */
+.system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
+
+/* Systems directory grid (js/dashboards/hub_roster.js buildSystemsDirectory) */
+/* One solid line under every title, as .section-title has; dashed is for the lines
+   between a list's rows. */
+.system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; }
+.system-directory-btn { width: 100%; padding: 0.6rem 1rem; }
+.system-directory-btn .btn-manga-content { justify-content: center; }
+.system-directory-btn .btn-manga-text { font-size: 0.85rem; letter-spacing: 1px; }
+
+.filter-bar-inline { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+.filter-group { display: flex; align-items: center; gap: 0.5rem; }
+.filter-group-right { margin-left: auto; }
+.filter-label { font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--accent-blue); text-transform: uppercase; }
+
+/* Scroll boxes */
+.scroll-lg { max-height: 450px !important; }
+.scroll-sm { max-height: 220px !important; }
+
+.faq-scroll-box { 
+    max-height: 380px; overflow-y: auto; padding: 0.25rem 0.5rem 0.5rem 0.25rem;
+}
+
+#site-updates-dashboard { max-height: 410px !important; overflow-y: auto; overflow-x: hidden; }
+
+/* Section layouts */
+/* Game Info Widget */
+.game-info-logo-box { display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem; }
+.game-info-title { font-family: var(--font-title), sans-serif; font-size: 1.125rem; color: var(--text-white); letter-spacing: 0.15em; text-align: center; line-height: 1.2; margin: 0; }
+.game-info-label { display: block; color: hsl(215, 8%, 47%); font-weight: bold; margin-bottom: 0.25rem; }
+.game-info-subtext { color: hsl(212, 9%, 58%); font-size: 0.75rem; display: block; }
+.game-info-footer { padding-top: 1rem; border-top: 1px solid var(--border-color); margin-top: 1rem; }
+.game-info-link { display: block; color: hsl(213, 94%, 68%); text-decoration: none; margin-bottom: 0.5rem; }
+
+/* FAQ Sections */
+.faq-summary { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-label), sans-serif; color: var(--accent-blue); cursor: pointer; list-style: none; text-shadow: 1px 1px 0px #000; }
+.faq-summary::-webkit-details-marker { display: none; }
+.faq-arrow { font-size: 0.75rem; color: var(--text-muted); transition: transform 0.2s ease; }
+.faq-details[open] .faq-arrow { transform: rotate(180deg); }
+.faq-content { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 2px dashed var(--border-color); color: var(--text-primary); line-height: 1.6; }
+
+/* Footer & Credits */
+.footer-grid-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
+.credits-list { list-style: none; padding: 0; margin: 0; }
+.credits-list li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+
+/* A sub-group heading in a dashboard column (buildCategoryColumn), sharing
+   .sidebar-master-title's typography so all the columns' headings agree; only its
+   spacing is its own. */
+.column-subgroup-title {
+    margin: 2rem 0 1.25rem;
+}
+/* The first group sits directly under the section header, which already has
+   its own spacing. */
+.column-subgroup-title:first-child { margin-top: 0; }
+
+/* The compact directory grid, for the home page's narrow columns: two columns,
+   unslanted buttons, an odd last one spanning both. Its own class, since the
+   full-width Systems Hub fills the same grid (buildSystemsDirectory's compact
+   option). minmax(0, 1fr), so a long name cannot push the second column off. */
+.system-button-grid-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+/* An odd number of buttons leaves a hole in the last row. Widening the last one
+   to span both columns closes it, and reads as deliberate rather than as a
+   missing entry. :last-child:nth-child(odd) is exactly "the last item, when the
+   count is odd" - no JS and no per-group bookkeeping. */
+.system-button-grid-compact > .system-directory-btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+}
+
+/* The gap clears the hover state: a button moves 2px and grows a 4px shadow,
+   painting 6px past its box; 0.5rem is 8px. */
+.system-button-grid-compact .system-directory-btn {
+    padding: 0.4rem 0.65rem;
+}
+
+/* Wrapping, not an ellipsis: a cut name ("FUNDAMENT...") is not a name, and page
+   names can be any length. */
+.system-button-grid-compact .system-directory-btn .btn-manga-text {
+    font-size: 0.7rem;
+    letter-spacing: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: break-word;
+    line-height: 1.3;
+    text-align: center;
+}
+
+/* Grid items stretch by default, so a button beside a two-line one grows to
+   match it and the row stays even. */
+.system-button-grid-compact .system-directory-btn .btn-manga-content {
+    justify-content: center;
+    gap: 0.35rem;
+}
+/* One column on a phone: two 0.72rem buttons side by side in a stacked
+   single-column layout would ellipsise most page names to nothing. */
+@media (max-width: 640px) {
+    .system-button-grid-compact { grid-template-columns: 1fr; }
+    .system-button-grid-compact > .system-directory-btn:last-child:nth-child(odd) {
+        grid-column: auto;
+    }
+}
+
+/* Tighter gaps between categories in the compact columns, scoped so the Systems Hub
+   keeps its room. */
+.systems-grid-container-compact { gap: 1.1rem; }
+
+.systems-grid-container-compact .system-category-block .sidebar-master-title {
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.35rem;
+}
+
+/* The Others and Tools columns use .column-subgroup-title instead, and it is
+   only ever emitted by buildCategoryColumn - which only the home page's columns
+   call - so this needs no compact scoping to stay off the Hub. */
+.column-subgroup-title {
+    margin: 1.1rem 0 0.6rem;
+    padding-bottom: 0.35rem;
+}
+
+/* The matchup grid (buildMatchupTable): the table keeps its natural width and its
+   wrapper scrolls, since 22 columns squeezed onto a phone are too small to hit. */
+.matchup-grid-caption {
+    color: var(--text-muted); font-family: var(--text-mono);
+    font-size: 0.7rem; line-height: 1.5; margin: 0 0 0.75rem; max-width: 70ch;
+}
+
+/* position: relative makes this the containing block for each cell's .sr-only
+   label, or the labels escape the scroll box and the page scrolls sideways on a
+   phone. */
+.matchup-grid-scroll {
+    position: relative;
+    overflow-x: auto; border: 2px solid var(--border-color);
+    background: var(--bg-main);
+}
+
+.matchup-grid { border-collapse: collapse; font-family: var(--text-mono); }
+
+/* Sticky so the character you are reading stays visible once the grid is
+   scrolled sideways - without it the left column disappears and every cell
+   becomes anonymous. */
+.matchup-grid-row {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--bg-main); text-align: left; font-weight: bold;
+    font-size: 0.65rem; padding: 0 0.5rem; white-space: nowrap;
+    border-right: 2px solid var(--border-color);
+}
+.matchup-grid-row a { color: inherit; text-decoration: none; }
+.matchup-grid-row a:hover { text-decoration: underline; }
+
+.matchup-grid-corner {
+    position: sticky; left: 0; z-index: 3;
+    background: var(--bg-main); border-right: 2px solid var(--border-color);
+}
+
+.matchup-grid-col {
+    font-size: 0.55rem; color: var(--text-muted); font-weight: normal;
+    padding: 0.35rem 0; width: 22px; min-width: 22px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.matchup-grid-cell { width: 22px; height: 22px; padding: 0; }
+.matchup-grid-cell.is-self { background: repeating-linear-gradient(45deg, transparent, transparent 3px, var(--border-color) 3px, var(--border-color) 4px); }
+.matchup-grid-cell.is-blank { background: transparent; }
+
+.matchup-grid-link {
+    display: block; width: 100%; height: 100%;
+    border: 1px solid var(--bg-main);
+}
+.matchup-grid-link:hover { outline: 2px solid var(--text-white); outline-offset: -2px; }
+/* Keyboard users get the same affordance the mouse gets - these cells are
+   links with no text, so the focus ring is the only thing announcing them. */
+.matchup-grid-link:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+
+.matchup-legend {
+    display: flex; flex-wrap: wrap; gap: 0.75rem;
+    margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.55rem;
+    color: var(--text-muted);
+}
+.matchup-legend-item { display: inline-flex; align-items: center; gap: 0.3rem; }
+.matchup-legend-swatch {
+    width: 10px; height: 10px; display: inline-block;
+    border: 1px solid var(--border-color);
+}
+
+/* A Clash: a dark corner on both cells of a pair whose pages do not mirror each
+   other. A fixed near-black, since every tier colour under it, and an unknown tier's
+   white, is light. */
+.matchup-grid-link.is-clash,
+.matchup-legend-swatch.is-clash { position: relative; }
+.matchup-legend-swatch.is-clash { background: var(--text-muted); }
+.matchup-grid-link.is-clash::after,
+.matchup-legend-swatch.is-clash::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    border-style: solid; border-color: transparent #111 transparent transparent;
+}
+.matchup-grid-link.is-clash::after { border-width: 0 9px 9px 0; }
+.matchup-legend-swatch.is-clash::after { border-width: 0 6px 6px 0; }
+
+.matchup-clashes { margin-top: 1rem; font-family: var(--text-mono); font-size: 0.7rem; }
+.matchup-clashes > summary {
+    cursor: pointer; font-weight: bold; color: var(--text-white);
+    padding: 0.35rem 0;
+}
+.matchup-clashes > .matchup-grid-caption { margin-top: 0.5rem; }
+.matchup-clashes ol {
+    margin: 0; padding-left: 2.25rem; line-height: 1.7; color: var(--text-muted);
+}
+.matchup-clashes a { color: var(--text-white); text-decoration: none; }
+.matchup-clashes a:hover { text-decoration: underline; }
+.matchup-clash-tier { font-weight: bold; }

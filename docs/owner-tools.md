@@ -15,7 +15,7 @@ owner.html, the owner's own page: who holds which role and capability, the page 
 - `js/owner/owner-hub-lists.js`: Dashboard Steps.
 - `js/owner/owner-tier-lists.js`: the Tier List page's introduction, who has a list, and the Free Submit Tier List's settings and reset.
 - `js/owner/owner-media-report.js`: the broken-media report.
-- `post-editor.html` and `js/owner/post-editor.js`: the Post editor.
+- `post-editor.html`, `js/owner/post-editor.js` and `style/post-editor.css`: the Post editor.
 - `style/admin.css`: the look, shared with the Overseer (`docs/overseer.md`).
 
 ## Data
@@ -47,6 +47,7 @@ owner.html, the owner's own page: who holds which role and capability, the page 
 
 Newest first. One entry per decision.
 
+- **2026-11-24, silent release, #311.** Dashboard Steps and Site Metadata each save only their own part of `site_meta.hubs` (each hub's lists, and its title, description and headings), laid over the column as it is at save time (`saveSiteMetaHubs` in `owner.js`). From v0.11 each sent back the whole column as the page had loaded it, so saving one and then the other in one visit undid the first. Turned down: a database function that changes one key at a time, a migration for a tool only the owner uses.
 - **2026-11-20, v1.2, #288.** The Tier List page's introduction saves the whole Block list, not only the Section Box or Dropdown open in it.
 - **2026-11-17, v1.2, #277.** A page's colour is stored in a form the site reads, hex or hsl(), converted on save (owner, 2026-11-17): a named colour themed nothing and failed that night's colour check.
 - **2026-11-16, v1.2, #274.** A reviewer's moderation box is live, since a reviewer moderates only by the owner's tick (the owner's card: "Remove Reviewer default permission to moderate discussion").

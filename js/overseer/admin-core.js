@@ -13,27 +13,6 @@
  * @see docs/overseer.md
  */
 
-// Copies of three site_data.js helpers, installed only when an older cached
-// site_data.js lacks them. They must match the originals.
-if (typeof window.isBaseMode !== 'function') {
-    window.isBaseMode = (modeId) => !modeId || modeId === 'base';
-}
-if (typeof window.getCharacterModes !== 'function') {
-    window.getCharacterModes = (frameData) => {
-        const modes = frameData && Array.isArray(frameData.modes) ? frameData.modes : [];
-        return modes.filter(m => m && m.id).map(m => ({ id: String(m.id), label: String(m.label || m.id) }));
-    };
-}
-if (typeof window.unwrapModeDelta !== 'function') {
-    window.unwrapModeDelta = (scope, key) => {
-        if (scope !== 'mode' || typeof key !== 'string') return { modeId: null, scope, key };
-        const parts = key.split('::');
-        const modeId = parts.shift();
-        const innerScope = parts.shift() || '';
-        return { modeId, scope: innerScope, key: parts.join('::') || 'full' };
-    };
-}
-
 window.currentQueueData = [];
 window.activePreviewRevId = null;
 window.activePreviewCharId = null;

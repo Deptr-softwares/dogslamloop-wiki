@@ -438,7 +438,7 @@ const pastVersionPages = new Map();
 // Only the editor's own data from here: a state's slice, as editor-modes.js cuts it.
 function editorModeSlice(master) {
     const mode = window.editorActiveMode;
-    if (!master || !mode || (typeof window.isBaseMode === 'function' && window.isBaseMode(mode))) return master || {};
+    if (!master || !mode || window.isBaseMode(mode)) return master || {};
     return (master.modeData && master.modeData[mode]) || {};
 }
 
@@ -468,9 +468,7 @@ function editorDiffTabId() {
 function pastVersionPlace(rev) {
     if (!rev.is_delta) return 'whole page';
     if (rev.target_scope === 'multi') return 'several places';
-    const { scope, key } = typeof window.unwrapModeDelta === 'function'
-        ? window.unwrapModeDelta(rev.target_scope, rev.target_key)
-        : { scope: rev.target_scope, key: rev.target_key };
+    const { scope, key } = window.unwrapModeDelta(rev.target_scope, rev.target_key);
     const labels = typeof window.getCharacterTabLabels === 'function' ? window.getCharacterTabLabels() : {};
     if (scope === 'move' && key) return labels[String(key).split('::')[0]] || 'a move';
     const keyed = window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope);

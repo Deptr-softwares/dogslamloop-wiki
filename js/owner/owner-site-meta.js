@@ -3,8 +3,8 @@
  * title, description and headings, and the Game Info panel, all on the site_meta
  * row.
  * @since v0.11
- * @touches site_meta (to data/site_meta.json), contentNotDeployedMessage (owner.js),
- *   scripts/generate-hub-meta.js
+ * @touches site_meta (to data/site_meta.json), contentNotDeployedMessage and
+ *   saveSiteMetaHubs (owner.js), scripts/generate-hub-meta.js
  * @watch a hub's title and description reach the page only after a regeneration
  *   run: they are baked into its <head>, since link unfurlers run no JavaScript.
  *   The rest is read at runtime.
@@ -14,6 +14,9 @@
 // Held between load and save: one row holds all three hubs, so saving sends the
 // other two back unchanged.
 let siteMetaRow = null;
+
+// This card's keys on each hub. Its lists belong to Dashboard Steps, in owner-hub-lists.js.
+const META_HUB_KEYS = ['title', 'description', 'headings'];
 
 async function loadSiteMeta() {
     const results = document.getElementById('site-meta-results');
@@ -81,8 +84,8 @@ async function saveSiteMeta() {
     }
 
     const hubId = currentHubId();
-    const hubs = JSON.parse(JSON.stringify(siteMetaRow.hubs || {}));
-    const hub = hubs[hubId] || (hubs[hubId] = {});
+    const edited = JSON.parse(JSON.stringify(siteMetaRow.hubs || {}));
+    const hub = edited[hubId] || (edited[hubId] = {});
 
     hub.title = document.getElementById('meta-hub-title').value.trim();
     hub.description = document.getElementById('meta-hub-description').value.trim();
@@ -94,12 +97,17 @@ async function saveSiteMeta() {
     if (Object.keys(headings).length > 0) hub.headings = headings;
 
     btn.disabled = true;
-    const { error } = await window.supabaseClient.from('site_meta').update({
+    // Every hub's title, description and headings, typed into here before a switch
+    // of dashboard too; the lists are Dashboard Steps'.
+    const { hubs, error } = await saveSiteMetaHubs(fresh => {
+        for (const [id, mine] of Object.entries(edited)) {
+            const into = fresh[id] || (fresh[id] = {});
+            for (const key of META_HUB_KEYS) if (key in mine) into[key] = mine[key];
+        }
+    }, {
         version: document.getElementById('meta-version').value.trim(),
         tagline: document.getElementById('meta-tagline').value.trim(),
-        hubs,
-        updated_at: new Date().toISOString(),
-    }).eq('id', true);
+    });
     btn.disabled = false;
 
     if (error) {
