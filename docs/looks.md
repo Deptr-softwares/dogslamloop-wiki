@@ -15,6 +15,7 @@ How the reader pages look: the shared stylesheets every reader page loads, the C
 
 - `.claude/rules/practice-css.md` holds the CSS traps: restate `[hidden]` for every class that sets `display`, check every page a shared class is on, read only defined variables, close every comment once.
 - Every stylesheet tag carries the shared `?v=` stamp (`tests/asset-stamping.spec.js`).
+- Which sheets a kind of page loads, and in what order, is its list in `scripts/page-scripts.js`. Of two rules that tie, the later sheet's wins, so moving a sheet in a list can change the page (`docs/page-shell.md`).
 - The Classic look wins by its `html.look-classic` prefix and loads last; the editor and staff pages never load it.
 - `.tier-portrait` is shared between the Tier List page and the tier editor; its size on the page is raised in `certified-tier-lists.css` only.
 

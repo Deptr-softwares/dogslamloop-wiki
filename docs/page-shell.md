@@ -11,7 +11,7 @@ What every generated page is built from before its content arrives: the skeleton
 - `js/pages/types/tool_page.js`: the tool page type, a host for a tool's own renderer.
 - `js/pages/types/gallery.js`: the gallery page type, a flat searchable list of media.
 - `js/pages/core/page_shell.js`: the sidebar and its dock, the phone bar, the Edit and History buttons, tabs, section anchors, the table of contents, page alerts and the footer. The hubs' roster and directories are in `js/dashboards/hub_roster.js` (`docs/home.md`).
-- `scripts/page-scripts.js`: the scripts each kind of page loads, in order. The generator writes a generated page's tags from it, and `npm run generate` writes the marked block in each hand-written page.
+- `scripts/page-scripts.js`: the scripts and the stylesheets each kind of page loads, in order. The generator writes a generated page's tags from it, and `npm run generate` writes the two marked blocks in each hand-written page.
 
 ## Data
 
@@ -26,13 +26,14 @@ What every generated page is built from before its content arrives: the skeleton
 - `page_boot.js` stays the last script on a stub, so `site_lookups.js`'s character theme runs first. Its character and system branches differ on purpose (CLAUDE.md).
 - Every tab button `page_router.js` draws must be bound by `page_boot.js`, optional ones included, or it ships unclickable.
 - A rescued page is still an HTTP 404, so crawlers and Discord previews do not see it until the stub is generated.
-- A page's scripts change in its list in `scripts/page-scripts.js`, then `npm run generate`, never in the page: `npm run validate` fails a block that does not match its list, and a script tag outside the block. Test: `tests/page-scripts.spec.js`.
+- A page's scripts and stylesheets change in its lists in `scripts/page-scripts.js`, then `npm run generate`, never in the page: `npm run validate` fails a block that does not match its list, and a script or stylesheet tag outside its block. Test: `tests/page-scripts.spec.js`.
 - The page templates hold HTML comments of their own. They are template text, so they reach readers, and the comment trim left them alone.
 
 ## Decisions
 
 Newest first. One entry per decision.
 
+- **2026-11-24, silent release, #311.** Each kind of page has one stylesheet list too, beside its script list, and each hand-written page a second marked block (the owner's pick, "One list per page kind"). Each kind keeps the order its pages had, so every page loads the same sheets in the same order; one order for every page waits for C-3's cascade layers. The archived and moved pages' notice has a list of its own.
 - **2026-11-23, silent release, #310.** The page builder is split by who uses it: the roster, the home page's category columns and the Systems directory are `js/dashboards/hub_roster.js`, which only the three hubs load, and the rest is `page_shell.js` (the owner's names). Every other page loads 6.6 KB gzipped less.
 - **2026-11-23, silent release, #309.** Each kind of page has one script list, in `scripts/page-scripts.js`. The generator writes a generated page's tags from it, and each hand-written page has one marked block that `npm run generate` rewrites (the owner's pick). A file renamed or added changes one list, not 74 pages. Every page loads the scripts it loaded before, in the same order.
 - **2026-11-19, v1.2, #284.** Hovering a roster card for about 0.25 s opens the character's banner with the start of their Overview. The owner's card: "When hovering above a character box icon in the roster selection section for about 0.25s, a banner pop up that have a custom wide stretch image (different from the portrait) with a cut-off Overview." The banner and the line come from `data/banners.json`, mirrored nightly, so a hover asks Supabase for nothing. A mouse or a keyboard only: a tap opens the page.
