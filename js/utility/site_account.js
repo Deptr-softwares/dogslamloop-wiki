@@ -366,7 +366,7 @@ window.injectAuthModal = function() {
             btnSave.disabled = false; btnSave.textContent = "SAVE CHANGES";
 
             if (problems.length) {
-                window.setProfileFeedback("Could not save — " + problems.join("; ") + ".", false);
+                window.setProfileFeedback("Could not save. " + problems.join("; ") + ".", false);
                 return;
             }
             document.getElementById('profile-modal-overlay').classList.add('hidden');

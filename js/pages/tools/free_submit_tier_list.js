@@ -281,7 +281,7 @@
         });
 
         // An explicit "no opinion", so a rating given can be taken back.
-        const clear = el('button', 'fs-choice fs-choice-clear', '—');
+        const clear = el('button', 'fs-choice fs-choice-clear', '-');
         clear.type = 'button';
         clear.dataset.vote = pageId;
         clear.dataset.tier = '';

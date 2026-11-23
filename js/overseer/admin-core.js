@@ -329,7 +329,7 @@ function applyScope({ seesRevisions, seesMedia, seesReports, seesHistory }) {
 
     if (!seesRevisions) {
         const status = document.getElementById('preview-status-text');
-        if (status) status.textContent = 'Moderation view — reports are handled from the queue on the left.';
+        if (status) status.textContent = 'Moderation view. Reports are handled from the queue on the left.';
     }
 }
 

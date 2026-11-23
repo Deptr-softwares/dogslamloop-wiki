@@ -148,7 +148,7 @@
     // author is not named) and for a deleted account (author_id NULL).
     function authorNode(entry) {
         const removed = entry.status !== 'visible';
-        const name = removed ? '—' : (entry.author_name || 'Unknown');
+        const name = removed ? '-' : (entry.author_name || 'Unknown');
 
         // A message copied in from Discord: no wiki account to open, so the name is text,
         // then where it came from and the Discord handle, all set as text.
@@ -892,7 +892,7 @@
 
         // Replaced, so nobody wonders whether it went. The same message for a new report
         // and a duplicate (the RPC's comment says why).
-        form.replaceWith(el('div', 'discussion-report-sent', data || 'Thanks — a moderator will take a look.'));
+        form.replaceWith(el('div', 'discussion-report-sent', data || 'Thanks. A moderator will take a look.'));
     }
 
     // One builder for the moderation controls on posts and replies, so the two say the
@@ -964,7 +964,7 @@
             input.className = 'discussion-mod-reason';
             input.maxLength = 300;
             input.required = true;
-            input.placeholder = 'Recorded in the moderation log — required';
+            input.placeholder = 'Recorded in the moderation log; required';
             input.setAttribute('aria-label', 'Moderation reason');
             form.appendChild(input);
         }
@@ -1288,13 +1288,13 @@
 
         if (!isSignedIn()) {
             box.appendChild(el('p', 'discussion-empty-body',
-                'Sign in to start one — matchup disagreements, combo routes, or anything the page gets wrong.'));
+                'Sign in to start one. Matchup disagreements, combo routes, or anything the page gets wrong.'));
         } else if (isBanned()) {
             box.appendChild(el('p', 'discussion-empty-body',
                 'Your account can read discussions but not post in them.'));
         } else {
             box.appendChild(el('p', 'discussion-empty-body',
-                'Start it — matchup disagreements, combo routes, or anything this page gets wrong.'));
+                'Start it. Matchup disagreements, combo routes, or anything this page gets wrong.'));
         }
         return box;
     }
@@ -1513,7 +1513,7 @@
 
         const since = Date.now() - state.lastPostAt;
         if (state.lastPostAt && since < POST_COOLDOWN_MS) {
-            setStatus(`Slow down — ${Math.ceil((POST_COOLDOWN_MS - since) / 1000)}s to go.`, true);
+            setStatus(`Slow down, ${Math.ceil((POST_COOLDOWN_MS - since) / 1000)}s to go.`, true);
             return;
         }
 
@@ -1616,7 +1616,7 @@
 
     async function removePost(postId) {
         const ok = window.customConfirm
-            ? await window.customConfirm('Delete your post? The text is removed for good — replies to it stay.', 'DELETE POST', true)
+            ? await window.customConfirm('Delete your post? The text is removed for good; replies to it stay.', 'DELETE POST', true)
             : window.confirm('Delete your post? The text is removed for good.');
         if (!ok) return;
 
@@ -1661,7 +1661,7 @@
         // Checked here so the message sits beside the field; the RPC refuses an empty
         // reason regardless.
         if (action !== 'restore' && !reason) {
-            setStatus('A reason is required — it goes in the moderation log.', true);
+            setStatus('A reason is required. It goes in the moderation log.', true);
             return;
         }
 

@@ -137,7 +137,7 @@ test('a live page with no file yet renders instead of 404ing', async ({ page }) 
   await expect(page.locator('.main-content-area')).toContainText('Every gamemode, explained.');
 
   // The 404's own copy is gone rather than sitting underneath the real page.
-  await expect(page.locator('text=404 — Page Not Found')).toHaveCount(0);
+  await expect(page.locator('text=404. Page Not Found')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -158,7 +158,7 @@ test('a genuinely wrong URL still gets the ordinary 404', async ({ page }) => {
   await mockRegistry(page, [LIVE_SYSTEM_PAGE]);
   await rescueAt(page, '/characters/Not_A_Real_Character/');
 
-  await expect(page.locator('.home-main-title')).toHaveText('404 — Page Not Found');
+  await expect(page.locator('.home-main-title')).toHaveText('404. Page Not Found');
   await expect(page.locator('#rescue-banner')).toHaveCount(0);
   // And the 404's own navigation still boots.
   await expect(page.locator('#global-sidebar-nav .sidebar-group-header').first()).toBeVisible();
@@ -169,7 +169,7 @@ test('an archived page keeps its tombstone rather than being resurrected', async
   await mockRegistry(page, [{ ...LIVE_SYSTEM_PAGE, status: 'archived' }]);
   await rescueAt(page, '/others/gamemodes/');
 
-  await expect(page.locator('.home-main-title')).toHaveText('404 — Page Not Found');
+  await expect(page.locator('.home-main-title')).toHaveText('404. Page Not Found');
 });
 
 test('a registry that cannot be reached falls back to the plain 404', async ({ page }) => {
@@ -201,7 +201,7 @@ test('a registry that cannot be reached falls back to the plain 404', async ({ p
 
   await rescueAt(page, '/others/gamemodes/');
 
-  await expect(page.locator('.home-main-title')).toHaveText('404 — Page Not Found');
+  await expect(page.locator('.home-main-title')).toHaveText('404. Page Not Found');
   expect(errors, 'a failed lookup must not throw out of the handler').toEqual([]);
 });
 

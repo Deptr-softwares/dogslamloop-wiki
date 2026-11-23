@@ -818,7 +818,7 @@
     // Two documents, one Block editor: its buffer is single, so switching flushes the
     // open one before loading the other, as editor-tabs.js does between tabs.
     const DOC_HINTS = {
-        intro: "Shown at the top of your list, in place of the page's own introduction. Yours alone — it does not go through the review queue.",
+        intro: "Shown at the top of your list, in place of the page's own introduction. Yours alone; it does not go through the review queue.",
         reasoning: 'The long-form argument for your placements, shown under the changelog. Same editor the rest of the wiki uses.',
     };
 
@@ -876,7 +876,7 @@
                 const head = el('div', 'ctl-change-head');
                 head.appendChild(el('span', 'ctl-change-char', nameOf(charId)));
                 const moved = from && to ? `${from} → ${to}`
-                    : (to ? `added to ${to}` : `removed from ${from || '—'}`);
+                    : (to ? `added to ${to}` : `removed from ${from || '-'}`);
                 head.appendChild(el('span', 'ctl-change-move', moved));
                 head.appendChild(el('span', 'ctl-change-date', date));
                 row.appendChild(head);
@@ -1040,7 +1040,7 @@
         if (subtitle) {
             subtitle.textContent = state.canEdit
                 ? `Editing ${data.author_name}'s list`
-                : `${data.author_name}'s list — read only`;
+                : `${data.author_name}'s list, read only`;
         }
 
         if (!state.canEdit) {

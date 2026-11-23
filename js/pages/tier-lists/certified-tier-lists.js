@@ -125,7 +125,7 @@
     function moveLabel(change) {
         if (change.from_tier && change.to_tier) return `${change.from_tier} → ${change.to_tier}`;
         if (change.to_tier) return `added to ${change.to_tier}`;
-        return `removed from ${change.from_tier || '—'}`;
+        return `removed from ${change.from_tier || '-'}`;
     }
 
     // Hovering a portrait shows its character's most recent move, from the changelog
@@ -154,7 +154,7 @@
             if (date) html += `<div class="ctl-tip-date">${window.escapeHtml(date)}</div>`;
             html += `<div class="ctl-tip-note">${window.escapeHtml(change.note)}</div>`;
             if (change.author_name) {
-                html += `<div class="ctl-tip-author">&mdash; ${window.escapeHtml(change.author_name)}</div>`;
+                html += `<div class="ctl-tip-author">- ${window.escapeHtml(change.author_name)}</div>`;
             }
 
             // The native tooltip would otherwise sit on top of this one. The

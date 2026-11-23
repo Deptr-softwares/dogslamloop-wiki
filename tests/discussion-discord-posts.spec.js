@@ -136,7 +136,7 @@ test('a message deleted on Discord leaves a placeholder that says so, and nothin
     await openThread(page, { rows: [fromDiscord({ status: 'removed_on_discord', body: '', images: [] })] });
     const post = page.locator('#post-p1');
     await expect(post.locator('.discussion-body')).toHaveText('[removed on Discord]');
-    await expect(post.locator('.discussion-author')).toHaveText('—');
+    await expect(post.locator('.discussion-author')).toHaveText('-');
     await expect(post.locator('.discussion-discord, .discussion-handle, .discussion-media')).toHaveCount(0);
 });
 

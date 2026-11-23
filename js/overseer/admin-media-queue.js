@@ -379,7 +379,7 @@ function openDeleteConfirm(row, path) {
         warn.textContent = 'No live page uses this, but it still appears in page history or a pending revision. '
             + 'Restoring one of those later would restore a broken reference.';
     } else {
-        warn.textContent = 'Nothing was found referencing this file. That is not the same as nothing using it — '
+        warn.textContent = 'Nothing was found referencing this file. That is not the same as nothing using it; '
             + 'references are found by extraction, which can miss an unusual form.';
     }
     box.appendChild(warn);
