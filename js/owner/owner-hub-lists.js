@@ -5,9 +5,10 @@
  * @since v0.11
  * @touches site_meta.hubs[hub].lists (read at runtime from data/site_meta.json by
  *   renderHubList in hub_content.js)
- * @watch owner-site-meta.js saves the same hubs column, each card from the copy it
- *   loaded. A step with no url is plain text ("Sign in" is an instruction, not a
- *   page); a url must be http(s), as renderHubList requires.
+ * @watch owner-site-meta.js saves the same hubs column, so this card saves only
+ *   the lists, over the column as it is at save time (saveSiteMetaHubs, owner.js).
+ *   A step with no url is plain text ("Sign in" is an instruction, not a page); a
+ *   url must be http(s), as renderHubList requires.
  * @see docs/owner-tools.md
  */
 
@@ -154,8 +155,10 @@ async function saveHubLists() {
     }
 
     btn.disabled = true;
-    const { error } = await window.supabaseClient
-        .from('site_meta').update({ hubs: hubListWorking, updated_at: new Date().toISOString() }).eq('id', true);
+    const lists = hubListWorking[HUB_LISTS_PAGE].lists;
+    const { error } = await saveSiteMetaHubs(fresh => {
+        fresh[HUB_LISTS_PAGE] = { ...(fresh[HUB_LISTS_PAGE] || {}), lists };
+    });
     btn.disabled = false;
 
     if (error) {

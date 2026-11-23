@@ -11,8 +11,8 @@
  *   (site_utils.js)
  * @watch the gate is owner only and its own copy, not admin-core.js's: small
  *   duplication over one feature file depending on another. The owner-*.js files
- *   use its contentNotDeployedMessage. Every tool's RPC or RLS checks the caller
- *   itself.
+ *   use its contentNotDeployedMessage and saveSiteMetaHubs. Every tool's RPC or
+ *   RLS checks the caller itself.
  * @see docs/owner-tools.md
  */
 
@@ -957,6 +957,26 @@ function contentNotDeployedMessage(error, what) {
     return notDeployed
         ? `<p class="admin-error-text">${what} editing isn't available yet - its table hasn't been deployed. It arrives with the next migration.</p>`
         : `<p class="admin-error-text">Could not load: ${window.escapeHtml(error.message)}</p>`;
+}
+
+/**
+ * Saves one card's part of site_meta.hubs: reads the column as it is now, lets
+ * layOver() put the card's own keys on it, and writes it back with any other
+ * columns. Dashboard Steps owns each hub's lists and Site Metadata the rest, so
+ * neither sends back a copy from when the page opened.
+ * @touches site_meta (hubs, updated_at, and the columns passed)
+ * @watch still a read and then a write: two tabs saving at the same moment can
+ *   still cross.
+ * @returns {Promise<{hubs: object|null, error: object|null}>}
+ */
+async function saveSiteMetaHubs(layOver, columns = {}) {
+    const { data, error } = await window.supabaseClient.from('site_meta').select('hubs').limit(1).maybeSingle();
+    if (error) return { hubs: null, error };
+    const hubs = (data && data.hubs) || {};
+    layOver(hubs);
+    const { error: saveError } = await window.supabaseClient.from('site_meta')
+        .update({ ...columns, hubs, updated_at: new Date().toISOString() }).eq('id', true);
+    return saveError ? { hubs: null, error: saveError } : { hubs, error: null };
 }
 
 async function loadFaqEntries() {
