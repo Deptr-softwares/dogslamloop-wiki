@@ -409,7 +409,7 @@
         const k = String(key == null ? '' : key);
         if (scope === 'mode') {
             const [mode, inner, ...rest] = k.split('::');
-            const modes = typeof window.getCharacterModes === 'function' ? window.getCharacterModes(window.editorMasterFrameData || {}) : [];
+            const modes = window.getCharacterModes(window.editorMasterFrameData || {});
             const state = (modes.find(m => m.id === mode) || {}).label || mode;
             return `${describePart(inner, rest.join('::'))} (${state} state)`;
         }

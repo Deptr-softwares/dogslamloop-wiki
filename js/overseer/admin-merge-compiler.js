@@ -42,7 +42,7 @@ window.openMergeCompiler = async function(pageId) {
     // Each character state is scanned too, and each conflict carries its state.
     const narrow = (obj, modeId) => (modeId ? ((obj && obj.modeData) || {})[modeId] || {} : (obj || {}));
 
-    const statesIn = (frame) => (typeof window.getCharacterModes === 'function' ? window.getCharacterModes(frame || {}) : [])
+    const statesIn = (frame) => window.getCharacterModes(frame || {})
         .map(m => m.id)
         .filter(id => id && id !== 'base');
 

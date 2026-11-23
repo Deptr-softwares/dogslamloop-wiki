@@ -33,6 +33,7 @@ They load in that order on every page, right after the Supabase library (`tests/
 
 Newest first. One entry per decision.
 
+- **2026-11-24, silent release, #311.** No file stands in for the character-state helpers (`isBaseMode`, `getCharacterModes`, `BASE_MODE_ID`, `unwrapModeDelta`) or checks that they exist (the owner's pick). They were kept for a page whose new files met an hour-old cached copy of the shared one, which took the editor down on 2026-08-10. Every page now asks for its files by one content stamp, and every copy of the shared files a cache can hold has had them since that day, while each stand-in was a second copy of its rule.
 - **2026-11-23, silent release, #310.** The profile, a public profile and the inbox load the first time one opens (the owner's pick), from `account_boxes.js`; the inbox is no longer fetched at every page load, since the dock's unread dot has its own count. A file loaded later goes through `window.loadSiteFile`, which gives it the page's own `?v=` stamp, so it is never an older copy than the page.
 - **2026-11-21, silent release, #298.** A page's kind comes from the site's own page list (`registeredPageType`), not from the submission, which is only the submitter's word (owner, 2026-11-21).
 - **2026-11-21, silent release, #293.** One dialog engine (`runDialog`) runs every confirm, message and prompt box, and one question is open at a time, so a double click cannot run an action twice. One escaper (`window.escapeHtml`): 55 definitions were removed.

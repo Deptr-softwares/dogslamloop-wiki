@@ -165,7 +165,7 @@ function calculateTabDiffs(rev) {
         });
     } else {
         if (rev && rev.is_delta) {
-            const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
+            const isBase = (m) => window.isBaseMode(m);
             const active = window.activePreviewMode || null;
 
             const addScopeTab = (rawScope, rawKey) => {

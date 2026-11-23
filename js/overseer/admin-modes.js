@@ -21,17 +21,15 @@
     // purpose, so this call does not depend on that one running first.
     const ADMIN_CHARACTER_TABS = window.getCharacterTabIds({ editableOnly: true, includeOptional: true });
 
-    const BASE = () => window.BASE_MODE_ID || 'base';
-    const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
+    const BASE = () => window.BASE_MODE_ID;
+    const isBase = (m) => window.isBaseMode(m);
 
     const sameState = (a, b) => ((isBase(a) && isBase(b)) || a === b);
 
     // Every state either version declares, live first: a revision that deletes a
     // state must let the reviewer open it first.
     function previewModes() {
-        const read = (frame) => (typeof window.getCharacterModes === 'function'
-            ? window.getCharacterModes(frame || {})
-            : []);
+        const read = (frame) => window.getCharacterModes(frame || {});
 
         const out = [];
         [window.currentLiveFrameData, window.currentPendingFrameData].forEach(frame => {

@@ -43,7 +43,7 @@ const BUDGET = {
     'post-editor.html': { js: 221, css: 79 },
     'privacy-policy.html': { js: 133, css: 34 },
     'recent-changes.html': { js: 135, css: 30 },
-    'search.html': { js: 136, css: 30 },
+    'search.html': { js: 129, css: 30 },
     'submissions.html': { js: 137, css: 31 },
     'systems/index.html': { js: 191, css: 50 },
     'systems/tierlist/index.html': { js: 196, css: 53 },
