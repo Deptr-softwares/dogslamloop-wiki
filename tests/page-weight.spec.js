@@ -22,7 +22,7 @@ const ROOT = path.join(__dirname, '..');
 
 // KB gzipped, per page: { js, css }.
 const BUDGET = {
-    'a character page': { js: 230, css: 59 },
+    'a character page': { js: 201, css: 59 },
     'a system page': { js: 187, css: 50 },
     'a gallery page': { js: 189, css: 50 },
     'a tool page': { js: 189, css: 50 },
@@ -37,7 +37,7 @@ const BUDGET = {
     'characters/index.html': { js: 205, css: 50 },
     'edit.html': { js: 408, css: 76 },
     'forum.html': { js: 216, css: 60 },
-    'history.html': { js: 232, css: 52 },
+    'history.html': { js: 220, css: 52 },
     'index.html': { js: 201, css: 53 },
     'owner.html': { js: 206, css: 84 },
     'post-editor.html': { js: 233, css: 84 },

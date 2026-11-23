@@ -73,3 +73,15 @@ test('only the hubs load the roster and directories, and every hub that draws on
 test('only the pages that apply a submission load the delta engine', () => {
     loadsExactlyWhereCalled('js/utility/submission_delta.js');
 });
+
+test('only the Forum loads the discussion with its page; a character page loads it from page_boot.js', () => {
+    const thread = /^js\/(utility\/emoji|pages\/community\/discussions)\.js$/;
+    const eager = pages().filter(page => page.files.some(file => thread.test(file))).map(page => page.name);
+    expect(eager).toEqual(['forum.html']);
+
+    const boot = read('js/pages/core/page_boot.js');
+    for (const file of ['js/utility/emoji.js', 'js/pages/community/discussions.js']) {
+        expect(boot, `page_boot.js loads ${file}`).toContain(`'${file}'`);
+        expect(fs.existsSync(path.join(ROOT, file)), file).toBe(true);
+    }
+});

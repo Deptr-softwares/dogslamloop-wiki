@@ -1,7 +1,9 @@
 /**
  * Discussion threads: a character page's thread under its tabs, and a Forum post's
  * conversation. Posts, replies, images, KLIPY GIFs and the GIF picker, emojis,
- * editing, reporting, moderation, and the jump-to-discussion button.
+ * editing, reporting and moderation. On a character page it is loaded as the
+ * thread nears the screen (js/pages/core/page_boot.js, which also runs the
+ * jump-to-discussion button and its count); the Forum loads it with the page.
  * @since v0.14
  * @touches page_discussions, page_discussion_edits, user_roles, the
  *   discussion-media and discord-media buckets, the RPCs for reporting, moderating,
@@ -1680,7 +1682,8 @@
         if (error) { setStatus(error.message || 'Could not moderate that post.', true); return; }
 
         await draw();
-        updateJumpCount();
+        // The jump button's count, on a character page (js/pages/core/page_boot.js).
+        if (typeof window.showDiscussionCount === 'function') window.showDiscussionCount(state.pageId);
     }
 
     function openReply(postId) {
@@ -2017,42 +2020,6 @@
         if (id) jumpTo(id);
     }
 
-    // The jump button is wired before anything is fetched, so it scrolls even when the
-    // thread fails to load.
-    function wireJumpButton() {
-        const btn = document.getElementById('btn-jump-discussion');
-        if (!btn || btn.dataset.wired === 'true') return;
-        btn.dataset.wired = 'true';
-
-        btn.addEventListener('click', () => {
-            const target = document.getElementById('discussion-section');
-            if (!target) return;
-            target.scrollIntoView({ behavior: window.scrollMotion(), block: 'start' });
-        });
-    }
-
-    // The button carries the post count, the reason to press it, and shows nothing for
-    // an empty thread, since a zero reads as a dead feature. Its name is its own text
-    // (a hidden "Jump to the discussion", then the count).
-    async function updateJumpCount() {
-        const label = document.getElementById('jump-discussion-count');
-        if (!label) return;
-
-        let count = null;
-        try {
-            const res = await client()
-                .from('page_discussions')
-                .select('id', { count: 'exact', head: true })
-                .eq('page_id', state.pageId)
-                .eq('status', 'visible');
-            if (!res.error) count = res.count;
-        } catch (e) {
-            count = null;
-        }
-
-        label.textContent = typeof count === 'number' && count > 0 ? String(count) : '';
-    }
-
     /**
      * A composer outside a thread (the Forum's NEW POST). `leading` adds the caller's
      * fields; `insert({ body, images })` receives the prepared message and returns
@@ -2088,10 +2055,6 @@
     window.initPageDiscussions = async function (pageId, opts = {}) {
         const root = document.getElementById('discussion-section');
 
-        // The button is wired even when the section is missing, so a page that
-        // somehow has one without the other still behaves predictably.
-        wireJumpButton();
-
         if (!root || !client() || !pageId) return;
 
         state.pageId = pageId;
@@ -2105,7 +2068,6 @@
         state.page = linkedPage;
         wire(root);
         await draw();
-        updateJumpCount();
         setTimeout(honourHashTarget, 300);
     };
 })();

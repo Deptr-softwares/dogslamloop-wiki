@@ -215,6 +215,43 @@ async function fetchJson(url, options = {}) {
     return response.json();
 }
 
+const siteFileLoads = new Map();
+
+/**
+ * Loads one of the site's own scripts or stylesheets after the page has, once,
+ * with the ?v= stamp this page's own tags carry, so a file loaded later is never
+ * an older copy than the page around it.
+ * @param {string} file a path from the site root, 'js/...' or 'style/...'
+ * @returns {Promise<void>} settles when the file has loaded; rejects if it cannot,
+ *   and the next call tries again
+ * @watch the address and stamp are read from this file's own script tag, so it
+ *   works at any depth and on 404.html, which is served at any address
+ */
+window.loadSiteFile = function (file) {
+    if (siteFileLoads.has(file)) return siteFileLoads.get(file);
+    const own = document.querySelector('script[src*="js/utility/site_utils.js"]');
+    const url = new URL(own.src);
+    url.pathname = url.pathname.slice(0, url.pathname.lastIndexOf('js/utility/site_utils.js')) + file;
+    const loading = new Promise((resolve, reject) => {
+        const isStyle = file.endsWith('.css');
+        const el = document.createElement(isStyle ? 'link' : 'script');
+        if (isStyle) {
+            el.rel = 'stylesheet';
+            el.href = url.href;
+        } else {
+            el.src = url.href;
+        }
+        el.onload = () => resolve();
+        el.onerror = () => {
+            siteFileLoads.delete(file);
+            reject(new Error(`Could not load ${file}`));
+        };
+        document.head.appendChild(el);
+    });
+    siteFileLoads.set(file, loading);
+    return loading;
+};
+
 async function fetchNavigationData() {
     return fetchJson(`${getRootPath()}data/navigation.json?v=1.0`, { cache: true });
 }

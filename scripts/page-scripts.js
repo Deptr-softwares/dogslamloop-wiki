@@ -67,13 +67,13 @@ const deferred = list => list.map(entry => (typeof entry === 'string' ? { src: e
 
 const PAGE_SCRIPTS = {
     // The four kinds scripts/generate-pages.js writes (GENERATED_PAGE_TYPES).
+    // A character page's discussion (emoji.js, discussions.js) is loaded by
+    // page_boot.js as the thread nears the screen.
     character: [
         ...ROUTED,
         'pages/core/skill_card.js',
         'pages/core/page_render.js',
         'pages/core/character_modes.js',
-        'utility/emoji.js',
-        'pages/community/discussions.js',
         'pages/core/format_tags.js',
         ...BOOT,
     ],
@@ -148,7 +148,6 @@ const PAGE_SCRIPTS = {
         'pages/core/page_render.js',
         'pages/core/skill_card.js',
         'pages/core/character_modes.js',
-        'utility/emoji.js',
         'pages/core/format_tags.js',
         'pages/tier-lists/tierlist.js',
         'pages/core/page_boot.js',
