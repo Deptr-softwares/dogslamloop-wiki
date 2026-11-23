@@ -74,7 +74,7 @@ async function loadExpertPageOptions() {
     data.forEach(page => {
         const opt = document.createElement('option');
         opt.value = page.page_id;
-        opt.textContent = page.category ? `${page.category} — ${page.name}` : page.name;
+        opt.textContent = page.category ? `${page.category}, ${page.name}` : page.name;
         select.appendChild(opt);
     });
 }

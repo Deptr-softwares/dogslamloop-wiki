@@ -1349,7 +1349,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                      had no way to be typed except by hand, which is the same
                      as not existing for most contributors. -->
                 <button class="format-btn format-btn-kbd" data-tag="kbd" title="Key or input, e.g. M1">⌨</button>
-                <button class="format-btn format-btn-noauto" data-tag="noauto" title="Stop automatic colouring here — for when a character name is just a word">🚫</button>
+                <button class="format-btn format-btn-noauto" data-tag="noauto" title="Stop automatic colouring here, for when a character name is just a word">🚫</button>
                 <button class="format-btn format-btn-outline" data-tag="outline" title="White outline around the text"><span class="sc-outline">A</span></button>
 
                 <div class="format-color-wrapper">
@@ -2985,7 +2985,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const body = card.querySelector('.block-body');
             body.classList.toggle('minimized');
             card.classList.toggle('collapsed');
-            btn.textContent = body.classList.contains('minimized') ? '□' : '—';
+            btn.textContent = body.classList.contains('minimized') ? '□' : '-';
 
             // Recorded, or the next renderBlockList reopens it.
             const collapsedIdx = parseInt(card.getAttribute('data-index'), 10);
@@ -3566,7 +3566,7 @@ function renderBlockList() {
                 <span class="block-card-summary" title="${window.escapeHtml(blockSummary(block))}">${window.escapeHtml(blockSummary(block))}</span>
                 <div class="block-actions">
                     <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
-                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">${isOpen ? '—' : '□'}</button>
+                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">${isOpen ? '-' : '□'}</button>
                     <button class="btn-sys btn-sys-regular btn-up" title="Move Up">▲</button>
                     <button class="btn-sys btn-sys-regular btn-down" title="Move Down">▼</button>
                     <button class="btn-sys btn-sys-red btn-delete" title="Delete">✖</button>

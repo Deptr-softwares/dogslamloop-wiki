@@ -6,21 +6,21 @@
     <title>Owner Tools | Dogslamloop</title>
 
     <!-- FOUNDATIONS -->
-    <link rel="stylesheet" href="style/Common.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=fb3d11c6">
+    <link rel="stylesheet" href="style/Common.css?v=9d32449e">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=9d32449e">
 
     <!-- COMPONENTS -->
-    <link rel="stylesheet" href="style/Buttons.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/Modals.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/Forms.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/Badges.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/Alerts.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/Cards.css?v=fb3d11c6">
+    <link rel="stylesheet" href="style/Buttons.css?v=9d32449e">
+    <link rel="stylesheet" href="style/Modals.css?v=9d32449e">
+    <link rel="stylesheet" href="style/Forms.css?v=9d32449e">
+    <link rel="stylesheet" href="style/Badges.css?v=9d32449e">
+    <link rel="stylesheet" href="style/Alerts.css?v=9d32449e">
+    <link rel="stylesheet" href="style/Cards.css?v=9d32449e">
 
     <!-- LAYOUT & OVERRIDES -->
-    <link rel="stylesheet" href="style/Layout.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/editor.css?v=fb3d11c6">
-    <link rel="stylesheet" href="style/admin.css?v=fb3d11c6">
+    <link rel="stylesheet" href="style/Layout.css?v=9d32449e">
+    <link rel="stylesheet" href="style/editor.css?v=9d32449e">
+    <link rel="stylesheet" href="style/admin.css?v=9d32449e">
 </head>
 <body class="admin-body">
 
@@ -126,7 +126,7 @@
                         <h3 class="update-title admin-tool-title personnel">Page Experts</h3>
                         <button onclick="loadPageExperts()" class="btn-sys btn-sys-regular admin-refresh-btn">&#8635; Refresh</button>
                     </div>
-                    <p class="admin-tool-hint">An expert reviews submissions for their own pages and nothing else. They need no role at all &mdash; a knowledgeable player with an account is enough, which is why this is granted by email rather than picked from the roster.</p>
+                    <p class="admin-tool-hint">An expert reviews submissions for their own pages and nothing else. They need no role at all; a knowledgeable player with an account is enough, which is why this is granted by email rather than picked from the roster.</p>
 
                     <div id="page-experts-roster" class="personnel-roster">
                         <p class="loading-msg loading-msg-busy">Loading experts...</p>
@@ -147,7 +147,7 @@
                         <h3 class="update-title admin-tool-title personnel">Staff Perks</h3>
                         <button onclick="loadStaffPerks()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
                     </div>
-                    <p class="admin-tool-hint">Perks for Trusted Editors, Reviewers and Admins. These change what the database enforces, not just what the editor shows &mdash; turning one off takes effect on the next submission.</p>
+                    <p class="admin-tool-hint">Perks for Trusted Editors, Reviewers and Admins. These change what the database enforces, not just what the editor shows. Turning one off takes effect on the next submission.</p>
 
                     <label class="owner-perk-row" for="perk-cooldown-bypass">
                         <input type="checkbox" id="perk-cooldown-bypass">
@@ -476,7 +476,7 @@
                     <h3 class="update-title admin-tool-title">Page Introduction</h3>
                     <p class="admin-tool-desc">
                         The text at the top of the tier list page, before anybody is picked.
-                        It is hidden while a person's list is open — theirs replaces it.
+                        It is hidden while a person's list is open; theirs replaces it.
                     </p>
 
                     <div id="tier-page-intro-editor" class="block-editor-host"></div>
@@ -512,7 +512,7 @@
                     <h3 class="update-title admin-tool-title">Community Ranking</h3>
                     <p class="admin-tool-desc">
                         The Free Submit tier list. Closing voting hides the ballot and refuses new
-                        ratings — the published ranking stays readable, because deleting the
+                        ratings. The published ranking stays readable, because deleting the
                         community's answer is a much bigger act than pausing new ones.
                     </p>
 
@@ -548,7 +548,7 @@
                             <option value="higher">Put them in the higher tier</option>
                         </select>
                         <p class="admin-tool-hint">
-                            Only changes anything for a character whose votes divide exactly in half —
+                            Only changes anything for a character whose votes divide exactly in half;
                             everyone else is decided by the middle vote either way. The lower tier is
                             the cautious answer: a character only moves up if more than half the
                             voters put them there.
@@ -627,25 +627,25 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=fb3d11c6"></script>
-    <script src="js/utility/input_slots.js?v=fb3d11c6"></script>
-    <script src="js/utility/site_utils.js?v=fb3d11c6"></script>
-    <script src="js/utility/site_data.js?v=fb3d11c6"></script>
-    <script src="js/utility/site_media.js?v=fb3d11c6"></script>
-    <script src="js/utility/site_account.js?v=fb3d11c6"></script>
-    <script src="js/utility/site_meta.js?v=fb3d11c6"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=fb3d11c6"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner.js?v=fb3d11c6"></script>
+    <script src="js/utility/character_tabs.js?v=9d32449e"></script>
+    <script src="js/utility/input_slots.js?v=9d32449e"></script>
+    <script src="js/utility/site_utils.js?v=9d32449e"></script>
+    <script src="js/utility/site_data.js?v=9d32449e"></script>
+    <script src="js/utility/site_media.js?v=9d32449e"></script>
+    <script src="js/utility/site_account.js?v=9d32449e"></script>
+    <script src="js/utility/site_meta.js?v=9d32449e"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=9d32449e"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=9d32449e"></script>
+    <script src="js/owner/owner.js?v=9d32449e"></script>
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
-    <script src="js/owner/owner-site-meta.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-hub-text.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-hub-lists.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-page-meta.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-staff-perks.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-page-experts.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-tier-lists.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-media-report.js?v=fb3d11c6"></script>
-    <script src="js/owner/owner-nav.js?v=fb3d11c6"></script>
+    <script src="js/owner/owner-site-meta.js?v=9d32449e"></script>
+    <script src="js/owner/owner-hub-text.js?v=9d32449e"></script>
+    <script src="js/owner/owner-hub-lists.js?v=9d32449e"></script>
+    <script src="js/owner/owner-page-meta.js?v=9d32449e"></script>
+    <script src="js/owner/owner-staff-perks.js?v=9d32449e"></script>
+    <script src="js/owner/owner-page-experts.js?v=9d32449e"></script>
+    <script src="js/owner/owner-tier-lists.js?v=9d32449e"></script>
+    <script src="js/owner/owner-media-report.js?v=9d32449e"></script>
+    <script src="js/owner/owner-nav.js?v=9d32449e"></script>
 </body>
 </html>

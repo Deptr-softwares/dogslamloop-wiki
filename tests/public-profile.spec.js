@@ -189,7 +189,7 @@ test('a removed post does not offer its author', async ({ page }) => {
     // to click through to.
     await mockThread(page, { rows: [post({ status: 'removed_by_staff' })], profiles: [] });
     await open(page);
-    await expect(page.locator('.discussion-author')).toHaveText('—');
+    await expect(page.locator('.discussion-author')).toHaveText('-');
     await expect(page.locator('.discussion-author-link')).toHaveCount(0);
 });
 

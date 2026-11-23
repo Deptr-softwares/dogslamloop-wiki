@@ -359,7 +359,7 @@ function showOverrideBanner(url) {
         if (csp && csp.getAttribute('content') && csp.getAttribute('content').includes('connect-src')
             && !csp.getAttribute('content').includes(host)) {
             const warn = document.createElement('span');
-            warn.textContent = "— this page's CSP blocks it; use any other page";
+            warn.textContent = "This page's CSP blocks it; use any other page";
             bar.appendChild(warn);
         }
 

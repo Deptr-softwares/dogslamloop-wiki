@@ -354,7 +354,7 @@ test('a removed post keeps its place so replies underneath still make sense', as
     await expect(page.locator('#post-gone > .discussion-body')).toContainText('[removed by the author]');
     // The name goes with the words. A removal that leaves the byline attached
     // to a placeholder still says who said the thing.
-    await expect(page.locator('#post-gone .discussion-author').first()).toHaveText('—');
+    await expect(page.locator('#post-gone .discussion-author').first()).toHaveText('-');
     await expect(page.locator('#post-r1')).toContainText('still here');
     await expect(page.locator('#post-gone [data-remove-post]'), 'nothing left to delete').toHaveCount(0);
 });

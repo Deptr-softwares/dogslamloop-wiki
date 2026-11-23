@@ -126,7 +126,7 @@ function initDawEditor(containerId, moveData) {
                         <div>
                             <label class="editor-field-label" for="move-media-framing">Media box shape</label>
                             <select id="move-media-framing" class="editor-select" data-field="media.framing">
-                                <option value="auto"${!moveData.media.framing || moveData.media.framing === 'auto' ? ' selected' : ''}>Auto — match the file</option>
+                                <option value="auto"${!moveData.media.framing || moveData.media.framing === 'auto' ? ' selected' : ''}>Auto, match the file</option>
                                 <option value="wide"${moveData.media.framing === 'wide' ? ' selected' : ''}>Wide (16:9)</option>
                                 <option value="square"${moveData.media.framing === 'square' ? ' selected' : ''}>Square (1:1)</option>
                                 <option value="tall"${moveData.media.framing === 'tall' ? ' selected' : ''}>Tall (3:4)</option>
