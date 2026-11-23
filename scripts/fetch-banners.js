@@ -3,7 +3,7 @@
  * Hover Banners (v1.2, the owner's Kanban card "Hover Banners for every
  * characters"): each character's banner, mirrored into medias/banners/, and the
  * first line of their Overview, written to data/banners.json. The roster's
- * popup (js/pages/core/pagebuilder.js) and each page's Discord preview
+ * popup (js/dashboards/hub_roster.js) and each page's Discord preview
  * (scripts/generate-pages.js) read that file.
  *
  * The banner is desc_data.profile.banner, set in the editor's Profile tab like

@@ -14,7 +14,8 @@ What each thing is called on screen, in the code and in the data, where those di
 | A phase's colour (Startup, Active, Recovery and the rest) | `bg-tick-start`, `bg-tick-active`, `bg-tick-recov` and six more | the class name itself, stored in each phase | `ColorCoding.css` |
 | The page's text: Overview, Strategy, Matchups, Profile and the rest | the description, `desc_data` | `page_data.desc_data` | `page_render.js` |
 | Format tags: `[b]`, `[color=]`, `[url=]`, `[icon=]` and the rest | shortcodes | inside any text field | `format_tags.js`, `editor-writing-checks.js` |
-| Sidebar, roster, tabs, table of contents, footer | the Page Builder | | `pagebuilder.js` |
+| Sidebar, dock, tabs, table of contents, footer | the page shell | | `page_shell.js` |
+| The roster, the hub columns, the Systems directory | the roster | | `hub_roster.js` |
 | Character colours, aliases, accolades and the site's icons | `CHARACTER_COLORS`, `CHARACTER_ALIASES`, `ACCOLADES`, `UI_ICONS` | `site_pages.color` (the colours) | `site_lookups.js` |
 | The site's version and settings | `site_meta` | the `site_meta` table, copied to `data/site_meta.json` | `owner.html` |
 | Overseer | `admin`: its scripts and its stylesheet | | `overseer.html`, `admin.css`, `admin-core.js` |
@@ -25,17 +26,14 @@ What each thing is called on screen, in the code and in the data, where those di
 
 ## Renamed
 
-Picked by the owner (2026-11-22), renamed in v1.3. The devlogs and the applied migrations keep the old names, as they were written.
+Picked by the owner (2026-11-22, and the page shell's two names 2026-11-23), renamed in v1.3. The devlogs and the applied migrations keep the old names, as they were written.
 
 - `description.js` is `page_render.js`, beside `page_router.js` and `page_boot.js`.
 - `framedata.js` is `skill_card.js`.
 - `internalstyling.js` is `format_tags.js`. It also colours character names, frame terms and timings on its own.
 - `site_meta.js` is `site_lookups.js`. The `site_meta` table and `data/site_meta.json` keep their names.
 - `admin.html` is `overseer.html`. The old address forwards to it.
-
-## Planned
-
-- `pagebuilder.js` is named when it splits (B-5): it builds the sidebar, roster, tabs, table of contents and footer, and also the data grids and their filters.
+- `pagebuilder.js` is `page_shell.js`, and the hubs' roster and directories moved out of it into `js/dashboards/hub_roster.js`.
 
 ## Kept
 

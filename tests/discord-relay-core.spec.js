@@ -403,9 +403,9 @@ test.describe('agreement with the files the relay sits between', () => {
     // under "Site Info", and got a Discord post of its own. A character is
     // whatever the sidebar colours as one.
     test('the characters given a Discord post are the sidebar\'s Characters', () => {
-        const sidebar = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'pagebuilder.js'), 'utf8');
+        const sidebar = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'page_shell.js'), 'utf8');
         const word = /category === '([^']+)' && window\.CHARACTER_COLORS/.exec(sidebar);
-        expect(word, 'the sidebar\'s character test not found in js/pages/core/pagebuilder.js').not.toBeNull();
+        expect(word, 'the sidebar\'s character test not found in js/pages/core/page_shell.js').not.toBeNull();
 
         const dir = path.join(ROOT, 'supabase', 'migrations');
         const defs = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()

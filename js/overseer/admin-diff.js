@@ -5,7 +5,7 @@
  * @since v0.4, as part of admin.js
  * @touches window.currentLive* and currentPending*, window.changedTabs,
  *   unwrapModeDelta, getCharacterTabIds, getKeyedSectionByScope and
- *   FIXED_BLOCK_SECTIONS (character_tabs.js), setupTabs (pagebuilder.js)
+ *   FIXED_BLOCK_SECTIONS (character_tabs.js), setupTabs (page_shell.js)
  * @watch every value is contributor text, escaped before it reaches the page. A
  *   new scope needs its tab here, or its change marks the wrong tab.
  * @see docs/overseer.md

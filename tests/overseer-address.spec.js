@@ -43,7 +43,7 @@ test('without JavaScript the old address still forwards', async ({ browser }) =>
 test('no page or script links to the old address', () => {
     const files = execSync('git ls-files "*.html" "js/**"', { cwd: ROOT, encoding: 'utf8' }).trim().split('\n')
         .filter(file => file !== 'admin.html' && /\.(html|js)$/.test(file) && !file.startsWith('js/vendor/'));
-    expect(files).toContain('js/pages/core/pagebuilder.js');
+    expect(files).toContain('js/pages/core/page_shell.js');
     const naming = files.filter(file => /(?<![\w-])admin\.html/.test(fs.readFileSync(path.join(ROOT, file), 'utf8')));
     expect(naming).toEqual([]);
 });

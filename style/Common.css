@@ -266,7 +266,7 @@ body {
 .sc-char-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 /* An in-page link ([url=#...]): a faint underline and no arrow, since these sit in
-   coloured text; a hover names the section (pagebuilder.js). */
+   coloured text; a hover names the section (page_shell.js). */
 .wiki-link-jump {
     text-decoration-color: color-mix(in srgb, var(--text-white) 22%, transparent);
     text-underline-offset: 3px;
@@ -274,7 +274,7 @@ body {
 
 /* Where the reader landed: a slanted bar of the page colour wipes across the
    heading's words once. ::before, since .section-title's ::after is its bar.
-   pagebuilder.js measures the words into --flash-left and --flash-width. */
+   page_shell.js measures the words into --flash-left and --flash-width. */
 .anchor-flash { position: relative; }
 .anchor-flash::before {
     content: ''; position: absolute; top: -0.15rem; bottom: -0.15rem; pointer-events: none;

@@ -38,7 +38,7 @@ test('previously-drifted Vessel/Template .character-nav now render identically t
   }
 });
 
-// Mobile-support pass: js/pages/core/pagebuilder.js's initTabEditorButtons used to
+// Mobile-support pass: js/pages/core/page_shell.js's initTabEditorButtons used to
 // clone histBtn.style.cssText = sidebarBtn.style.cssText (and the mobile
 // equivalent) instead of sharing a class. Real bug found and fixed: on
 // system pages the mobile Edit button's static markup included an inline

@@ -7,7 +7,7 @@
 // database rather than merely rendering.
 //
 // The riskiest change in the PR is not in this modal at all: the role icon
-// suite moved out of initAuthDock (js/pages/core/pagebuilder.js) into window.ROLE_BADGES
+// suite moved out of initAuthDock (js/pages/core/page_shell.js) into window.ROLE_BADGES
 // so the dock and the profile cannot drift. The sidebar dock is on every page,
 // so "the dock still draws the same icon" is asserted here too, against the
 // crown specifically - it is the icon that was redrawn days ago and the one a

@@ -5,7 +5,7 @@
  * @since v0.14
  * @touches window.activePreviewMode, window.changedModes, getCharacterModes,
  *   resolveModeFrame, resolveModeDesc and unwrapModeDelta (site_data.js),
- *   setupTabs (pagebuilder.js), switchVersionView (admin-preview.js)
+ *   setupTabs (page_shell.js), switchVersionView (admin-preview.js)
  * @watch not character_modes.js: that one is built for the live page (the address
  *   bar, its own fetch), and this one draws two versions held in memory.
  * @see docs/overseer.md

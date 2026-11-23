@@ -2,7 +2,7 @@
    its icons, name slit and hover banners, contributor and collaborator cards, and
    the Update Log's part headings.
    Since v0.4.
-   Touches: --char-color, set per roster card by pagebuilder.js.
+   Touches: --char-color, set per roster card by hub_roster.js.
    See: docs/looks.md */
 
 /* The shared surface */
@@ -97,14 +97,14 @@
 .roster-card:hover .roster-card-text { transform: scale(1.05); }
 @media (min-width: 768px) { .roster-card-text { font-size: 0.75rem; } }
 
-/* js/pages/core/pagebuilder.js renderFilteredRoster */
+/* js/dashboards/hub_roster.js renderFilteredRoster */
 .roster-card-bg-image {
     width: 100%; height: 100%; object-fit: cover; position: absolute;
     top: 0; left: 0; opacity: 0.5; filter: grayscale(100%); transition: opacity 0.2s;
 }
 
 /* Roster icons */
-/* pagebuilder.js hands the colour over as --char-color, and adds .has-icon once the
+/* page_shell.js hands the colour over as --char-color, and adds .has-icon once the
    icon has loaded; a card without one keeps the solid-colour design. */
 .roster-card {
     background-color: var(--char-color, var(--bg-main));

@@ -10,7 +10,7 @@ What every generated page is built from before its content arrives: the skeleton
 - `js/utility/search.js`: the search box in the left sidebar.
 - `js/pages/types/tool_page.js`: the tool page type, a host for a tool's own renderer.
 - `js/pages/types/gallery.js`: the gallery page type, a flat searchable list of media.
-- `js/pages/core/pagebuilder.js`: the sidebar, roster, tabs, table of contents and footer.
+- `js/pages/core/page_shell.js`: the sidebar and its dock, the phone bar, the Edit and History buttons, tabs, section anchors, the table of contents, page alerts and the footer. The hubs' roster and directories are in `js/dashboards/hub_roster.js` (`docs/home.md`).
 - `scripts/page-scripts.js`: the scripts each kind of page loads, in order. The generator writes a generated page's tags from it, and `npm run generate` writes the marked block in each hand-written page.
 
 ## Data
@@ -33,6 +33,7 @@ What every generated page is built from before its content arrives: the skeleton
 
 Newest first. One entry per decision.
 
+- **2026-11-23, silent release, #310.** The page builder is split by who uses it: the roster, the home page's category columns and the Systems directory are `js/dashboards/hub_roster.js`, which only the three hubs load, and the rest is `page_shell.js` (the owner's names). Every other page loads 6.6 KB gzipped less.
 - **2026-11-23, silent release, #309.** Each kind of page has one script list, in `scripts/page-scripts.js`. The generator writes a generated page's tags from it, and each hand-written page has one marked block that `npm run generate` rewrites (the owner's pick). A file renamed or added changes one list, not 74 pages. Every page loads the scripts it loaded before, in the same order.
 - **2026-11-19, v1.2, #284.** Hovering a roster card for about 0.25 s opens the character's banner with the start of their Overview. The owner's card: "When hovering above a character box icon in the roster selection section for about 0.25s, a banner pop up that have a custom wide stretch image (different from the portrait) with a cut-off Overview." The banner and the line come from `data/banners.json`, mirrored nightly, so a hover asks Supabase for nothing. A mouse or a keyboard only: a tap opens the page.
 - **2026-11-17, v1.2, #275.** A phone gets a bar fixed to the bottom of the screen with search, the account, Site Settings and Ko-fi, on every page that starts the phone navigation (the owner's pick). Their card: "No quick way to start searching the wiki on mobile (need to press on the burger first in order to search)". Each button calls what its desktop twin calls.
@@ -58,6 +59,6 @@ Newest first. One entry per decision.
 - **2026-08-12, v0.13, #52.** The Others and Tools columns on the Main Dashboard are sub-grouped by category, and those categories leave the "Guides & Such" box.
 - **2026-08-11, v0.12, #44.** `404.html` draws a page that exists but has no stub yet, so a page works the moment it is created. The owner: "I have no idea why there is this regeneration thing here that is blocking my feedback loop." It stays a 404, with a "Not published yet" banner, so an unpublished page is not indexed. Archived pages keep their tombstone.
 - **2026-08-10, v0.12, #41.** Gallery and tool pages are page types with the system page's shell. A gallery is one flat, searchable list, not tabs: categories decided up front for something people search are worse than none. Its right sidebar has no contents list but keeps the Edit button. A tool page hosts a tool that registers its own renderer; the launch link is the fallback, because the Skill Builder ID Reader is only a link and a tool not yet written should say so.
-- **2026-08-09, v0.11, #36.** Every page has a skip-to-content link, added by `pagebuilder.js` so no page can lack it.
+- **2026-08-09, v0.11, #36.** Every page has a skip-to-content link, added by `page_shell.js` so no page can lack it.
 - **2026-08-08, v0.9, #30.** Every character and system page is a generated stub that sets `PAGE_ROUTE`, and the skeleton markup is held once, in `page_router.js`. The boot is a separate last script, and its character and system branches keep their different orders.
 - **2026-08-07, v0.8, #28.** The sitewide footer is added by script on every page with `.site-layout`, rather than copied into each page.

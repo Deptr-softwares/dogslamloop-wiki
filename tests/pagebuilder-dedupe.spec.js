@@ -1,19 +1,19 @@
-// Coverage for Workstream B Tier 5 (pagebuilder.js): inline styles across
+// Coverage for Workstream B Tier 5 (page_shell.js): inline styles across
 // buildGlobalSidebarMenu, initAuthDock, renderFilteredRoster,
 // buildSystemsDirectory, and refreshTOC extracted to CSS classes.
 //
 // Three real drift bugs were found and fixed along the way (each CSS class
-// was only ever used by pagebuilder.js's own generated markup, confirmed
+// was only ever used by page_shell.js's own generated markup, confirmed
 // before touching, so these are safe single-source fixes, not cross-file
 // leaks like the .character-nav case in Tier 4):
 // - .dock-badge's CSS said top/right: -6px, but the inline override
-//   pagebuilder.js always applied said -4px - the -6px value never
+//   page_shell.js always applied said -4px - the -6px value never
 //   actually rendered. CSS now matches reality.
 // - .roster-card-text / .ea-star-indicator's CSS text-shadow was missing a
-//   5th layer (`2px 2px 0px rgba(0,0,0,0.8)`) that pagebuilder.js's inline
+//   5th layer (`2px 2px 0px rgba(0,0,0,0.8)`) that page_shell.js's inline
 //   `textOutline` constant always added on top. CSS now matches reality.
 // - .system-button-grid's CSS (auto-fit/110px/0.5rem) was 100% shadowed by
-//   pagebuilder.js's inline override (auto-fill/220px/1.25rem) on every
+//   page_shell.js's inline override (auto-fill/220px/1.25rem) on every
 //   render. CSS now matches reality.
 //
 // Also replaced a JS onmouseover/onmouseout hover simulation on the ToC's
@@ -53,7 +53,7 @@ test('roster card: EA star and character name share the same (fixed, 5-layer) te
     eaCard.locator('.roster-card-text').evaluate(el => getComputedStyle(el).textShadow),
   ]);
   // Both should carry the 5th rgba layer now baked into the CSS classes
-  // instead of only appearing via pagebuilder.js's inline override.
+  // instead of only appearing via page_shell.js's inline override.
   expect(starShadow).toContain('rgba(0, 0, 0, 0.8)');
   expect(textShadow).toContain('rgba(0, 0, 0, 0.8)');
 });

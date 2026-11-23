@@ -7,7 +7,7 @@ paths:
   - "js/owner/**"
   - "js/editor/core/editor-core.js"
   - "js/pages/community/discussions.js"
-  - "js/pages/core/pagebuilder.js"
+  - "js/pages/core/page_shell.js"
   - "js/pages/tier-lists/tier-editor.js"
 ---
 

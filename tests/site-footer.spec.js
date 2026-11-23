@@ -1,7 +1,7 @@
 // Coverage for the sitewide footer added in v0.8. The site had no <footer>
 // element anywhere at all, and the MIT LICENSE at the repo root was linked
 // from nothing. Rather than editing 41 HTML files, the footer is injected by
-// js/pages/core/pagebuilder.js's buildSiteFooter on DOMContentLoaded.
+// js/pages/core/page_shell.js's buildSiteFooter on DOMContentLoaded.
 const { test, expect } = require('@playwright/test');
 
 // The links are built from window.getRootPath(), which resolves differently

@@ -47,7 +47,7 @@ test('only characters with a colour reach the dictionary', () => {
 });
 
 test('the dictionary is keyed by name, which is what every consumer looks up', () => {
-    // page_id is the database's key. pagebuilder.js has the name, and
+    // page_id is the database's key. page_shell.js has the name, and
     // format_tags.js matches names in prose - so keying by page_id would
     // produce a dictionary nothing could read.
     const out = buildCharacterColors(ROWS);
@@ -336,7 +336,7 @@ test('a colour the browser cannot parse is refused, not written', async ({ page 
 
 test('clearing the colour is allowed and stores NULL', async ({ page }) => {
     // Absent is a real state - it is what every new character page starts as,
-    // and pagebuilder already falls back for a name it cannot find.
+    // and page_shell.js already falls back for a name it cannot find.
     await openPageMeta(page);
     await page.fill('#page-meta-color', '');
     await page.click('#btn-save-page-meta');

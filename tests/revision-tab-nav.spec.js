@@ -70,7 +70,7 @@ test('admin: clicking a revision tab switches which content pane is shown', asyn
 
   // overseer.html's RBAC gate wipes the body for a logged-out visitor, so the
   // real click path is exercised on a rebuilt copy of the same markup with
-  // the same wiring (setupTabs, js/pages/core/pagebuilder.js) applied. Wait for the
+  // the same wiring (setupTabs, js/pages/core/page_shell.js) applied. Wait for the
   // gate to land first - it wipes asynchronously, and rebuilding before it
   // runs means clicking into a body it is about to replace.
   await page.waitForSelector('.access-denied-screen');

@@ -704,7 +704,7 @@ test('an icon box borrows the character colour for its border, not its fill', as
 
     // The colour travels as a custom property. An inline background would beat
     // the stylesheet rule that needs to read it, which is the same reasoning
-    // js/pages/core/pagebuilder.js gives for the roster grid.
+    // js/dashboards/hub_roster.js gives for the roster grid.
     expect(box.charColor, 'the colour has to reach CSS to be usable as a border').toBeTruthy();
     expect(box.inlineBg, 'and must not also be painted as a fill').toBe('');
 

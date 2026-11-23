@@ -44,8 +44,9 @@ const PARTS = [
     'utility/site_lookups.js',
 ];
 const SITE = [SUPABASE, ...TABS, ...PARTS];
-// The sidebar, header and search box a reader page draws.
-const SHELL = ['pages/core/pagebuilder.js', 'utility/search.js'];
+// The sidebar, header and search box a reader page draws. The hubs add
+// dashboards/hub_roster.js, their roster and directories.
+const SHELL = ['pages/core/page_shell.js', 'utility/search.js'];
 // Blocks to markup, then format tags in that markup.
 const RENDER = ['pages/core/page_render.js', 'pages/core/format_tags.js'];
 // Reader pages only, never a staff or editor page (CLAUDE.md, Stack).
@@ -108,13 +109,15 @@ const PAGE_SCRIPTS = {
         'utility/site_media.js',
         'utility/site_account.js',
         'dashboards/home_widgets.js',
-        ...SHELL, ...RENDER,
+        ...SHELL,
+        'dashboards/hub_roster.js',
+        ...RENDER,
         'pages/community/posts.js',
         'dashboards/hub_content.js',
         ANALYTICS,
     ]),
     // page_render.js and format_tags.js draw the hub's own text, which is Blocks.
-    hub: [...SITE, ...SHELL, ...RENDER, 'dashboards/hub_content.js', 'dashboards/dashboards.js', ANALYTICS],
+    hub: [...SITE, ...SHELL, 'dashboards/hub_roster.js', ...RENDER, 'dashboards/hub_content.js', 'dashboards/dashboards.js', ANALYTICS],
     // page_render.js draws each list's introduction and reasoning, which are
     // Blocks. It has no DOMContentLoaded handler, so it boots nothing here.
     'tier-lists': [...SITE, ...SHELL, ...RENDER, 'pages/tier-lists/tierlist.js', 'pages/tier-lists/certified-tier-lists.js', ANALYTICS],

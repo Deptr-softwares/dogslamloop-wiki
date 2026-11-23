@@ -20,16 +20,16 @@
  *
  * It has cost three releases. The worst was v0.16: the dynamic roster icons and
  * the Show Hidden control shipped, and the owner could not see them on the live
- * site - js/pages/core/pagebuilder.js was unstamped, so the browser kept the copy it
+ * site - js/pages/core/page_shell.js was unstamped, so the browser kept the copy it
  * already had while everything around it updated. The release looked like it
  * had not happened.
  *
  * So the list is now EVERY module in js/, discovered from the directory rather
  * than enumerated. A hand-kept list is a list somebody forgets to add to, and
- * the file they forget is the next pagebuilder.js.
+ * the file they forget is the next page_shell.js.
  *
  * ONE version across all of them, not a hash per file. This codebase is a
- * single shared `window` scope with no module system: pagebuilder.js calls
+ * single shared `window` scope with no module system: page_shell.js calls
  * window.roleBadge from site_account.js, discussions.js calls
  * window.fetchPublicProfiles, page_boot.js drives both. Cross-file calls are
  * the norm, so any pair can be the fresh-module-against-stale-helper failure -
