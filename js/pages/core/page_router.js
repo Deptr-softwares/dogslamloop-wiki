@@ -6,7 +6,7 @@
  * @since v0.9
  * @touches window.PAGE_ROUTE, getCharacterTabs (character_tabs.js, which loads
  *   just before this file)
- * @watch it runs before site_utils.js and site_meta.js, so it keeps its own
+ * @watch it runs before site_utils.js and site_lookups.js, so it keeps its own
  *   escaper and writes the icon markup itself. Hand-authored pages never set
  *   PAGE_ROUTE (tests/page-skeleton-parity.spec.js).
  * @see docs/page-shell.md
@@ -50,7 +50,7 @@ window.buildPageSkeleton = function (route, rootPath) {
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // The site's icons as window.uiIconHTML (site_meta.js) writes them, written out
+    // The site's icons as window.uiIconHTML (site_lookups.js) writes them, written out
     // here because that file loads later. An id is a file in medias/icons/.
     const uiIcon = (id) => `<span class="px-icon" aria-hidden="true" style="--px-icon: url('/medias/icons/${id}.png')"></span>`;
     const EDIT_ICON = uiIcon('edit');
@@ -179,7 +179,7 @@ ${tabDivs}
     }
 
     function systemMain() {
-        // No tab divs here on purpose - description.js builds them from
+        // No tab divs here on purpose - page_render.js builds them from
         // desc_data.tabs[] and inserts its own nav after .home-main-header.
         return `
         <main class="main-content-area space-y-6">

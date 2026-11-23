@@ -70,7 +70,7 @@ window.renderToolPage = async function(pageId) {
     `;
     main.appendChild(shell);
 
-    // The editor's own object wins, as in description.js and framedata.js, so the
+    // The editor's own object wins, as in page_render.js and skill_card.js, so the
     // preview shows unsaved work.
     let data = window.currentEditorDescData || null;
     if (!data && window.supabaseClient) {

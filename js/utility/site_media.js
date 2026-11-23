@@ -215,8 +215,8 @@ window.initBlockedMediaGuard = async function() {
     return observer;
 };
 
-// The shared tooltip, for callouts (description.js) and Frame Track phases
-// (framedata.js), so both look the same.
+// The shared tooltip, for callouts (page_render.js) and Frame Track phases
+// (skill_card.js), so both look the same.
 let frameTooltip = null;
 
 window.initTooltip = function() {

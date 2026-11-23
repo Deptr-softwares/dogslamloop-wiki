@@ -4,7 +4,7 @@
  * and the image goes to the clipboard, or downloads as a PNG when the browser
  * cannot copy one.
  * @since v1.1
- * @touches loadCharacterRoster (site_data.js), rosterIconPath (site_meta.js),
+ * @touches loadCharacterRoster (site_data.js), rosterIconPath (site_lookups.js),
  *   registerWikiTool (tool_page.js), localStorage dsl_create_tier_list
  * @watch every portrait comes from this site's own medias/portraits/: a
  *   cross-origin one taints the canvas, and toBlob() throws. Hidden characters

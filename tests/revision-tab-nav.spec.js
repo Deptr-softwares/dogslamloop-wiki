@@ -47,7 +47,7 @@ test('admin: the revision tabs sit above the content, not inside the sidebar', a
       navSharesParentWithContent: !!(nav && content && nav.parentElement === content.parentElement),
       navInsideSidebar: !!(nav && sidebar && sidebar.contains(nav)),
       buttonIds: tabs.map(t => !!doc.getElementById(`nav-${t}`)),
-      // Same shape as the live page's nav (js/pages/core/description.js, page_router.js).
+      // Same shape as the live page's nav (js/pages/core/page_render.js, page_router.js).
       allManga: tabs.every(t => doc.getElementById(`nav-${t}`)?.classList.contains('btn-manga')),
       sidebarKeepsToc: !!(sidebar && sidebar.querySelector('#dynamic-toc')),
     };

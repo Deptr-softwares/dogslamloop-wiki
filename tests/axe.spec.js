@@ -4,7 +4,7 @@
 // Everything these pages read is frozen, so only a code change can change
 // what axe finds: Supabase answers from here (Crow Charmer's page data from
 // tests/fixtures, empty lists for the rest, no media), every local .json a
-// page reads comes from tests/fixtures/axe-site.json, and site_meta.js arrives with
+// page reads comes from tests/fixtures/axe-site.json, and site_lookups.js arrives with
 // its character colours swapped for the copy in that file. Text in a
 // character's own colour (.sc-auto) is left out: those colours are the
 // owner's content.
@@ -111,7 +111,7 @@ async function freeze(page) {
         }
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SITE.data[file]) });
     });
-    await page.route('**/js/utility/site_meta.js*', async route => {
+    await page.route('**/js/utility/site_lookups.js*', async route => {
         const response = await route.fetch();
         const body = (await response.text()).replace(
             /(\/\/ --- GENERATED REGION: CHARACTER_COLORS[^\n]*\n)[\s\S]*?(\n\/\/ --- END GENERATED REGION)/,

@@ -7,7 +7,7 @@
  * @since v0.14
  * @touches tier_lists, tier_list_changes, save_tier_list(), user_roles,
  *   loadCharacterRoster and tierListEntry (site_data.js), rosterIconPath
- *   (site_meta.js), initStrategyBlockBuilder, currentStrategyBlocks and
+ *   (site_lookups.js), initStrategyBlockBuilder, currentStrategyBlocks and
  *   initColorPicker (editor-blocks.js)
  * @watch tier_list_changes.note is NOT NULL with a length floor, and the save
  *   gate here mirrors it. Its own drag and drop, not tierlist.js's (another data

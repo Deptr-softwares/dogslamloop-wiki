@@ -22,8 +22,8 @@ What every generated page is built from before its content arrives: the skeleton
 
 ## Watch for
 
-- `page_router.js` runs before `site_utils.js` and `site_meta.js`, so it keeps its own escaper and writes the icon markup itself. Hand-authored pages never set `PAGE_ROUTE`. Test: `tests/page-skeleton-parity.spec.js`.
-- `page_boot.js` stays the last script on a stub, so `site_meta.js`'s character theme runs first. Its character and system branches differ on purpose (CLAUDE.md).
+- `page_router.js` runs before `site_utils.js` and `site_lookups.js`, so it keeps its own escaper and writes the icon markup itself. Hand-authored pages never set `PAGE_ROUTE`. Test: `tests/page-skeleton-parity.spec.js`.
+- `page_boot.js` stays the last script on a stub, so `site_lookups.js`'s character theme runs first. Its character and system branches differ on purpose (CLAUDE.md).
 - Every tab button `page_router.js` draws must be bound by `page_boot.js`, optional ones included, or it ships unclickable.
 - A rescued page is still an HTTP 404, so crawlers and Discord previews do not see it until the stub is generated.
 - A page's scripts change in its list in `scripts/page-scripts.js`, then `npm run generate`, never in the page: `npm run validate` fails a block that does not match its list, and a script tag outside the block. Test: `tests/page-scripts.spec.js`.

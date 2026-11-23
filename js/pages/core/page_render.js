@@ -64,7 +64,7 @@ window.wikiMediaKind = function (value) {
 };
 
 // The native player, for a video Block with controls on and for the video modal.
-// It paints with var(--accent-blue), which site_meta.js sets per character, so it
+// It paints with var(--accent-blue), which site_lookups.js sets per character, so it
 // takes the character's colour by itself.
 window.wikiVideoPlayerHTML = function (url, extraClass) {
     const safe = window.escapeHtml(safeBlockUrl(url));
@@ -190,7 +190,7 @@ function swatchCardHTML(title, visual, code) {
         + `<span class="swatch-code">${window.escapeHtml(code)}</span></div></div>`;
 }
 
-// The class names are site_meta.js's own keys, never page data.
+// The class names are site_lookups.js's own keys, never page data.
 function colorSwatchesHTML(set) {
     const which = Object.prototype.hasOwnProperty.call(window.COLOR_SWATCH_SETS, set) ? set : 'characters';
     const labels = window.FRAME_COLOR_LABELS || {};
@@ -1318,7 +1318,7 @@ window.renderCharacterGalleryTab = function (data) {
 };
 
 // The extension from the path, so a query or a fragment cannot make a video look
-// like an image. The same rule as framedata.js and gallery.js.
+// like an image. The same rule as skill_card.js and gallery.js.
 function isCharacterGalleryVideo(src) {
     const path = String(src || '').split(/[?#]/)[0].toLowerCase();
     return ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
@@ -2103,7 +2103,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
                             populateTextSection(`strategy-${moveId}`, 'Move Overview and Strategy', blocks, 'move-strategy');
                         }
-                        // After the same 300ms as the sections: framedata.js builds the move cards on its
+                        // After the same 300ms as the sections: skill_card.js builds the move cards on its
                         // own schedule.
                         window.FRAME_MOVE_CATEGORIES.forEach(tab => {
                             window.consolidateTabContributors(document.getElementById(`tab-${tab}`));

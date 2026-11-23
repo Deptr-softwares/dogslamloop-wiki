@@ -62,7 +62,7 @@ test('all seven sites handle the block, or it breaks somewhere invisible', () =>
             /sectionedbox: '[^']+'/,                    // 3. has a human-readable name
             /block\.type === 'sectionedbox'/,           // 4. the editor form
         ],
-        'js/pages/core/description.js': [/block\.type === 'sectionedbox'/],   // 5. reader
+        'js/pages/core/page_render.js': [/block\.type === 'sectionedbox'/],   // 5. reader
         'js/overseer/admin-preview.js': [/b\.type === 'sectionedbox'/],     // 6. reviewer preview
         'js/editor/core/editor-sync.js': [/b\.type === 'sectionedbox'/],       // 7. draft sync
     };

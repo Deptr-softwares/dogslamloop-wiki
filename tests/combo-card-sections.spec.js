@@ -179,7 +179,7 @@ test('the tab row is the Section Box machinery, not a second copy', async ({ pag
 
     // And the card markup is one function: a tabbed card and a plain card
     // produce the same structure.
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'description.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'page_render.js'), 'utf8');
     expect(src, 'one card renderer, called by both paths')
         .toContain('function theoryboxCardHTML(');
 });
@@ -425,7 +425,7 @@ test("a section's write-up is flushed before switching away from it", async ({ p
 //
 // Reproduced before it was fixed, and the reproduction is the whole point: the
 // list read `card.title` directly, which is DEAD DATA once the switch is on.
-// description.js renders a tab per section and each section carries its own
+// page_render.js renders a tab per section and each section carries its own
 // heading, so the card's own title reaches no reader. A card switched on before
 // it was named therefore kept the template default, "New Combo", in the list
 // while the name field beside it showed what the author had actually typed.

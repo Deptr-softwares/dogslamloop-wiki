@@ -3,7 +3,7 @@
    (.sc-*), in-page links and the landing flash.
    Since v0.01.
    Touches: --accent-blue and --character-ink, re-pointed per character page by
-   site_meta.js.
+   site_lookups.js.
    See: docs/looks.md */
 /* WOFF2 first, about half the TTF's bytes; a browser without WOFF2 takes the TTF. */
 @font-face {
@@ -30,7 +30,7 @@
     --border-color: hsl(212, 12%, 21%);
     
     --accent-blue: hsl(213, 94%, 68%);
-    /* The text colour on top of --accent-blue: site_meta.js re-points both per
+    /* The text colour on top of --accent-blue: site_lookups.js re-points both per
        character page, black on a light colour, white on a dark one. The default
        matches the default accent. */
     --character-ink: #000000;
@@ -194,7 +194,7 @@ body {
    height of its line. An accolade's is a .px-icon. */
 .text-icon-character { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -0.3em; object-fit: contain; }
 
-/* The format tags' output (internalstyling.js), as classes, so the only inline
+/* The format tags' output (format_tags.js), as classes, so the only inline
    values are the two dynamic colours, both checked first. Named sc-, since one
    engine makes them. */
 .sc-b { color: var(--text-white); }

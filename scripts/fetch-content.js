@@ -27,7 +27,7 @@ const ROOT = path.join(__dirname, '..');
 const FAQ_PATH = path.join(ROOT, 'data', 'faq.json');
 const COLLAB_PATH = path.join(ROOT, 'systems', 'collaborators', 'collaborators_data.json');
 const META_PATH = path.join(ROOT, 'data', 'site_meta.json');
-const SITE_META_JS_PATH = path.join(ROOT, 'js', 'utility', 'site_meta.js');
+const SITE_LOOKUPS_JS_PATH = path.join(ROOT, 'js', 'utility', 'site_lookups.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
@@ -120,7 +120,7 @@ function buildCollaboratorsFromPage(desc) {
  * Pure. The site_meta singleton row in, the exact site_meta.json shape out.
  *
  * version and tagline keep their existing keys and position because
- * js/utility/site_meta.js reads them at runtime on every page; `hubs` is additive and
+ * js/utility/site_lookups.js reads them at runtime on every page; `hubs` is additive and
  * no runtime code touches it. It rides in this file rather than getting its
  * own because it is a few hundred bytes, it shares a source row, and a second
  * artifact would mean a second thing to keep in sync for no benefit -
@@ -214,12 +214,12 @@ async function fetchTable(table) {
 
 // --- CHARACTER COLOURS ---
 //
-// Written into a MARKED REGION of js/utility/site_meta.js rather than into a JSON file
+// Written into a MARKED REGION of js/utility/site_lookups.js rather than into a JSON file
 // of its own, because ten modules read window.CHARACTER_COLORS synchronously at
 // script-evaluation time. A JSON file would have to be fetched, which would mean
 // changing all ten and introducing a load-order problem the site does not have.
 //
-// A region rather than the whole file, because js/utility/site_meta.js also holds
+// A region rather than the whole file, because js/utility/site_lookups.js also holds
 // CHARACTER_ALIASES and applyCharacterTheme, both hand-authored. Aliases
 // describe how people WRITE about the roster rather than the roster itself -
 // the file's own comment is explicit that they are deliberately not colour
@@ -233,7 +233,7 @@ const COLORS_END = '// --- END GENERATED REGION ---';
 const PLAIN_COLOR = /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s.,%/+-]+\)|[a-z]+)$/i;
 
 // Keyed by NAME, because that is what every consumer looks up: the roster card
-// has the name, and internalstyling.js matches names in prose. page_id is the
+// has the name, and format_tags.js matches names in prose. page_id is the
 // database's key, not this dictionary's.
 function buildCharacterColors(rows) {
     // THE DEPLOY WINDOW. Migrations apply on merge to main, so between this
@@ -305,7 +305,7 @@ function replaceRegion(source, region) {
     // file this script must not rewrite.
     if (start === -1 || end === -1 || end < start) {
         throw new Error(
-            'js/utility/site_meta.js is missing the CHARACTER_COLORS generated-region markers. ' +
+            'js/utility/site_lookups.js is missing the CHARACTER_COLORS generated-region markers. ' +
             'Restore them before regenerating - writing without them would guess at the boundary.');
     }
 
@@ -355,7 +355,7 @@ async function main() {
     writeIfChanged(FAQ_PATH, buildFaq(faqRows), 'faq.json', write, results);
     writeIfChanged(COLLAB_PATH, creditsFrom(collabPage, collabRows), 'collaborators_data.json', write, results);
     writeIfChanged(META_PATH, buildSiteMeta(metaRow), 'site_meta.json', write, results);
-    writeRegionIfChanged(SITE_META_JS_PATH, buildCharacterColors(pageRows), 'site_meta.js colours', write, results);
+    writeRegionIfChanged(SITE_LOOKUPS_JS_PATH, buildCharacterColors(pageRows), 'site_lookups.js colours', write, results);
 
     console.log(`fetch-content: ${results.join(', ')}.`);
 }

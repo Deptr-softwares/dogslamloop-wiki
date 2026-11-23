@@ -2,7 +2,7 @@
  * The inline text diff, shared by the review queue and the editor's diff mode,
  * so the two screens cannot disagree about what a change is.
  * @since v0.20
- * @touches escapeHtml (site_utils.js), the block renderer (description.js)
+ * @touches escapeHtml (site_utils.js), the block renderer (page_render.js)
  * @watch the text stays raw and the change boundaries are control-character
  *   markers: the renderer escapes the text once, as it does all content, the
  *   markers pass through escapeHtml untouched, and resolveDiffMarkers then swaps

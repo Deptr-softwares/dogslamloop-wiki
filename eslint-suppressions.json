@@ -197,7 +197,7 @@
       "count": 1
     }
   },
-  "js/pages/core/description.js": {
+  "js/pages/core/page_render.js": {
     "no-unsanitized/method": {
       "count": 2
     },
@@ -205,12 +205,12 @@
       "count": 11
     }
   },
-  "js/pages/core/framedata.js": {
+  "js/pages/core/skill_card.js": {
     "no-unsanitized/property": {
       "count": 8
     }
   },
-  "js/pages/core/internalstyling.js": {
+  "js/pages/core/format_tags.js": {
     "no-unsanitized/property": {
       "count": 4
     }
@@ -295,7 +295,7 @@
       "count": 3
     }
   },
-  "js/utility/site_meta.js": {
+  "js/utility/site_lookups.js": {
     "no-unsanitized/property": {
       "count": 1
     }

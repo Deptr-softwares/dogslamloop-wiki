@@ -5,7 +5,7 @@
  * @since v0.11
  * @touches site_pages (to navigation.json at the next regeneration),
  *   page_data.tab_settings, the optional tabs in character_tabs.js,
- *   parseCharacterColor (site_meta.js)
+ *   parseCharacterColor (site_lookups.js)
  * @watch archetype and release_date are emitted only for characters
  *   (fetch-registry.js), so the form hides them for other pages. A colour is
  *   stored in a form the site reads: hex or hsl().

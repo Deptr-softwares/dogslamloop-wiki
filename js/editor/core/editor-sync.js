@@ -3,7 +3,7 @@
  * live preview redrawn, and VIEW DIFF (side by side, or the change list).
  * @since v0.4, as part of editor.js
  * @touches currentStrategyBlocks (editor-blocks.js), window.currentEditorDescData
- *   and currentEditorFrameData, loadPageDescriptions (description.js),
+ *   and currentEditorFrameData, loadPageDescriptions (page_render.js),
  *   approved_revisions, diff-markers.js, side-by-side.js
  * @watch triggerManualSync and updateLivePreview branch on the page type and tab
  *   almost alike, and both decide where the buffer is written back: they stay
@@ -572,7 +572,7 @@ async function drawTabApart(tabId, version) {
         if (movesOnScreen && typeof window.loadMoveSection === 'function') await window.loadMoveSection(charId, tabId);
         if (typeof window.loadPageDescriptions === 'function') await window.loadPageDescriptions(charId, pageType);
         // Move strategies and the profile card's Previous and Next tiles come in after
-        // the rest (description.js).
+        // the rest (page_render.js).
         if (movesOnScreen && window.moveStrategiesDrawn) await window.moveStrategiesDrawn;
         if (window.profilePagerFilled) await Promise.resolve(window.profilePagerFilled).catch(() => {});
         if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();

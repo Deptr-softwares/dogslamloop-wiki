@@ -72,7 +72,7 @@ const { GENERATED_PAGE_TYPES } = require(path.join(__dirname, 'page-types.js'));
 
 // Social/SEO metadata has to be in the served HTML, not injected at runtime:
 // Discord, Twitter and Facebook unfurlers do not execute JavaScript, so tags
-// added by js/utility/site_meta.js would never be seen by any of them. That is the
+// added by js/utility/site_lookups.js would never be seen by any of them. That is the
 // whole reason these live in the generator.
 //
 // Absolute, because og:image and og:url are meaningless as relative paths -

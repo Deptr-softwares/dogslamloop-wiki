@@ -5,7 +5,7 @@
  * Block on the page, and again whenever content lands.
  * @since v0.01
  * @touches CHARACTER_COLORS, CHARACTER_ALIASES, FRAME_COLORS, WINDOW_COLORS and
- *   ACCOLADES (site_meta.js), desc_data.pageConfig.words, data/navigation.json,
+ *   ACCOLADES (site_lookups.js), desc_data.pageConfig.words, data/navigation.json,
  *   buildMoveSlotMap (input_slots.js)
  * @watch it reads a Block's innerHTML, rewrites it as a string and writes it back,
  *   so every value it puts in goes through escapeHtml, safeUrl or safeColor, and

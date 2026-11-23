@@ -55,7 +55,7 @@ test('no pipeline site handles a keyed section by name', () => {
   // that hardcodes a section name fails here rather than in production.
   const FILES = [
     'editor/core/editor-core.js', 'editor/core/editor-sync.js', 'editor/tabs/editor-tabs.js', 'editor/tools/editor-previews.js',
-    'overseer/admin-merge-compiler.js', 'overseer/admin-diff.js', 'overseer/admin-preview.js', 'pages/core/description.js',
+    'overseer/admin-merge-compiler.js', 'overseer/admin-diff.js', 'overseer/admin-preview.js', 'pages/core/page_render.js',
     // site_data.js holds applyDeltaToData - the step that actually WRITES an
     // approved edit. It was missing from this list, and that is exactly where
     // Starter Guide broke: every other stage worked, the reviewer saw a

@@ -21,7 +21,7 @@ async function render(page, markup) {
         const host = document.createElement('p');
         host.className = 'strategy-paragraph';
         host.textContent = text;
-        // Into <main>, because js/pages/core/internalstyling.js watches that subtree.
+        // Into <main>, because js/pages/core/format_tags.js watches that subtree.
         document.querySelector('main').appendChild(host);
         window.applyInternalStyling();
         return host.innerHTML;

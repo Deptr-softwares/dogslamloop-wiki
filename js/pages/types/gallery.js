@@ -4,7 +4,7 @@
  * desc_data is { intro: [blocks], items: [{ name, src, alt, tags: [], note }] }.
  * @since v0.12
  * @touches page_data.desc_data.items and intro, wikiClipHTML and initLazyMedia
- *   (description.js)
+ *   (page_render.js)
  * @watch built for hundreds of clips: media is lazy, the filter reads a prebuilt
  *   index rather than the DOM, and the grid is rebuilt from a fragment
  * @see docs/page-shell.md
@@ -15,7 +15,7 @@
 let galleryItems = [];
 let galleryPageId = null;
 
-// The extension from the path, as framedata.js reads it, so a query or a fragment
+// The extension from the path, as skill_card.js reads it, so a query or a fragment
 // cannot make a video look like an image.
 function isVideoSrc(src) {
     const path = String(src || '').split(/[?#]/)[0].toLowerCase();

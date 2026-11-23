@@ -26,7 +26,7 @@ test('sidebar category headers keep the title styling instead of the button rese
 });
 
 test('the header colour follows the page accent, not a fixed blue', async ({ page }) => {
-    // js/utility/site_meta.js re-points --accent-blue per character, so a hardcoded
+    // js/utility/site_lookups.js re-points --accent-blue per character, so a hardcoded
     // value would be right on the hub and wrong on every character page.
     // Proven by moving the variable and watching the header follow.
     await page.goto('/', { waitUntil: 'networkidle' });

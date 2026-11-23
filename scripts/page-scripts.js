@@ -41,18 +41,18 @@ const PARTS = [
     'utility/site_data.js',
     'utility/site_media.js',
     'utility/site_account.js',
-    'utility/site_meta.js',
+    'utility/site_lookups.js',
 ];
 const SITE = [SUPABASE, ...TABS, ...PARTS];
 // The sidebar, header and search box a reader page draws.
 const SHELL = ['pages/core/pagebuilder.js', 'utility/search.js'];
 // Blocks to markup, then format tags in that markup.
-const RENDER = ['pages/core/description.js', 'pages/core/internalstyling.js'];
+const RENDER = ['pages/core/page_render.js', 'pages/core/format_tags.js'];
 // Reader pages only, never a staff or editor page (CLAUDE.md, Stack).
 const ANALYTICS = { src: 'others/analytics.js', async: true };
 
 // A generated page: the skeleton is drawn before the Supabase library loads,
-// and page_boot.js comes last, so site_meta.js's character theme has run.
+// and page_boot.js comes last, so site_lookups.js's character theme has run.
 const ROUTED = [...TABS, 'pages/core/page_router.js', SUPABASE, ...PARTS, ...SHELL];
 const BOOT = ['pages/core/page_boot.js', ANALYTICS];
 
@@ -65,12 +65,12 @@ const PAGE_SCRIPTS = {
     // The four kinds scripts/generate-pages.js writes (GENERATED_PAGE_TYPES).
     character: [
         ...ROUTED,
-        'pages/core/framedata.js',
-        'pages/core/description.js',
+        'pages/core/skill_card.js',
+        'pages/core/page_render.js',
         'pages/core/character_modes.js',
         'utility/emoji.js',
         'pages/community/discussions.js',
-        'pages/core/internalstyling.js',
+        'pages/core/format_tags.js',
         ...BOOT,
     ],
     system: [...ROUTED, ...RENDER, ...BOOT],
@@ -84,12 +84,12 @@ const PAGE_SCRIPTS = {
     'not-found': [
         ...SITE, ...SHELL,
         'pages/core/page_router.js',
-        'pages/core/framedata.js',
-        'pages/core/description.js',
+        'pages/core/skill_card.js',
+        'pages/core/page_render.js',
         'pages/core/character_modes.js',
         'pages/types/gallery.js',
         'pages/types/tool_page.js',
-        'pages/core/internalstyling.js',
+        'pages/core/format_tags.js',
         'pages/core/page_boot.js',
         'pages/core/page_rescue.js',
         ANALYTICS,
@@ -98,10 +98,10 @@ const PAGE_SCRIPTS = {
     // stops fetching ahead at one, so blocking scripts were fetched one at a
     // time. Deferred ones are asked for at once and still run in this order,
     // after the page is read. They come after the policy, so it covers them.
-    // description.js and internalstyling.js draw About Us, which is Blocks.
+    // page_render.js and format_tags.js draw About Us, which is Blocks.
     home: deferred([
         SUPABASE,
-        'utility/site_meta.js',
+        'utility/site_lookups.js',
         ...TABS,
         'utility/site_utils.js',
         'utility/site_data.js',
@@ -113,9 +113,9 @@ const PAGE_SCRIPTS = {
         'dashboards/hub_content.js',
         ANALYTICS,
     ]),
-    // description.js and internalstyling.js draw the hub's own text, which is Blocks.
+    // page_render.js and format_tags.js draw the hub's own text, which is Blocks.
     hub: [...SITE, ...SHELL, ...RENDER, 'dashboards/hub_content.js', 'dashboards/dashboards.js', ANALYTICS],
-    // description.js draws each list's introduction and reasoning, which are
+    // page_render.js draws each list's introduction and reasoning, which are
     // Blocks. It has no DOMContentLoaded handler, so it boots nothing here.
     'tier-lists': [...SITE, ...SHELL, ...RENDER, 'pages/tier-lists/tierlist.js', 'pages/tier-lists/certified-tier-lists.js', ANALYTICS],
     // A hotfix note draws its full Block content.
@@ -123,10 +123,10 @@ const PAGE_SCRIPTS = {
     blog: [...SITE, ...SHELL, ...RENDER, 'pages/community/posts.js', ANALYTICS],
     forum: [
         ...SITE, ...SHELL,
-        'pages/core/description.js',
+        'pages/core/page_render.js',
         'utility/emoji.js',
         'pages/community/discussions.js',
-        'pages/core/internalstyling.js',
+        'pages/core/format_tags.js',
         'pages/community/forum.js',
         ANALYTICS,
     ],
@@ -139,11 +139,11 @@ const PAGE_SCRIPTS = {
         'pages/core/page_router.js',
         'utility/input_slots.js',
         ...PARTS, ...SHELL,
-        'pages/core/description.js',
-        'pages/core/framedata.js',
+        'pages/core/page_render.js',
+        'pages/core/skill_card.js',
         'pages/core/character_modes.js',
         'utility/emoji.js',
-        'pages/core/internalstyling.js',
+        'pages/core/format_tags.js',
         'pages/tier-lists/tierlist.js',
         'pages/core/page_boot.js',
         'pages/records/history.js',
@@ -155,7 +155,7 @@ const PAGE_SCRIPTS = {
     submissions: [...SITE, ...SHELL, 'pages/community/submissions.js'],
     editor: [
         ...SITE, ...SHELL,
-        'pages/core/framedata.js',
+        'pages/core/skill_card.js',
         ...RENDER,
         // Before every editor module: ?playground decides which page opens.
         'editor/tools/editor-playground.js',
@@ -208,7 +208,7 @@ const PAGE_SCRIPTS = {
     ],
     overseer: [
         ...SITE, ...SHELL,
-        'pages/core/framedata.js',
+        'pages/core/skill_card.js',
         ...RENDER,
         'pages/tier-lists/tierlist.js',
         'overseer/admin-core.js',

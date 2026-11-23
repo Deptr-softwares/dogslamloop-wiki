@@ -413,7 +413,7 @@
     // In-page link targets, read from desc_data rather than the DOM: the editor draws
     // only the tab being edited. The walk follows the page's rendered order, because a
     // repeated name is numbered by position (tests/in-page-links.spec.js checks the
-    // ids match the page's). The Overview's fixed titles are literals in description.js.
+    // ids match the page's). The Overview's fixed titles are literals in page_render.js.
     const OVERVIEW_FIXED = [
         { field: 'overview', title: 'Character Overview' },
         { field: 'strategy', title: 'General Strategy' },

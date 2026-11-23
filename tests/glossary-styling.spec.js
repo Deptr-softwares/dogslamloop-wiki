@@ -125,12 +125,12 @@ test('the pass is loaded, and the glossary sits where the observer watches', asy
 
     const out = await page.evaluate(() => ({
         // The owner's reading was that the hub does not load
-        // internalstyling.js. It does - stated here so that removing the script
+        // format_tags.js. It does - stated here so that removing the script
         // tag while chasing this fails loudly instead of reproducing the same
         // confusing symptom.
         loaded: typeof window.applyInternalStyling === 'function',
         // And the dependency that makes the peek need no explicit call:
-        // internalstyling.js observes <main> with subtree:true and restyles on
+        // format_tags.js observes <main> with subtree:true and restyles on
         // any added node. Move this section out of <main> and the shortcodes
         // silently go back to being text, with nothing else to show for it.
         insideMain: !!document.querySelector('main .glossary-term'),

@@ -84,7 +84,7 @@ test('word-level diff grouping still works', async ({ page }) => {
   expect(out.html).toBe('The quick <del class="diff-del">brown</del><ins class="diff-add">red</ins> fox');
 });
 
-test('internalstyling.js shortcode syntax survives untouched (not itself HTML)', async ({ page }) => {
+test('format_tags.js shortcode syntax survives untouched (not itself HTML)', async ({ page }) => {
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
 
   const out = await throughPipeline(page, 'plain text', '[color=red]Boomcat[/color] is great');

@@ -1,7 +1,7 @@
-// Coverage for Workstream B Tier 3: description.js divider variants +
+// Coverage for Workstream B Tier 3: page_render.js divider variants +
 // callout button cleanup. Both moved from inline styles to CSS classes;
 // the callout also had a *real bug*: Alerts.css already had a proper
-// .inline-callout-btn rule (including a :hover state), but description.js
+// .inline-callout-btn rule (including a :hover state), but page_render.js
 // always set matching properties inline, so the CSS was 100% shadowed and
 // the badge was actually driven by onmouseover/onmouseout JS with slightly
 // different values. Removing the inline styles lets the real CSS take over.
@@ -16,7 +16,7 @@ const TEST_BLOCKS = [
 ];
 
 test.beforeEach(async ({ page }) => {
-  // Any page that loads description.js; Boomcat is the established safe test subject.
+  // Any page that loads page_render.js; Boomcat is the established safe test subject.
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
   await page.evaluate((blocks) => {
     const container = document.createElement('div');

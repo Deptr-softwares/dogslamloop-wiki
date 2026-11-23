@@ -24,7 +24,7 @@ const MAX_DIFF_LINES = 20;
 
 // Small files where the changed lines themselves are the answer: a page's
 // colour, the site version. The rest are named, not quoted.
-const QUOTED_DIFFS = ['js/utility/site_meta.js', 'data/site_meta.json'];
+const QUOTED_DIFFS = ['js/utility/site_lookups.js', 'data/site_meta.json'];
 
 const stripAnsi = (text) => String(text == null ? '' : text).replace(/\u001b\[[0-9;]*[A-Za-z]/g, '');
 

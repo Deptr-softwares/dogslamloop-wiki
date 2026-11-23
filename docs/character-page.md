@@ -4,12 +4,12 @@ How a page's Blocks become HTML, and how a character page draws its tabs. Reader
 
 ## Files
 
-- `js/pages/core/description.js`: the page renderer. Blocks to HTML on every page that shows them, a character page's tabs, a system page's tabs and sections, the video player and video modal, the clip queue, video stills and the missing-media box. Becomes `page_render.js` in B-4.
-- `js/pages/core/framedata.js`: the Skill Card, each move's box with its frame data.
+- `js/pages/core/page_render.js`: the page renderer. Blocks to HTML on every page that shows them, a character page's tabs, a system page's tabs and sections, the video player and video modal, the clip queue, video stills and the missing-media box.
+- `js/pages/core/skill_card.js`: the Skill Card, each move's box with its frame data.
 - `js/pages/core/character_modes.js`: the mode toggle for a full character's ultimate states, and a base-only character's Ultimate tab.
 - `js/utility/input_slots.js`: which input slot each move name belongs to, for colouring combo routes.
 - `js/utility/character_tabs.js`: the tab list and the keyed sections the rest of the site derives from.
-- `js/pages/core/internalstyling.js`: the format tags, in `docs/format-tags.md`.
+- `js/pages/core/format_tags.js`: the format tags, in `docs/format-tags.md`.
 
 ## Data
 
@@ -25,16 +25,16 @@ How a page's Blocks become HTML, and how a character page draws its tabs. Reader
 - Every file a page loads shares one global scope, so a top-level name can be used once. Test: `tests/global-scope-collisions.spec.js`.
 - The character and system boot paths in `page_boot.js` differ on purpose (CLAUDE.md).
 - `loadPageDescriptions` only logs an error, and the page stays empty.
-- Five specs read `description.js` as text: `block-styling-coverage`, `combo-card-sections`, `render-escaping`, `sectioned-box` and `theorybox`. Renaming a function or a class they look for fails them.
+- Five specs read `page_render.js` as text: `block-styling-coverage`, `combo-card-sections`, `render-escaping`, `sectioned-box` and `theorybox`. Renaming a function or a class they look for fails them.
 
 ## Decisions
 
 Newest first. One entry per decision.
 
 - **2026-11-20, v1.2, #287.** Clips start downloading one screen ahead, not two. Cached egress stood at 155 of the plan's 250 GB 16 days into the month (2026-11-19), and a clip two screens down is often one the reader never reaches.
-- **2026-11-19, v1.2, #283.** The Color Codes page's swatches are a Color Swatches Block, drawn from the site's own colours: a character's from `site_pages.color` (`CHARACTER_COLORS`), the frame and overlay colours from the legend `site_meta.js` reads out of `ColorCoding.css`. No editor types them, so the page cannot fall behind them.
+- **2026-11-19, v1.2, #283.** The Color Codes page's swatches are a Color Swatches Block, drawn from the site's own colours: a character's from `site_pages.color` (`CHARACTER_COLORS`), the frame and overlay colours from the legend `site_lookups.js` reads out of `ColorCoding.css`. No editor types them, so the page cannot fall behind them.
 - **2026-11-19, v1.2, #283.** The Collaborators page is edited in the editor, one Collaborator Block per person: a Card (Main Contributors) or a Thanks line (Special Thanks). Cards side by side share one grid, lines one list. The home page's Credits list is built from the same Blocks (`scripts/fetch-content.js`), so the two cannot drift.
-- **2026-11-18, v1.2, #280.** A Skill Card shows a move's accolades as badges under its name, picked in the editor from the list in `site_meta.js`, each with its name and meaning on hover. No two of one opposite group (safe and punishable on block, and the rest) can be ticked on one move.
+- **2026-11-18, v1.2, #280.** A Skill Card shows a move's accolades as badges under its name, picked in the editor from the list in `site_lookups.js`, each with its name and meaning on hover. No two of one opposite group (safe and punishable on block, and the rest) can be ticked on one move.
 - **2026-11-17, v1.2, #279.** A video shows its first frame, at its real shape, until it plays, so the page does not jump. The owner: "For videos that takes time to load, there should be a thumbnail that stands in place for those videos with the exact dimension it has", and the first frame was their pick. A still is fetched only within three screens, so a page with 33 clips does not fetch 33 pictures for a reader who reads the top, and only a page showing one of our videos fetches the list.
 - **2026-11-16, v1.2, #273.** A move can be marked No frame data (a passive, a dash variant). Its description takes the Frame Track's space, and nothing says frame data is missing. The stored tracks are kept, so unticking brings them back (owner).
 - **2026-11-16, v1.2, #273.** Each Micro Variant (each timeline, however deep) can carry its own media, and the Skill Card's media box follows the one on show. A timeline without any shows the move's media (owner).

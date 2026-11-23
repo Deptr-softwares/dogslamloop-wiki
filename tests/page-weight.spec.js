@@ -8,7 +8,7 @@
 //
 // The generated kinds are built by the generator itself from a made-up page
 // list, and the hand-written pages are read as they are. It never reads a
-// generated page, and it weighs site_meta.js without its generated colour
+// generated page, and it weighs site_lookups.js without its generated colour
 // region, so no owner edit can move a number.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');

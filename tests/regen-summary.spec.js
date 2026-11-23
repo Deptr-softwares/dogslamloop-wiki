@@ -74,12 +74,12 @@ test.describe('the run summary', () => {
     test('a changed colour is quoted, so the value that caused it is on the page', () => {
         const out = buildSummary({
             status: 'failure', branch: 'next-update', report: null,
-            porcelain: ' M js/utility/site_meta.js\n',
-            diffs: { 'js/utility/site_meta.js': '--- a/js/utility/site_meta.js\n+++ b/js/utility/site_meta.js\n@@ -12 +12 @@\n-    "Vessel": "hsl(0, 100%, 80%)",\n+    "Vessel": "red",\n' },
+            porcelain: ' M js/utility/site_lookups.js\n',
+            diffs: { 'js/utility/site_lookups.js': '--- a/js/utility/site_lookups.js\n+++ b/js/utility/site_lookups.js\n@@ -12 +12 @@\n-    "Vessel": "hsl(0, 100%, 80%)",\n+    "Vessel": "red",\n' },
         });
-        expect(out).toContain('Changed lines in `js/utility/site_meta.js`');
+        expect(out).toContain('Changed lines in `js/utility/site_lookups.js`');
         expect(out).toContain('+    "Vessel": "red",');
-        expect(out).not.toContain('+++ b/js/utility/site_meta.js');
+        expect(out).not.toContain('+++ b/js/utility/site_lookups.js');
     });
 
     test('content quoted in an error cannot close the block it is in', () => {

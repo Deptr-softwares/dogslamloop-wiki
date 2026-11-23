@@ -14,7 +14,7 @@ Anything a page shows that came from a user, a contributor, Discord, the URL or 
 - Every such value is hostile. Put it in the page with `textContent`, or through `window.escapeHtml` (`window.escapeHtmlKeepBreaks` where line breaks stay) at **every** `innerHTML` interpolation, including the ones that only ever held a name or a number.
 - Never put one in an inline `onclick` or any other `on...` attribute. Put it in a `data-` attribute and read it in a delegated listener.
 - A format tag's address goes through `safeUrl`, and is escaped inside the attribute.
-- There is one escaper, `window.escapeHtml` in `js/utility/site_utils.js`. Two exceptions are deliberate: `page_router.js` keeps its own copy because it runs before `site_utils.js` loads, and `escPageText` in `internalstyling.js` escapes only `&`, `<` and `>` so a move name with an apostrophe still matches.
+- There is one escaper, `window.escapeHtml` in `js/utility/site_utils.js`. Two exceptions are deliberate: `page_router.js` keeps its own copy because it runs before `site_utils.js` loads, and `escPageText` in `format_tags.js` escapes only `&`, `<` and `>` so a move name with an apostrophe still matches.
 
 ## What happened
 

@@ -5,7 +5,7 @@
 // a hand-written subset of the renderers. So a Techs, Combos or state edit drew
 // "no renderable content", a Starter Guide edit an empty tab, every untouched
 // section said "has not been written yet", and every frame data tab showed the
-// LIVE page's moves (framedata.js never read what history.js set).
+// LIVE page's moves (skill_card.js never read what history.js set).
 //
 // Now: a revision approved since 20261029000001 is drawn from the snapshot the
 // database returns (get_page_after_revision), through the live page's own

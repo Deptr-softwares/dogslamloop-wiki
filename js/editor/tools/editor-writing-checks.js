@@ -5,16 +5,16 @@
  * which can still be sent.
  * @since v1.1
  * @touches walkEditorStrings and buildFindPattern (editor-find-replace.js),
- *   CHARACTER_ALIASES (site_meta.js), isTextIconTag (internalstyling.js)
+ *   CHARACTER_ALIASES (site_lookups.js), isTextIconTag (format_tags.js)
  * @watch exact case and whole words, nothing inside [noauto], and the same text
  *   Find and Replace walks, so the two agree on what a page says. The tag grammar
- *   here is one of the copies of internalstyling.js's. An IIFE: one global scope.
+ *   here is one of the copies of format_tags.js's. An IIFE: one global scope.
  * @see docs/editor.md
  */
 (function () {
     'use strict';
 
-    // The JJK names, both orders where site_meta.js has them. Each resolves to its
+    // The JJK names, both orders where site_lookups.js has them. Each resolves to its
     // character through CHARACTER_ALIASES, which also holds the nicknames left out.
     const JJK_NAMES = [
         'Gojo', 'Gojo Satoru', 'Satoru Gojo',
@@ -77,7 +77,7 @@
         return out;
     }
 
-    // The format tags, internalstyling.js's grammar: paired tags with no value, three
+    // The format tags, format_tags.js's grammar: paired tags with no value, three
     // that need one, [noauto] and [noauto=all], and the mini icon, in any case. A
     // bracketed word that is none of them and has no "=" is left alone: "[M1]" is how
     // a keybind is written.

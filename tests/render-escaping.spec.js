@@ -10,7 +10,7 @@
 //
 //   Most candidates were already safe, and not obviously so. Paragraph content
 //   is escaped at the SOURCE - "escape first, then add the generated markup"
-//   in js/pages/core/description.js - so js/pages/core/internalstyling.js interpolating a link label
+//   in js/pages/core/page_render.js - so js/pages/core/format_tags.js interpolating a link label
 //   raw is correct, and escaping it there would double-escape and break nested
 //   shortcodes. A scan result is a hypothesis.
 //
@@ -210,8 +210,8 @@ test('a tab label cannot inject markup into the system page nav', async ({ page 
 // paragraph content is escaped at the source. Titles are not body content and
 // were never covered by that.
 //
-//   js/pages/core/description.js  populateTextSection() -> <h3 class="strategy-title">
-//   js/pages/core/description.js  the system renderer   -> <h2 class="section-title">
+//   js/pages/core/page_render.js  populateTextSection() -> <h3 class="strategy-title">
+//   js/pages/core/page_render.js  the system renderer   -> <h2 class="section-title">
 //
 // Both were confirmed live before being fixed: a title of
 // `<img src=x onerror=...>` produced a REAL img element carrying a REAL
@@ -291,7 +291,7 @@ test('a system section title cannot inject markup into the page', async ({ page 
     // a test that silently fails to reach it is the vacuous kind this file
     // already had to fix once.
     const usesEscape = await page.evaluate(async () => {
-        const src = await (await fetch('/js/pages/core/description.js')).text();
+        const src = await (await fetch('/js/pages/core/page_render.js')).text();
         return src.includes('${window.escapeHtml(section.sectionTitle)}');
     });
     expect(usesEscape, 'the system renderer escapes its section title').toBe(true);

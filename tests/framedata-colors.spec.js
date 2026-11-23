@@ -1,8 +1,8 @@
 // Coverage for Workstream B Tier 2: frame-data color de-duplication.
 // ColorCoding.css's :root custom properties are now the single source for
 // the 9 frame-timing colors + 5 i-frame window colors, consumed by
-// .bg-tick-*/.span-* rules, the legend swatches (js/pages/core/framedata.js), and the
-// runtime dictionaries window.FRAME_COLORS/WINDOW_COLORS (js/utility/site_meta.js,
+// .bg-tick-*/.span-* rules, the legend swatches (js/pages/core/skill_card.js), and the
+// runtime dictionaries window.FRAME_COLORS/WINDOW_COLORS (js/utility/site_lookups.js,
 // read via getComputedStyle). These tests prove the legend and the actual
 // frame-tick/window-overlay elements resolve to the same color instead of
 // four independently-hardcoded copies drifting apart.
@@ -107,7 +107,7 @@ test('real bug fix: bar.headerClass actually colors the header/footer text on th
   expect(footerColor).toBe('rgb(59, 130, 246)');
 });
 
-test('admin.html now loads site_meta.js: CHARACTER_COLORS/FRAME_COLORS are populated, not empty', async ({ page }) => {
+test('admin.html now loads site_lookups.js: CHARACTER_COLORS/FRAME_COLORS are populated, not empty', async ({ page }) => {
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
   const state = await page.evaluate(() => ({
     hasCharacterColors: !!(window.CHARACTER_COLORS && Object.keys(window.CHARACTER_COLORS).length > 0),

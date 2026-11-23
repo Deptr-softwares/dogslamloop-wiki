@@ -56,7 +56,7 @@ test('each moderation action gets its own prompt wording, not the reject modal\'
 });
 
 test('the editor offers every frame type the site documents', async ({ page }) => {
-  // The dropdown must stay in step with the legend in js/pages/core/framedata.js and
+  // The dropdown must stay in step with the legend in js/pages/core/skill_card.js and
   // systems/color-codes. InSkill Stun and Inactive were both styled and
   // documented but unauthorable, so contributors either omitted them or
   // recorded something else.
@@ -100,7 +100,7 @@ test('the frame-type list matches the legend exactly, so neither can drift', asy
   // two lists disagreeing, and they can only disagree if nothing compares
   // them. Read from source because frameDataLegendHTML is a module-level
   // const in a classic script, so it never reaches window.
-  const legendSource = await (await request.get('/js/pages/core/framedata.js')).text();
+  const legendSource = await (await request.get('/js/pages/core/skill_card.js')).text();
   const editorSource = await (await request.get('/js/editor/tabs/editor-framedata.js')).text();
 
   const legendClasses = [...new Set(

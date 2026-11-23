@@ -2,7 +2,7 @@
  * The editor's preview of the Overview, Matchups and keyed sections, redrawn
  * from the edit buffer with the reader's own renderers where they exist.
  * @since v0.4, as part of editor.js
- * @touches populateTextSection and the keyed-section renderers (description.js),
+ * @touches populateTextSection and the keyed-section renderers (page_render.js),
  *   resolveMatchupTier (site_utils.js), getKeyedSection (character_tabs.js)
  * @watch every topic reaches innerHTML here too, and a reviewer reads this
  *   preview to decide on a ticket, so it escapes as the reader does
@@ -158,7 +158,7 @@ function renderMatchupsPreview() {
 
 /**
  * The preview of any keyed section (character_tabs.js), one renderer for all of
- * them, mirroring description.js's keyed-section renderer.
+ * them, mirroring page_render.js's keyed-section renderer.
  * @since v0.15
  */
 function renderKeyedSectionPreview(tabId) {

@@ -433,7 +433,7 @@ window.initAuthDock = async function() {
         } catch (e) { console.warn("Auth sync skipped."); }
     }
 
-    // The site's icons (window.UI_ICONS, site_meta.js). A role's badge is
+    // The site's icons (window.UI_ICONS, site_lookups.js). A role's badge is
     // window.ROLE_BADGES (site_account.js), shared with the profile modal.
     const svgGear = window.uiIconHTML('dock-overseer');
     const svgMail = window.uiIconHTML('dock-inbox');
@@ -579,7 +579,7 @@ window.initRosterFilters = async function() {
     renderFilteredRoster();
 };
 
-// The roster card's icon: its path is window.rosterIconPath (site_meta.js), where
+// The roster card's icon: its path is window.rosterIconPath (site_lookups.js), where
 // text on any page can reach it too.
 
 // Marks the cards whose icon loaded, and drops the ones that did not. The class is
@@ -1483,7 +1483,7 @@ window.addEventListener('hashchange', () => {
     window.jumpToAnchor(window.location.hash, { updateHash: false });
 });
 
-// Contributor-written in-page links, marked by internalstyling.js. Delegated on
+// Contributor-written in-page links, marked by format_tags.js. Delegated on
 // the class, so the contents' links, which call smoothScroll, are not handled twice.
 document.addEventListener('click', (e) => {
     const link = e.target.closest && e.target.closest('a.wiki-link-jump');

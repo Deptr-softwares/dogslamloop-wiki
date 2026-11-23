@@ -4,7 +4,7 @@
  * GOT IT on the editor's notice, and from the MoS modal's REWATCH TUTORIAL.
  * @since v0.19
  * @touches page_data for writing_guide (both read it, one fetch),
- *   localStorage dsl_editor_tutorial_seen, applyInternalStyling (internalstyling.js)
+ *   localStorage dsl_editor_tutorial_seen, applyInternalStyling (format_tags.js)
  * @watch no word of the script is in this file: the steps come from the Writing
  *   Guide's "How to use the editor?" section, one per h3 heading, in the guide's
  *   order, so a heading added there is a step here. Images are skipped. A step

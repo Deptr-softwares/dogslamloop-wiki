@@ -52,7 +52,7 @@ test('nothing falls back to unescaped text when an escape helper is missing', ()
 });
 
 test('no other file keeps its own copy of the escape', () => {
-    // A copy escapes quotes. internalstyling.js's escPageText escapes only &,
+    // A copy escapes quotes. format_tags.js's escPageText escapes only &,
     // < and >, on purpose: it matches how the browser writes text back out.
     expect(linesMatching(/&quot;/, name => MAY_DEFINE_IT.has(name))).toEqual([]);
 });
