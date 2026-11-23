@@ -235,7 +235,7 @@
         || !!el.querySelector('del.diff-del, ins.diff-add, .sbs-changed');
 
     // The tab that shows a hidden change: a Micro Variant's button (view-X by tab-X,
-    // framedata.js) or a Section Box's (data-sbox-panel N by data-sbox-tab N).
+    // skill_card.js) or a Section Box's (data-sbox-panel N by data-sbox-tab N).
     function tabFor(hidden, col) {
         const view = hidden.closest('.view-section');
         if (view && view.id) {

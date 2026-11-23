@@ -299,7 +299,7 @@ test('the diff shows what changed about the media, not just the name', async ({ 
   // show the reviewer the name and two empty arrays, which is precisely how
   // the Combo List reviewed as "no change" while applying perfectly. The
   // section declares wholeEntryDiff to avoid it.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await page.evaluate(async (items) => {
     document.body.innerHTML = `<div class="main-content-area"></div>`;

@@ -5,7 +5,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('renderStructuredDiff: highlights changed/added/removed fields, skips unchanged ones', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(() => {
     const oldFrame = { startup: 5, active: 3, recovery: 12, onBlock: '-2', unchangedField: 'same' };
@@ -36,7 +36,7 @@ test('renderStructuredDiff: highlights changed/added/removed fields, skips uncha
 });
 
 test('renderStructuredDiff: escapes field values (no raw HTML injection from submitted content)', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(() => {
     const html = window.renderStructuredDiff({ note: 'safe' }, { note: '<img src=x onerror=alert(1)>' });
@@ -48,7 +48,7 @@ test('renderStructuredDiff: escapes field values (no raw HTML injection from sub
 });
 
 test('renderStructuredDiff: recurses into nested plain objects', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(() => {
     const html = window.renderStructuredDiff(
@@ -69,7 +69,7 @@ test('renderStructuredDiff: recurses into nested plain objects', async ({ page }
 });
 
 test('renderStructuredDiff: whole-object deletion (newData null) shows every field as removed', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(() => {
     const html = window.renderStructuredDiff({ startup: 5, active: 3 }, null);
@@ -86,7 +86,7 @@ test('renderStructuredDiff: whole-object deletion (newData null) shows every fie
 });
 
 test('admin queue card: shows the actual target key and a size badge, not just the scope', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
     document.body.innerHTML = '<div id="queue-container"></div>';

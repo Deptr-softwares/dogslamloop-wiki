@@ -2,7 +2,7 @@
    the frame-data phases, the overlays and the track colours, with the classes that
    apply them.
    Since v0.01.
-   Watch: site_meta.js reads the frame and overlay colours from here at runtime
+   Watch: site_lookups.js reads the frame and overlay colours from here at runtime
    (FRAME_COLORS, WINDOW_COLORS), so this file is their one source. A comment here
    closes exactly once: an early close dropped --input-color-m1 for months.
    See: docs/looks.md */
@@ -34,7 +34,7 @@
     --color-boomcat: hsl(0, 1%, 75%);
 
     /* Frame data timing colors - single source of truth, also read at runtime
-       via getComputedStyle by site_meta.js (window.FRAME_COLORS/WINDOW_COLORS) */
+       via getComputedStyle by site_lookups.js (window.FRAME_COLORS/WINDOW_COLORS) */
     /* The ten input slots, for combo notation: a move name's slot comes from
        frame_data's input (input_slots.js). Categorical, so distinct hues, not a ramp.
        Every slot has a black outline, so the fills are bright; the three neutrals
@@ -173,7 +173,7 @@
     color: var(--character-ink, #000); text-shadow: none; -webkit-text-stroke-width: 0;
 }
 
-/* Color Swatches: the Color Codes page's Block (description.js), here since the
+/* Color Swatches: the Color Codes page's Block (page_render.js), here since the
    editor's preview, the Overseer and history.html draw it too. */
 .color-swatch-grid {
     display: grid;

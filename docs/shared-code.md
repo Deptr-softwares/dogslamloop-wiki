@@ -8,7 +8,7 @@ What every page loads before its own scripts: the reader's settings, paths and p
 - `js/utility/site_data.js`: page data and the delta engine (`docs/page-data.md`).
 - `js/utility/site_media.js`: media framing, the blocked-media guard, the shared tooltip and math.
 - `js/utility/site_account.js`: signing in, profiles, badges, role badges and the inbox.
-- `js/utility/site_meta.js`: character colours (generated), aliases, accolades, the site's icons, character icon paths, frame colours, the version line and the character theme. Becomes `site_lookups.js` in B-4.
+- `js/utility/site_lookups.js`: character colours (generated), aliases, accolades, the site's icons, character icon paths, frame colours, the version line and the character theme.
 
 They load in that order on every page, right after the Supabase library (`tests/site-utils-parts.spec.js`).
 
@@ -17,14 +17,14 @@ They load in that order on every page, right after the Supabase library (`tests/
 - `localStorage`: `dsl_site_settings` (Site Settings), `dsl_supabase_override` (the local-only override), `dsl_badges_pending` (a badge won signed out).
 - `user_roles`, `user_profiles`, `user_notifications`, `media_moderation`, and the RPCs `claim_badge`, `get_public_profiles` and `get_user_expert_pages`.
 - `data/navigation.json`, `data/archived-pages.json`, `data/site_meta.json`.
-- `site_pages.color`, copied into `site_meta.js` between its generated-region markers by `scripts/fetch-content.js`.
+- `site_pages.color`, copied into `site_lookups.js` between its generated-region markers by `scripts/fetch-content.js`.
 
 ## Watch for
 
 - One escaper, `window.escapeHtml`; `page_router.js` keeps its own copy because it runs first. Test: `tests/one-escape-helper.spec.js`.
 - `ROLE_RANK` mirrors `role_rank()` in SQL, and the SQL one is the boundary. Never test a role by name (CLAUDE.md, Roles). The role badges are the one place matched by name: an icon is an identity, not a bar.
 - `SITE_BADGES` and `claim_badge()` in SQL list the same badges.
-- Only `CHARACTER_COLORS` in `site_meta.js` is generated, between two markers that must stay exactly as they are: `scripts/fetch-content.js` refuses to write without them, and the content gate reads that region.
+- Only `CHARACTER_COLORS` in `site_lookups.js` is generated, between two markers that must stay exactly as they are: `scripts/fetch-content.js` refuses to write without them, and the content gate reads that region.
 - The local-only override works on localhost alone, with a key set by hand, and shows a banner on every page while it is on.
 - The blocked-media guard is a rendering guard, not a security control: a flagged file stays at its public address until it is deleted.
 

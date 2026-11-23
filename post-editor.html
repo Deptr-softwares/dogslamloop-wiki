@@ -6,17 +6,17 @@
     <title>Post Editor | Dogslamloop</title>
     <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIcon.webp">
 
-    <link rel="stylesheet" href="style/Common.css?v=9d32449e">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=9d32449e">
-    <link rel="stylesheet" href="style/Buttons.css?v=9d32449e">
-    <link rel="stylesheet" href="style/Modals.css?v=9d32449e">
-    <link rel="stylesheet" href="style/Forms.css?v=9d32449e">
-    <link rel="stylesheet" href="style/Badges.css?v=9d32449e">
-    <link rel="stylesheet" href="style/Alerts.css?v=9d32449e">
-    <link rel="stylesheet" href="style/Cards.css?v=9d32449e">
-    <link rel="stylesheet" href="style/Layout.css?v=9d32449e">
-    <link rel="stylesheet" href="style/editor.css?v=9d32449e">
-    <link rel="stylesheet" href="style/admin.css?v=9d32449e">
+    <link rel="stylesheet" href="style/Common.css?v=562184f0">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=562184f0">
+    <link rel="stylesheet" href="style/Buttons.css?v=562184f0">
+    <link rel="stylesheet" href="style/Modals.css?v=562184f0">
+    <link rel="stylesheet" href="style/Forms.css?v=562184f0">
+    <link rel="stylesheet" href="style/Badges.css?v=562184f0">
+    <link rel="stylesheet" href="style/Alerts.css?v=562184f0">
+    <link rel="stylesheet" href="style/Cards.css?v=562184f0">
+    <link rel="stylesheet" href="style/Layout.css?v=562184f0">
+    <link rel="stylesheet" href="style/editor.css?v=562184f0">
+    <link rel="stylesheet" href="style/admin.css?v=562184f0">
 </head>
 <body class="admin-body">
 
@@ -118,7 +118,7 @@
 
             <div class="preview-badge">PREVIEW</div>
 
-            <!-- Must be a real <main>: js/pages/core/internalstyling.js watches <main>
+            <!-- Must be a real <main>: js/pages/core/format_tags.js watches <main>
                  with a MutationObserver, and that is what expands the
                  [b]/[color=]/[url=] shortcodes. Preview outside it would
                  render unstyled and misrepresent the published result. -->
@@ -128,24 +128,6 @@
         </div>
 
     </div>
-
-    <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=9d32449e"></script>
-    <script src="js/utility/input_slots.js?v=9d32449e"></script>
-    <script src="js/utility/site_utils.js?v=9d32449e"></script>
-    <script src="js/utility/site_data.js?v=9d32449e"></script>
-    <script src="js/utility/site_media.js?v=9d32449e"></script>
-    <script src="js/utility/site_account.js?v=9d32449e"></script>
-    <script src="js/utility/site_meta.js?v=9d32449e"></script>
-    <script src="js/pages/core/description.js?v=9d32449e"></script>
-    <script src="js/pages/core/internalstyling.js?v=9d32449e"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=9d32449e"></script>
-    <!-- posts.js supplies renderPostBody, so the preview goes through exactly
-         the same render path as the published blog page. -->
-    <script src="js/pages/community/posts.js?v=9d32449e"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=9d32449e"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=9d32449e"></script>
-    <script src="js/editor/tools/editor-media.js?v=9d32449e"></script>
 
     <script>
         // Helpers editor-blocks.js expects from editor-core.js. Reimplemented
@@ -201,6 +183,23 @@
         window.updateLivePreview = updateLivePreview;
     </script>
 
-    <script src="js/owner/post-editor.js?v=9d32449e"></script>
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
+    <script src="js/vendor/supabase-js-2.118.0.js"></script>
+    <script src="js/utility/character_tabs.js?v=562184f0"></script>
+    <script src="js/utility/input_slots.js?v=562184f0"></script>
+    <script src="js/utility/site_utils.js?v=562184f0"></script>
+    <script src="js/utility/site_data.js?v=562184f0"></script>
+    <script src="js/utility/site_media.js?v=562184f0"></script>
+    <script src="js/utility/site_account.js?v=562184f0"></script>
+    <script src="js/utility/site_lookups.js?v=562184f0"></script>
+    <script src="js/pages/core/page_render.js?v=562184f0"></script>
+    <script src="js/pages/core/format_tags.js?v=562184f0"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=562184f0"></script>
+    <script src="js/pages/community/posts.js?v=562184f0"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=562184f0"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=562184f0"></script>
+    <script src="js/editor/tools/editor-media.js?v=562184f0"></script>
+    <script src="js/owner/post-editor.js?v=562184f0"></script>
+    <!-- END GENERATED: scripts -->
 </body>
 </html>

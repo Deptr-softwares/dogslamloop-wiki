@@ -611,7 +611,7 @@ window.runDialog = function (overlay, opts = {}) {
     });
 };
 
-/** The staff pages' confirm box (#admin-confirm-modal on admin.html and owner.html). */
+/** The staff pages' confirm box (#admin-confirm-modal on overseer.html and owner.html). */
 window.adminConfirm = function (message) {
     document.getElementById('admin-confirm-msg').textContent = message;
     return window.runDialog(document.getElementById('admin-confirm-modal'), {
@@ -666,7 +666,7 @@ window.siteConfirm = function (message, opts = {}) {
 };
 
 /**
- * The mobile preview switch on edit.html, admin.html and post-editor.html: below
+ * The mobile preview switch on edit.html, overseer.html and post-editor.html: below
  * 900px, the work or its preview (body.mobile-preview-active). The button's
  * data-hide-text says what pressing it does.
  */

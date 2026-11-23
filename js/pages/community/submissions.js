@@ -297,7 +297,7 @@ function renderSubmissionCard(rev) {
  * opens as a character) and, for a character's delta, the tab or move it changed.
  * @since v0.16
  * @watch a copy of the routing in editCurrentTicket (admin-actions.js), which lives
- *   on admin.html. The kind comes from the page list, never the submission's
+ *   on overseer.html. The kind comes from the page list, never the submission's
  *   page_type.
  */
 window.buildSubmissionEditUrl = async function (rev) {

@@ -5,7 +5,7 @@
  * @since v0.9
  * @touches setupTabs, loadMoveSection, initCharacterModes, loadPageDescriptions,
  *   loadPageAlerts, initPageDiscussions, renderGalleryPage, renderToolPage
- * @watch it stays the last script on a stub, so site_meta.js's DOMContentLoaded
+ * @watch it stays the last script on a stub, so site_lookups.js's DOMContentLoaded
  *   handler (the character theme) runs first. The character and system branches
  *   differ on purpose: a character page fires its fetches together and maps the
  *   contents after 500ms; a system page awaits them in order and waits 150ms.
@@ -108,7 +108,7 @@ window.runPageBoot = async function (route) {
     }
 
     // Gallery and tool pages: the system shell, filled by their own renderer rather
-    // than description.js's tab engine.
+    // than page_render.js's tab engine.
     if (pageType === 'gallery' || pageType === 'tool') {
         if (window.initMobileNav) window.initMobileNav();
 

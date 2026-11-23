@@ -12,6 +12,7 @@
 User-agent: *
 
 # Staff and authoring tools.
+Disallow: /overseer.html
 Disallow: /admin.html
 Disallow: /owner.html
 Disallow: /edit.html

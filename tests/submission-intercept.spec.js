@@ -10,7 +10,7 @@
 // worked - right up until the page was not a character.
 //
 // js/overseer/admin-actions.js had the identical omission, so a reviewer intercepting the
-// same ticket from admin.html hit it too. Both are fixed; the admin half is in
+// same ticket from overseer.html hit it too. Both are fixed; the admin half is in
 // tests/page-kind-from-list.spec.js.
 //
 // Since 2026-11-21 the kind comes from the site's page list, never from the

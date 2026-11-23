@@ -99,7 +99,7 @@ test('math in a script is not math', async ({ page }) => {
 });
 
 test('a system page draws its math too', async ({ page }) => {
-    // The system branch of description.js has its own call. Before this batch
+    // The system branch of page_render.js has its own call. Before this batch
     // no system page loaded KaTeX at all, so math there never drew.
     await mockPageRow(page, {
         page_id: 'm1_trading', frame_data: {},

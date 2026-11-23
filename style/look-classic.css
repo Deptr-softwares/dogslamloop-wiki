@@ -8,7 +8,7 @@
    See: docs/looks.md */
 
 /* !important where a character page's theme (applyCharacterTheme,
-   js/utility/site_meta.js) sets the same variable inline on <html>. */
+   js/utility/site_lookups.js) sets the same variable inline on <html>. */
 html.look-classic {
     --bg-main: #101418 !important;
     --bg-secondary: #202122 !important;

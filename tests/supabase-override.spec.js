@@ -189,7 +189,7 @@ test('the one page with a CSP says so, because it blocks the override regardless
 
 test('pages without a CSP do not claim to be blocked', async ({ page }) => {
     await withOverride(page, PREVIEW);
-    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
 
     const banner = page.locator('#dsl-override-banner');
     await expect(banner).toBeVisible();

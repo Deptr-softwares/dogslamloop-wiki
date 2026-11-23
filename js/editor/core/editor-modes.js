@@ -63,7 +63,7 @@
         window.originalCloudDescData = readonlyView(window.originalCloudMasterDesc, modeId);
         window.originalCloudFrameData = readonlyView(window.originalCloudMasterFrame, modeId);
 
-        // framedata.js resolves the preview's moves through this, as the live page does,
+        // skill_card.js resolves the preview's moves through this, as the live page does,
         // so both render a state by one code path.
         window.activeCharacterMode = modeId;
     };

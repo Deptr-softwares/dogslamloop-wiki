@@ -25,6 +25,7 @@ The three hand-written hub pages, the Main Dashboard (`index.html`), the Charact
 
 Newest first. One entry per decision.
 
+- **2026-11-17, v1.2, #278.** The home page's scripts are deferred. It is the one page with a Content-Security-Policy meta tag, and Chrome stops fetching ahead when it meets one, so its blocking scripts were fetched one at a time and the page was ready for its data at about 1.6 s instead of 0.35 s. Deferred, they are all asked for at once and still run in order once the page is read.
 - **2026-10-08, v1.0, #227.** The hubs' words have one copy, in the CMS: the hand-written fallback text had gone stale, and the owner asked to "clear the old hardcoded texts in place of the CMS generated texts".
 - **2026-09-24, v0.20, #204.** The matchup grid marks a Clash where a pair's two pages do not mirror each other, any mismatch, one step included (the owner's pick of three). A Clash is marked, never resolved, and hidden characters are left out (owner, 2026-09-24).
 - **2026-09-20, v0.19, #194.** The Systems hub has a matchup grid under Terminology, every character against every other, at full size rather than a sample, since its value is seeing the roster's shape at once (the owner's request).

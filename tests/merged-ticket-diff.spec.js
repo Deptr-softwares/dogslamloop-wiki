@@ -59,7 +59,7 @@ const MERGED_TICKET = {
 };
 
 async function renderDiff(page, ticket) {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     return page.evaluate(async ({ rev, liveDesc, liveFrame }) => {
         // The RBAC gate wipes body for a logged-out visitor; rebuild only what

@@ -2,7 +2,7 @@
    and its tab strip, the ticket, Page History, the merge compiler, the tool
    groups and their forms, and both pages' phone layout.
    Since v0.4.
-   Touches: admin.html, owner.html and post-editor.html load it, after
+   Touches: overseer.html, owner.html and post-editor.html load it, after
    editor.css, whose .editor-layout, .editor-workspace and .live-preview-pane it
    adjusts.
    Watch: .admin-tool-card, .editor-input and .admin-tool-btn are shared by both
@@ -117,7 +117,7 @@
 .owner-workspace { width: 100%; max-width: 1100px; margin: 0 auto; border-right: none; overflow-y: auto; }
 
 /* The owner tool groups, all scoped to .owner-tool-area: the cards, inputs and
-   buttons are shared with admin.html. */
+   buttons are shared with overseer.html. */
 .owner-nav {
     display: flex;
     flex-wrap: wrap;

@@ -4,7 +4,7 @@
  * tracks as counted frames, estimates or seconds.
  * @since v0.4, as part of editor.js
  * @touches page_data.frame_data (the move in place), FRAME_ESTIMATES, phaseWeight
- *   and phaseSeconds (framedata.js), ACCOLADES (site_meta.js), measureMediaSource
+ *   and phaseSeconds (skill_card.js), ACCOLADES (site_lookups.js), measureMediaSource
  *   (editor-media.js), saveLocalDraft (editor-drafts.js)
  * @watch initDawEditor is one closure on purpose: its family of window.*Daw*
  *   functions share its local variables (moveData, the active path, the selected
@@ -363,7 +363,7 @@ function initDawEditor(containerId, moveData) {
                             <div>
                                 <label class="editor-field-label-sm">Frame Type</label>
                                 <!-- Must stay in step with the nine tick types the
-                                     site's own legend defines (js/pages/core/framedata.js) and
+                                     site's own legend defines (js/pages/core/skill_card.js) and
                                      systems/color-codes documents. InSkill Stun and
                                      Inactive were both styled and documented but had
                                      no way to be authored, so contributors either

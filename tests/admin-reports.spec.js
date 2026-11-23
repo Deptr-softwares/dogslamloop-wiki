@@ -87,7 +87,7 @@ async function openQueue(page, { rows = [], rpcError = null, modError = null, re
         });
     }, { rows, rpcError, modError, resolveError, edits });
 
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     // adminPrompt is the shared modal helper; stubbed so the reason step is
     // driven rather than waiting on a dialog this spec is not testing.
     await page.evaluate(() => {
@@ -108,7 +108,7 @@ test('the queue sits in the same column as the other two, not on its own screen'
     // Three queues in one column on purpose: they are all "things waiting for
     // a reviewer", and splitting them across screens means forgetting one.
     // Each is a tab in that column since v1.2 (the owner's Overseer card).
-    const html = await (await request.get('/admin.html')).text();
+    const html = await (await request.get('/overseer.html')).text();
     await page.goto('about:blank');
 
     const layout = await page.evaluate((html) => {

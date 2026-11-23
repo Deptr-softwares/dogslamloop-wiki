@@ -8,7 +8,7 @@
 //
 // The generated kinds are built by the generator itself from a made-up page
 // list, and the hand-written pages are read as they are. It never reads a
-// generated page, and it weighs site_meta.js without its generated colour
+// generated page, and it weighs site_lookups.js without its generated colour
 // region, so no owner edit can move a number.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
@@ -30,7 +30,9 @@ const BUDGET = {
     'the editor_playground tool page': { js: 200, css: 50 },
     'the free_submit_tier_list tool page': { js: 205, css: 53 },
     '404.html': { js: 216, css: 53 },
-    'admin.html': { js: 277, css: 86 },
+    'overseer.html': { js: 277, css: 86 },
+    // The Overseer's old address: a forward, with nothing of its own to load.
+    'admin.html': { js: 0, css: 0 },
     'blog.html': { js: 193, css: 53 },
     'characters/index.html': { js: 205, css: 50 },
     'edit.html': { js: 408, css: 76 },

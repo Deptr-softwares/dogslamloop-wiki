@@ -15,7 +15,7 @@
     const ULTIMATE_TAB_ID = 'ultimateAtk';
     const ULTIMATE_TAB_LABEL = 'Ultimate';
 
-    // admin.html's strip: the editable tabs, optional ones included, since this
+    // overseer.html's strip: the editable tabs, optional ones included, since this
     // runs before any revision says which it has. Registered again when Ultimate is
     // added, so buttons bound at boot hide it. It repeats admin-core.js's list on
     // purpose, so this call does not depend on that one running first.

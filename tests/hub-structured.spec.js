@@ -97,7 +97,7 @@ test.describe('homepage table of contents', () => {
     // The other half of that rule, and a regression the first half caused.
     //
     // refreshTOC used to strip `a, button` outright. v0.14 made
-    // js/pages/core/internalstyling.js wrap character mentions in a link, so every
+    // js/pages/core/format_tags.js wrap character mentions in a link, so every
     // matchup heading became "vs. <a>Honored One</a>" and the whole Matchups
     // ToC indexed as a column of "vs." with no names. The only two that
     // survived were the two never wrapped: the page's own character, which the

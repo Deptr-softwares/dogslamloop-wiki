@@ -203,10 +203,10 @@ window.renderRevision = async function(index) {
             return;
         }
 
-        // Read by internalstyling.js for the page's own colour words.
+        // Read by format_tags.js for the page's own colour words.
         window.PAGE_ROUTE = { pageId: rev.page_id, pageType: 'system', title: historyPageName };
 
-        // description.js builds a system page's tabs itself.
+        // page_render.js builds a system page's tabs itself.
         if (typeof window.loadPageDescriptions === 'function') {
             await window.loadPageDescriptions(rev.page_id, 'system');
 
@@ -286,7 +286,7 @@ function servePageAs(pageId, desc, frame) {
 // the way home), and the title, which history.html's header already says.
 async function drawCharacterPage(pageId, mainArea) {
     // window.PAGE_ROUTE as the live page has it: switchCharacterMode returns
-    // without one, and internalstyling.js reads it for the page's colour
+    // without one, and format_tags.js reads it for the page's colour
     // words and to leave the character's own name unlinked. Set after load,
     // so page_router.js and page_boot.js, which act on it at load, never see it.
     const route = { pageId, pageType: 'character', title: historyPageName };

@@ -94,7 +94,7 @@ async function mockStaff(page, tables) {
 async function openOverseer(page, rows, pageData = []) {
     await servePageList(page);
     await mockStaff(page, { pending_revisions: rows, page_data: pageData });
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#queue-container .update-log-item')).toHaveCount(rows.length, { timeout: 15000 });
 }
 

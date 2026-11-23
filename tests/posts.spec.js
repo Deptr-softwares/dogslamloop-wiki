@@ -1,7 +1,7 @@
 // Coverage for the v0.9 posts system (blog + hotfix notes).
 //
 // Posts store the same block array the wiki uses, so rendering goes through
-// js/pages/core/description.js's generateHTMLForBlocks. The tests that matter most here
+// js/pages/core/page_render.js's generateHTMLForBlocks. The tests that matter most here
 // are the ones covering what that function does NOT do for you: binding
 // callout tooltips and arming lazy media. Skipping those steps produces dead
 // callout buttons and videos that never load - visible only by clicking, so

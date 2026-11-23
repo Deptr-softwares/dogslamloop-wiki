@@ -51,7 +51,7 @@ window.CHARACTER_COLORS = {
 // --- END GENERATED REGION ---
 
 // Every other name the community uses for a character, highlighted and linked by
-// internalstyling.js in the canonical name's colour. A map of its own, so the colour
+// format_tags.js in the canonical name's colour. A map of its own, so the colour
 // dictionary describes only the roster. Canonical names match CHARACTER_COLORS
 // exactly: that is the join.
 window.CHARACTER_ALIASES = {

@@ -305,7 +305,7 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
             </dl>
         `;
 
-        // wiki-text marks this as prose for internalstyling.js, whose observer on <main>
+        // wiki-text marks this as prose for format_tags.js, whose observer on <main>
         // styles it, so format tags in a term render. The section must stay inside <main>
         // (a test checks).
     } catch (e) {

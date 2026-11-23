@@ -1,8 +1,8 @@
-// A revision's page_id is text on admin.html, everywhere it is shown.
+// A revision's page_id is text on overseer.html, everywhere it is shown.
 //
 // page_id is whatever the submitter sent: the editor fills it from the URL, and
 // a direct REST insert can send anything that passes the INSERT policy, which
-// until 2026-10-29 was any id without a page_permissions row. admin.html wrote
+// until 2026-10-29 was any id without a page_permissions row. overseer.html wrote
 // it into innerHTML unescaped in five places (the group title, the MERGE
 // TICKETS button's inline onclick, the card badge, the preview status line and
 // the merge compiler title), and the queue draws itself as soon as staff open
@@ -57,7 +57,7 @@ async function openQueue(page) {
       },
     });
   }, ROWS);
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await expect(page.locator('#queue-container .update-log-item')).toHaveCount(2, { timeout: 15000 });
 }
 

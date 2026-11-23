@@ -884,7 +884,7 @@ test('find and replace does not rewrite folder names', async ({ page }) => {
 });
 
 test('Diff View names the folder field in words', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const html = await page.evaluate(() =>
     window.renderStructuredDiff(
@@ -1073,7 +1073,7 @@ test('find and replace leaves a folder colour alone', async ({ page }) => {
 });
 
 test('Diff View names the folder colour in words', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const html = await page.evaluate(() => window.renderStructuredDiff(
     { type: 'paragraph', folder: 'Setups', folderColor: '#111111' },
     { type: 'paragraph', folder: 'Setups', folderColor: '#222222' },

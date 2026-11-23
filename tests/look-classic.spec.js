@@ -14,7 +14,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const STAFF = ['admin.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html'];
+const STAFF = ['overseer.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html'];
 // Puppet Master's colour is dark (46% light), so the character theme both
 // tints the page and injects its outlined-heading rule: the most it can do.
 const PAGE = '/characters/Puppet_master/index.html';

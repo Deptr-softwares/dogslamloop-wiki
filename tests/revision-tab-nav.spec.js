@@ -1,6 +1,6 @@
 // The reviewer workflow's navigation, on both surfaces it exists on.
 //
-// admin.html used to navigate a revision through a vertical list in the left
+// overseer.html used to navigate a revision through a vertical list in the left
 // sidebar; edit.html had no major-tab navigation at all - currentEditorTabId
 // was read from ?tab= once at boot and never moved. Between them that made
 // intercepting a skill revision impossible: routing dropped you on Overview
@@ -11,7 +11,7 @@ const { test, expect } = require('@playwright/test');
 
 
 // Derived from js/utility/character_tabs.js, not restated: these are the tabs
-// admin.html's static strip owns, and a second copy here would go stale the
+// overseer.html's static strip owns, and a second copy here would go stale the
 // next time one is added.
 const VOCAB = (() => {
   const src = require('fs').readFileSync(
@@ -22,14 +22,14 @@ const VOCAB = (() => {
 })();
 const CHARACTER_TABS = VOCAB.getCharacterTabIds({ editableOnly: true });
 
-// --- admin.html ---------------------------------------------------------
+// --- overseer.html ---------------------------------------------------------
 
 test('admin: the revision tabs sit above the content, not inside the sidebar', async ({ page, request }) => {
-  // Asserted against the served markup rather than the live DOM: admin.html's
+  // Asserted against the served markup rather than the live DOM: overseer.html's
   // RBAC gate replaces document.body for a logged-out visitor, so reading the
   // static structure from a loaded page is a race against it - one this test
   // lost under parallel load while passing in isolation.
-  const html = await (await request.get('/admin.html')).text();
+  const html = await (await request.get('/overseer.html')).text();
   await page.goto('about:blank');
 
   const layout = await page.evaluate(({ html, tabs }) => {
@@ -47,7 +47,7 @@ test('admin: the revision tabs sit above the content, not inside the sidebar', a
       navSharesParentWithContent: !!(nav && content && nav.parentElement === content.parentElement),
       navInsideSidebar: !!(nav && sidebar && sidebar.contains(nav)),
       buttonIds: tabs.map(t => !!doc.getElementById(`nav-${t}`)),
-      // Same shape as the live page's nav (js/pages/core/description.js, page_router.js).
+      // Same shape as the live page's nav (js/pages/core/page_render.js, page_router.js).
       allManga: tabs.every(t => doc.getElementById(`nav-${t}`)?.classList.contains('btn-manga')),
       sidebarKeepsToc: !!(sidebar && sidebar.querySelector('#dynamic-toc')),
     };
@@ -66,9 +66,9 @@ test('admin: clicking a revision tab switches which content pane is shown', asyn
   const pageErrors = [];
   page.on('pageerror', e => pageErrors.push(e.message));
 
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
-  // admin.html's RBAC gate wipes the body for a logged-out visitor, so the
+  // overseer.html's RBAC gate wipes the body for a logged-out visitor, so the
   // real click path is exercised on a rebuilt copy of the same markup with
   // the same wiring (setupTabs, js/pages/core/pagebuilder.js) applied. Wait for the
   // gate to land first - it wipes asynchronously, and rebuilding before it
@@ -112,7 +112,7 @@ test('admin: clicking a revision tab switches which content pane is shown', asyn
 });
 
 test('admin: a merged ticket marks every tab it touched, not just one', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const marked = await page.evaluate((tabs) => {
     document.body.innerHTML = `
@@ -150,7 +150,7 @@ test('admin: a merged ticket marks every tab it touched, not just one', async ({
 });
 
 test('admin: intercept opens the editor on the tab the reviewer is reading', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const opened = await page.evaluate(async (tabs) => {
     document.body.innerHTML = `

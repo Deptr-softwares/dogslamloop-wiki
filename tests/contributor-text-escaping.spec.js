@@ -312,7 +312,7 @@ test('the system page editor shows crafted tab and section names as text', async
 });
 
 test('a crafted combo route is a plain title in the reviewer diff view', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await page.evaluate(async ({ tag }) => {
     document.body.innerHTML = `<div class="main-content-area"></div>`;

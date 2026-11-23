@@ -4,7 +4,7 @@
  * CHANGE LIST of every changed part).
  * @since v0.4, as part of admin.js
  * @touches page_data, pending_revisions, window.currentLive* and currentPending*,
- *   applyDeltaToData (site_data.js), loadPageDescriptions (description.js),
+ *   applyDeltaToData (site_data.js), loadPageDescriptions (page_render.js),
  *   renderStructuredDiff and setActiveRevisionTab (admin-diff.js),
  *   initPreviewStates (admin-modes.js), SideBySide.mount (side-by-side.js)
  * @watch switchVersionView is one function on purpose: its diff renderers close
@@ -218,7 +218,7 @@ async function switchVersionView(mode) {
         document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => {
             el.classList.add('hidden');
         });
-        // A character revision uses admin.html's own #tab-* panes, which carry neither
+        // A character revision uses overseer.html's own #tab-* panes, which carry neither
         // class above, so they are hidden by id.
         document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => {
             el.classList.add('hidden');

@@ -49,7 +49,7 @@ test('all seven sites handle the block, or it breaks somewhere invisible', () =>
       /block\.type === 'theorybox'/,               // 4. the editor form
       /field === 'sequence-lines'/,                // the route is an ARRAY
     ],
-    'js/pages/core/description.js': [/block\.type === 'theorybox'/],   // 5. reader
+    'js/pages/core/page_render.js': [/block\.type === 'theorybox'/],   // 5. reader
     'js/overseer/admin-preview.js': [/b\.type === 'theorybox'/],     // 6. reviewer preview
     'js/editor/core/editor-sync.js': [/b\.type === 'theorybox'/],       // 7. draft sync
   };

@@ -464,7 +464,7 @@ test('a list with no introduction simply has none', async ({ page }) => {
 
 test('the reasoning actually renders, which it could not before', async ({ page }) => {
     // A regression test for a bug that shipped in PR #81 and was invisible for
-    // a day: js/pages/core/description.js was not loaded on this page, so
+    // a day: js/pages/core/page_render.js was not loaded on this page, so
     // generateHTMLForBlocks did not exist and the reasoning section could
     // never have rendered at all.
     //
@@ -501,7 +501,7 @@ test('the block renderer is present on this page at all', async ({ page }) => {
     await open(page);
 
     const available = await page.evaluate(() => typeof window.generateHTMLForBlocks === 'function');
-    expect(available, 'js/pages/core/description.js must be loaded for the block sections to render').toBe(true);
+    expect(available, 'js/pages/core/page_render.js must be loaded for the block sections to render').toBe(true);
 });
 
 // --- THE STOREFRONT (v0.14) ----------------------------------------------

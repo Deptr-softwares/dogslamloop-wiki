@@ -4,7 +4,7 @@ The tags editors type in any text field (`[b]`, `[color=]`, `[url=]`, `[multicol
 
 ## Files
 
-- `js/pages/core/internalstyling.js`: the tags and the automatic colours. Becomes `format_tags.js` in B-4.
+- `js/pages/core/format_tags.js`: the tags and the automatic colours.
 - `js/utility/input_slots.js`: which input slot each move name belongs to.
 - `js/editor/tools/editor-writing-checks.js`: the editor's writing checks, which flag a tag that is not one.
 - `style/Common.css`: the `.sc-*` classes the tags become.
@@ -13,7 +13,7 @@ The tags editors type in any text field (`[b]`, `[color=]`, `[url=]`, `[multicol
 
 - `desc_data.pageConfig.words`: a page's own words, each with one colour or a gradient (the editor's Config > Page).
 - `desc_data.characterSettings`: aliases and slots that override what `input_slots.js` derives from frame data.
-- `CHARACTER_COLORS`, `CHARACTER_ALIASES`, `FRAME_COLORS`, `WINDOW_COLORS` and `ACCOLADES`, from `js/utility/site_meta.js`.
+- `CHARACTER_COLORS`, `CHARACTER_ALIASES`, `FRAME_COLORS`, `WINDOW_COLORS` and `ACCOLADES`, from `js/utility/site_lookups.js`.
 
 ## Watch for
 
@@ -22,7 +22,7 @@ The tags editors type in any text field (`[b]`, `[color=]`, `[url=]`, `[multicol
 - The passes run in an order: mini icons, the tags (inside out, until nothing changes), `[noauto]` lifted out, character names, frame terms, timings, `[noauto]` put back, page words, then input slots. A new pass needs its place in that order.
 - Character names and page words match in their exact case: "Register", "Perfection" and "Active" are ordinary words.
 - The tag grammar is written out in seven places (`.claude/rules/practice-new-code.md`); the writing checks' copy is one. One grammar module is planned (D-1).
-- Two known gaps, kept for the format design (D-2): `[B]`, `[I]`, `[S]` and `[U]` in capitals become keybind badges in paragraphs and tables, because `description.js` runs its keybind pass first; and tags print as typed inside tooltips.
+- Two known gaps, kept for the format design (D-2): `[B]`, `[I]`, `[S]` and `[U]` in capitals become keybind badges in paragraphs and tables, because `page_render.js` runs its keybind pass first; and tags print as typed inside tooltips.
 
 ## Decisions
 
@@ -44,4 +44,4 @@ Newest first. One entry per decision.
 - **2026-08-17, v0.15, #108.** Combo notation is coloured by input slot, from a map derived from each move's `input` in frame data, with `desc_data.characterSettings` as a thin override. Nothing is listed by hand, so fixing a move's input fixes its colour too. Measured on the live roster that day: 519 moves, 396 (76%) resolved from `input` alone. Mechanics every character shares (Dash, Jump and their variants) colour on every page, since no character's frame data holds them (owner, 2026-08-17). Move names in prose are coloured only in the Combos tab (owner, 2026-08-17): site-wide they would turn the frame-data pages into a rainbow. A Combo Block's route is coloured anywhere, since a route is notation.
 - **2026-08-14, v0.14, #90.** Every value a tag puts in the page goes through one of three gates (`escapeHtml`, `safeUrl`, `safeColor`), and anything that fails renders as plain text: losing a colour is a rendering nit, running someone's script is not. Addresses and colours are allowlisted, not escaped.
 - **2026-08-14, v0.14, #90.** The tags become classes (`.sc-b` and the rest, in `style/Common.css`), and `[kbd]` becomes a `<kbd>`, so screen readers and search engines get the meaning.
-- **2026-08-14, v0.14, #90.** The automatic colours: frame-data and overlay terms are derived from `site_meta.js`'s colour lists, so a new colour is highlighted the day it lands; each kind of term is one combined pattern in one pass, longest first, so a short term cannot claim part of a long one; character names match case-sensitively; `[noauto]` stops them for its text. A character mention links to its page, except inside a link and on the character's own page.
+- **2026-08-14, v0.14, #90.** The automatic colours: frame-data and overlay terms are derived from `site_lookups.js`'s colour lists, so a new colour is highlighted the day it lands; each kind of term is one combined pattern in one pass, longest first, so a short term cannot claim part of a long one; character names match case-sensitively; `[noauto]` stops them for its text. A character mention links to its page, except inside a link and on the character's own page.

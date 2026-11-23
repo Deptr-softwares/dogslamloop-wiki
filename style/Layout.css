@@ -824,7 +824,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .wiki-block-list { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
 .strategy-paragraph { margin-bottom: 0.75rem; line-height: 1.6; }
 /* A Heading Block's side bar, the block's own choice in any tab; --heading-bar comes
-   from description.js. */
+   from page_render.js. */
 .wiki-block-heading-bar { border-left: 3px solid var(--heading-bar); padding-left: 0.75rem; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; }
 .card-header-title { 
@@ -904,7 +904,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* Tab panels, stated, so removing .hidden relies on no browser default. */
 .tab-content, .vessel-content { display: block; }
 
-/* Wiki Divider Blocks (js/pages/core/description.js generateHTMLForBlocks 'divider' type) */
+/* Wiki Divider Blocks (js/pages/core/page_render.js generateHTMLForBlocks 'divider' type) */
 .wiki-divider { clear: both; display: flex; align-items: center; justify-content: center; opacity: 0.8; width: 100%; }
 .wiki-divider-pad-none { margin: 0; }
 .wiki-divider-pad-small { margin: 1rem 0; }
@@ -924,7 +924,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-divider-slash-mark { margin: 0 1rem; font-family: var(--font-label), sans-serif; color: var(--border-color, #333); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
 .wiki-divider-diamond-mark { margin: 0 1rem; transform: rotate(45deg); width: 10px; height: 10px; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
 
-/* Playstyle Component (js/pages/core/description.js generatePlaystyleHTML) */
+/* Playstyle Component (js/pages/core/page_render.js generatePlaystyleHTML) */
 .playstyle-container { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
 .playstyle-col { flex: 1; min-width: 250px; box-shadow: 4px 4px 0px var(--manga-shadow, #000); padding: 1.25rem 1.5rem; }
 .playstyle-col.likes { background: rgba(34, 197, 94, 0.05); border: 1px solid #22c55e; }
@@ -980,7 +980,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-video-embed { width: 100%; aspect-ratio: 16/9; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
 .wiki-video-native { width: 100%; background: #050505; display: block; box-shadow: 4px 4px 0px var(--manga-shadow); }
 
-/* The video player: painted with var(--accent-blue), which site_meta.js sets per
+/* The video player: painted with var(--accent-blue), which site_lookups.js sets per
    character, so it takes the page's colour by itself. Square corners, hard shadows
    and square glyphs, so it reads as the site's own component. */
 .wiki-player { display: block; width: 100%; }
@@ -1353,7 +1353,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 
 /* Hover lights up one step in the character's colour; --character-ink is the
-   readable text on it (site_meta.js), or a light character renders white on white. */
+   readable text on it (site_lookups.js), or a light character renders white on white. */
 .combo-node:hover {
     background-color: var(--accent-blue);
     color: var(--character-ink, #000);

@@ -72,7 +72,7 @@ test('each REVIEW button opens its own revision', async ({ page }) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await mockStaff(page, { role: 'admin', tables: { pending_revisions: { rows: REVS }, page_data: { rows: [] } } });
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#queue-container .update-log-item')).toHaveCount(2, { timeout: 15000 });
 
     const card = (pageId) => page.locator('#queue-container .update-log-item', { hasText: pageId.toUpperCase() });
@@ -87,7 +87,7 @@ test('each REVIEW button opens its own revision', async ({ page }) => {
 
 test('a failed queue read shows its message as text', async ({ page }) => {
     await mockStaff(page, { role: 'admin', tables: { pending_revisions: { error: { message: EVIL, code: 'XX000' } } } });
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     await expect(page.locator('#queue-container .admin-error-text')).toHaveText(`Error: ${EVIL}`, { timeout: 15000 });
     expect(await page.locator('#queue-container img').count(), 'the message never became an element').toBe(0);

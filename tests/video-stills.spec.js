@@ -85,7 +85,7 @@ async function boot(page, { list = {}, listStatus = 200, holdList = false, arriv
 
 // Videos in a fixed host, each 320px wide at a top given in screen heights,
 // so where one sits relative to the screen is exact. `skill` puts it in a
-// skill card's media box, the way js/pages/core/framedata.js does.
+// skill card's media box, the way js/pages/core/skill_card.js does.
 async function place(page, items) {
     await page.evaluate(({ items }) => {
         let host = document.getElementById('vs-host');

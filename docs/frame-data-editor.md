@@ -5,13 +5,13 @@ The editor's Frame Data tabs (M1, Skill, Innate and the rest): a move's stats, m
 ## Files
 
 - `js/editor/tabs/editor-framedata.js`: the whole editor, drawn by `initDawEditor`. The Frame Track is called the DAW in the code (`docs/glossary.md`).
-- `js/pages/core/framedata.js`: the reader's Skill Card, whose scales and phase maths (`FRAME_ESTIMATES`, `phaseWeight`, `phaseSeconds`) the editor uses, so a phase measures the same in both.
+- `js/pages/core/skill_card.js`: the reader's Skill Card, whose scales and phase maths (`FRAME_ESTIMATES`, `phaseWeight`, `phaseSeconds`) the editor uses, so a phase measures the same in both.
 - `js/editor/tabs/editor-tabs.js`: the move strip above it and `initPerMoveEditor`, which mounts it.
 
 ## Data
 
 - `page_data.frame_data`: each move's stats, `media`, `accolades`, its variants and their tracks and phases. A phase stores one of `duration` (frames), `estimate` or `seconds`.
-- `ACCOLADES` in `js/utility/site_meta.js`: the accolades and their order.
+- `ACCOLADES` in `js/utility/site_lookups.js`: the accolades and their order.
 
 ## Watch for
 

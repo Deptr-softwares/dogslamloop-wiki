@@ -19,7 +19,7 @@ const SITE = 'https://dogslamloop.com';
 
 // The pages that are not for reading the wiki: the owner's pick leaves them
 // uncounted. Everything else that boots the site counts.
-const STAFF = ['admin.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html', 'submissions.html'];
+const STAFF = ['overseer.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html', 'submissions.html'];
 
 const PAGES = execSync('git ls-files "*.html"', { cwd: ROOT, encoding: 'utf8' })
     .split('\n').filter(Boolean)

@@ -3,11 +3,11 @@
 const { test, expect } = require('@playwright/test');
 
 test('each moderation action gets its own prompt wording, not the reject modal\'s', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await page.waitForSelector('.access-denied-screen');
 
   // All three actions share one modal. Its textarea carried "Explain why this
-  // revision was declined..." hardcoded in admin.html, so approving asked the
+  // revision was declined..." hardcoded in overseer.html, so approving asked the
   // reviewer to justify a decline - in red. Working a queue at speed, that is
   // wording someone eventually acts on.
   const result = await page.evaluate(async () => {
@@ -56,7 +56,7 @@ test('each moderation action gets its own prompt wording, not the reject modal\'
 });
 
 test('the editor offers every frame type the site documents', async ({ page }) => {
-  // The dropdown must stay in step with the legend in js/pages/core/framedata.js and
+  // The dropdown must stay in step with the legend in js/pages/core/skill_card.js and
   // systems/color-codes. InSkill Stun and Inactive were both styled and
   // documented but unauthorable, so contributors either omitted them or
   // recorded something else.
@@ -100,7 +100,7 @@ test('the frame-type list matches the legend exactly, so neither can drift', asy
   // two lists disagreeing, and they can only disagree if nothing compares
   // them. Read from source because frameDataLegendHTML is a module-level
   // const in a classic script, so it never reaches window.
-  const legendSource = await (await request.get('/js/pages/core/framedata.js')).text();
+  const legendSource = await (await request.get('/js/pages/core/skill_card.js')).text();
   const editorSource = await (await request.get('/js/editor/tabs/editor-framedata.js')).text();
 
   const legendClasses = [...new Set(
@@ -123,7 +123,7 @@ test('cancel leaves the editor even when there is no history to go back to', asy
   const result = await page.evaluate(() => {
     const calls = { closed: false, back: false, href: null };
 
-    // Simulate the tab having been script-opened from admin.html.
+    // Simulate the tab having been script-opened from overseer.html.
     Object.defineProperty(window, 'opener', { value: { closed: false }, configurable: true });
     window.close = () => { calls.closed = true; };
     window.history.back = () => { calls.back = true; };
@@ -149,7 +149,7 @@ test('cancel from a deep link sends staff to the queue and contributors to the p
     quoted: window.editorExitDestination('?char=' + encodeURIComponent('a b/c')),
   }));
 
-  expect(destinations.intercepted, 'an intercepted ticket belongs to the review queue').toBe('admin.html');
+  expect(destinations.intercepted, 'an intercepted ticket belongs to the review queue').toBe('overseer.html');
   expect(destinations.character).toBe('characters/testchar/');
   expect(destinations.system, 'system pages do not live under characters/').toBe('systems/combat/');
   expect(destinations.bare).toBe('index.html');

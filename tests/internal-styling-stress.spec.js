@@ -1,4 +1,4 @@
-// js/pages/core/internalstyling.js under malformed and adversarial input (v0.18 FT8).
+// js/pages/core/format_tags.js under malformed and adversarial input (v0.18 FT8).
 //
 // `tests/shortcode-safety.spec.js` covers the three live XSS holes closed on
 // 2026-08-14 and the auto-highlight vocabulary. This file covers the other

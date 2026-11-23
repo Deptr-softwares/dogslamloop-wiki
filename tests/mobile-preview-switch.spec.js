@@ -1,4 +1,4 @@
-// One SHOW PREVIEW switch (W23): edit.html, admin.html and post-editor.html each
+// One SHOW PREVIEW switch (W23): edit.html, overseer.html and post-editor.html each
 // kept their own copy of window.toggleMobilePreview, alike but for the words
 // the button shows while the preview is up. One copy now, in site_utils.js,
 // each button carrying its own words; and window.showMobilePreview, which the
@@ -65,7 +65,7 @@ async function signInAs(page, role) {
 
 const PAGES = [
     { name: 'the editor', url: '/edit.html?char=boomcat&type=character&tab=overview', role: null, back: 'HIDE PREVIEW' },
-    { name: 'the Overseer', url: '/admin.html', role: 'admin', back: 'BACK TO QUEUE' },
+    { name: 'the Overseer', url: '/overseer.html', role: 'admin', back: 'BACK TO QUEUE' },
     { name: 'the blog editor', url: '/post-editor.html', role: 'owner', back: 'BACK TO EDITOR' },
 ];
 
@@ -95,7 +95,7 @@ for (const p of PAGES) {
 test('opening a page\'s history on a phone takes the reviewer to it', async ({ page }) => {
     await signInAs(page, 'admin');
     await page.setViewportSize(PHONE);
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await expect(page.locator('body')).not.toHaveClass(/\bmobile-preview-active\b/);
 
     await page.evaluate(() => window.openPageHistoryFor('boomcat'));

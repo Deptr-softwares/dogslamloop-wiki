@@ -246,7 +246,7 @@
         queueSticky();
     }
 
-    // The preview follows the Block being edited. description.js marks each top-level
+    // The preview follows the Block being edited. page_render.js marks each top-level
     // Block's first element with its position and a fingerprint of its data: the
     // Overview tab draws several sections in one preview, each with a Block 0.
     function blockSignature(block) {

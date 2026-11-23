@@ -3,7 +3,7 @@
  * accolades and Frame Track (the timeline of its phases, under Micro Variant tabs).
  * @since v0.01
  * @touches page_data.frame_data, window.cachedMasterFrameData, FRAME_COLORS,
- *   WINDOW_COLORS and ACCOLADES (site_meta.js), wikiClipHTML (description.js)
+ *   WINDOW_COLORS and ACCOLADES (site_lookups.js), wikiClipHTML (page_render.js)
  * @watch the editor's Frame Data tab uses this file's scales and phase maths
  *   (FRAME_ESTIMATES, phaseWeight), so a phase measures the same in both
  * @see docs/character-page.md
@@ -50,7 +50,7 @@ const windowTypes = {
     'iframe-complete': { class: 'span-iframe-complete', label: 'Complete I-Frames' }
 };
 
-// The accolades and their icons are in site_meta.js, since any page's text can show the icons.
+// The accolades and their icons are in site_lookups.js, since any page's text can show the icons.
 
 /**
  * Accolade groups of which no two can be true of one move. The editor unticks the
@@ -264,7 +264,7 @@ function skillMediaHTML(media) {
  * legend and a Skill Card per move, for the active mode.
  * @since v0.01
  * @touches window.cachedMasterFrameData, fetchCloudCharacterData, resolveModeFrame;
- *   leaves a strategy-<moveId> box for description.js to fill
+ *   leaves a strategy-<moveId> box for page_render.js to fill
  * @watch with targetMoveId only that move is drawn (the editor's preview); an error
  *   is only logged
  */
@@ -652,7 +652,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 `;
             }
             
-            // description.js puts the move's strategy here.
+            // page_render.js puts the move's strategy here.
             const strategyTarget = document.createElement('div');
             strategyTarget.id = `strategy-${move.id}`;
             (noFrameData ? rightCol : card).appendChild(strategyTarget);

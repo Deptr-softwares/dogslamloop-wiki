@@ -1,4 +1,4 @@
-// js/pages/core/internalstyling.js - the shortcode and auto-highlight engine.
+// js/pages/core/format_tags.js - the shortcode and auto-highlight engine.
 //
 // It reads a block's innerHTML, runs string replacements over it, and writes
 // the result back. Every value it interpolates comes from PAGE CONTENT, which
@@ -190,11 +190,11 @@ test('formatting shortcodes render as classes, not inline styles', async ({ page
 // --------------------------------------------------------------------------
 //
 // The term list used to be hardcoded here as a second copy of
-// FRAME_COLOR_LABELS in site_meta.js, and the copies had drifted: all six
+// FRAME_COLOR_LABELS in site_lookups.js, and the copies had drifted: all six
 // OVERLAY WINDOW colours existed in WINDOW_COLORS and in the frame-data
 // legend, and not one of them was ever highlighted in prose.
 //
-// It is derived now, so the next colour token added to site_meta.js is
+// It is derived now, so the next colour token added to site_lookups.js is
 // highlighted the day it lands.
 
 async function highlighted(page, text) {

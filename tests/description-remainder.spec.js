@@ -1,4 +1,4 @@
-// Coverage for Workstream B Tier 5 (3/4): description.js's remaining inline
+// Coverage for Workstream B Tier 5 (3/4): page_render.js's remaining inline
 // styles (playstyle component, image/video/table/accordion/combo blocks,
 // callout tooltip content, system-page tab grid) extracted to CSS classes.
 //

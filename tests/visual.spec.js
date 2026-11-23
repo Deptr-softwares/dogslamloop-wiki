@@ -10,7 +10,7 @@ const PAGES = [
   { path: '/characters/Boomcat/index.html', name: 'character-page' },
   { path: '/systems/framedata/index.html', name: 'system-page' },
   { path: '/systems/tierlist/index.html', name: 'tierlist-page' },
-  { path: '/admin.html', name: 'admin-logged-out' },
+  { path: '/overseer.html', name: 'admin-logged-out' },
   { path: '/edit.html', name: 'edit-logged-out' },
 ];
 

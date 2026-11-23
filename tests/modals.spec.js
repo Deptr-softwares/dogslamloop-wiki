@@ -42,7 +42,7 @@ test('edit.html: customConfirm modal actually becomes visible when opened', asyn
 });
 
 test('.editor-modal-overlay class resolves to display:flex when unhidden (shared by editor.js and admin.js)', async ({ page }) => {
-  // Both edit.html and admin.html load editor.css; this checks the class
+  // Both edit.html and overseer.html load editor.css; this checks the class
   // itself rather than any specific page's auth-gated modal.
   await page.goto('/edit.html', { waitUntil: 'networkidle' });
   const display = await page.evaluate(() => {

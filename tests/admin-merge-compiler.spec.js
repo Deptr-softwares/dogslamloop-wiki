@@ -19,10 +19,10 @@
 const { test, expect } = require('@playwright/test');
 
 test('real bug fix: merge compiler detects array conflicts by identity, not position - a deletion in one ticket does not corrupt an unrelated item edited by another ticket', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
-    // admin.html's RBAC gate wiped document.body for this logged-out
+    // overseer.html's RBAC gate wiped document.body for this logged-out
     // visitor - reconstruct just the DOM openMergeCompiler actually reads.
     document.body.innerHTML = `
       <div id="compiler-modal-overlay" class="hidden">

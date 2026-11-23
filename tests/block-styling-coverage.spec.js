@@ -52,7 +52,7 @@ test('every authored block class is styled by a stylesheet all page types load',
         .map(f => ({ name: f, css: fs.readFileSync(path.join(STYLE_DIR, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '') }));
 
     // The renderer that produces authored blocks on every page type.
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'description.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'page_render.js'), 'utf8');
     const body = src.slice(src.indexOf('generateHTMLForBlocks'));
 
     // A class attribute holding a template, `sbox-tab${i === 0 ? ' is-active' : ''}`,
@@ -107,7 +107,7 @@ test('a combo block looks the same on a tool page as on a character page', async
                 note: read('.combo-note'),
                 damage: read('.combo-damage'),
                 // Colour is deliberately left out of the title's signature.
-                // .strategy-title is var(--accent-blue), and js/utility/site_meta.js
+                // .strategy-title is var(--accent-blue), and js/utility/site_lookups.js
                 // re-points that per character - so a character page really
                 // should render it in that character's colour and a tool page
                 // in the site default. Comparing it would pin a bug as a fix.

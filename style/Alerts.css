@@ -1,7 +1,7 @@
 /* Alerts and callouts: a page's banner alerts (WIP, Early Access, missing media),
    the inline callout buttons Blocks draw, and the banner on a page 404.html rescues.
    Since v0.4.
-   Touches: --callout-color, set per callout by description.js.
+   Touches: --callout-color, set per callout by page_render.js.
    See: docs/looks.md */
 
 /* Banner alerts */
@@ -52,7 +52,7 @@
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
     
-    /* --callout-color comes from description.js, per callout. */
+    /* --callout-color comes from page_render.js, per callout. */
     border-left: 4px solid var(--callout-color, var(--accent-blue));
     color: var(--text-white);
     

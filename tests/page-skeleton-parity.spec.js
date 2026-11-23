@@ -48,7 +48,7 @@ const NEVER_ROUTED = [
 // The character tabs, in source order, with the class list each div carries.
 // The classes are not uniform (#tab-skills is .vessel-content.space-y-8 while
 // #tab-overview is .tab-content) and that asymmetry is load-bearing for
-// framedata.js/description.js, so it is asserted exactly rather than loosely.
+// skill_card.js/page_render.js, so it is asserted exactly rather than loosely.
 //
 // Derived from js/utility/character_tabs.js rather than restated here. This spec's
 // claim is that the router builds what the vocabulary declares; a second copy
@@ -70,8 +70,8 @@ const EXPECTED_CHARACTER_TABS = (() => {
   }));
 })();
 
-// Ids the shared chrome in js/pages/core/pagebuilder.js, js/pages/core/description.js and
-// js/pages/core/framedata.js look up directly. A router that omits any of them fails
+// Ids the shared chrome in js/pages/core/pagebuilder.js, js/pages/core/page_render.js and
+// js/pages/core/skill_card.js look up directly. A router that omits any of them fails
 // silently - most of these lookups bail without throwing.
 const REQUIRED_CHROME_IDS = [
   'master-sidebar', 'global-sidebar-nav', 'sidebar-dynamic-dock',
@@ -90,7 +90,7 @@ async function captureSignature(page) {
             el.tagName + (el.className ? '.' + el.className.trim().split(/\s+/).join('.') : ''))
         : null,
       // Direct children of the content area only. A bare [id^="tab-"] also
-      // matches the nested variant tabs js/pages/core/framedata.js builds inside a skill
+      // matches the nested variant tabs js/pages/core/skill_card.js builds inside a skill
       // card (tab-<move>-<variant>), so whether this passed depended on
       // whether the live frame data happened to arrive before the snapshot -
       // it failed CI intermittently on one character at a time. The router's
@@ -113,7 +113,7 @@ async function captureSignature(page) {
       // Non-empty proves the stylesheets were parsed before this ran.
       accentBlue: getComputedStyle(document.documentElement)
         .getPropertyValue('--accent-blue').trim(),
-      // js/utility/site_meta.js reads --frame-color-* via getComputedStyle at
+      // js/utility/site_lookups.js reads --frame-color-* via getComputedStyle at
       // script-parse time. If CSS ever became async these silently go blank
       // and every frame-data tick loses its colour.
       frameColorsPopulated: window.FRAME_COLORS
@@ -150,7 +150,7 @@ test.describe('character pages', () => {
       // Classes are asserted as a superset, not an exact match, and this is a
       // race fix rather than a loosening.
       //
-      // loadPageDescriptions (js/pages/core/description.js:740/827/881) adds
+      // loadPageDescriptions (js/pages/core/page_render.js:740/827/881) adds
       // 'vessel-content space-y-6' to #tab-overview, #tab-matchups and
       // #tab-counterplay once the page's data arrives. The boot fires it
       // without awaiting, so whether it has run by the time this snapshot is
@@ -191,7 +191,7 @@ test.describe('system pages', () => {
         'MAIN.main-content-area.space-y-6',
         'ASIDE.local-sidebar-right',
       ]);
-      // System pages ship no tab divs of their own - description.js creates
+      // System pages ship no tab divs of their own - page_render.js creates
       // them from desc_data.tabs[] at runtime. Asserted at domcontentloaded,
       // before that fetch resolves.
       expect(sig.tabs).toEqual([]);
@@ -208,8 +208,8 @@ test.describe('system pages', () => {
   }
 });
 
-test('system pages expose the container description.js requires', async ({ page }) => {
-  // js/pages/core/description.js:494 queries .main-content-area by CLASS and returns
+test('system pages expose the container page_render.js requires', async ({ page }) => {
+  // js/pages/core/page_render.js:494 queries .main-content-area by CLASS and returns
   // early if absent - a router that renamed it would render nothing at all,
   // with no error anywhere.
   await page.goto('/systems/m1-trading/index.html', { waitUntil: 'domcontentloaded' });

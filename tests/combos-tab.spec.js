@@ -381,7 +381,7 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
   expect(state.table.rows[0].damage).toBe('38-46');
   expect(state.table.rows[0].difficulty).toBe('Medium');
   // A stray `rows: []` here meant editor-tabs.js had overwritten
-  // description.js's window.renderComboTableBody by declaring the same name.
+  // page_render.js's window.renderComboTableBody by declaring the same name.
   expect(Object.keys(state.table.rows[0])).not.toContain('rows');
   expect(state.previewRows, 'the live preview draws the table as it types').toBeGreaterThan(0);
 

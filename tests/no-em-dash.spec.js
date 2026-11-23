@@ -2,7 +2,7 @@
 // the owner banned it outright). Every script, stylesheet and hand-written page,
 // comments included. Node only.
 //
-// Generated pages and site_meta.js's generated region are left out: they carry
+// Generated pages and site_lookups.js's generated region are left out: they carry
 // the owner's own content, and a dash typed there must never turn CI red.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');

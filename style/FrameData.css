@@ -119,7 +119,7 @@
 .phase-section:hover { opacity: 0.8; }
 .frame-tick { flex-grow: 1; height: 100%; border-right: 1px solid #000000; }
 
-/* An estimated phase: framedata.js draws no .frame-tick in it, so the block is
+/* An estimated phase: skill_card.js draws no .frame-tick in it, so the block is
    solid, and that absence is the marker, since the ticks mean "measured". Nothing
    else is added: it would compete with the tick colours.
    min-width, so a "Non-existent" estimate still leaves a mark. */

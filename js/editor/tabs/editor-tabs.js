@@ -761,7 +761,7 @@ window.updateKeyedMeta = function(tabId, idx, field, value) {
 };
 
 /**
- * A combo row's fields: window.COMBO_COLUMNS (description.js) plus the two
+ * A combo row's fields: window.COMBO_COLUMNS (page_render.js) plus the two
  * resource fields, so a column added to the table appears here too.
  * @since v0.15
  */
@@ -1296,7 +1296,7 @@ window.renderDocumentListEditor = function (tabId) {
     renderDocumentListRows(tabId, section, tables);
 };
 
-// Not renderComboTableBody: description.js has a window.renderComboTableBody,
+// Not renderComboTableBody: page_render.js has a window.renderComboTableBody,
 // and a top-level function here would overwrite it in the shared global scope.
 function renderDocumentListRows(tabId, section, tables) {
     const container = document.getElementById('combo-table-body');

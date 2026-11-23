@@ -143,7 +143,7 @@ test('the admin queue stands in for the helpers it needs', async ({ page }) => {
     Object.defineProperty(window, 'getCharacterModes', { configurable: true, writable: true, value: undefined });
   });
 
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const standIns = await page.evaluate(() => ({
     isBaseMode: typeof window.isBaseMode,

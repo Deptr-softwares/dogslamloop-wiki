@@ -11,6 +11,7 @@ What every generated page is built from before its content arrives: the skeleton
 - `js/pages/types/tool_page.js`: the tool page type, a host for a tool's own renderer.
 - `js/pages/types/gallery.js`: the gallery page type, a flat searchable list of media.
 - `js/pages/core/pagebuilder.js`: the sidebar, roster, tabs, table of contents and footer.
+- `scripts/page-scripts.js`: the scripts each kind of page loads, in order. The generator writes a generated page's tags from it, and `npm run generate` writes the marked block in each hand-written page.
 
 ## Data
 
@@ -21,16 +22,18 @@ What every generated page is built from before its content arrives: the skeleton
 
 ## Watch for
 
-- `page_router.js` runs before `site_utils.js` and `site_meta.js`, so it keeps its own escaper and writes the icon markup itself. Hand-authored pages never set `PAGE_ROUTE`. Test: `tests/page-skeleton-parity.spec.js`.
-- `page_boot.js` stays the last script on a stub, so `site_meta.js`'s character theme runs first. Its character and system branches differ on purpose (CLAUDE.md).
+- `page_router.js` runs before `site_utils.js` and `site_lookups.js`, so it keeps its own escaper and writes the icon markup itself. Hand-authored pages never set `PAGE_ROUTE`. Test: `tests/page-skeleton-parity.spec.js`.
+- `page_boot.js` stays the last script on a stub, so `site_lookups.js`'s character theme runs first. Its character and system branches differ on purpose (CLAUDE.md).
 - Every tab button `page_router.js` draws must be bound by `page_boot.js`, optional ones included, or it ships unclickable.
 - A rescued page is still an HTTP 404, so crawlers and Discord previews do not see it until the stub is generated.
+- A page's scripts change in its list in `scripts/page-scripts.js`, then `npm run generate`, never in the page: `npm run validate` fails a block that does not match its list, and a script tag outside the block. Test: `tests/page-scripts.spec.js`.
 - The page templates hold HTML comments of their own. They are template text, so they reach readers, and the comment trim left them alone.
 
 ## Decisions
 
 Newest first. One entry per decision.
 
+- **2026-11-23, silent release, #309.** Each kind of page has one script list, in `scripts/page-scripts.js`. The generator writes a generated page's tags from it, and each hand-written page has one marked block that `npm run generate` rewrites (the owner's pick). A file renamed or added changes one list, not 74 pages. Every page loads the scripts it loaded before, in the same order.
 - **2026-11-19, v1.2, #284.** Hovering a roster card for about 0.25 s opens the character's banner with the start of their Overview. The owner's card: "When hovering above a character box icon in the roster selection section for about 0.25s, a banner pop up that have a custom wide stretch image (different from the portrait) with a cut-off Overview." The banner and the line come from `data/banners.json`, mirrored nightly, so a hover asks Supabase for nothing. A mouse or a keyboard only: a tap opens the page.
 - **2026-11-17, v1.2, #275.** A phone gets a bar fixed to the bottom of the screen with search, the account, Site Settings and Ko-fi, on every page that starts the phone navigation (the owner's pick). Their card: "No quick way to start searching the wiki on mobile (need to press on the burger first in order to search)". Each button calls what its desktop twin calls.
 - **2026-10-29, v1.2, #262.** History draws a past version of a character page with the live page's own steps (`bootCharacterContent`), rather than a copy of them that would drift.

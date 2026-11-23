@@ -5,7 +5,7 @@
 // the current submission with all the green parts". The owner's pick from the
 // mockups (2026-11-18): the whole page, side by side, rows level.
 //
-// Every test opens a real submission in the real admin.html, as an admin, with
+// Every test opens a real submission in the real overseer.html, as an admin, with
 // only the database answered by the test. Both halves are drawn by the site's
 // own renderers, so what is asserted is what a reviewer sees: which words are
 // struck or added, where a slot stands, whether two rows sit level.
@@ -49,7 +49,7 @@ const rev = (over = {}) => ({
     ...over,
 });
 
-// admin.html as an admin (or the given role row), with the queue and the live
+// overseer.html as an admin (or the given role row), with the queue and the live
 // page answered here. Realtime is stubbed, so nothing reaches Supabase.
 async function openOverseer(page, { rows = [rev()], desc = liveDesc(), frame = liveFrame(), role = { role: 'admin' } } = {}) {
     await page.addInitScript(({ rows, desc, frame, role }) => {
@@ -87,7 +87,7 @@ async function openOverseer(page, { rows = [rev()], desc = liveDesc(), frame = l
             },
         });
     }, { rows, desc, frame, role });
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 }
 
 async function reviewFirst(page) {
@@ -145,7 +145,7 @@ test('a submission opens side by side: what goes struck in red on the live page,
 });
 
 test("a move's strategy text is compared with the rest of its card", async ({ page }) => {
-    // Drawn into the card 300ms after the card itself (js/pages/core/description.js).
+    // Drawn into the card 300ms after the card itself (js/pages/core/page_render.js).
     const edit = rev({
         target_scope: 'move', target_key: 'skills::m-1',
         delta_payload: { frame_data: move('14', 'Hold for 1s'), desc_data: [para('Combo into it from a whiffed M1.')] },
@@ -425,7 +425,7 @@ test('the levelling moves a grid row as one, and nothing it pushes animates', as
     // column (pushed by a margin, which must not animate, or the levelling
     // chases it every frame), and above twins in a two-column grid (which
     // must move as one row, not item by item).
-    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.SideBySide);
     const out = await page.evaluate(async () => {
         const side = (extra) => {

@@ -431,7 +431,7 @@ function recentColorsHTML(withGradients) {
 }
 
 // A Heading Block's optional side bar, in any colour (block.sideBar, drawn by
-// description.js).
+// page_render.js).
 function headingBarRowHTML(block) {
     const bar = typeof window.safeColor === 'function' ? window.safeColor(block.sideBar) : null;
     // safeColor, the renderer's own filter, so the value stays in the attribute.
@@ -945,7 +945,7 @@ function notationNameNote(names, typed) {
 // The other styles' names, for `field`: its own name is in the data too, once.
 function showNotationNames(field) {
     const row = field.closest('.nstyle-row');
-    // owner.html loads this file without description.js.
+    // owner.html loads this file without page_render.js.
     if (!row || typeof window.comboNotationKey !== 'function') return;
     const counts = pageNotationNames();
     const own = counts.get(window.comboNotationKey(field.value));
@@ -1344,7 +1344,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                         <div id="format-icon-list" class="format-jump-list"></div>
                     </div>
                 </div>
-                <!-- The two shortcodes v0.14 added to js/pages/core/internalstyling.js.
+                <!-- The two shortcodes v0.14 added to js/pages/core/format_tags.js.
                      They rendered on the page from the day they shipped and
                      had no way to be typed except by hand, which is the same
                      as not existing for most contributors. -->
@@ -2179,7 +2179,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     }
 
-    // The icon picker: the groups internalstyling.js draws for [icon=]. A character
+    // The icon picker: the groups format_tags.js draws for [icon=]. A character
     // with no icon uploaded is left out, since its tag would come back as text.
     const iconBtn = container.querySelector('#btn-format-icon');
     const iconPopup = container.querySelector('#format-icon-popup');

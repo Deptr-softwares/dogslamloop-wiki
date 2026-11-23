@@ -29,7 +29,7 @@ What a comment holds (owner, 2026-11-22: "JSDoc block").
 
 ## Example
 
-Before, `js/pages/core/description.js` (15 lines, shortened here):
+Before, `js/pages/core/page_render.js` (15 lines, shortened here):
 
 ```js
 // --- PROFILE DESCRIPTION (v1.1) ---
