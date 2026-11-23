@@ -16,6 +16,7 @@ edit.html: where editors write a page and send it for review. The header and its
 - `js/editor/tabs/editor-tool.js`: the tool page editor.
 - `js/editor/tools/editor-previews.js`: the preview of the Overview, Matchups and keyed sections.
 - `js/editor/tools/editor-playground.js`: the Editor Playground.
+- `js/pages/tools/editor_playground.js`: the Playground's own page in the Tools menu, which opens it.
 - `js/editor/tools/editor-notices.js`: the first-visit notices.
 - `js/editor/tools/editor-tutorial.js`: the tour and the Manual of Style.
 - `js/editor/tools/editor-writing-checks.js`: the writing checks.
@@ -53,6 +54,7 @@ Newest first. One entry per decision.
 - **2026-10-24, v1.2, #253.** The tour and the Manual of Style find their Writing Guide section in any tab: the owner reorganises the guide through the site.
 - **2026-10-24, v1.2, #255.** A system page's deltas are listed in the order approval needs: a new tab first, then the sections, then an existing tab's metadata, then the tab order. Listed otherwise, a new section or one moved in from another tab landed at the bottom of its tab, whatever the author saw.
 - **2026-10-21, v1.1, #242.** The Editor Playground: "a place where Editor can mess around with the Editor as much as they like without any consequences or worry" (owner, 2026-10-18). It starts as a blank character page, open to anyone, and Submit becomes Pull: "the editor can pull page_data from any page and edit them in the editor playground". It keeps one draft of its own.
+- **2026-10-21, v1.1, #242.** The Playground has a page of its own in the Tools menu, so a new editor finds it before ever opening the editor (owner, 2026-10-20).
 - **2026-10-20, v1.1, #241.** Writing checks: character names written the anime's way and broken format tags (owner, 2026-10-18), scoped to "only JJK equivalent name count, meme name and shortened name don't count", then "you should also warn on Higgy and Kuro" (owner, 2026-10-20). A yellow line with FIX while typing, and a list at Submit that can still be sent. Grammar waits for later.
 - **2026-10-20, v1.1, #239.** Clicking a Block in the preview opens it in the Workspace, the first step towards editing in the preview (an editor's feedback, 2026-10-19).
 - **2026-10-20, v1.1, #237.** Submit keeps every draft and warns instead (owner, 2026-10-19), and there are five auto-save slots across pages: "a max limit of 5 auto-save slots for every editor". One already submitted goes first; a SAVED version is never dropped.

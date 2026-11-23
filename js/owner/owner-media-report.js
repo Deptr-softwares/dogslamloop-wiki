@@ -1,55 +1,29 @@
 /**
- * Dogslamloop Wiki - Owner tools: the broken-media report (v0.20 batch 3)
- *
- * Every image and video link on every page, checked, and the ones that load
- * nothing listed by page and by where on the page. On 2026-09-28 a one-off scan
- * found 86 of the 466 linked files missing, on 15 pages: placeholder M1 images
- * never uploaded, clips deleted after being linked, expired Discord attachment
- * links, and one address with a second one pasted into the middle of it. This
- * makes that scan repeatable, so a dead link can be fixed rather than found by
- * a reader.
- *
- * ON DEMAND, NEVER A CHECK. It reads owner content. A test or a CI step that
- * failed on a dead link would turn every edit that breaks one into a red
- * required check, and CLAUDE.md records what that does to the site: the
- * regeneration job stops and everything goes stale.
- *
- * HOW A FILE IS CHECKED, from the owner's own browser:
- *   - a HEAD request where the host allows it (Supabase Storage does), which
- *     answers exactly;
- *   - otherwise a detached <img> or <video>, which any host answers, Discord's
- *     CDN included. Detached, so the page's own missing-media listener never
- *     sees it.
- * A file that answers neither way within TIMEOUT_MS is "not checked", never
- * "fine": a slow host is not a working link.
- *
- * ONLY "IT IS NOT THERE" IS MISSING. Storage answers a request it is getting
- * too many of with 429, and the first version counted every non-2xx as
- * missing. On 2026-10-01 the owner's run listed files that load fine on their
- * pages; measured from here at six at a time, 45 of 466 answers were 429 and
- * 38 of the "missing" came back 200 one by one. Even two at a time drew a few.
- * So a 429, a 408 or a 5xx is the host, not the file: every lane waits, the
- * request is asked again, and one still refused after RETRIES is "not
- * checked". A 4xx otherwise (Storage's 400 for an absent object, a 404) is
- * missing, as before.
+ * The broken-media report: every image and video link on every page checked
+ * from the owner's browser, and the ones that load nothing listed by page and by
+ * where on the page.
+ * @since v0.20
+ * @touches site_pages, page_data
+ * @watch on demand, never a check: it reads owner content, and a test that failed
+ *   on a dead link would stop regeneration. Only "not there" (a 4xx) is missing;
+ *   a 429, a 408 or a 5xx is the host, retried and then "not checked", and so is
+ *   a file that answers neither way in time.
+ * @see docs/owner-tools.md
  */
 (function () {
     const MEDIA_EXT = /\.(webm|mp4|mov|m4v|ogv|gif|webp|png|jpe?g|avif)$/i;
     const VIDEO_EXT = /\.(webm|mp4|mov|m4v|ogv)$/i;
     const CONCURRENCY = 3;
     const TIMEOUT_MS = 15000;
-    // Read at call time, so the test can shorten the waits without the
-    // real report getting any less patient.
+    // Read at call time, so the test can shorten the waits.
     const TIMING = { retries: 4, backoffMs: 1500 };
 
-    // Shared by every lane: the limit is the host's, not one request's, so
-    // when one is told to slow down they all wait.
+    // Shared by every lane: the limit is the host's, so they all wait.
     let pauseUntil = 0;
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     const isBusy = (status) => status === 429 || status === 408 || status >= 500;
 
-    // An address, to a media file or into Storage. Relative /medias/ paths are
-    // the site's own files and count too.
+    // Relative /medias/ paths are the site's own files and count too.
     function isMediaLink(s) {
         if (!/^(https?:\/\/|\/medias\/|medias\/)/i.test(s)) return false;
         return MEDIA_EXT.test(s.split(/[?#]/)[0]) || s.includes('/storage/v1/object/');
@@ -62,15 +36,12 @@
             .replace(/^./, c => c.toUpperCase());
     }
 
-    // Headings and names carry the site's [b]...[/b] shortcodes; the report
-    // wants the words.
     function plain(s) {
         return String(s).replace(/\[\/?[a-z]+(=[^\]]*)?\]/gi, '').replace(/\s+/g, ' ').trim().slice(0, 60);
     }
 
-    // Where a link sits, as a trail a person can follow on the page: the tab or
-    // section, the named thing it belongs to (a move, a matchup, a card), and
-    // the nearest heading above it.
+    // A trail a person can follow on the page: the tab or section, the thing the link
+    // belongs to (a move, a matchup, a card) and the nearest heading.
     function collectRefs(pageId, data, refs) {
         const walk = (node, trail) => {
             if (typeof node === 'string') {
@@ -104,7 +75,7 @@
         try { return new URL(url, window.location.origin + '/').href; } catch (e) { return null; }
     }
 
-    // null when the host will not say (no CORS), so the element probe decides.
+    // null when the host will not say (no CORS), so a detached element decides.
     async function checkWithFetch(url) {
         for (let attempt = 0; ; attempt++) {
             const wait = pauseUntil - Date.now();
@@ -137,7 +108,7 @@
                 if (settled) return;
                 settled = true;
                 clearTimeout(timer);
-                // Stop the download: only the answer was wanted.
+                // Stops the download: only the answer was wanted.
                 if (isVideo) { el.removeAttribute('src'); el.load(); } else { el.removeAttribute('src'); }
                 resolve(verdict);
             };
@@ -180,8 +151,7 @@
         try { return decodeURIComponent(last); } catch (e) { return last; }
     }
 
-    // Every node built with createElement, every address set as a property:
-    // links and headings in this report are contributor-written content.
+    // Built with createElement and properties: links and headings are contributor text.
     function renderReport(out, refs, status, pages) {
         out.textContent = '';
         const files = [...new Set(refs.map(r => r.url))];
@@ -276,8 +246,7 @@
         }
     }
 
-    // Exposed for the test, which drives the walk without a network and
-    // shortens the retry waits.
+    // For the test, which walks without a network and shortens the waits.
     window.mediaReportInternals = { isMediaLink, collectRefs, TIMING };
 
     document.addEventListener('DOMContentLoaded', () => {

@@ -1,69 +1,33 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: character states in the preview
- *
- * Character states shipped in v0.12 and the reviewer's preview was never
- * taught about them. Everything below exists to close one gap: a revision
- * that edits a state rendered as *unchanged*, because the preview only ever
- * drew the base kit and offered no way to leave it.
- *
- * That is worse than a rendering bug. A reviewer who cannot see the change is
- * approving blind, and Diff View is a fallback for checking detail - not a
- * substitute for seeing the page. Same family as the v0.12 merge-compiler
- * P0: nothing is destroyed outright, the review process just quietly stops
- * being a review.
- *
- * Three things are needed, and they are all here rather than in
- * js/pages/core/character_modes.js:
- *
- *   - a state toggle, so a reviewer can look at any state the revision or the
- *     live page declares;
- *   - the Ultimate tab, which base-only characters keep their whole ultimate
- *     in and which admin.html's static tab strip has no button for;
- *   - a marker saying which states changed, so "nothing changed here" is
- *     distinguishable from "you are looking at the wrong state".
- *
- * character_modes.js is not reused because it is built around the live page:
- * it reads window.PAGE_ROUTE, rewrites ?mode= in the address bar, and fetches
- * its own data from the cloud. The preview has none of that - it renders two
- * in-memory versions (pending and live) of a page that does not exist yet.
- * The shared half is the part that is genuinely shared already:
- * getCharacterModes, resolveModeFrame, resolveModeDesc and unwrapModeDelta in
- * js/utility/site_utils.js.
+ * Character states in the Overseer's preview: the state toggle, the Ultimate tab
+ * for the state on screen, and a marker on each state the revision changed, so
+ * "nothing changed here" is told apart from "this is the wrong state".
+ * @since v0.14
+ * @touches window.activePreviewMode, window.changedModes, getCharacterModes,
+ *   resolveModeFrame, resolveModeDesc and unwrapModeDelta (site_data.js),
+ *   setupTabs (pagebuilder.js), switchVersionView (admin-preview.js)
+ * @watch not character_modes.js: that one is built for the live page (the address
+ *   bar, its own fetch), and this one draws two versions held in memory.
+ * @see docs/overseer.md
  */
 
 (function () {
     const ULTIMATE_TAB_ID = 'ultimateAtk';
     const ULTIMATE_TAB_LABEL = 'Ultimate';
 
-    // The static strip in admin.html: the editable tabs, minus the injected
-    // Ultimate this file adds and minus Gallery, which has no reviewer view.
-    // Re-registering the whole list when the Ultimate tab is injected is what
-    // teaches the buttons bound at boot to also hide it when they are clicked
-    // (see setupTabs, js/pages/core/pagebuilder.js).
-    // includeOptional for the same reason js/overseer/admin-core.js does: this is
-    // evaluated when the module loads, long before any revision has told the
-    // page which optional tabs it has, and the list is only ever used to BIND
-    // buttons through setupTabs. Binding a button that stays hidden costs
-    // nothing; failing to bind one that gets un-hidden leaves it inert.
-    //
-    // DEFENSIVE, NOT LOAD-BEARING - and that is worth saying, because
-    // falsifying it proves nothing. setupTabs accumulates into a group and
-    // never removes, so admin-core.js having already registered Techs means
-    // reverting this line breaks no test. It is here so the list is not
-    // quietly wrong about what "the admin character tabs" are, and so this
-    // call does not depend on the other one having run first.
+    // admin.html's strip: the editable tabs, optional ones included, since this
+    // runs before any revision says which it has. Registered again when Ultimate is
+    // added, so buttons bound at boot hide it. It repeats admin-core.js's list on
+    // purpose, so this call does not depend on that one running first.
     const ADMIN_CHARACTER_TABS = window.getCharacterTabIds({ editableOnly: true, includeOptional: true });
 
     const BASE = () => window.BASE_MODE_ID || 'base';
     const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
 
-    // null, undefined and 'base' all name the same state.
     const sameState = (a, b) => ((isBase(a) && isBase(b)) || a === b);
 
-    // Every state either version declares, live first. The union rather than
-    // just the pending side, because a revision that *deletes* a state still
-    // has to be reviewable: the reviewer needs to open the thing being removed
-    // and see what is in it before agreeing to lose it.
+    // Every state either version declares, live first: a revision that deletes a
+    // state must let the reviewer open it first.
     function previewModes() {
         const read = (frame) => (typeof window.getCharacterModes === 'function'
             ? window.getCharacterModes(frame || {})
@@ -76,9 +40,8 @@
         return out;
     }
 
-    // The base kit is the top level minus the state buckets. Comparing the
-    // whole object instead would report every state edit as a base edit too,
-    // which is the reverse of the bug this file fixes.
+    // The base kit is the top level without the state buckets, or every state edit
+    // would read as a base edit too.
     function scopedDesc(full, modeId) {
         const base = full || {};
         if (!isBase(modeId)) return (base.modeData || {})[modeId] || {};
@@ -96,10 +59,10 @@
         return out;
     }
 
-    // Which states this revision actually touches. Drives the dot on the
-    // chips and the "also changed in" line in the popup - the two things that
-    // tell a reviewer looking at an unchanged base kit that the edit is real
-    // and lives somewhere else.
+    /**
+     * Which states the revision touches: the dot on the toggle's chips and the "also
+     * changed in" line.
+     */
     window.computeChangedModes = function(rev) {
         const changed = [];
         const mark = (modeId) => {
@@ -120,9 +83,7 @@
             return changed;
         }
 
-        // A full overwrite carries no scope to read, so compare state by
-        // state. Includes base, which is the only state the old preview could
-        // show at all.
+        // A full overwrite has no scope to read, so each state is compared.
         const ids = previewModes().map(m => m.id);
         if (!ids.some(isBase)) ids.unshift(BASE());
 
@@ -137,13 +98,11 @@
         return changed;
     };
 
-    // --- THE STATE TOGGLE ---
     function wireModeBar(bar) {
         if (bar.dataset.wired === 'true') return;
         bar.dataset.wired = 'true';
 
-        // data-mode-id plus one delegated listener, never an inline onclick -
-        // the id and label are contributor-authored and reach this markup.
+        // data-mode-id and one delegated listener: the id and label are contributor text.
         bar.addEventListener('click', (e) => {
             const chip = e.target.closest('[data-mode-id]');
             if (!chip || !bar.contains(chip)) return;
@@ -184,8 +143,7 @@
         window.activePreviewMode = next;
         window.activeCharacterMode = next;
 
-        // The Ultimate tab belongs to whichever state is on screen, so it can
-        // appear and disappear as states are switched.
+        // The Ultimate tab belongs to the state on screen.
         window.syncPreviewUltimateTab();
 
         const rev = (window.currentQueueData || []).find(r => r.id === window.activePreviewRevId);
@@ -193,22 +151,14 @@
 
         window.renderPreviewModeBar();
 
-        // Redraw whichever of pending/live/diff the reviewer was already in,
-        // rather than snapping them back to a default - switching state is a
-        // question about the same comparison, not a new one.
+        // The same view redraws: switching state asks about the same comparison.
         if (typeof window.switchVersionView === 'function') {
             await window.switchVersionView(window.activePreviewViewMode || 'pending');
         }
     };
 
-    // --- THE ULTIMATE TAB ---
-    //
-    // Shown when either version has ultimate moves in the state being viewed.
-    // This deliberately differs from the live page, which also shows an empty
-    // Ultimate tab for any character the registry marks base-only: there, an
-    // empty tab is how the team sees there is something to fill. A reviewer is
-    // not filling anything, and an always-present empty tab in a review strip
-    // is one more place to check that never has anything in it.
+    // Shown when either version has ultimate moves in the state on screen. Unlike
+    // the live page, no empty Ultimate tab: a reviewer has nothing to fill.
     function ultimateMoveCount(frame, modeId) {
         const scoped = (typeof window.resolveModeFrame === 'function')
             ? window.resolveModeFrame(frame || {}, modeId)
@@ -233,9 +183,8 @@
         const wanted = window.previewHasUltimate();
 
         if (!wanted) {
-            // setupTabs keeps 'ultimateAtk' in its id list once registered,
-            // but every lookup there is null-guarded, so removing the nodes is
-            // safe and leaves no dangling handler.
+            // setupTabs keeps 'ultimateAtk' registered, and every lookup there is
+            // null-guarded, so removing the nodes is safe.
             const wasActive = btn && btn.classList.contains('active');
             if (btn) btn.remove();
             if (panel) panel.remove();
@@ -278,11 +227,11 @@
         return true;
     };
 
-    // --- ENTRY POINT ---
-    //
-    // Called by previewRevision once both versions are in memory. Picks the
-    // state to open on, builds the toggle and the Ultimate tab, and leaves
-    // window.activePreviewMode set for every renderer downstream.
+    /**
+     * Called by previewRevision once both versions are in memory: picks the state to
+     * open on, builds the toggle and the Ultimate tab, and sets
+     * window.activePreviewMode for every renderer after it.
+     */
     window.initPreviewStates = function(rev) {
         window.activePreviewMode = null;
         window.changedModes = [];
@@ -294,10 +243,7 @@
             return;
         }
 
-        // A delta names the state it edits, so open on it. Without this a
-        // reviewer handed an ultimate-state edit is shown the base kit, where
-        // nothing has changed - the worst possible thing to put in front of
-        // someone about to click Approve.
+        // A delta names its state, so the preview opens on it rather than the base kit.
         let target = null;
         if (rev && rev.is_delta) {
             if (rev.target_scope === 'mode') {
@@ -310,9 +256,7 @@
 
         window.changedModes = window.computeChangedModes(rev);
 
-        // A full overwrite carries no scope to read. If it changed exactly one
-        // state and that state is not the base kit, open on it - same reasoning
-        // as the delta case, reached by comparison instead of by declaration.
+        // A full overwrite that changed exactly one state, not the base, opens on it too.
         if (!target && window.changedModes.length === 1 && !isBase(window.changedModes[0])) {
             target = window.changedModes[0];
         }

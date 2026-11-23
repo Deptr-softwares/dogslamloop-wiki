@@ -1,26 +1,16 @@
 /**
- * Dogslamloop Wiki - Owner Tools: Dashboard Steps.
- *
- * The Side Dashboard's two numbered lists - Start Here, and How to Contribute.
- *
- * Curated, not generated. navigation.json knows which guides exist but has no
- * opinion on which to read first, and that opinion is the whole value of the
- * section: a generated version would just be the registry in a different
- * shape. So these are owner-edited, and the order in the form is the order on
- * the page.
- *
- * Stored under site_meta.hubs[hub].lists, alongside the titles, descriptions
- * and headings that card already manages. Read at runtime from
- * data/site_meta.json by js/dashboards/hub_content.js's renderHubList - so unlike the
- * <title>/OG block, these appear as soon as they are saved.
- *
- * A step with a blank url renders as plain text rather than a link, because
- * "Sign in" is an instruction, not a page.
+ * Dashboard Steps: the Side Dashboard's two numbered lists, Start Here and How to
+ * Contribute, chosen and ordered by the owner. The order in the form is the order
+ * on the page.
+ * @since v0.11
+ * @touches site_meta.hubs[hub].lists (read at runtime from data/site_meta.json by
+ *   renderHubList in hub_content.js)
+ * @watch owner-site-meta.js saves the same hubs column, each card from the copy it
+ *   loaded. A step with no url is plain text ("Sign in" is an instruction, not a
+ *   page); a url must be http(s), as renderHubList requires.
+ * @see docs/owner-tools.md
  */
 
-// Reuses siteMetaRow from js/owner/owner-site-meta.js, which loads the same
-// singleton. Two cards editing one row could drift, so this one re-reads
-// before saving rather than trusting a copy taken at page load.
 let hubListWorking = null;
 
 const HUB_LISTS_PAGE = 'systems-hub';
@@ -81,8 +71,8 @@ function renderHubListSteps() {
         </div>
     `).join('');
 
-    // Every handler re-reads the form first, so reordering or deleting one row
-    // cannot discard text typed into another.
+    // Every handler reads the form first, so moving or deleting one row keeps text
+    // typed into another.
     container.querySelectorAll('.hub-step-up').forEach(btn => {
         btn.addEventListener('click', () => moveHubStep(Number(btn.dataset.i), -1));
     });
@@ -99,7 +89,6 @@ function renderHubListSteps() {
     });
 }
 
-/** Reads the form back into an ordered array. */
 function collectHubSteps() {
     const { steps: container } = hubListEls();
     const out = [];
@@ -114,7 +103,7 @@ function collectHubSteps() {
             url: url ? url.value.trim() : '',
             description: desc ? desc.value.trim() : '',
         };
-        // A row with nothing in it is a row the owner emptied to remove it.
+        // An emptied row is a removed row.
         if (step.title || step.url || step.description) out.push(step);
     });
 
@@ -157,8 +146,7 @@ async function saveHubLists() {
 
     setCurrentSteps(collectHubSteps());
 
-    // Same rule renderHubList enforces when painting. Rejecting here rather
-    // than silently dropping the link means a typo is visible at save time.
+    // The same rule renderHubList paints by, refused at save so a typo shows.
     const bad = currentSteps().find(s => s.url && /^[a-z][a-z0-9+.-]*:/i.test(s.url) && !/^https?:\/\//i.test(s.url));
     if (bad) {
         results.innerHTML = `<p class="admin-error-text">"${window.escapeHtml(bad.title || bad.url)}" must be a page path or an http(s) link.</p>`;
@@ -183,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!select) return;   // not on owner.html
 
     select.addEventListener('change', () => {
-        // Keep edits to the list being navigated away from.
+        // Keeps the edits to the list being left.
         if (hubListWorking) {
             const previous = select.dataset.previous || 'startHere';
             const steps = collectHubSteps();

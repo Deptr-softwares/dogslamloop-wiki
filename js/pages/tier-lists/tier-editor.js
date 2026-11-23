@@ -1,28 +1,19 @@
 /**
- * Dogslamloop Wiki - Tier List Editor (v0.14 item 3, second half)
- *
- * The list lives in the preview pane on the right and is dragged directly;
- * the workspace on the left holds the tier controls, the reasoning editor, and
- * the thing that makes this feature what it is - the pending moves, each
- * demanding a note before SAVE will do anything.
- *
- * THE NOTE RULE IS THE POINT. The owner's requirement is that every character
- * going up or down gets a short note from that author at the time they move
- * it. So this does not offer a changelog field to fill in afterwards: it
- * diffs the board against the placement it loaded, and every difference
- * becomes a row that has to be explained. A changelog written later is a
- * changelog written from memory, and the notes worth having are the ones
- * somebody wrote while they still knew why.
- *
- * The schema enforces it too - tier_list_changes.note is NOT NULL with a
- * length floor - so this file is the courtesy layer over a real rule rather
- * than the rule itself.
- *
- * Drag-and-drop is written here rather than reused from js/pages/tier-lists/tierlist.js. That
- * file's editor operates on the old desc_data.tabs model through
- * window.currentEditorDescData, and it is the least-audited major file in the
- * repo; binding a new feature to it would mean inheriting both its data model
- * and its bugs. Pointer events, so one implementation covers mouse and touch.
+ * The tier editor (tier-editor.html): one person's certified tier list, dragged
+ * on the board in the preview, with the tier controls, copies and badges, the
+ * introduction and reasoning, and the moves waiting for their notes. Every
+ * character moved needs a short note before SAVE, written while the author still
+ * knows why.
+ * @since v0.14
+ * @touches tier_lists, tier_list_changes, save_tier_list(), user_roles,
+ *   loadCharacterRoster and tierListEntry (site_data.js), rosterIconPath
+ *   (site_meta.js), initStrategyBlockBuilder, currentStrategyBlocks and
+ *   initColorPicker (editor-blocks.js)
+ * @watch tier_list_changes.note is NOT NULL with a length floor, and the save
+ *   gate here mirrors it. Its own drag and drop, not tierlist.js's (another data
+ *   model). The board and the preview use the reader page's classes, so the two
+ *   must stay alike.
+ * @see docs/tier-lists.md
  */
 
 (function () {
@@ -32,14 +23,12 @@
         roster: new Map(),   // page_id -> { name, url, image }
         original: new Map(), // entry key -> tier name at load, for the diff
         notes: new Map(),    // entry key -> note typed for its pending move
-        // Unplaced entries that carry more than a page_id: copies, and
-        // characters with a badge (v1.2). Any other unplaced character is just
-        // its page_id, recomputed from the roster as before.
+        // Unplaced entries that carry more than a page_id: copies and badged
+        // characters. Any other unplaced character is its page_id, from the roster.
         loose: new Map(),    // entry key -> entry
         gone: new Map(),     // entry key -> entry, for copies deleted this session
         canEdit: false,
         drag: null,
-        // Two documents, one block editor. See switchDoc.
         activeDoc: 'intro',
         intro: [],
         reasoning: [],
@@ -69,27 +58,18 @@
         if (title && message) title.textContent = message;
     }
 
-    // --- DATA ---
-
-    // site_data.js's loadCharacterRoster, shared with every tier list. This
-    // was the third copy, and the second found broken (v0.18): it read
-    // `entry.image`, which navigation.json never carries, so the editor drew
-    // the old guessed art while the reader page showed the current portraits.
+    // The roster loader every tier list shares.
     async function loadRoster() {
         state.roster = await window.loadCharacterRoster();
     }
 
-    // --- ENTRIES, COPIES AND BADGES (v1.2) ---
-    //
-    // An entry is a page_id, a badged character, or a copy; window.tierListEntry
-    // (js/utility/site_utils.js) reads all three, the same way the reader page does.
-    // Everything below keys on entry.key, so each copy is placed, diffed,
-    // noted and logged on its own.
+    // An entry is a page_id, a badged character or a copy, read by tierListEntry as
+    // the reader page reads it. Everything keys on entry.key, so each copy is
+    // placed, diffed, noted and logged on its own.
     const entryOf = (raw) => window.tierListEntry(raw);
     const keyOf = (raw) => { const entry = entryOf(raw); return entry ? entry.key : null; };
 
-    // What is saved for an entry. A character with no badge is saved as its
-    // page_id, exactly as every list was before copies existed.
+    // A character with no badge is saved as its page_id.
     function cleanEntry(raw) {
         const entry = entryOf(raw);
         if (!entry) return null;
@@ -98,10 +78,8 @@
         return entry.label ? { id: entry.id, label: entry.label, color } : entry.id;
     }
 
-    // As stored, which is as any caller sent it (save_tier_list checks only
-    // that tiers is an array): anything that is not an entry is dropped, and a
-    // key met twice keeps its first place, since two entries with one key
-    // could never be told apart.
+    // As stored, which is as any caller sent it: what is not an entry is dropped,
+    // and a key met twice keeps its first place.
     function normalizeLoaded() {
         const seen = new Set();
         state.tiers.forEach(tier => {
@@ -114,8 +92,7 @@
         });
     }
 
-    // Where an entry is, to read it or put a changed one back: a tier, or
-    // Unranked (state.loose, or for a plain character just its page_id).
+    // Where an entry is: a tier, or Unranked.
     function locate(key) {
         for (const tier of state.tiers) {
             const list = tier.characters || [];
@@ -131,7 +108,6 @@
         return null;
     }
 
-    // page_id -> the keys of its copies, in the order they appear.
     function copyGroups() {
         const groups = new Map();
         const add = (raw) => {
@@ -145,9 +121,8 @@
         return groups;
     }
 
-    // Snapshot of where everyone started, which is the only thing that makes a
-    // move detectable later. Taken once at load and never refreshed until a
-    // successful save, so moving a character out and back counts as no move.
+    // Where everyone started, the only thing that makes a move detectable. Taken at
+    // load and after a successful save, so out and back again is no move.
     function snapshotOriginal() {
         state.original.clear();
         state.tiers.forEach(tier => {
@@ -169,8 +144,8 @@
         return map;
     }
 
-    // Everybody whose tier differs from where they started, in either
-    // direction, including first placements and removals.
+    // Everyone whose tier differs from where they started, first placements and
+    // removals included.
     function pendingMoves() {
         const now = currentPlacement();
         const moves = [];
@@ -189,18 +164,12 @@
         return moves;
     }
 
-    // --- THE BOARD ---
-
-    // v0.18 FT4. Read from the control rather than held in state, so the board
-    // and the dropdown cannot disagree: there is exactly one place the answer
-    // lives while the editor is open, and it is the thing the contributor is
-    // looking at.
+    // Read from the control, so the board and the dropdown cannot disagree.
     function currentArtStyle() {
         const field = document.getElementById('tier-art-style');
         return field && field.value === 'icon' ? 'icon' : 'portrait';
     }
 
-    // `raw` is an entry: a page_id, a badged character or a copy.
     function portrait(raw, draggable) {
         const entry = entryOf(raw) || { key: String(raw), id: String(raw), label: '' };
         const pageId = entry.id;
@@ -208,19 +177,11 @@
         const useIcon = currentArtStyle() === 'icon';
 
         const node = el('div', 'tier-portrait' + (draggable ? ' draggable-portrait' : ''));
-        // THE EDITOR BOARD SHOWS WHAT THE READER WILL SEE. Without this the
-        // contributor picks "icons", their own board keeps drawing portraits,
-        // and the control reads as broken until they open the live page - which
-        // is the shape of complaint this project keeps receiving about work
-        // that shipped correctly.
+        // The board shows what the reader will see.
         if (useIcon) node.classList.add('tier-portrait-icon');
         node.dataset.charId = entry.key;
         node.title = meta.name;
-        // Icon mode moves the colour to the border - see the reader's copy of
-        // this in js/pages/tier-lists/certified-tier-lists.js and the rule it feeds in
-        // style/Layout.css. The editor board has to make the same choice or a
-        // contributor picks icons and previews something the readers will not
-        // see.
+        // Icon mode moves the colour to the border, as the reader page does.
         const charColor = window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name];
         if (charColor) {
             if (useIcon) node.style.setProperty('--char-color', charColor);
@@ -235,15 +196,12 @@
         img.draggable = false;
         img.addEventListener('error', () => { img.style.display = 'none'; });
 
-        // Derived from the pageId by the roster's own function, not a second
-        // manifest - an icon the owner adds appears here the day it appears on
-        // the roster. This page sits at the repo root, so the path needs no
-        // prefix, which is why meta.image is used bare above.
+        // From the roster's own function, so a new icon appears here when it does there.
+        // This page is at the repo root, so meta.image needs no prefix.
         const iconPath = useIcon && typeof window.rosterIconPath === 'function'
             ? window.rosterIconPath(pageId)
             : null;
-        // The reader's rule, so the board previews it (style/Layout.css,
-        // .is-icon-loaded).
+        // The reader's rule (.is-icon-loaded in Layout.css), previewed.
         if (iconPath) img.addEventListener('load', () => node.classList.add('is-icon-loaded'));
 
         img.src = iconPath || (meta.image
@@ -257,8 +215,7 @@
         return node;
     }
 
-    // A badge edited in the panel, redrawn on its portrait alone: renderBoard
-    // would rebuild the panel and drop the caret from the field being typed in.
+    // Redrawn on its portrait alone: renderBoard would drop the caret from the field.
     function refreshBadge(key) {
         const loc = locate(key);
         const entry = loc ? entryOf(loc.raw) : null;
@@ -292,10 +249,8 @@
             board.appendChild(row);
         });
 
-        // Anyone in the roster and in no tier. Recomputed rather than stored,
-        // so a character added to the wiki after this list was written shows up
-        // here on the next edit instead of being invisible forever. Then the
-        // copies waiting to be placed (v1.2), which only state.loose holds.
+        // Anyone on the roster and in no tier, recomputed, so a character added to the
+        // wiki later shows up. Then the copies waiting to be placed.
         const placed = new Set(currentPlacement().keys());
 
         tray.innerHTML = '';
@@ -315,38 +270,22 @@
         renderCopies();
 
         fitTierLabels();
-        // Per render, not once at script load: whether the font beats the
-        // board onto the page depends on the network, and a single handler
-        // registered at parse time fires before there is anything to measure.
+        // Per render: whether the font beats the board depends on the network.
         refitWhenFontsLoad();
         renderTierControls();
         renderPendingMoves();
-        // A move IS a changelog entry, so the preview has to follow the board.
-        // Guarded on state.ready because renderBoard runs during boot BEFORE
-        // the block builder is initialised, and renderPreviewDocs flushes the
-        // open document - which would write an empty buffer over the
-        // introduction it has not loaded yet.
+        // A move is a changelog entry, so the preview follows the board. Not before
+        // state.ready: the flush would write an empty buffer over the introduction.
         if (state.ready) renderPreviewDocs();
     }
 
-    // --- TIER NAMES THAT ARE NOT ONE LETTER (v0.16 fine-tuning 3) ---
-    //
-    // The name was never capped in code - the input allows 24 characters. What
-    // capped it was the box: .ctl-label is a fixed 92px at 1.5rem, so anything
-    // past about two characters wrapped and pushed the row out of shape, which
-    // is why "S" and "A" were the only names that ever looked right.
-    //
-    // ONE size for every tier, not one per tier. Shrinking only the long name
-    // leaves a board where the labels disagree about how important they are,
-    // and a tier list is a ranking - the labels are a scale and have to read as
-    // one. So the longest name decides, and everybody wears it.
+    // A tier name of any length: one size for every tier, set by the longest, since
+    // the labels are a scale and must read as one.
     const TIER_LABEL_MAX_REM = 1.5;
     const TIER_LABEL_MIN_REM = 0.6;
 
-    // Measured with a Range over the text rather than by scrollWidth. The box
-    // is a centred flex container, so an oversized name spills out of BOTH
-    // sides - and scrollWidth counts only the overflow to the right, which
-    // makes a name that visibly does not fit report that it does.
+    // A Range over the text, not scrollWidth: a centred name spills out of both sides,
+    // and scrollWidth counts only the right.
     function labelOverflows(label) {
         const style = getComputedStyle(label);
         const available = label.clientWidth
@@ -360,10 +299,7 @@
         return width > available + 1;
     }
 
-    // "Fits" means ON ONE LINE. The box already wraps - word-break: break-word
-    // - so a long name never overflows and an overflow test would never fire;
-    // it just silently reads as two cramped lines, which is the thing that
-    // looked broken in the first place.
+    // "Fits" means on one line: the box wraps, so it never overflows.
     function tierLabels() {
         return Array.prototype.slice.call(
             document.querySelectorAll('.tier-editor-row .ctl-label'));
@@ -381,30 +317,20 @@
         const tooWide = () => labels.some(labelOverflows);
 
         let size = TIER_LABEL_MAX_REM;
-        // Stepped and re-measured rather than computed from character count:
-        // the font is CC-Wild-Words and its glyphs are nowhere near uniform
-        // width, so "WWW" and "III" need very different sizes.
+        // Stepped and measured: CC-Wild-Words' glyphs are far from uniform.
         while (tooWide() && size > TIER_LABEL_MIN_REM) {
             size = Math.round((size - 0.1) * 10) / 10;
             labels.forEach(label => { label.style.fontSize = size + 'rem'; });
         }
 
-        // Past the floor, wrapping is the better failure: a 24-character tier
-        // name is going to look odd whatever happens, and unreadably small is
-        // worse than two lines.
+        // Past the floor, two lines beat unreadably small.
         if (tooWide()) {
             labels.forEach(label => { label.style.whiteSpace = ''; });
         }
     }
 
-    // A web font arrives AFTER first paint, and CC-Wild-Words is far wider
-    // than the sans-serif these labels are first measured in - so the size
-    // computed on render is a fit for the wrong typeface. Measured once with
-    // the fallback, "Situational" settled on 1.2rem and then rendered 119px
-    // wide in a 92px box.
-    //
-    // Resize matters for the same reason: the mobile rule takes .ctl-label
-    // from 92px to 64px, and a fit computed at the wider one does not hold.
+    // Fitted again once the web font arrives (far wider than the fallback) and on
+    // resize, since the phone's label box is narrower.
     function refitWhenFontsLoad() {
         if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
             document.fonts.ready.then(() => fitTierLabels());
@@ -431,25 +357,15 @@
             name.maxLength = 24;
             name.setAttribute('aria-label', 'Tier name');
             name.addEventListener('input', () => {
-                // Renaming a tier is not a move. The diff keys on the tier a
-                // character sits in, so renaming would otherwise register as
-                // everyone in that tier moving - which is both wrong and a wall
-                // of notes to write.
+                // Renaming a tier is not a move: the diff keys on the tier name.
                 const oldName = tier.name;
                 tier.name = name.value;
                 state.original.forEach((value, id) => {
                     if (value === oldName) state.original.set(id, tier.name);
                 });
 
-                // NOT renderBoard(). That rebuilds the controls too, which
-                // destroys the input being typed into and drops the caret - the
-                // `name.focus()` that used to follow was focusing a node that
-                // had already been thrown away. The result was that a tier
-                // could only be renamed one letter at a time, with a click in
-                // between each (owner, 2026-08-18).
-                //
-                // Only the board label actually depends on this value, so only
-                // the board label is touched.
+                // Not renderBoard(), which would rebuild the input being typed in and lose the
+                // caret: only the board's label changes.
                 const boardLabel = document.querySelector(
                     `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
                 if (boardLabel) boardLabel.textContent = tier.name;
@@ -458,13 +374,8 @@
             });
             row.appendChild(name);
 
-            // The v0.14 picker instead of <input type="color">, which opens the
-            // OPERATING SYSTEM's colour dialog on top of the wiki - a different
-            // palette, different conventions, and a modal the page cannot see.
-            // Same reasoning that replaced it in the block toolbar, and the
-            // same engine: initColorPicker resolves its parts with
-            // container.querySelector, so a second copy of the markup in a
-            // popup of our own is all it needs.
+            // The site's colour picker, not <input type="color">, which opens the
+            // operating system's dialog.
             row.appendChild(tierColorControl(tier, index));
 
             const up = el('button', 'btn-sys btn-sys-regular tier-control-btn', '▲');
@@ -483,9 +394,7 @@
             remove.type = 'button';
             remove.title = 'Remove this tier';
             remove.addEventListener('click', () => {
-                // Its occupants go back to unranked rather than vanishing, and
-                // each becomes a move that needs a note - removing a tier is a
-                // ranking decision about everybody in it.
+                // Its occupants go to Unranked, and each is a move that needs a note.
                 state.tiers.splice(index, 1);
                 renderBoard();
             });
@@ -495,25 +404,20 @@
         });
     }
 
-    // A swatch that opens the site's own colour picker. One popup per tier row,
-    // built with the picker's markup and handed to initColorPicker - the IDs
-    // inside are duplicated across rows, which is fine because every lookup
-    // that engine makes is scoped to the container it was given.
+    // One popup per tier row. Their ids repeat across rows, which is fine: the picker
+    // looks inside the container it is given.
     function tierColorControl(tier, index) {
         return colorControl('Tier colour', toHex(tier.color), `Colour for tier ${index + 1}`, (hex) => {
             tier.color = hex;
-            // Only the board label's colour depends on this, and rebuilding
-            // the controls here would throw away the popup mid-interaction
-            // - the same trap the rename handler fell into.
+            // Only the label's colour changes, and a rebuild would close the popup.
             const boardLabel = document.querySelector(
                 `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
             if (boardLabel) boardLabel.style.backgroundColor = hex;
         });
     }
 
-    // The swatch and its popup, for a tier and (v1.2) for a copy's badge.
-    // `heading` is always one of this file's own strings, and `hex` has been
-    // through toHex, so neither needs escaping.
+    // The swatch and its popup, for a tier or a copy's badge. `heading` is one of this
+    // file's own strings and `hex` has been through toHex, so neither needs escaping.
     function colorControl(heading, hex, ariaLabel, onPick) {
         const wrap = el('div', 'tier-color-wrap');
 
@@ -561,13 +465,9 @@
         return wrap;
     }
 
-    // --- COPIES (v1.2) ---
-    //
-    // The owner's picks, 2026-11-19: copies are made here, any number of them,
-    // each with a badge (a label and a colour), and the character's original
-    // may wear one too. A new copy waits in Unranked until it is dragged, and
-    // SAVE waits until every copy is placed: only the tiers are saved, so an
-    // unplaced copy would have nowhere to be kept.
+    // Copies: any number, each with a badge (a label and a colour), and the original
+    // may wear one too. A new copy waits in Unranked, and SAVE waits until every copy
+    // is placed: only the tiers are saved.
 
     function renderCopies() {
         const host = document.getElementById('tier-copies');
@@ -625,8 +525,8 @@
         return row;
     }
 
-    // A label or colour changed. An original keeps an empty label while it is
-    // edited, so its colour is not lost; cleanEntry saves it as a plain page_id.
+    // An original keeps an empty label while edited, so its colour survives;
+    // cleanEntry saves it as a plain page_id.
     function setBadge(key, change) {
         const loc = locate(key);
         if (!loc) return;
@@ -638,7 +538,6 @@
             ? { id: entry.id, copy: entry.copy, label, color }
             : { id: entry.id, label, color });
         refreshBadge(key);
-        // Moves and the changelog preview name a copy by its badge.
         renderPendingMoves();
         if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
     }
@@ -647,14 +546,12 @@
         const loc = locate(key);
         if (!loc) return;
         const entry = entryOf(loc.raw);
-        // Kept so a placed copy's removal (a move, which needs its note) can
-        // still be named after the copy itself is gone.
+        // Kept, so a placed copy's removal can still be named in its note.
         state.gone.set(key, entry);
         loc.remove();
         state.loose.delete(key);
         state.notes.delete(key);
-        // The last copy takes the original's badge with it: there is nothing
-        // left for it to tell apart.
+        // The last copy takes the original's badge with it: nothing is left to tell apart.
         if (!copyGroups().has(entry.id)) {
             const original = locate(entry.id);
             const originalEntry = original && entryOf(original.raw);
@@ -671,8 +568,8 @@
         const label = field.value.trim().slice(0, window.TIER_BADGE_MAX);
         if (!id || !label || !state.roster.has(id)) return;
 
-        // A key nothing has used, here or in the changelog, so an old line
-        // can never be read as about a new copy.
+        // A key nothing has used, here or in the changelog, so an old line can never read
+        // as about a new copy.
         const used = new Set([...currentPlacement().keys(), ...state.loose.keys(), ...state.gone.keys(),
             ...(Array.isArray(state.changes) ? state.changes.map(c => c.character_id) : [])]);
         let copy = '';
@@ -694,11 +591,8 @@
         btn.disabled = !state.canEdit || !select || !select.value || !field || !field.value.trim();
     }
 
-    // Filled once the roster is in, and only then given the class that makes
-    // it the site's dropdown: initializeMangaSelects copies a <select>'s
-    // options when it builds, and site_utils.js runs it whenever anything is
-    // added to the page, so a select carrying the class while still empty
-    // would be built empty and stay that way.
+    // Given the site dropdown's class only once filled: initializeMangaSelects copies
+    // the options when it builds, so an empty one would stay empty.
     function fillCopyCharacters() {
         const select = document.getElementById('tier-copy-character');
         if (!select) return;
@@ -734,9 +628,8 @@
         renderBoard();
     }
 
-    // <input type="color"> only accepts #rrggbb, and the seeded tiers carry
-    // hsl() strings from the original list. Converted through the browser
-    // rather than by hand so every colour format it understands is covered.
+    // The picker takes #rrggbb, and older tiers carry hsl(): converted through the
+    // browser, so every colour form it reads is covered.
     function toHex(value) {
         if (!value) return '#888888';
         if (/^#[0-9a-f]{6}$/i.test(value)) return value;
@@ -754,8 +647,6 @@
         }
     }
 
-    // --- PENDING MOVES ---
-
     function renderPendingMoves() {
         const host = document.getElementById('tier-pending-moves');
         const count = document.getElementById('tier-move-count');
@@ -769,9 +660,8 @@
         if (!moves.length) {
             host.appendChild(el('p', 'admin-queue-empty-msg',
                 'Drag a character to another tier and it will appear here.'));
-            // Still saveable: retitling a tier, reordering, or editing the
-            // reasoning are real edits that move nobody and need no note.
-            // The gate still runs, for a copy left in Unranked (v1.2).
+            // Still saveable: a renamed tier, a reorder or new reasoning moves nobody. A copy
+            // left in Unranked still stops it.
             updateSaveState();
             return;
         }
@@ -798,8 +688,7 @@
             input.addEventListener('input', () => {
                 state.notes.set(move.id, input.value);
                 updateSaveState();
-                // The note is a changelog entry, and the preview shows the
-                // changelog - so it follows the typing like the documents do.
+                // The note is a changelog entry, so the preview follows the typing.
                 if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
             });
             row.appendChild(input);
@@ -810,8 +699,7 @@
         updateSaveState();
     }
 
-    // The gate. Mirrors the schema's own floor of three characters after
-    // trimming, so the button and the database agree about what counts.
+    // Mirrors the schema's floor, three characters after trimming.
     function updateSaveState() {
         const save = document.getElementById('btn-save-tier-list');
         if (!save) return;
@@ -833,9 +721,8 @@
         }
     }
 
-    // What stops a save about copies (v1.2), or null. Only the tiers are
-    // saved, so a copy left in Unranked would be lost, and a copy is told
-    // apart by its badge, so it cannot be blank.
+    // What stops a save about copies, or null: one in Unranked would be lost, and a
+    // blank badge tells nothing apart.
     function copyProblem() {
         const unlabeled = [];
         state.tiers.forEach(tier => (tier.characters || []).forEach(raw => {
@@ -852,11 +739,8 @@
         return null;
     }
 
-    // --- DRAG AND DROP ---
-    //
-    // Pointer events, so mouse and touch are one implementation. The ghost is
-    // a clone following the pointer; the original stays in place at reduced
-    // opacity so the reader can still see where it came from.
+    // Pointer events, so mouse and touch are one implementation. A ghost follows the
+    // pointer and the original stays, dimmed.
     function beginDrag(e) {
         const node = e.target.closest('.draggable-portrait');
         if (!node || !state.canEdit) return;
@@ -880,8 +764,7 @@
         state.drag.ghost.style.left = `${e.clientX}px`;
         state.drag.ghost.style.top = `${e.clientY}px`;
 
-        // elementFromPoint rather than pointerenter on the zones: the ghost
-        // follows the cursor and would otherwise be the element under it.
+        // elementFromPoint, since the ghost is the element under the cursor.
         state.drag.ghost.style.pointerEvents = 'none';
         const under = document.elementFromPoint(e.clientX, e.clientY);
         const zone = under && under.closest('.tier-dropzone, .tier-editor-tray');
@@ -907,11 +790,8 @@
         placeCharacter(charId, zone.dataset.tierIndex);
     }
 
-    // Also the keyboard and test path: moving a character is a data operation,
-    // and the drag is one way to trigger it rather than the operation itself.
-    //
-    // `charId` is an entry key (v1.2): the entry itself is what moves, so a
-    // copy or a badged character keeps its badge wherever it goes.
+    // The keyboard and test path too: a move is a data operation, and dragging is one
+    // way to do it. charId is an entry key, so a badge goes where its entry goes.
     function placeCharacter(charId, target) {
         const loc = locate(charId);
         if (!loc) return;
@@ -924,12 +804,10 @@
             state.tiers[index].characters = state.tiers[index].characters || [];
             state.tiers[index].characters.push(raw);
         } else if (typeof raw === 'object') {
-            // Unranked keeps a copy, or a character's badge, for the session.
             state.loose.set(charId, raw);
         }
 
-        // A character dragged back to where they started stops being a pending
-        // move, and their half-typed note goes with it.
+        // Back where they started is no longer a move, and the half-typed note goes too.
         const now = currentPlacement().get(charId) || null;
         if ((state.original.get(charId) || null) === now) state.notes.delete(charId);
 
@@ -937,31 +815,15 @@
     }
     window.tierEditorPlace = placeCharacter;
 
-    // --- TWO DOCUMENTS, ONE BLOCK EDITOR ---
-    //
-    // initStrategyBlockBuilder keeps a single module-level buffer
-    // (currentStrategyBlocks in js/editor/blocks/editor-blocks.js), so two builders cannot
-    // exist at the same time. Switching therefore has to flush the open one
-    // before loading the other - exactly what editor-tabs.js does when it
-    // crosses a tab boundary, and the bug it fixed there was one tab's blocks
-    // being written into another's.
+    // Two documents, one Block editor: its buffer is single, so switching flushes the
+    // open one before loading the other, as editor-tabs.js does between tabs.
     const DOC_HINTS = {
         intro: "Shown at the top of your list, in place of the page's own introduction. Yours alone — it does not go through the review queue.",
         reasoning: 'The long-form argument for your placements, shown under the changelog. Same editor the rest of the wiki uses.',
     };
 
-    // --- THE PREVIEW PANEL (v0.16 fine-tuning 3) ---
-    //
-    // js/editor/blocks/editor-blocks.js calls updateLivePreview() BY BARE NAME from about ten
-    // places after every block change. It is a top-level declaration in
-    // js/editor/core/editor-sync.js, which this page deliberately does not load - so every
-    // edit here threw a ReferenceError, silently, into the console. Confirmed
-    // by driving the editor: typeof was 'undefined' and one typing session
-    // produced two errors.
-    //
-    // post-editor.html reimplements it locally for exactly this reason. Here it
-    // gets to be the thing it is named after, because this page finally has a
-    // preview to update.
+    // The Block editor calls updateLivePreview by bare name, and editor-sync.js is not
+    // on this page, so it is defined here, as the preview of this page.
     window.updateLivePreview = function () {
         clearTimeout(previewTimer);
         previewTimer = setTimeout(renderPreviewDocs, 200);
@@ -974,24 +836,14 @@
         const introHost = document.getElementById('tier-preview-intro');
         if (!host || typeof window.generateHTMLForBlocks !== 'function') return;
 
-        // Read the open document out of the builder first, or the preview shows
-        // the last saved version of whatever is being typed right now.
+        // The open document first, or the preview shows its last saved version.
         flushOpenDoc();
         host.innerHTML = '';
         if (introHost) introHost.innerHTML = '';
 
-        // The LIVE page's own classes and structure, copied from
-        // js/pages/tier-lists/certified-tier-lists.js - .ctl-intro / .ctl-subheading /
-        // .ctl-change and the rest. A preview that renders its own layout is
-        // not a preview; it is a second design nobody asked for, and the first
-        // version of this had a Finger-Paint card heading where the real page
-        // has a small mono label on an accent border (owner, 2026-08-18).
-        //
-        // Same call the board already made: .ctl-row, .ctl-label and
-        // .ctl-chars are the public page's classes too.
-        // Into its own host ABOVE the board. The reader meets the author before
-        // the ranking, so previewing the introduction underneath the tiers
-        // showed the right content in the wrong place (owner, 2026-08-18).
+        // The live page's own classes and structure (certified-tier-lists.js), so the
+        // preview is the page. The introduction goes above the board, where the reader
+        // meets it.
         if (introHost && state.intro && state.intro.length) {
             const box = el('section', 'ctl-intro');
             box.appendChild(el('h3', 'ctl-subheading', 'Tier List Introduction'));
@@ -1001,9 +853,7 @@
             introHost.appendChild(box);
         }
 
-        // The saved changelog, plus whatever is waiting to join it. Both,
-        // because an author writing notes needs to see them in the shape the
-        // reader will, not only as a to-do list in the sidebar.
+        // The saved changelog and what waits to join it, in the reader's shape.
         const saved = Array.isArray(state.changes) ? state.changes : [];
         const pending = pendingMoves();
         if (state.reasoning && state.reasoning.length) {
@@ -1015,16 +865,12 @@
             host.appendChild(box);
         }
 
-        // Reasoning first, then the changelog - the order the live page uses,
-        // because the reasoning is the argument and the changelog is the record
-        // of acting on it.
+        // Reasoning, then the changelog: the live page's order.
         if (saved.length || pending.length) {
             const box = el('div', 'ctl-changelog');
             box.appendChild(el('h3', 'ctl-subheading', 'Changelog'));
 
-            // Unsaved moves render as real entries, marked - they are what the
-            // reader will get the moment SAVE is pressed, and seeing them in
-            // the reader's shape is the point of previewing at all.
+            // Unsaved moves are real entries, marked.
             const entry = (charId, from, to, note, date, pendingFlag) => {
                 const row = el('div', 'ctl-change' + (pendingFlag ? ' ctl-change-pending' : ''));
                 const head = el('div', 'ctl-change-head');
@@ -1058,10 +904,8 @@
         if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
     }
 
-    // The roster name rather than the page id, so the changelog reads the way
-    // the board does. A copy, or a character wearing a badge, is named with it
-    // ("Vessel [Ult]"); a copy that no longer exists reads "(copy)". `bare`
-    // gives the character's name alone.
+    // The roster name, with a badge when there is one ("Vessel [Ult]"); a copy no
+    // longer there reads "(copy)". `bare` gives the name alone.
     function nameOf(key, { bare = false } = {}) {
         const k = String(key || '');
         const loc = locate(k);
@@ -1074,10 +918,8 @@
         return k.includes('#') ? `${name} (copy)` : name;
     }
 
-    // The document's own list, currentStrategyBlocks. Not getActiveBlocks():
-    // inside a Section Box or a Dropdown that is the box's list, and it was
-    // saved as the whole document (the page editor's bug, found there by an
-    // editor 2026-11-20).
+    // The document's own list, currentStrategyBlocks, not getActiveBlocks(), which
+    // inside a Section Box or a Dropdown is only that box's.
     function flushOpenDoc() {
         if (typeof currentStrategyBlocks === 'undefined') return;
         const blocks = JSON.parse(JSON.stringify(currentStrategyBlocks));
@@ -1107,8 +949,6 @@
         renderPreviewDocs();
     }
 
-    // --- SAVING ---
-
     async function save() {
         const save = document.getElementById('btn-save-tier-list');
         const moves = pendingMoves();
@@ -1119,28 +959,17 @@
         if (save) save.disabled = true;
         setStatus('Saving…');
 
-        // Whichever document is open only reaches state when read out, so it
-        // is flushed first. Without this, saving while the introduction is open
-        // would write a stale reasoning and silently drop everything just
-        // typed into the introduction.
+        // The open document reaches state only when read out, so it is flushed first.
         flushOpenDoc();
 
-        // Read at save time rather than tracked on input: it is one field with
-        // no preview to keep in step, and a change listener would be a second
-        // place for it to go stale.
+        // Read at save time: one field with no preview to keep in step.
         const versionField = document.getElementById('tier-game-version');
-        // Same reasoning as the version field above: one control, no preview to
-        // keep in step, so it is read at save time rather than tracked on
-        // change. Omitted entirely when the control is absent, because the RPC
-        // COALESCEs a null and leaves the stored value alone - sending a
-        // fallback string here would let a missing element overwrite the
-        // author's choice.
+        // Read at save time too, and left out when the control is absent: the RPC keeps
+        // the stored value on a null, and a fallback would overwrite it.
         const artField = document.getElementById('tier-art-style');
 
         const { data, error } = await client().rpc('save_tier_list', {
             p_list_id: state.list.id,
-            // Each entry as cleanEntry writes it: a plain page_id unless it
-            // wears a badge, so a list with no copies saves exactly as before.
             p_tiers: state.tiers.map(tier => ({
                 ...tier,
                 characters: (tier.characters || []).map(cleanEntry).filter(Boolean),
@@ -1163,9 +992,7 @@
             return;
         }
 
-        // Only now does the board become the new baseline. Doing it before the
-        // write would mean a failed save silently discarding the very moves it
-        // failed to record.
+        // The new baseline only after the write, so a failed save keeps its moves.
         snapshotOriginal();
         state.notes.clear();
         state.gone.clear();
@@ -1173,8 +1000,6 @@
         renderPreviewDocs();
         setStatus(data || 'Saved.');
     }
-
-    // --- BOOT ---
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!client()) { deny('NO CONNECTION'); return; }
@@ -1185,8 +1010,7 @@
 
         await loadRoster();
 
-        // Which list this is. An admin may edit anyone's via ?list=<slug>;
-        // everybody else gets their own, and nothing else exists for them.
+        // ?list=<slug> opens that list; without it, your own.
         const requested = new URLSearchParams(window.location.search).get('list');
         const query = client().from('tier_lists').select('*');
         const { data, error } = requested
@@ -1205,13 +1029,10 @@
         normalizeLoaded();
         snapshotOriginal();
 
-        // The client half of the per-row rule. The RPC re-checks it, because
-        // this one only decides whether to disable a button.
+        // Only decides whether a button is enabled; the RPC checks again.
         const { data: roleRow } = await client()
             .from('user_roles').select('*').eq('user_id', session.user.id).maybeSingle();
-        // Mirrors save_tier_list(), owner-gated as of 20260827000003: stamping a
-        // patch number onto somebody else's list is an owner action, matching
-        // assign_tier_list() beside it.
+        // Mirrors save_tier_list(): the list's author, or the owner.
         state.canEdit = data.owner_id === session.user.id
             || (roleRow && window.roleMeets(roleRow.role, 'owner'));
 
@@ -1227,33 +1048,21 @@
             if (status) status.textContent = 'This list belongs to somebody else.';
         }
 
-        // The art style is set BEFORE the first board is drawn, because
-        // portrait() reads it off this control. Set after, as it was until
-        // 2026-10-01, every list opened drawn as portraits whatever it stored
-        // ("the tier list always default back to the Portraits mode").
-        //
-        // Absent rather than a value between writing the migration and the
-        // release, and the default keeps the control showing what such a list
-        // actually renders as.
+        // Set before the first board: portrait() reads it, and set after, every list
+        // opened as portraits. Absent before its migration's release.
         const artField = document.getElementById('tier-art-style');
         if (artField) {
             artField.value = data.art_style === 'icon' ? 'icon' : 'portrait';
             artField.disabled = !state.canEdit;
-            // The site's dropdown (initializeMangaSelects) is built 100ms after
-            // the page loads, long before the list arrives, and it only re-reads
-            // the <select> on `change`. Without this it kept saying Portraits
-            // over an Icons list. Dispatched before the redraw listener below is
-            // attached, and not bubbling, so it changes nothing but the label.
+            // The site's dropdown was built before the list arrived and re-reads only on
+            // change. Not bubbling, so only its label changes.
             artField.dispatchEvent(new Event('change'));
-            // Redrawn immediately rather than on save. Choosing between two
-            // pieces of art is a decision you make by LOOKING at them, and a
-            // control whose effect only appears after a round trip is one
-            // nobody trusts enough to try.
+            // Redrawn at once: art is chosen by looking at it.
             artField.addEventListener('change', () => renderBoard());
         }
 
-        // The Copies panel (v1.2). After canEdit is known, which disables it on
-        // somebody else's list, and after the roster, which fills its picker.
+        // After canEdit, which disables it on someone else's list, and after the roster,
+        // which fills its picker.
         fillCopyCharacters();
         const copyLabel = document.getElementById('tier-copy-label');
         if (copyLabel) {
@@ -1270,9 +1079,7 @@
         state.reasoning = Array.isArray(data.reasoning) ? JSON.parse(JSON.stringify(data.reasoning)) : [];
         state.activeDoc = 'intro';
 
-        // Absent rather than empty on a page loaded before the migration
-        // reaches production, which is the normal state between writing a
-        // migration and the release - `|| ''` covers both without a branch.
+        // Absent before its migration's release; `|| ''` covers both.
         const versionField = document.getElementById('tier-game-version');
         if (versionField) {
             versionField.value = data.game_version || '';
@@ -1283,15 +1090,13 @@
             initStrategyBlockBuilder('strategy-block-target', state.intro);
         }
 
-        // The changelog the reader already sees. Fetched once rather than kept
-        // live: nothing in this editor writes to it except a save, which
-        // reloads anyway.
+        // Fetched once: only a save writes to it, and a save reloads.
         const { data: changeRows } = await client()
             .from('tier_list_changes').select('*').eq('list_id', data.id)
             .order('created_at', { ascending: false });
         state.changes = Array.isArray(changeRows) ? changeRows : [];
 
-        // Only now is flushing the open document safe - see renderBoard.
+        // Only now is flushing the open document safe.
         state.ready = true;
         renderPreviewDocs();
 
@@ -1316,9 +1121,8 @@
             renderBoard();
         });
 
-        // Leaving with unwritten notes loses the reasoning, not just the
-        // placement - the notes are the part that cannot be reconstructed.
-        // A copy still in Unranked is unsaved work too (v1.2).
+        // Leaving with unwritten notes loses the reasoning, which cannot be rebuilt, and an
+        // unplaced copy is unsaved work too.
         window.addEventListener('beforeunload', (e) => {
             const copyWaiting = [...state.loose.keys()].some(key => key.includes('#'));
             if (pendingMoves().length || copyWaiting) { e.preventDefault(); e.returnValue = ''; }

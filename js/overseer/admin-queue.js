@@ -1,26 +1,25 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Queue (TOC, queue list, action buttons, reset)
+ * The revision queue: its cards grouped by page, its filters, the preview's
+ * table of contents, the action buttons for the open revision, and closing it.
+ * @since v0.4, as part of admin.js
+ * @touches pending_revisions (with qa_metadata, supporters, opposers),
+ *   window.currentQueueData, previewRevision (admin-preview.js), openMergeCompiler
+ *   (admin-merge-compiler.js), setQueueCount (admin-core.js), unwrapModeDelta
+ * @watch page_id, author names and QA notes are contributor text: escaped, and a
+ *   button gets a listener rather than an inline onclick carrying them. The
+ *   buttons only decide what to show; RLS gates the writes behind them.
+ * @see docs/overseer.md
  */
 
-// --- DYNAMIC TABLE OF CONTENTS ---
 function updateAdminTOC() {
     const tocList = document.getElementById('dynamic-toc');
     if (!tocList) return;
     tocList.innerHTML = '';
 
-    // Scoped to just the currently-visible pane, not the whole preview area -
-    // #preview-content-area holds every tab (overview/m1s/skills/specials/
-    // matchups/counterplay) plus the diff-mode container all at once, hidden
-    // ones included, so querying the whole area indexed every heading on
-    // every tab simultaneously instead of just the one being viewed. Can't
-    // key off a shared "tab-content" class here - system-type revisions get
-    // that class (js/pages/core/description.js creates their tab containers fresh),
-    // but character-type revisions reuse admin.html's pre-existing static
-    // #tab-* divs, which never pick it up - so this keys off visibility
-    // (:not(.hidden)) alone, which every pane relies on regardless of type.
+    // Only the pane on screen: the preview area holds every tab and the diff at
+    // once, and only visibility tells them apart for both page types.
     const visiblePane = document.querySelector('#preview-content-area > div:not(.hidden)') || document.getElementById('preview-content-area');
-    // The side-by-side (js/utility/side-by-side.js) draws every heading twice; the
-    // submission's side is the one the list leads to.
+    // The side by side draws every heading twice; the list leads to the submission's.
     const activePane = visiblePane.querySelector('.sbs-col-right') || visiblePane;
     const headers = activePane.querySelectorAll('h3.strategy-title, h3.diff-section-title, h3.card-header-title');
 
@@ -53,12 +52,12 @@ function updateAdminTOC() {
     });
 }
 
-// --- THE QUEUE COLUMN POPS IN AND OUT (v1.2, owner's Overseer card) ---
-// Out when the Overseer opens, since nothing is in the pane yet; put away when
-// a submission or a page's history is opened, so the pane has the whole
-// width; ☰ QUEUE brings it back. Opening a clip leaves it out, because that
-// clip's buttons are in the column. The CSS (admin.css) limits all of this to
-// wider screens and to anyone who reviews.
+/**
+ * Brings the queue column out or puts it away. Opening a submission or a page's
+ * history puts it away, so the pane has the whole width.
+ * @since v1.2
+ * @watch admin.css limits this to wide screens and to anyone who reviews
+ */
 window.setQueueOpen = function (open) {
     document.body.classList.toggle('queue-collapsed', !open);
     const toggle = document.getElementById('queue-toggle');
@@ -73,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 2. FETCH QUEUE ---
 async function loadQueue() {
     const container = document.getElementById('queue-container');
     container.innerHTML = `<p class="loading-msg admin-loading-msg">Scanning database...</p>`;
@@ -91,12 +89,8 @@ async function loadQueue() {
     renderQueue();
 }
 
-// The page dropdown is built from WHAT CAME BACK, not from navigation.json.
-//
-// That is the whole difference the expert system makes here. An expert receives
-// only their own pages - the "Staff can view queue" policy filters the rows
-// before this client ever sees them - so offering the full roster would list
-// forty pages whose selection can only ever produce an empty queue.
+// From the rows that came back, not navigation.json: an expert receives only
+// their own pages, and every other page would filter to an empty queue.
 function populateQueuePageFilter(rows) {
     const select = document.getElementById('queue-filter-page');
     if (!select) return;
@@ -108,22 +102,14 @@ function populateQueuePageFilter(rows) {
     pages.forEach(id => {
         const opt = document.createElement('option');
         opt.value = id;
-        // textContent, not innerHTML: page_id is owner-authored but it is still
-        // a value from the database being put into the DOM.
         opt.textContent = id.replace(/_/g, ' ');
         select.appendChild(opt);
     });
 
-    // Keep a reviewer where they were across a refresh, unless the page they
-    // were filtered to has emptied.
     if (previous && pages.includes(previous)) select.value = previous;
 
-    // The site's dropdown copies a <select>'s options once, when it builds
-    // itself 100ms after load, which is before the queue arrives. Rebuilt here,
-    // or the list a reviewer opens only ever says "All pages" (owner's report,
-    // 2026-10-29). The old list's change listener stays on the <select>, but it
-    // only ever updates the element removed here. Not built yet means the first
-    // build is still to come, and it will copy these options.
+    // The site's dropdown copied this select's options before the queue arrived,
+    // so it is rebuilt. One not built yet will copy these when it is.
     const built = select.nextElementSibling;
     if (built && built.classList.contains('manga-select-wrapper')) {
         built.remove();
@@ -147,9 +133,7 @@ function renderQueue() {
 
     container.innerHTML = '';
 
-    // Two different empty states. "Nothing is waiting" and "nothing matches
-    // what you asked for" send a reviewer to different places, and the media
-    // queue makes the same distinction.
+    // "Nothing is waiting" and "nothing matches" send a reviewer different places.
     if (all.length === 0) {
         container.innerHTML = `<div class="empty-tab-msg admin-queue-empty-msg">No pending revisions or open tickets.</div>`;
         return;
@@ -177,14 +161,10 @@ function renderQueue() {
         const header = document.createElement('div');
         header.className = 'admin-queue-group-header';
 
-        // Counted against the UNFILTERED set on purpose. openMergeCompiler
-        // loads every ticket for the page itself, so a count taken from the
-        // filtered list would promise to merge two and then merge three.
+        // The whole page's count, not the filtered one: openMergeCompiler merges every
+        // ticket on the page.
         const totalForPage = all.filter(r => r.page_id === pageId).length;
 
-        // page_id is whatever the submitter sent, so it is escaped here and the
-        // merge button gets a listener rather than an inline onclick, where an
-        // escaped quote would still close the string (2026-10-29).
         header.innerHTML = `
             <h3 class="admin-queue-group-title">${window.escapeHtml(pageId.replace(/_/g, ' '))}</h3>
         `;
@@ -208,22 +188,14 @@ function renderQueue() {
                 ? `<span class="update-badge badge-status-ticket-open">TICKET OPEN</span>`
                 : `<span class="update-badge badge-status-pending">PENDING</span>`;
 
-            // Show the actual target, not just the scope, where it's readable -
-            // "MOVE: 5H" beats "[PATCH: MOVE]" when the queue has ten pending
-            // move edits on the same character and they all look identical
-            // until opened.
-            // A character-state edit is wrapped, so the raw scope reads "MODE"
-            // for every one of them. Unwrap and name the state instead: which
-            // kit an edit targets is the first thing a reviewer needs.
+            // The target itself ("MOVE: 5H"), so ten edits on one character tell apart, and
+            // a character state's edit names its state.
             const unwrapped = window.unwrapModeDelta(rev.target_scope, rev.target_key);
             const statePrefix = unwrapped.modeId ? `${unwrapped.modeId.toUpperCase()} / ` : '';
 
             let targetLabel = unwrapped.scope ? unwrapped.scope.toUpperCase() : '';
             if (rev.target_scope === 'multi') {
-                // A batched or merged ticket carries a list of scopes, so there
-                // is no single target to name - count them instead, matching the
-                // "BATCHED MULTI-EDIT (N targets)" wording history.html and
-                // recent-changes.html already use. "MULTI: batch" said nothing.
+                // A batched or merged ticket has no single target, so it counts them.
                 const targetCount = Array.isArray(rev.delta_payload) ? rev.delta_payload.length : 0;
                 targetLabel = `${targetCount} TARGET${targetCount === 1 ? '' : 'S'}`;
             } else if (rev.target_key) {
@@ -238,9 +210,7 @@ function renderQueue() {
                 ? `<span class="update-badge badge-patch-delta">[PATCH: ${window.escapeHtml(targetLabel)}]</span>`
                 : `<span class="update-badge badge-legacy-overwrite">[LEGACY OVERWRITE]</span>`;
 
-            // Cheap, approximate risk/size hint - serialized byte length of just
-            // the changed content, computed once at queue-load time (no extra
-            // query, not a real diff-against-live-data size).
+            // A rough size hint, taken once at load from the changed content alone.
             const sizeSource = rev.is_delta ? rev.delta_payload : { desc: rev.desc_data, frame: rev.frame_data };
             const sizeBytes = JSON.stringify(sizeSource || {}).length;
             const sizeTier = sizeBytes > 3000 ? 'l' : (sizeBytes > 500 ? 'm' : 's');
@@ -268,27 +238,15 @@ function renderQueue() {
                     <button class="btn-sys btn-sys-blue admin-review-btn">REVIEW</button>
                 </div>
             `;
-            // Bound here rather than written into an inline onclick, so the
-            // revision's id never has to survive being markup.
             card.querySelector('.admin-review-btn').addEventListener('click', () => previewRevision(rev.id));
             container.appendChild(card);
         });
     }
 }
 
-// --- THE QA NOTES, ON THE CARD (v0.18 F1) ---
-//
-// A contributor writes a changelog, a confidence rating and optional evidence
-// at submit time, and until now none of it was visible until the ticket was
-// OPENED. So the queue offered a page id, an author and a size, and a reviewer
-// picking what to do next had to open each one to find out what it claimed to
-// be - which is the decision the queue exists to support.
-//
-// EVERYTHING HERE IS CONTRIBUTOR TEXT REACHING innerHTML. The changelog is free
-// text and the confidence arrives from a <select> that a direct PostgREST call
-// can ignore entirely, so both are escaped. `confidence` is additionally
-// mapped through a fixed table rather than interpolated into a class name -
-// an unexpected value picks no class instead of inventing one.
+// The contributor's changelog, confidence and evidence, on the card, so a
+// reviewer can choose what to open next. All contributor text: escaped, and
+// confidence goes through a fixed table, never into a class name.
 const QA_CONFIDENCE = {
     high: { cls: 'badge-confidence-high', label: 'HIGH' },
     medium: { cls: 'badge-confidence-medium', label: 'MEDIUM' },
@@ -301,9 +259,7 @@ function confidenceBadge(rev) {
     const level = qa && typeof qa.confidence === 'string' ? qa.confidence.toLowerCase() : null;
     const known = level && Object.prototype.hasOwnProperty.call(QA_CONFIDENCE, level)
         ? QA_CONFIDENCE[level] : null;
-    // Silent when absent rather than showing "UNKNOWN": tickets and every
-    // revision written before the QA modal existed have no qa_metadata at all,
-    // and a badge on all of them would be noise on the majority of the queue.
+    // Silent when absent: older revisions and tickets have no QA notes.
     if (!known) return '';
     return `<span class="update-badge ${known.cls}" title="Data confidence, stated by the contributor">${known.label}</span>`;
 }
@@ -318,45 +274,27 @@ function qaNote(rev) {
 
     let html = '<div class="admin-queue-qa">';
     if (changelog) {
-        // Clamped in CSS rather than truncated here, so the whole note is in
-        // the DOM: a reviewer can still select it, and Ctrl+F over the queue
-        // finds a note whose opening line does not mention the word.
+        // Clamped in CSS, so the whole note stays selectable and findable.
         html += `<p class="admin-queue-qa-note">${window.escapeHtml(changelog)}</p>`;
     }
     if (evidence) {
-        // NOT a link. This is contributor-supplied and lands on a staff page,
-        // and one click from the review queue to an arbitrary URL is a
-        // phishing step that the reviewer has every reason to trust. The fact
-        // that evidence was cited is what belongs on the card; the URL itself
-        // is in the ticket, where it is being read deliberately.
+        // Not a link: one click from a staff page to a contributor's address is a
+        // phishing step. The address is in the ticket.
         html += `<p class="admin-queue-qa-evidence" title="${window.escapeHtml(evidence)}">Evidence cited</p>`;
     }
     return html + '</div>';
 }
 
-// --- DYNAMIC BUTTON HELPER ---
 function updateActionButtons(rev) {
     const actionContainer = document.getElementById('preview-action-buttons');
     const isOwnSubmission = (rev.author_id === window.currentUserId);
-    // Admin AND owner. The force actions, self-approval, tickets, change
-    // requests and intercepts are exactly what v0.17 gave the new admin role
-    // (owner, 2026-08-26), and the rank test keeps the owner - who outranks
-    // admin - holding everything an admin holds.
     const isAdmin = window.rolesMeet(window.currentUserRoles, 'admin');
 
-    // --- TRUSTED EDITOR PERK ---
-    // At or above trusted_editor, so reviewer and admin get it too (v0.16
-    // bug 6). It used to test the literal 'trusted_editor', which is why a
-    // reviewer's own submission still needed two supporters despite the
-    // decision that they have a trusted editor's perks.
-    //
-    // This threshold is a WORKFLOW convention, not a security boundary: it
-    // decides whether the MERGE button is rendered, and the write behind it is
-    // gated separately by the "Admin Write Live Data" policy. Relaxing it here
-    // grants nobody any access they did not already have.
+    // At or above trusted_editor, by rank. A workflow rule, not a boundary: the
+    // live write is gated by RLS.
     const isTrusted = (rev.author_roles || []).some(r =>
         window.roleMeets(r, 'trusted_editor'));
-    const requiredSupport = isTrusted ? 1 : 2; // Trusted gets a discount
+    const requiredSupport = isTrusted ? 1 : 2;
 
     const supportersCount = (rev.supporters || []).length;
     const opposersCount = (rev.opposers || []).length;
@@ -367,23 +305,12 @@ function updateActionButtons(rev) {
 
     let buttonsHTML = '';
 
-    // The Intercept button (Available to all staff and the original author)
     const editBtn = `<button onclick="editCurrentTicket()" class="btn-sys btn-sys-purple">INTERCEPT & EDIT</button>`;
-    // Lighter middle path than INTERCEPT & EDIT (which makes the reviewer the
-    // co-author) or a binary approve/reject - sends written feedback back to
-    // the author instead. Not gated on ticket status like OPEN TICKET below,
-    // since asking for a second round of changes on an already-open ticket
-    // is a normal, repeatable action, not a one-time state transition. Never
-    // shown to the author reviewing their own submission - doesn't make
-    // sense to request changes from yourself.
+    // Written feedback back to the author, repeatable, and never offered on your
+    // own submission.
     const requestChangesBtn = `<button onclick="requestChanges()" class="btn-sys btn-sys-yellow">REQUEST CHANGES</button>`;
-    // Hoisted out of the branches below (v0.17). It was written inline in two
-    // of the three, and the third - the admin one - simply never got a copy,
-    // which is how the owner ended up unable to open a ticket at all. One
-    // definition, so a branch can only be missing it on purpose.
-    //
-    // Status-gated because opening a ticket is a one-time transition: the
-    // button would be a no-op on a row already in discussion.
+    // One definition for every branch below, so a branch lacks it only on purpose.
+    // A row already in discussion has nothing to open.
     const openTicketBtn = rev.status !== 'ticket_open'
         ? `<button onclick="openTicketCurrentPreview()" class="btn-sys btn-sys-yellow">OPEN TICKET</button>`
         : '';
@@ -391,10 +318,8 @@ function updateActionButtons(rev) {
     if (isAdmin) {
         buttonsHTML += editBtn;
         buttonsHTML += requestChangesBtn;
-        // The collaborative actions come before the two force actions, which
-        // end the revision outright. Same reasoning as the danger row on the
-        // Free Submit reset: the irreversible control should not sit where the
-        // reversible one is expected.
+        // The collaborative actions come before the force actions, which end the
+        // revision outright.
         buttonsHTML += openTicketBtn;
         buttonsHTML += `<button onclick="approveCurrentPreview()" class="btn-sys btn-sys-green">FORCE APPROVE</button>`;
         buttonsHTML += `<button onclick="rejectCurrentPreview()" class="btn-sys btn-sys-red btn-danger-fill">FORCE REJECT</button>`;
@@ -444,11 +369,10 @@ function resetPreviewState() {
         if (btn) {
             btn.classList.remove('active');
             btn.classList.remove('tab-changed'); // Markers belong to the revision just closed
-            btn.classList.remove('hidden'); // Restore default display visibility
+            btn.classList.remove('hidden');
         }
     });
 
-    // Remove dynamically generated system tabs
     document.querySelectorAll('.system-nav-btn').forEach(btn => btn.remove());
 
     document.getElementById('tab-overview').classList.remove('hidden');
@@ -456,12 +380,7 @@ function resetPreviewState() {
     document.getElementById('dynamic-toc').innerHTML = '<li><p class="admin-toc-empty">Navigation unavailable.</p></li>';
 }
 
-// v0.17 F5: the revision queue's filters.
-//
-// `change`, not `input`: initializeMangaSelects replaces these with a custom
-// dropdown that only ever dispatches change. The media queue's binding carries
-// the same note, and it is the reason a filter that looks wired can silently do
-// nothing.
+// `change`, not `input`: the site's custom dropdown only dispatches change.
 document.addEventListener('DOMContentLoaded', () => {
     ['queue-filter-page', 'queue-filter-status'].forEach(id => {
         const select = document.getElementById(id);

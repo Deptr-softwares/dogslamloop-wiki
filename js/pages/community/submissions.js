@@ -1,15 +1,16 @@
 /**
- * Dogslamloop Wiki - My Submissions (contributor self-service)
- *
- * First page in the codebase gated to "must be logged in, any role" - no
- * admin/reviewer check at all, unlike admin.html/owner.html. Lets a
- * contributor see, edit, and withdraw their own pending_revisions rows
- * without needing staff access, closing the gap where submitting an edit
- * used to be a one-way trip into a black box (see project memory: v0.6
- * item 4, "reviewer workflow/UI redesign", Phase 1).
+ * My Submissions (submissions.html): a contributor's own submissions, with their
+ * status, the ticket's discussion and a reply box, EDIT and WITHDRAW. Open to
+ * anyone signed in, whatever their role.
+ * @since v0.6
+ * @touches pending_revisions (the author's own rows), post_ticket_message(),
+ *   registeredPageType (site_utils.js)
+ * @watch a reply goes through the RPC, never a table write: pending_revisions
+ *   grants all to authenticated, and RLS cannot limit which columns an update
+ *   touches. Chat text is someone else's: escaped.
+ * @see docs/records.md
  */
 
-// --- LIGHTWEIGHT DSL MODAL HELPERS (dynamic, no static markup needed) ---
 function showConfirm(message, confirmText = 'CONFIRM', isDanger = false) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay hidden';
@@ -61,10 +62,8 @@ const STATUS_LABELS = {
     withdrawn: { label: 'WITHDRAWN', className: 'badge-status-withdrawn' },
 };
 
-// A ticket_open submission with a changes_requested chat message is a more
-// specific, actionable state than generic "in discussion" - surface it as
-// its own badge/callout instead of making the contributor open the ticket
-// to discover a reviewer is waiting on a specific fix.
+// A changes-requested message is a more specific state than "in discussion", so
+// it gets its own badge and callout.
 function latestChangesRequested(rev) {
     const chat = rev.ticket_chat || [];
     for (let i = chat.length - 1; i >= 0; i--) {
@@ -73,15 +72,8 @@ function latestChangesRequested(rev) {
     return null;
 }
 
-// v0.17 F13: the contributor can answer the discussion on their own submission.
-//
-// The owner: "There should be no reason why they get a notification of 'Staff
-// are discussing your submission'" without being able to reply. The
-// notification has existed since v0.13 and the reply has not.
-//
-// Shown when there is a conversation to join - any message, or an open ticket
-// that has not been written in yet. A pending row nobody has said anything
-// about gets nothing, because there is nothing to answer.
+// Shown when there is a conversation to join: any message, or an open ticket not
+// yet written in.
 function renderTicketThread(rev) {
     const chat = rev.ticket_chat || [];
     const open = rev.status === 'pending' || rev.status === 'ticket_open';
@@ -92,9 +84,7 @@ function renderTicketThread(rev) {
             const time = new Date(msg.timestamp).toLocaleString([], {
                 dateStyle: 'short', timeStyle: 'short',
             });
-            // Three shapes, and `type` is what tells them apart - additive, the
-            // way requestChanges established it. A message with no type at all
-            // is a staff line from before this shipped.
+            // Three shapes, told apart by `type`; an untyped message is a staff line.
             if (msg.type === 'changes_requested') {
                 return `<div class="ticket-thread-msg ticket-thread-changes">
                     <div class="ticket-thread-who">&#9873; CHANGES REQUESTED &middot; ${window.escapeHtml(msg.author)} &middot; ${window.escapeHtml(time)}</div>
@@ -109,8 +99,7 @@ function renderTicketThread(rev) {
         }).join('')
         : `<p class="ticket-thread-empty">A reviewer opened this for discussion. Nothing has been said yet.</p>`;
 
-    // No reply box once the submission is closed - the RPC refuses it anyway,
-    // and offering a control that cannot work is worse than not offering one.
+    // No reply box once the submission is closed: the RPC refuses it anyway.
     const replyBox = open ? `
         <div class="ticket-thread-reply">
             <textarea id="ticket-reply-${window.escapeHtml(rev.id)}" class="editor-input ticket-thread-input"
@@ -127,10 +116,8 @@ function renderTicketThread(rev) {
         </div>`;
 }
 
-// One narrow RPC, never a table write. pending_revisions carries GRANT ALL to
-// authenticated and RLS cannot restrict WHICH COLUMNS an update touches, so an
-// author appending to ticket_chat through the table is an author who could
-// write every other column in the same statement.
+// One narrow RPC, never a table write: an author appending to ticket_chat through
+// the table could write every other column in the same statement.
 async function sendTicketReply(rev) {
     const input = document.getElementById(`ticket-reply-${rev.id}`);
     const status = document.getElementById(`ticket-status-${rev.id}`);
@@ -154,8 +141,7 @@ async function sendTicketReply(rev) {
     btn.textContent = original;
 
     if (error) {
-        // PGRST202 is "this migration has not been applied yet", which is the
-        // normal state between deploying this code and the release.
+        // Normal between deploying this code and the release that applies its migration.
         if (status) {
             status.textContent = (error.code === 'PGRST202' || /schema cache/i.test(error.message || ''))
                 ? 'Replying is not available yet - it arrives with the next update.'
@@ -164,9 +150,8 @@ async function sendTicketReply(rev) {
         return;
     }
 
-    // Append what the SERVER returned rather than what was typed. The author
-    // name and timestamp are resolved server-side, so echoing the local guess
-    // would show a different message from the one everybody else sees.
+    // What the server returned, not what was typed: it sets the author's name and the
+    // time.
     input.value = '';
     rev.ticket_chat = [...(rev.ticket_chat || []), data];
     const log = document.querySelector(`#ticket-reply-${rev.id}`)
@@ -250,9 +235,7 @@ async function loadSubmissions() {
 }
 
 function renderSubmissionCard(rev) {
-    // Cloned, not a reference - this gets overridden per-card below for the
-    // changes-requested case, and STATUS_LABELS is a shared constant reused
-    // across every card render.
+    // Cloned: it is changed per card below, and STATUS_LABELS is shared.
     const statusInfo = { ...(STATUS_LABELS[rev.status] || { label: (rev.status || 'UNKNOWN').toUpperCase(), className: 'badge-status-pending' }) };
     const canEdit = (rev.status === 'pending' || rev.status === 'ticket_open');
 
@@ -272,8 +255,6 @@ function renderSubmissionCard(rev) {
         ? `<div class="submission-rejection-reason"><strong>Staff Note:</strong> ${window.escapeHtml(qa.rejection_reason)}</div>`
         : '';
 
-    // A ticket_open row with a changes-requested message is more specific
-    // and actionable than the generic "IN DISCUSSION" badge - swap it in.
     const changesRequested = rev.status === 'ticket_open' ? latestChangesRequested(rev) : null;
     if (changesRequested) {
         statusInfo.label = 'CHANGES REQUESTED';
@@ -311,31 +292,22 @@ function renderSubmissionCard(rev) {
     `;
 }
 
-// Mirrors js/overseer/admin-actions.js's editCurrentTicket smart-routing logic (jump
-// straight to the tab/move that was actually edited for a delta patch) -
-// can't call that function directly, it lives on admin.html's page and
-// reads admin-only globals (window.currentQueueData, adminConfirm).
-// Split out from editSubmission so the routing can be tested without the
-// navigation that used to be the only way to observe it.
-//
-// &type= is load-bearing and was missing (v0.16 bug 5). js/editor/core/editor-core.js reads
-// `urlParams.get('type') || 'character'`, so a submission against a system, tool
-// or tier list page opened the editor in CHARACTER mode: a character tab strip
-// over system data, and the intercepted ticket rendering into nothing. The id
-// survived either way, which is why this looked like it worked right up until
-// the page was not a character.
-//
-// The kind comes from the page list, not the submission's own page_type.
+/**
+ * The editor link for one submission: its page, its kind (&type=, or every page
+ * opens as a character) and, for a character's delta, the tab or move it changed.
+ * @since v0.16
+ * @watch a copy of the routing in editCurrentTicket (admin-actions.js), which lives
+ *   on admin.html. The kind comes from the page list, never the submission's
+ *   page_type.
+ */
 window.buildSubmissionEditUrl = async function (rev) {
     const pageType = (await window.registeredPageType(rev.page_id)) || 'character';
     let url = `edit.html?char=${encodeURIComponent(rev.page_id)}`
         + `&type=${encodeURIComponent(pageType)}`
         + `&editTicket=${encodeURIComponent(rev.id)}`;
 
-    // The deep link below is character vocabulary - `matchups`, `counterplay`,
-    // `m1s::5H`. A system page's scopes are system_tab / system_section, and its
-    // editor builds its own tab list, so deriving a character tab for one would
-    // be inventing a destination that does not exist.
+    // The deep link is character vocabulary; a system page's editor builds its own
+    // tabs, so none is made up for one.
     if (rev.is_delta && pageType === 'character') {
         let tab = 'overview';
         if (['matchup', 'counterplay'].includes(rev.target_scope)) tab = rev.target_scope + 's';

@@ -1,29 +1,15 @@
 /**
- * Dogslamloop Wiki - Owner Tools: Page Experts (v0.17 F5)
- *
- * Split from owner.js like the other owner-*.js modules, and depends on it for
- * contentNotDeployedMessage.
- *
- * WHY THIS IS AN OWNER TOOL AND NOT AN ADMIN ONE
- *
- * The owner's rule (2026-08-27): which page a tool lives on decides who owns
- * it, not how much damage it can do. Personnel and capabilities are owner
- * tools, and granting somebody review rights over a page is a personnel
- * decision rather than a queue action - so it lives here, and
- * assign_page_expert() refuses anybody who is not the owner regardless of what
- * this page draws.
- *
- * BY EMAIL, LIKE PERSONNEL
- *
- * An expert may hold no role at all - that is the entire point of the feature,
- * and the reason page_experts is a table rather than a column on user_roles,
- * which is NOT NULL on role. So they appear in no roster, and an email address
- * is the only handle the owner has for them.
+ * Page Experts: who reviews which page, granted by email, listed by page.
+ * @since v0.17
+ * @touches list_page_experts(), assign_page_expert(), revoke_page_expert(),
+ *   site_pages, contentNotDeployedMessage (owner.js)
+ * @watch assign_page_expert() refuses anyone but the owner, whatever this page
+ *   draws. An expert may hold no role, so appears on no roster: an email is the
+ *   only handle.
+ * @see docs/owner-tools.md
  */
 
-// The page list comes from site_pages, which is what data/navigation.json is
-// generated from. Read here rather than from the JSON so a page the owner
-// created a minute ago is offerable immediately.
+// From site_pages, not navigation.json, so a page made a minute ago is offered.
 let expertPageList = [];
 
 async function loadPageExperts() {
@@ -37,9 +23,6 @@ async function loadPageExperts() {
     const { data, error } = await window.supabaseClient.rpc('list_page_experts');
 
     if (error) {
-        // PGRST202 / schema cache means "this migration has not been applied
-        // yet", which is the normal state between deploying the code and the
-        // release. Raw PostgREST text reads like a crash.
         container.innerHTML = contentNotDeployedMessage(error, 'Expert roster');
         return;
     }
@@ -49,8 +32,7 @@ async function loadPageExperts() {
         return;
     }
 
-    // Grouped by page, because the question the owner asks is "who covers
-    // Boomcat", not "what does this person cover".
+    // By page: the question is "who covers Boomcat".
     const byPage = {};
     data.forEach(row => {
         (byPage[row.page_id] = byPage[row.page_id] || []).push(row);
@@ -72,9 +54,7 @@ async function loadPageExperts() {
                 </div>`).join('')}
         </div>`).join('');
 
-    // Delegated by data- attribute, never an inline onclick built around an
-    // email address. Contributor-supplied values in an onclick is the habit
-    // this codebase does not keep.
+    // Delegated by data- attribute, never an inline onclick built around an email.
     container.querySelectorAll('.expert-revoke-btn').forEach(btn => {
         btn.addEventListener('click', () => revokePageExpert(btn.dataset.email, btn.dataset.page));
     });
@@ -94,7 +74,6 @@ async function loadExpertPageOptions() {
     data.forEach(page => {
         const opt = document.createElement('option');
         opt.value = page.page_id;
-        // textContent: a page name is owner-authored but still database content.
         opt.textContent = page.category ? `${page.category} — ${page.name}` : page.name;
         select.appendChild(opt);
     });
@@ -119,9 +98,7 @@ async function grantPageExpert() {
         return;
     }
 
-    // The RPC returns a sentence rather than throwing for "no such user" - the
-    // owner mistyping an address is not an exception. It still starts with
-    // "Error:" in that case, so colour by the answer rather than assuming.
+    // "No such user" comes back as a sentence starting "Error:", not a throw.
     const failed = String(data || '').startsWith('Error:');
     results.innerHTML = `<p class="${failed ? 'admin-error-text' : 'owner-success-text'}">${window.escapeHtml(data)}</p>`;
 
@@ -135,9 +112,6 @@ async function revokePageExpert(email, pageId) {
     const results = document.getElementById('page-experts-results');
     if (!results) return;
 
-    // adminConfirm is reimplemented in owner.js rather than imported from
-    // admin-core.js, per this project's preference for small duplication over
-    // cross-file coupling.
     const ok = await adminConfirm(`Remove ${email} as an expert of ${pageId.replace(/_/g, ' ')}?`);
     if (!ok) return;
 

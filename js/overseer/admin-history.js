@@ -1,23 +1,15 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Page History (browse + restore past
- * live versions of the page currently being reviewed)
- *
- * Phase 5 (the last one) of the reviewer-workflow redesign. page_history
- * already snapshots the pre-update content of page_data on every live
- * change via the archive_page_version trigger - this is the first UI
- * anywhere that reads it to actually list/compare/restore a version,
- * closing the gap where undoing a bad live edit meant manually re-editing
- * the page by hand through the full review process again.
- *
- * Restore is instant, admin/reviewer only (inherited from admin.html's own
- * page-level RBAC gate - no extra check needed here), not routed back
- * through pending_revisions/review - matching Wikipedia's rollback-for-
- * trusted-users model. FORCE APPROVE already lets staff push arbitrary
- * content live directly, so restoring known-prior-good content isn't a new
- * trust boundary. Restoring is itself just a normal page_data UPDATE, so it
- * re-fires the same trigger and snapshots the pre-restore live content as
- * a new page_history row for free - a restore can itself be undone the
- * same way, no special-casing needed.
+ * Page History: a page's past live versions, each compared with the live page
+ * and restorable in one press. Opened from the open submission (PAGE HISTORY) or,
+ * for any page, from the Page History tab.
+ * @since v0.4, as part of admin.js
+ * @touches page_history (written by archive_page_version on every page_data
+ *   update), page_data, navigation.json, renderStructuredDiff (admin-diff.js),
+ *   registeredPageType (site_utils.js)
+ * @watch a restore is an ordinary page_data update, so the trigger snapshots the
+ *   version it replaces and a restore can itself be undone. It skips review on
+ *   purpose; only review staff may do it (RLS on page_data and page_history).
+ * @see docs/overseer.md
  */
 
 async function togglePageHistoryView() {
@@ -27,7 +19,6 @@ async function togglePageHistoryView() {
     let container = document.getElementById('page-history-container');
 
     if (container && !container.classList.contains('hidden')) {
-        // Already showing - toggle off, back to the pending view.
         container.classList.add('hidden');
         if (typeof switchVersionView === 'function') switchVersionView('pending');
         return;
@@ -36,15 +27,11 @@ async function togglePageHistoryView() {
     await showPageHistory(pageId);
 }
 
-// The list itself, for a page named by the caller: the PAGE HISTORY button
-// above (the page of the open submission) and the Page History tab below (any
-// page, with nothing open).
+// For a page the caller names: the open submission's, or any from the tab.
 async function showPageHistory(pageId) {
     await loadPageHistoryList(pageId, revealPageHistoryContainer());
 }
 
-// Brings the history pane to the front of the review pane, making it the first
-// time it is asked for.
 function revealPageHistoryContainer() {
     let container = document.getElementById('page-history-container');
 
@@ -55,12 +42,8 @@ function revealPageHistoryContainer() {
         document.querySelector('.main-content-area').appendChild(container);
     }
 
-    // Same "hide every other pane" sweep switchVersionView's diff mode uses.
-    // System-type pages build their tabs (.wiki-tab-content); character-type
-    // ones reuse admin.html's static #tab-* divs, which carry neither class.
-    // This used to say they carry .tab-content and swept only the classes, so
-    // on a whole-page submission (which opens on PENDING, not DIFF) the page
-    // stayed on screen with the list of versions underneath it.
+    // The same sweep as the diff view: a character page's static #tab-* panes carry
+    // neither class, so they are hidden by id too.
     document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => el.classList.add('hidden'));
     const diffContainer = document.getElementById('admin-diff-container');
@@ -74,19 +57,14 @@ function revealPageHistoryContainer() {
     return container;
 }
 
-// --- THE PAGE HISTORY TAB (owner's Overseer card, v1.2) ---
-//
-// The list above hung off a button that only exists while a submission is
-// open, so rolling a page back needed a submission on that page to be sitting
-// in the queue. The owner picked "a page picker in the Overseer": a tab that
-// opens the same list, with the same COMPARE TO LIVE and RESTORE, for any page.
-//
-// Review staff only (js/overseer/admin-core.js hides the tab from everyone else), which
-// is who the database lets read page_history and write page_data.
+/**
+ * The Page History tab's page picker: every live page, from navigation.json, so
+ * an archived page is not offered. Filled the first time the tab opens.
+ * @since v1.2
+ * @watch admin-core.js shows the tab to review staff only, who are the ones the
+ *   database lets read page_history
+ */
 
-// Every live page, by name. From navigation.json, which the page already has:
-// an archived page is not in it, and is not offered. Filled the first time the
-// tab is opened.
 async function loadHistoryPagePicker() {
     const select = document.getElementById('history-page-picker');
     if (!select) return;
@@ -109,14 +87,12 @@ async function loadHistoryPagePicker() {
     pages.forEach(page => {
         const opt = document.createElement('option');
         opt.value = page.id;
-        // textContent: a name from the registry is still a value going into the DOM.
         opt.textContent = page.name;
         select.appendChild(opt);
     });
 
-    // The site's dropdown copies a <select>'s options once, when it builds
-    // itself, which is before this list arrives. Rebuilt here, the same way
-    // populateQueuePageFilter (js/overseer/admin-queue.js) does for the same reason.
+    // The site's dropdown copied this select before the list arrived, so it is
+    // rebuilt, as in populateQueuePageFilter.
     const built = select.nextElementSibling;
     if (built && built.classList.contains('manga-select-wrapper')) {
         built.remove();
@@ -125,27 +101,23 @@ async function loadHistoryPagePicker() {
     }
 }
 
-// The pick that is on screen. A second page picked while the first is still
-// loading must not have the first one's answer land on top of it.
+// A second pick while the first loads must not have the first answer land on it.
 let pageHistoryPick = 0;
 
 window.openPageHistoryFor = async function(pageId) {
     if (!pageId) return;
     const pick = ++pageHistoryPick;
 
-    // One thing in the pane: the open submission and any clip are put away, so
-    // its buttons are not left acting on a page that is no longer on screen.
+    // One thing in the pane, so no buttons are left acting on a page off screen.
     if (typeof window.closeMediaPreview === 'function') window.closeMediaPreview();
     resetPreviewState();
-    // Its versions open in the pane, which gets the whole width (js/overseer/admin-queue.js).
     if (typeof window.setQueueOpen === 'function') window.setQueueOpen(false);
 
     document.getElementById('preview-status-text').innerHTML = `PAGE HISTORY: <strong class="admin-preview-status-highlight">${window.escapeHtml(pageId.toUpperCase())}</strong>`;
     document.getElementById('preview-content-area').classList.add('active');
 
-    // COMPARE TO LIVE reads these, and no submission is there to have set
-    // them. A failed read stops here: comparing against an empty page would
-    // show every field as removed.
+    // COMPARE TO LIVE reads these. A failed read stops here: an empty page would show
+    // every field as removed.
     const { data: live, error } = await window.supabaseClient
         .from('page_data').select('desc_data, frame_data').eq('page_id', pageId).maybeSingle();
     if (pick !== pageHistoryPick) return;
@@ -158,13 +130,12 @@ window.openPageHistoryFor = async function(pageId) {
 
     await showPageHistory(pageId);
 
-    // On a phone the pane is off-screen until the reviewer switches to it, so
-    // picking a page has to take them there (as opening a clip does).
+    // On a phone the pane is off screen until the reviewer is taken to it.
     window.showMobilePreview();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // `change`, not `input`: the site's dropdown only ever dispatches change.
+    // `change`, not `input`: the site's dropdown only dispatches change.
     const picker = document.getElementById('history-page-picker');
     if (picker) picker.addEventListener('change', () => window.openPageHistoryFor(picker.value));
 });
@@ -200,9 +171,8 @@ async function loadPageHistoryList(pageId, container) {
 
 function renderPageHistoryCard(row, index) {
     const dateStr = new Date(row.version_timestamp).toLocaleString();
-    // last_editor_name only started being set by approveCurrentPreview as of
-    // Phase 0 of this redesign - older rows (and any direct-DB change) still
-    // read the trigger's original hardcoded placeholder.
+    // The trigger copies page_data.last_editor_name; an older row holds its
+    // placeholder.
     const editor = row.updated_by_user || 'Unknown';
 
     return `
@@ -231,12 +201,9 @@ function togglePageHistoryDiff(index, row) {
         return;
     }
     diffEl.classList.remove('hidden');
-    if (diffEl.dataset.rendered) return; // already built once this list-load, just toggling visibility
+    if (diffEl.dataset.rendered) return;
 
-    // page_history has no tab/section-scope column (unlike pending_revisions'
-    // delta system) - the comparison is always whole-page, not scoped to one
-    // tab. Same structural-diff engine Phase 2 built for move/frame-data -
-    // reused here instead of a raw JSON dump for the same legibility reason.
+    // Whole page: page_history has no scope column.
     const descDiff = window.renderStructuredDiff(row.desc_data || {}, window.currentLiveDescData || {});
     const frameDiff = window.renderStructuredDiff(row.frame_data || {}, window.currentLiveFrameData || {});
 
@@ -263,8 +230,7 @@ async function restorePageHistoryVersion(row, pageId) {
 
     const payload = {
         page_id: pageId,
-        // The page list first: an old snapshot can carry a kind an approval
-        // copied from a submission.
+        // The page list first: an old snapshot can carry a kind copied from a submission.
         page_type: (await window.registeredPageType(pageId)) || row.page_type || 'character',
         desc_data: row.desc_data,
         frame_data: row.frame_data,
@@ -278,9 +244,7 @@ async function restorePageHistoryVersion(row, pageId) {
         return;
     }
 
-    // Refresh the cached live data (used by both this view's diff comparisons
-    // and the pending/live/diff toggle) and reload the list - it now
-    // includes a new entry for the content that was just overwritten.
+    // The list reloads with the version this restore replaced.
     const { data: freshLive } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', pageId).single();
     window.currentLiveDescData = freshLive ? freshLive.desc_data : {};
     window.currentLiveFrameData = freshLive ? freshLive.frame_data : {};

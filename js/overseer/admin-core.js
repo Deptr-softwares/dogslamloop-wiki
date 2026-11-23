@@ -1,26 +1,20 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Core (state, RBAC gate, shared modals)
- *
- * First file loaded of admin.html's reviewer-workflow script set - defines
- * the window.* globals every other admin-*.js file reads/writes, plus the
- * RBAC gate that kicks off the whole page (loadQueue, defined in
- * admin-queue.js which loads after this file - fine, since it's only
- * called once DOMContentLoaded actually fires, by which point every
- * admin-*.js file has already registered its top-level functions).
+ * The Overseer's core: the state every admin-*.js file shares, the message and
+ * prompt boxes, the queue tabs, and the gate that decides who gets in and which
+ * queues they see. admin.html loads it first of its own scripts.
+ * @since v0.4, as part of admin.js
+ * @touches user_roles (role, can_moderate, can_delete_media), get_user_expert_pages(),
+ *   the window.current* state, rolesMeet and showAccessDenied (site_utils.js),
+ *   getCharacterTabIds (character_tabs.js), loadQueue (admin-queue.js)
+ * @watch the gate only decides what to show: RLS on every table is the boundary.
+ *   Its three ways in (review staff, moderators, page experts) must agree with
+ *   is_staff(), can_moderate() and can_review_page(). Everything this page shows
+ *   was written by someone else, so every innerHTML value goes through escapeHtml.
+ * @see docs/overseer.md
  */
 
-// --- STALE-DEPENDENCY STAND-INS ---
-// GitHub Pages serves js/ with max-age=3600, so the first load after a deploy
-// can pair a fresh admin-*.js with an hour-old js/utility/site_utils.js. On 2026-08-10
-// exactly that took the whole editor down: a new module called a new shared
-// helper that the cached copy did not have yet, and the TypeError went straight
-// through the boot try/catch.
-//
-// js/utility/site_utils.js now carries a content-hash query so this should not recur -
-// these are the second line of defence, and they are the real implementations
-// verbatim, so behaviour is identical either way. They install only when
-// missing and disappear the moment the cache catches up. This file is the
-// right home: it is the first of admin.html's script set to load.
+// Copies of three site_data.js helpers, installed only when an older cached
+// site_data.js lacks them. They must match the originals.
 if (typeof window.isBaseMode !== 'function') {
     window.isBaseMode = (modeId) => !modeId || modeId === 'base';
 }
@@ -46,7 +40,6 @@ window.activePreviewCharId = null;
 window.currentUserId = null;
 window.currentUsername = "Staff";
 
-// Core Data State
 window.currentLiveDescData = {};
 window.currentLiveFrameData = {};
 window.currentPendingDescData = {};
@@ -56,19 +49,11 @@ window.activeChatChannel = null;
 window.activeTypers = new Map();
 window.changedTabs = [];
 
-// This page's entire purpose is showing reviewers content submitted by
-// other, less-trusted accounts - author names, ticket chat, QA metadata,
-// and raw revision content are all attacker-reachable strings that
-// admin-queue.js/admin-preview.js/admin-tickets.js/admin-merge-compiler.js
-// build directly into innerHTML. Escape at every such interpolation point
-// rather than trusting the data (a malicious revision or chat message
-// shouldn't be able to run script in a reviewer's authenticated session).
-// The escaper is window.escapeHtml, from js/utility/site_utils.js (loaded first).
-// So is the SHOW PREVIEW switch, window.toggleMobilePreview.
-
-// Mobile-only header dropdown holding OWNER TOOLS/RECENT CHANGES/HUB (the
-// panel is display:none outside admin.css's max-width:900px block, so this is
-// inert on desktop even though the handler is always registered).
+/**
+ * Opens and closes the phone header's menu: OWNER TOOLS, RECENT CHANGES and HUB.
+ * @since v0.8
+ * @watch admin.css shows the menu only under 900px wide
+ */
 window.toggleAdminMobileMenu = function() {
     const panel = document.getElementById('admin-secondary-actions');
     if (!panel) return;
@@ -90,7 +75,6 @@ document.addEventListener('click', (event) => {
     if (btn) btn.setAttribute('aria-expanded', 'false');
 });
 
-// --- TIME FORMATTER HELPER ---
 function timeSince(dateString) {
     const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
     let interval = seconds / 31536000;
@@ -106,10 +90,6 @@ function timeSince(dateString) {
     return Math.floor(seconds) + " secs ago";
 }
 
-// --- THE DELTA INJECTION ENGINE ---
-// applyDeltaToData is defined once, in site_data.js (loaded before this file).
-
-// --- CUSTOM MODAL PROMISES ---
 window.adminAlert = function(message) {
     document.getElementById('admin-alert-msg').textContent = message;
     window.runDialog(document.getElementById('admin-alert-modal'), {
@@ -117,15 +97,14 @@ window.adminAlert = function(message) {
     });
 };
 
-// placeholder is a parameter because all three moderation actions share this
-// one modal, and its textarea used to carry the reject wording ("Explain why
-// this revision was declined...") hardcoded in admin.html. Approving a
-// revision therefore asked the reviewer to justify a decline, in red. Working
-// through a queue at speed, that is wording someone eventually acts on.
+/**
+ * The Overseer's note box. Resolves to the trimmed note, or null on cancel.
+ * @watch approve, reject and request changes share it, so each passes its own
+ *   placeholder
+ */
 window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "CONFIRM", isDanger = false, placeholder = "Type your note here...") {
     const modal = document.getElementById('admin-prompt-modal');
 
-    // The modal box is always the first child of the overlay
     const modalBox = modal.firstElementChild;
     const titleEl = modalBox ? modalBox.querySelector('h3') : null;
     const msgEl = document.getElementById('admin-prompt-msg');
@@ -133,7 +112,6 @@ window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "C
     const btnOk = document.getElementById('btn-admin-prompt-ok');
     const btnCancel = document.getElementById('btn-admin-prompt-cancel');
 
-    // Dynamic Text Injection
     if (titleEl) titleEl.textContent = title;
     if (msgEl) msgEl.textContent = message;
     if (input) {
@@ -142,7 +120,6 @@ window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "C
     }
     if (btnOk) btnOk.textContent = confirmText;
 
-    // Safe Class Replacement
     if (modalBox) {
         modalBox.classList.remove('accent-red', 'accent-green');
         modalBox.classList.add(isDanger ? 'accent-red' : 'accent-green');
@@ -157,32 +134,17 @@ window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "C
     });
 };
 
-// --- BFCACHE GUARD ---
-// The browser's back-forward cache can restore this page as a frozen
-// snapshot on back/forward navigation (e.g. reviewer clicks a link to
-// another page, then hits the browser/in-page back button) WITHOUT
-// re-running DOMContentLoaded or the RBAC gate below at all - a real bug
-// reported live: a legitimate reviewer got kicked to ACCESS DENIED after
-// navigating back from recent-changes.html, every time, but a manual
-// refresh (which always does a real reload) fixed it every time - the
-// textbook signature of a stale bfcache snapshot rather than an actual
-// auth failure. pageshow's event.persisted is true only on a bfcache
-// restore (never on a normal first load), so this forces a real reload
-// exactly when needed and is a no-op otherwise.
+// A page restored from the back-forward cache skips the gate below, and a
+// reviewer was refused after going back. A restore reloads instead.
 window.addEventListener('pageshow', (event) => {
     if (event.persisted) location.reload();
 });
 
-// --- 1. RBAC SECURITY GATEKEEPER ---
 document.addEventListener('DOMContentLoaded', async () => {
     if (!window.supabaseClient) return;
 
-    // A single dropped request on either call below (a flaky connection, or
-    // this page loading right after the bfcache-guard reload above) used to
-    // permanently kick a legitimate staff member to ACCESS DENIED with no
-    // recovery short of a manual refresh - retry once after a short delay
-    // before concluding access should actually be denied. A genuinely
-    // logged-out/unauthorized user still fails the retry the same way.
+    // One dropped request must not refuse a staff member: retry once before the gate
+    // decides.
     let { data: { session } } = await window.supabaseClient.auth.getSession();
     if (!session) {
         await new Promise(r => setTimeout(r, 600));
@@ -190,13 +152,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (!session) { window.showAccessDenied(); return; }
 
-    // Fetch ALL roles assigned to the user.
-    //
-    // select('*') rather than select('role'): capabilities are columns on this
-    // row, and this gate now reads can_moderate as well. Naming columns would
-    // mean editing this query every time a capability is added, and getting a
-    // 400 on the deploy where the client is newer than the database - which on
-    // this page means locking staff out.
+    // Every column, since capabilities are columns: naming them would 400 on a
+    // deploy where the client is newer than the database, and lock staff out.
     let { data: roleData, error } = await window.supabaseClient
         .from('user_roles').select('*').eq('user_id', session.user.id);
     if (error) {
@@ -208,31 +165,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const roleRow = (roleData && roleData.length > 0) ? roleData[0] : null;
     const roles = roleRow ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
 
-    // Moderators get in, and this is deliberately a CAPABILITY rather than a
-    // new role - user_roles has UNIQUE(user_id) precisely because a second row
-    // broke get_my_role() for that user everywhere.
-    //
-    // The owner's reasoning, 2026-08-13: this is THE staff page, so somebody
-    // who moderates belongs on it. What they should not see is the revision
-    // queue and the media queue, because neither is their job.
+    // Moderation is a capability, not a role: user_roles allows one row per user.
     const canModerate = !!roleRow && roleRow.can_moderate === true;
-    // Reviewer and above - which now means reviewer, admin AND owner. Mirrors
-    // public.is_staff() (20260827000001).
+    // Mirrors public.is_staff().
     const isReviewStaff = window.rolesMeet(roles, 'reviewer');
 
-    // The third way in, and the one this gate did not know about until
-    // 2026-09-04.
-    //
-    // v0.17 gave a page expert review rights over their own pages: the queue
-    // policies read can_review_page(page_id), which is is_staff() OR an expert
-    // row for that page (20260903000001). The SQL half shipped and worked. This
-    // half never learned the word "expert", so an expert with no role failed
-    // `!isReviewStaff && !canModerate` and was kicked to ACCESS DENIED - their
-    // badge visible on their profile the whole time. Reported by the owner
-    // after making somebody a Disaster Plants expert.
-    //
-    // Skipped for review staff because can_review_page() already returns true
-    // for them; asking would cost a round trip to learn nothing.
+    // A page expert reviews their own pages (can_review_page()). Review staff
+    // already can, so they are not asked.
     let expertPages = [];
     if (!isReviewStaff) {
         const { data: pages } = await window.supabaseClient
@@ -241,15 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const isExpert = expertPages.length > 0;
 
-    // Deliberately narrower than moderation, and mirrors public.can_delete_media():
-    // admin or the explicit flag, with no fall-back to reviewer. Reviewing a
-    // revision and destroying a file are different amounts of trust, and this
-    // is the only irreversible action in the panel.
-    // Mirrors public.can_delete_media(): admin and above, or the per-user flag.
-    // The media queue lives on THIS page, and what decides who owns a tool is
-    // which page it is on rather than how irreversible it is (owner,
-    // 2026-08-27). The flag still matters - it is how a reviewer, who is below
-    // this bar, gets the power one person at a time.
+    // Mirrors public.can_delete_media(): admin and above, or the account's own flag.
     window.currentUserCanDeleteMedia = window.rolesMeet(roles, 'admin')
         || (!!roleRow && roleRow.can_delete_media === true);
 
@@ -257,61 +188,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.currentUserId = session.user.id;
     window.currentUserRoles = roles;
-    // Mirrors public.can_moderate() (20261116000000): admin and above, or the
-    // owner's tick. A reviewer is review staff and still not a moderator
-    // unless ticked.
+    // Mirrors public.can_moderate(): admin and above, or the account's own tick.
     const moderates = canModerate || window.rolesMeet(roles, 'admin');
     window.currentUserCanModerate = moderates;
 
-    // What this person is here to do, as three independent answers rather than
-    // one label - because the three ways in compose. An expert who also holds
-    // the moderation capability is here for revisions AND reports, and a pair
-    // of mutually-exclusive "only" flags could not say that.
-    //
-    // Presentation, not security: every table below has its own RLS, and the
-    // revision queue an expert can read is already narrowed to their pages by
-    // can_review_page(). Hiding is about not showing somebody a job that is not
-    // theirs.
+    // Three answers rather than one label, because the ways in combine: an expert
+    // who also moderates sees revisions and reports.
     const seesRevisions = isReviewStaff || isExpert;
     const seesMedia     = isReviewStaff;
     const seesReports   = moderates;
-    // Page History restores a live page, which is the review team's power and
-    // nobody else's (page_data and page_history say the same in their RLS).
+    // Restoring a live page is the review team's power (page_data and page_history
+    // RLS).
     const seesHistory   = isReviewStaff;
     window.currentUserSeesRevisions = seesRevisions;
     window.currentUsername = window.getDisplayName ? window.getDisplayName(session) : "Staff";
 
-    // Scope the page down before anything loads, so nobody sees a queue flash
-    // into view and disappear.
-    //
-    // This is presentation, not security. pending_revisions and the media
-    // tables have their own RLS, and a narrowed account cannot read them
-    // whatever this does - hiding them is about not showing somebody a job
-    // that is not theirs, not about preventing access.
+    // Before anything loads, so no queue flashes into view and disappears.
     if (!seesRevisions || !seesMedia || !seesReports || !seesHistory) {
         applyScope({ seesRevisions, seesMedia, seesReports, seesHistory });
     }
 
-    // Personnel Management / Media GC moved to owner.html (admin-only) -
-    // this just reveals the nav link to get there, not an inline tools panel.
     if (window.rolesMeet(roles, 'owner')) {
         const ownerLink = document.getElementById('owner-tools-link');
         if (ownerLink) ownerLink.classList.remove('hidden');
     }
 
-    // The static strip in admin.html - Ultimate is injected later by
-    // js/overseer/admin-modes.js, and Gallery has no reviewer view.
-    //
-    // includeOptional: this runs at BOOT, and an optional tab's flag arrives
-    // per revision, in previewRevision. Binding only the enabled ones would be
-    // binding against a flag that has not been fetched yet - so a Techs button
-    // un-hidden a moment later by applyOptionalTabVisibility sat there doing
-    // nothing when clicked, was never hidden by any other tab's sweep (setupTabs
-    // only hides ids in its own group, so it rendered underneath whatever came
-    // next), and never had .active removed. All three were reported together.
-    // js/pages/core/page_boot.js fixed exactly this on the reader page; this surface was
-    // missed. setupTabs is idempotent and additive, so binding a button that
-    // stays hidden costs nothing.
+    // At boot, before any revision has said which optional tabs it has, so every
+    // tab is bound: a button shown later still works.
     const adminTabIds = window.getCharacterTabIds({ editableOnly: true, includeOptional: true });
 
     if (typeof setupTabs === 'function') {
@@ -327,7 +230,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- WORKFLOW KEY LISTENERS ---
     let typingThrottle = false;
     document.getElementById('ticket-chat-input').addEventListener('input', function() {
         if (window.activeChatChannel && !typingThrottle) {
@@ -363,21 +265,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // A moderator has no revision queue to load, and calling it would put an
-    // RLS denial in the panel where their reports should be.
-    // An expert loads it too - their pages' revisions are the reason they are
-    // here, and can_review_page() has already narrowed what comes back.
+    // A moderator has no revision queue, and loading it would show an RLS refusal.
     if (window.currentUserSeesRevisions) loadQueue();
 });
 
-// --- THE QUEUE TABS (owner's Overseer card, v1.2) ---
-// One queue on screen at a time. A queue that loads on demand (media,
-// reports) loads the first time its tab is opened, so opening it is the only
-// press it takes.
+// One queue on screen at a time. A queue that loads on demand loads the first
+// time its tab opens.
 const QUEUE_LOADERS = {
     media: () => (typeof loadMediaQueue === 'function' ? loadMediaQueue() : null),
     reports: () => (typeof window.loadReportQueue === 'function' ? window.loadReportQueue() : null),
-    // Not a queue, and nothing is waiting in it: its page list (js/overseer/admin-history.js).
     history: () => (typeof loadHistoryPagePicker === 'function' ? loadHistoryPagePicker() : null),
 };
 const queuePanelsOpened = new Set();
@@ -398,8 +294,10 @@ window.showQueuePanel = function(name) {
     queuePanelsOpened.add(name);
 };
 
-// How many are waiting, shown on the tab once that queue has loaded. Nothing
-// is fetched to fill it: a count costs the same request as the queue.
+/**
+ * Shows how many are waiting on a queue's tab, once that queue has loaded.
+ * @since v1.2
+ */
 window.setQueueCount = function(name, count) {
     const el = document.querySelector(`[data-queue-count="${name}"]`);
     if (el) el.textContent = Number.isFinite(count) && count > 0 ? String(count) : '';
@@ -410,27 +308,12 @@ document.addEventListener('click', (event) => {
     if (tab) window.showQueuePanel(tab.dataset.queueTab);
 });
 
-// Narrows the Overseer to the queues this person is actually here for.
-//
-// Was applyModeratorScope, which took no arguments because there was only one
-// narrowed user. There are two now - a moderator and a page expert - and they
-// are not opposites: somebody can hold both, and hiding by role label would
-// take the revision queue away from an expert the moment they were also asked
-// to moderate.
-//
-// Hides rather than deletes, so nothing else on the page has to learn that
-// these containers might be absent - loadQueue, renderMediaQueue and the
-// preview engine all still find their elements and write into them harmlessly.
-// Deleting them would turn every unguarded getElementById in five files into a
-// null dereference for one class of user.
+// Narrows the Overseer to the queues this person is here for. It hides rather
+// than deletes, so code that writes into a hidden panel still finds it.
 function applyScope({ seesRevisions, seesMedia, seesReports, seesHistory }) {
-    // Kept as the moderator's own class name: style/admin.css hangs a rule off
-    // it, and this is still exactly the case it described - in the building,
-    // but not reviewing revisions.
+    // admin.css styles the page for anyone who does not review revisions by this.
     if (!seesRevisions) document.body.classList.add('admin-moderator-only');
 
-    // Each queue is a tab and its panel (admin.html #admin-queue-tabs). One a
-    // person is not here for loses both.
     const seen = { revisions: seesRevisions, media: seesMedia, reports: seesReports, history: seesHistory };
     Object.entries(seen).forEach(([name, shown]) => {
         if (shown) return;
@@ -439,17 +322,11 @@ function applyScope({ seesRevisions, seesMedia, seesReports, seesHistory }) {
         if (tab) tab.hidden = true;
         if (panel) panel.classList.add('hidden');
     });
-    // If that took away the tab that was open, the first one left opens, and
-    // loads. For a moderator that is Reports, the entire page, and making them
-    // press Load first would be asking them to open the thing they came for.
+    // The first queue left opens, so a moderator lands on Reports.
     const stillOpen = document.querySelector('.admin-queue-tab.active:not([hidden])');
     const first = Object.keys(seen).find(name => seen[name]);
     if (!stillOpen && first) window.showQueuePanel(first);
 
-    // The preview pane exists to review revisions. Left in place - see the
-    // note above on why nothing is deleted - but told what it is for, rather
-    // than sitting there saying "Select a revision..." to somebody who will
-    // never be shown one. An expert DOES review revisions, so they keep it.
     if (!seesRevisions) {
         const status = document.getElementById('preview-status-text');
         if (status) status.textContent = 'Moderation view — reports are handled from the queue on the left.';

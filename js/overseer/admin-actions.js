@@ -1,9 +1,16 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Actions (intercept, approve, reject,
- * open ticket)
+ * What a reviewer does to the open revision: INTERCEPT & EDIT, approve (MERGE TO
+ * LIVE or FORCE APPROVE), reject or withdraw, OPEN TICKET and REQUEST CHANGES.
+ * @since v0.4, as part of admin.js
+ * @touches pending_revisions, page_data (archived to page_history by its trigger),
+ *   user_notifications, applyDeltaToData (site_data.js), buildPageUrl and
+ *   registeredPageType (site_utils.js), adminPrompt (admin-core.js)
+ * @watch the page kind written to a live row comes from the page list, never the
+ *   submission's page_type. A notification is skipped for an anonymized author
+ *   (author_id NULL). RLS decides who may write; the buttons only decide what shows.
+ * @see docs/overseer.md
  */
 
-// --- INTERCEPT & EDIT ENGINE ---
 window.editCurrentTicket = async function() {
     if(!window.activePreviewRevId) return;
     const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
@@ -11,72 +18,43 @@ window.editCurrentTicket = async function() {
 
     if(!(await adminConfirm("Intercept this submission? This will open the Editor so you can modify the contributor's text directly."))) return;
 
-    // Attach the special editTicket flag.
-    //
-    // &type= was missing here too (v0.16 bug 5, reported against submissions.html
-    // but identical in both places). js/editor/core/editor-core.js reads
-    // `urlParams.get('type') || 'character'`, so intercepting a submission
-    // against a system, tool or tier list page opened the editor in CHARACTER
-    // mode - the id arrived, the page type did not, and the ticket rendered into
-    // a UI built for something else.
-    //
-    // Duplicated rather than shared with js/pages/community/submissions.js's builder: that file
-    // is not loaded on admin.html, and this project takes small per-file
-    // duplication over a new cross-file dependency. The tab logic below stays
-    // different on purpose - a reviewer's strip is the honest target here, where
-    // the contributor's page has no strip to read.
-    //
-    // The kind comes from the page list, not the submission's page_type.
+    // The editor needs &type=, or it opens every page as a character. The kind comes
+    // from the page list, not the submission's page_type.
     const pageType = (await window.registeredPageType(rev.page_id)) || 'character';
     let url = `edit.html?char=${encodeURIComponent(rev.page_id)}`
         + `&type=${encodeURIComponent(pageType)}`
         + `&editTicket=${encodeURIComponent(rev.id)}`;
 
-    // Open the editor on whatever tab the reviewer is currently reading.
-    //
-    // This used to derive a single tab from rev.target_scope, guarded by
-    // `if (rev.is_delta)` - so a merged or legacy ticket appended no &tab=
-    // at all and editor-core.js fell back to Overview, no matter what had
-    // actually been edited. That is why intercepting a skill revision was
-    // impossible. A merged ticket now spans several scopes anyway, so there
-    // is no single correct target to derive; the tab the reviewer chose in
-    // the strip is the honest answer.
+    // The tab the reviewer is reading: a merged ticket spans several scopes, so no
+    // single tab can be derived.
     const activeTabBtn = document.querySelector('#preview-tab-nav .btn-manga.active');
     const activeTab = activeTabBtn ? activeTabBtn.id.replace('nav-', '') : null;
     if (activeTab) url += `&tab=${encodeURIComponent(activeTab)}`;
 
-    // ...and on whatever character state they are reading, for the same
-    // reason. A reviewer who has switched to an ultimate state and then
-    // intercepts would otherwise land on the base kit and write their
-    // corrections into the wrong state. editor-modes.js still lets a
-    // mode-scoped ticket override this, which is the stronger signal of the
-    // two when they disagree.
+    // And the state they are reading, so corrections land in it. A mode-scoped
+    // ticket still overrides this in editor-modes.js.
     if (window.activePreviewMode) url += `&mode=${encodeURIComponent(window.activePreviewMode)}`;
 
-    // Single-move tickets keep their deep link into the exact move, which
-    // the tab strip cannot express on its own.
+    // A single-move ticket keeps its deep link to the move.
     if (rev.is_delta && rev.target_scope === 'move' && rev.target_key) {
         const [moveTab, moveId] = rev.target_key.split('::');
         if (moveTab === activeTab && moveId) url += `&move=${encodeURIComponent(moveId)}`;
     }
 
-    // Launch the Editor in a new tab
     window.open(url, '_blank');
 };
 
-// --- 5. MODERATION ACTIONS (DELTA SPLICE ENGINE) ---
 async function approveCurrentPreview() {
     if(!window.activePreviewRevId) return;
 
     const revData = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
 
-    // 1. PROMPT THE REVIEWER FOR REASONING
     const msg = window.rolesMeet(window.currentUserRoles, 'admin')
         ? "Provide an optional staff note (or leave blank to force merge immediately):"
         : "Provide an optional staff note for the author (or leave blank):";
 
     const approvalNote = await window.adminPrompt(msg, "APPROVE REVISION", "MERGE TICKET", false, "Optional note for the author, e.g. what you verified...");
-    if (approvalNote === null) return; // User clicked Cancel
+    if (approvalNote === null) return;
 
     const finalNote = approvalNote.trim() !== '' ? approvalNote.trim() : "Approved and merged.";
 
@@ -91,12 +69,12 @@ async function approveCurrentPreview() {
         return;
     }
 
-    // Written onto the live row below, so it comes from the page list, then
-    // the live row itself, never the submission's page_type.
+    // Written onto the live row, so from the page list, then the live row, never the
+    // submission's page_type.
     const pageType = (await window.registeredPageType(revData.page_id))
         || (freshLive && freshLive.page_type) || 'character';
 
-    // Your Supabase trigger "trigger_archive_page_before_update" handles the backup automatically.
+    // trigger_archive_page_before_update keeps the old version in page_history.
 
     const liveDesc = freshLive ? freshLive.desc_data : {};
     const liveFrame = freshLive ? freshLive.frame_data : {};
@@ -124,9 +102,8 @@ async function approveCurrentPreview() {
     const { error: liveError } = await window.supabaseClient.from('page_data').upsert([livePayload], { onConflict: 'page_id' });
     if (liveError) { window.adminAlert("Merge Failed: " + liveError.message); return; }
 
-    // 2. TRACK THE REVIEWER & INJECT REASONING
     const updatedQA = revData.qa_metadata || {};
-    updatedQA.reviewed_by = window.currentUsername; // Explicitly tracks the exact staff member!
+    updatedQA.reviewed_by = window.currentUsername;
 
     if (approvalNote.trim() !== '') {
         updatedQA.changelog = (updatedQA.changelog || '') + `\n\n[Staff Note: ${finalNote}]`;
@@ -137,17 +114,11 @@ async function approveCurrentPreview() {
         qa_metadata: updatedQA
     }).eq('id', window.activePreviewRevId);
 
-    // Primed so the link stored on the notification is the page's real path
-    // rather than the folder convention - see buildPageUrl in js/utility/site_utils.js.
-    // This one is clicked days later, so getting it wrong is a 404 with no
-    // context around it.
+    // The notification's link is clicked days later, so it is the page's real path.
     await window.primePageUrlIndex();
     const pageUrl = window.buildPageUrl(revData.page_id, pageType);
 
-    // Update Notification to include the Staff Note
-    // author_id is NULL when the author's account has been anonymized -
-    // there is nobody left to notify, and the insert would violate
-    // user_notifications.user_id's foreign key.
+    // No author left to notify once an account is anonymized (author_id NULL).
     if (revData.author_id) await window.supabaseClient.from('user_notifications').insert([{
         user_id: revData.author_id,
         message: `Your revision for "${revData.page_id.toUpperCase()}" has been approved! Staff Note: "${finalNote}"`,
@@ -176,8 +147,7 @@ async function rejectCurrentPreview() {
     }
     updatedQA.rejection_reason = finalReason;
 
-    // Soft status change, not a delete - keeps ticket_chat/qa_metadata around as
-    // institutional memory instead of erasing the submission and its discussion.
+    // A status, not a delete, so the submission and its discussion stay.
     const { error: updateError } = await window.supabaseClient.from('pending_revisions').update({
         status: isSelfWithdraw ? 'withdrawn' : 'rejected',
         qa_metadata: updatedQA
@@ -188,15 +158,12 @@ async function rejectCurrentPreview() {
         return;
     }
 
-    // Primed so the link stored on the notification is the page's real path
-    // rather than the folder convention - see buildPageUrl in js/utility/site_utils.js.
-    // This one is clicked days later, so getting it wrong is a 404 with no
-    // context around it.
+    // The notification's link is clicked days later, so it is the page's real path.
     await window.primePageUrlIndex();
     // No kind passed: the submission's page_type is only its word.
     const pageUrl = window.buildPageUrl(revData.page_id);
 
-    // Skipped for an anonymized author - see the approve path above.
+    // Skipped for an anonymized author.
     if (revData.author_id) await window.supabaseClient.from('user_notifications').insert([{
         user_id: revData.author_id,
         message: `Your revision for "${revData.page_id.toUpperCase()}" was declined. Staff Note: "${finalReason}"`,
@@ -214,12 +181,8 @@ async function openTicketCurrentPreview() {
 
     const revData = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
 
-    // Update the database
     await window.supabaseClient.from('pending_revisions').update({ status: 'ticket_open' }).eq('id', window.activePreviewRevId);
 
-    // Until v0.8 nothing told the author a ticket had been opened - approve
-    // and reject were the only events that ever notified, so a submission
-    // could sit under discussion indefinitely with the author unaware.
     if (revData && revData.author_id && revData.author_id !== window.currentUserId) {
         await window.supabaseClient.from('user_notifications').insert([{
             user_id: revData.author_id,
@@ -228,19 +191,15 @@ async function openTicketCurrentPreview() {
         }]);
     }
 
-    // Silently reload the queue to update the badges in the background
     await loadQueue();
 
-    // Force the preview to re-render, which builds the ticket workspace
     await previewRevision(window.activePreviewRevId);
 
-    // Snap the camera down to the workspace and flash it
     setTimeout(() => {
         const workspace = document.getElementById('ticket-workspace');
         if (workspace && !workspace.classList.contains('hidden')) {
             workspace.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
 
-            // Flash the borders so the user's eyes are drawn to the newly opened workspace
             workspace.style.transition = 'box-shadow 0.3s ease';
             workspace.style.boxShadow = '0 0 20px var(--accent-blue)';
             setTimeout(() => { workspace.style.boxShadow = '0 4px 6px hsla(0, 0%, 0%, 0.3)'; }, 800);
@@ -248,18 +207,20 @@ async function openTicketCurrentPreview() {
     }, 150);
 }
 
-// --- REQUEST CHANGES (lighter middle path than approve/reject/intercept) ---
+/**
+ * REQUEST CHANGES: written feedback to the author, which opens the ticket if it
+ * is not open yet.
+ * @watch its message carries type 'changes_requested', which renderTicketWorkspace
+ *   draws apart; older messages have no type
+ */
 async function requestChanges() {
     if (!window.activePreviewRevId) return;
     const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
     if (!rev) return;
 
     const note = await window.adminPrompt("What changes would you like the author to make?", "REQUEST CHANGES", "SEND REQUEST", false, "Describe what needs changing before this can be approved...");
-    if (note === null || note.trim() === '') return; // Cancel, or nothing actually written
+    if (note === null || note.trim() === '') return;
 
-    // Ensure the ticket is open so the author (and other staff) can see the
-    // request and discuss it - same status transition openTicketCurrentPreview
-    // uses, just folded in here instead of requiring a separate click first.
     if (rev.status !== 'ticket_open') {
         await window.supabaseClient.from('pending_revisions').update({ status: 'ticket_open' }).eq('id', rev.id);
         rev.status = 'ticket_open';
@@ -268,9 +229,6 @@ async function requestChanges() {
     const { data: liveRev, error: fetchErr } = await window.supabaseClient.from('pending_revisions').select('ticket_chat').eq('id', rev.id).single();
     const currentChat = (!fetchErr && liveRev.ticket_chat) ? liveRev.ticket_chat : [];
 
-    // type: 'changes_requested' is additive - every existing message simply
-    // has no `type` field, so old rows still render exactly as before.
-    // renderTicketWorkspace (js/overseer/admin-tickets.js) gives this a distinct look.
     const newMessage = { author: window.currentUsername, text: note.trim(), timestamp: Date.now(), type: 'changes_requested' };
     const newChat = [...currentChat, newMessage];
 

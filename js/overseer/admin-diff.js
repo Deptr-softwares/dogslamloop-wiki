@@ -1,24 +1,18 @@
 /**
- * Dogslamloop Wiki - Admin Overseer: Diff (change detection, LCS text diff,
- * changed-tabs popup, dynamic document explorer sidebar)
+ * What a revision changed: the field-by-field diff of objects, which tabs it
+ * touched (marked in the strip), and the strip itself, including a system or tier
+ * list page's own tabs. The inline text diff is diff-markers.js.
+ * @since v0.4, as part of admin.js
+ * @touches window.currentLive* and currentPending*, window.changedTabs,
+ *   unwrapModeDelta, getCharacterTabIds, getKeyedSectionByScope and
+ *   FIXED_BLOCK_SECTIONS (character_tabs.js), setupTabs (pagebuilder.js)
+ * @watch every value is contributor text, escaped before it reaches the page. A
+ *   new scope needs its tab here, or its change marks the wrong tab.
+ * @see docs/overseer.md
  */
 
-// The inline text diff (diffTextLCS, its markers and resolveDiffMarkers) lives
-// in js/utility/diff-markers.js, shared with the editor's diff mode since v0.20.
-
-// --- STRUCTURAL DIFF (Phase 2 of the reviewer-workflow redesign) ---
-// renderDiffBlock's fallback for anything that isn't a block-array (move
-// stats/frame data, profile/playstyle metadata, matchup/counterplay
-// metadata) used to dump two raw JSON blobs side by side - readable for a
-// reviewer eyeballing prose, not for spotting a single changed frame
-// number buried in an object. Walks both objects key by key and highlights
-// what actually changed, same visual language (ins.diff-add/del.diff-del)
-// as the prose LCS diff above.
-
-// Field names a reviewer reads, rather than the ones the schema uses. The
-// explicit entries are the ones de-camelCasing gets wrong or leaves cryptic;
-// everything else falls through to the general rule, so a field added later
-// reads correctly without being listed.
+// Field names as a reviewer reads them. Listed: the ones de-camelCasing gets
+// wrong; the rest follow the general rule, so a new field needs no entry.
 const DIFF_FIELD_LABELS = {
     oneliner: 'Summary',
     worksOn: 'Works On',
@@ -36,16 +30,9 @@ const DIFF_FIELD_LABELS = {
     opponent: 'Opponent',
     topic: 'Topic',
     starter: 'Starter',
-    // Item 9's editor-only grouping. Named rather than left to the general
-    // rule, which would render a bare "Folder" - a reviewer seeing that beside
-    // real content has no way to know it changes nothing a reader sees. It is
-    // shown rather than hidden because joining a folder MOVES the block, and a
-    // reordering with no stated reason is worse than one line of metadata.
+    // Editor-only, and named so: joining a folder moves the Block, so it is shown.
     folder: 'Editor Folder',
-    // Its colour (v1.1): editor-only as well, so named the same way.
     folderColor: 'Editor Folder Color',
-    // v0.20: a combo's extra routes. The general rule would read "Notations",
-    // which is not what anyone calls them on the page.
     notations: 'Notation Styles',
 };
 
@@ -59,20 +46,15 @@ window.humanFieldName = function(key) {
 
 window.renderStructuredDiff = function(oldObj, newObj) {
 
-    // A value a reviewer can read. This used to be JSON.stringify for anything
-    // that was not a primitive, which is where most of the "it just shows raw
-    // JSON" came from: a list of stats, a sequence of inputs and a set of
-    // combo rows all arrived as one unbroken brace-filled line.
+    // A value a reviewer can read: a list of objects as one line each, never one
+    // line of braces.
     const formatValue = (val) => {
         if (val === undefined || val === null) return '';
         if (Array.isArray(val)) {
             if (!val.length) return '(empty)';
-            // A list of plain values reads as a list.
             if (val.every(v => v === null || typeof v !== 'object')) {
                 return val.map(v => String(v)).join(', ');
             }
-            // A list of objects: one line each, named by whatever identifies
-            // them, rather than one wall of braces.
             return val.map((v, i) => {
                 const name = v && (v.name || v.label || v.combo || v.title || v[Object.keys(v)[0]]);
                 return `${i + 1}. ${name === undefined ? '(item)' : String(name)}`;
@@ -86,8 +68,7 @@ window.renderStructuredDiff = function(oldObj, newObj) {
         return String(val);
     };
 
-    // Multi-line values keep their lines. Escaped first, so the <br> is the
-    // only markup that survives - these values are contributor-submitted.
+    // Escaped first, so the <br> is the only markup left.
     const show = (val) => window.escapeHtml(formatValue(val)).replace(/\n/g, '<br>');
 
     const renderFields = (oldO, newO, depth) => {
@@ -95,8 +76,7 @@ window.renderStructuredDiff = function(oldObj, newObj) {
         const safeNew = newO && typeof newO === 'object' ? newO : {};
         const allKeys = [...new Set([...Object.keys(safeOld), ...Object.keys(safeNew)])];
 
-        // A move's accolades are stored as ids (js/pages/core/framedata.js); a reviewer
-        // reads their names, in the order the card shows them.
+        // Accolades are stored as ids; a reviewer reads their names, in the card's order.
         const readable = (key, val) => (key === 'accolades' && Array.isArray(val) && typeof window.orderedAccolades === 'function'
             ? window.orderedAccolades(val).map(a => a.name) : val);
 
@@ -104,13 +84,12 @@ window.renderStructuredDiff = function(oldObj, newObj) {
         allKeys.forEach(key => {
             const oldVal = readable(key, safeOld[key]);
             const newVal = readable(key, safeNew[key]);
-            if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return; // unchanged - skip, not noise
+            if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
 
             const bothPlainObjects = oldVal && newVal && typeof oldVal === 'object' && typeof newVal === 'object'
                 && !Array.isArray(oldVal) && !Array.isArray(newVal);
-            // Two lists of objects - stats, combo rows, a move's variants.
-            // Compared position by position so a single changed field shows as
-            // that field, instead of both lists being reprinted whole.
+            // Lists of objects compare position by position, so one changed field shows as
+            // that field.
             const bothObjectArrays = Array.isArray(oldVal) && Array.isArray(newVal) && (depth || 0) < 3
                 && [...oldVal, ...newVal].some(v => v && typeof v === 'object')
                 && [...oldVal, ...newVal].every(v => v === null || typeof v === 'object');
@@ -145,17 +124,10 @@ window.renderStructuredDiff = function(oldObj, newObj) {
     return `<div class="diff-structured">${renderFields(oldObj, newObj, 0)}</div>`;
 };
 
-// --- SMART DELTA HIGHLIGHTER ---
-// Previously defined twice, byte-identical, further down the old single
-// admin.js (a Gemini copy-paste artifact) - one definition here.
 function getTabData(tab, mode) {
     const isFrame = window.FRAME_MOVE_CATEGORIES.includes(tab);
 
-    // Narrowed to the character state the preview is showing. Without this,
-    // every tab of an ultimate state was compared against the base kit's -
-    // so an edit inside a state read as a wholesale rewrite of the page, and
-    // an untouched base kit read as unchanged even when the revision was
-    // entirely about a state.
+    // Narrowed to the character state on screen, never the base kit.
     const activeMode = window.activePreviewMode || null;
     const scopeDesc = (full) => (typeof window.resolveModeDesc === 'function'
         ? window.resolveModeDesc(full || {}, activeMode) : (full || {}));
@@ -173,16 +145,11 @@ function getTabData(tab, mode) {
     return dataObj[tab] || null;
 }
 
-// Works out which tabs the revision changed in the state on screen, and marks
-// them in the strip. Re-run after a character-state switch (js/overseer/admin-modes.js).
-//
-// It used to announce them in a yellow "Modifications Detected" box as well,
-// which came back on every tab load. Removed on the owner's word (v1.2,
-// Overseer card): "the submission preview itself can already detects and
-// points out where things changed". The tabs carry their marker, and a state
-// the revision changed carries the same one on its toggle
-// (js/overseer/admin-modes.js renderPreviewModeBar), which is what the box's second
-// line used to say.
+/**
+ * Works out which tabs the revision changed in the state on screen and marks
+ * them in the strip. Re-run on a character-state switch (admin-modes.js).
+ * @watch a state the revision changed is marked on its toggle instead
+ */
 function calculateTabDiffs(rev) {
     window.changedTabs = [];
 
@@ -202,39 +169,24 @@ function calculateTabDiffs(rev) {
             const active = window.activePreviewMode || null;
 
             const addScopeTab = (rawScope, rawKey) => {
-                // A character-state edit wraps one of the scopes below. The tab
-                // it changed is the inner scope's tab - without unwrapping,
-                // every state edit marked Overview and nothing else.
+                // A state's edit marks the tab of the scope it wraps.
                 const { modeId, scope, key } = window.unwrapModeDelta(rawScope, rawKey);
 
-                // A marker means "changed in the state you are looking at".
-                // A batched ticket can span several states, and marking the
-                // union would point the reviewer at tabs that are identical in
-                // the state on screen. The states themselves are marked on the
-                // toggle instead (js/overseer/admin-modes.js).
+                // "Changed in the state on screen": a batch can span states, and each state is
+                // marked on its toggle.
                 if (!((isBase(modeId) && isBase(active)) || modeId === active)) return;
 
-                // The page's own settings (v1.1) belong to no tab, and marking
-                // Overview would point the reviewer at a tab that did not change.
+                // The page's own settings belong to no tab.
                 if (scope === 'pageConfig') return;
 
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
                 else if (window.getKeyedSectionByScope(scope)) targetTab = window.getKeyedSectionByScope(scope).tab;
-                // A fixed block section names its own tab too. Without this,
-                // editing "Read First" marked OVERVIEW as the changed tab and
-                // left Combos unmarked - so the reviewer was pointed at a tab
-                // that had not changed, and away from the one that had.
+                // A fixed Block section names its own tab.
                 else if ((window.FIXED_BLOCK_SECTIONS || []).some(f => f.scope === scope)) {
                     targetTab = window.FIXED_BLOCK_SECTIONS.find(f => f.scope === scope).tab;
                 }
-                // An order delta names its list by a dotted path, and the tab
-                // it belongs to falls out of that: "frame.skills" is the Skills
-                // tab, "desc.comboGroups" is whichever tab that section renders
-                // in. Without this the reorder marks no tab at all, so the
-                // strip shows no change indicator and the reviewer opens the
-                // ticket on Overview - the same miss that left Combos unmarked
-                // for "Read First".
+                // An order delta's dotted path names its list, and so its tab.
                 else if (scope === 'order') {
                     const [root, field] = String(key || '').split('.');
                     if (root === 'frame') targetTab = field;
@@ -244,18 +196,10 @@ function calculateTabDiffs(rev) {
                         if (section) targetTab = section.tab;
                     }
                 }
-                // Coerced for the same reason as the diff renderer: a null key
-                // reaching here would throw inside the changed-tabs scan, and
-                // that scan feeds the popup telling a reviewer which tabs to
-                // look at. Losing it silently is how a batch looks smaller than
-                // it is. A move always has a key, so this is a guard rather
-                // than a behaviour change.
+                // A null key must not throw: this scan says which tabs to look at.
                 else if (scope === 'move') targetTab = String(key || '').split('::')[0] || 'overview';
-                // No branch here for the system scopes on purpose. A system or
-                // tier list page never reaches this code - it is caught by the
-                // page-type check at the top of this function, which marks tabs
-                // by comparing live against pending. One was written here, it
-                // looked right, and it could not run.
+                // No branch for the system scopes: a system or tier list page is caught by the
+                // page-type check at the top, and never reaches here.
 
                 if (!window.changedTabs.includes(targetTab)) window.changedTabs.push(targetTab);
             };
@@ -263,9 +207,7 @@ function calculateTabDiffs(rev) {
             if (rev.target_scope === 'multi') rev.delta_payload.forEach(edit => addScopeTab(edit.scope, edit.key));
             else addScopeTab(rev.target_scope, rev.target_key);
         } else {
-            // Includes the injected Ultimate: this compares live against
-            // pending for a loaded character, so a base-only character's
-            // ultimate edits must be able to mark their tab changed.
+            // The added Ultimate too, so a base-only character's ultimate edits mark it.
             const tabs = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
             tabs.forEach(tab => {
                 const liveStr = JSON.stringify(getTabData(tab, 'live') || {});
@@ -278,11 +220,12 @@ function calculateTabDiffs(rev) {
     if (typeof window.markChangedRevisionTabs === 'function') window.markChangedRevisionTabs();
 }
 
-// --- REVISION TAB STRIP ---
-// Selects a tab in the strip and shows its content, without needing a real
-// click. setupTabs (js/pages/core/pagebuilder.js) only reacts to click events, so the
-// old code - which set .active on a nav button and nothing else - left the
-// strip pointing at one tab while the content pane showed another.
+/**
+ * Selects a tab in the strip and shows its pane, without a real click.
+ * @since v0.12
+ * @watch setupTabs reacts only to clicks, so setting .active alone leaves the strip
+ *   and the pane on different tabs
+ */
 window.setActiveRevisionTab = function(tabId) {
     const nav = document.getElementById('preview-tab-nav');
     if (!nav) return;
@@ -298,13 +241,7 @@ window.setActiveRevisionTab = function(tabId) {
     if (content) content.classList.remove('hidden');
 };
 
-// Marks which tabs the revision actually changed. It matters most on a merged
-// ticket, which touches several tabs at once and so has no single target to
-// route to.
-//
-// A per-button marker was tried before and removed because the buttons then
-// lived in the sidebar, invisible while reading the preview on mobile. They
-// are above the content now, which is what makes this worth doing again.
+// Marks the tabs the revision changed: a merged ticket has no single tab to open on.
 window.markChangedRevisionTabs = function() {
     const nav = document.getElementById('preview-tab-nav');
     if (!nav) return;
@@ -316,38 +253,32 @@ window.markChangedRevisionTabs = function() {
     });
 };
 
-// --- DYNAMIC REVISION TABS ---
-// Appends into whatever holds #nav-overview, which is now the top strip
-// (#preview-tab-nav) rather than the sidebar column it was written for.
+/**
+ * The strip's own tabs for a system or tier list page, in place of the character tabs.
+ */
 window.updateAdminSidebar = function() {
     const navOverviewBtn = document.getElementById('nav-overview');
     const navContainer = navOverviewBtn ? navOverviewBtn.parentElement : null;
     if (!navContainer) return;
 
-    // Clean up any old dynamically generated system tabs
     navContainer.querySelectorAll('.system-nav-btn').forEach(btn => btn.remove());
 
     if (window.activePreviewPageType === 'system' || window.activePreviewPageType === 'tierlist') {
-        // Hide standard character tabs
         window.getCharacterTabIds({ editableOnly: true }).forEach(tab => {
             const btn = document.getElementById(`nav-${tab}`);
             if (btn) btn.classList.add('hidden');
         });
 
-        // Rebuild with system tabs
         const sysTabs = window.currentPendingDescData.tabs || window.currentLiveDescData.tabs || [];
         const tabIds = [];
 
         sysTabs.forEach((tab, idx) => {
-            // System-page tabs use tabId/tabLabel; tierlist tabs use id/label.
+            // A system page's tabs use tabId/tabLabel; a tier list's use id/label.
             const tabId = tab.tabId || tab.id;
             const tabLabel = tab.tabLabel || tab.label || tabId;
             tabIds.push(tabId);
-            // Same markup as the static character tabs above it and as the
-            // live system page's own nav (js/pages/core/description.js) - a bare <div>
-            // here rendered unstyled once these moved into the manga strip.
-            // Built as nodes rather than innerHTML because tabLabel comes
-            // from contributor-submitted desc_data.
+            // The same markup as the character tabs, built as nodes since tabLabel is
+            // contributor text.
             const btn = document.createElement('button');
             btn.id = `nav-${tabId}`;
             btn.className = `btn-manga btn-manga-slanted system-nav-btn ${idx === 0 ? 'active' : ''}`;
@@ -367,7 +298,6 @@ window.updateAdminSidebar = function() {
             });
         });
 
-        // Wire them up to standard pagebuilder tab switching logic
         if (typeof setupTabs === 'function') {
             setupTabs('nav', 'tab', tabIds, 'major');
         }

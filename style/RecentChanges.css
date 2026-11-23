@@ -1,6 +1,7 @@
-/* =========================================
-   RECENT-CHANGES.HTML - sitewide public "recent changes" feed
-   ========================================= */
+/* Recent Changes: the feed's pagination.
+   Since v0.6.
+   Touches: recent-changes.html.
+   See: docs/records.md */
 
 .recent-changes-pagination {
     display: flex; justify-content: space-between; align-items: center;

@@ -1,10 +1,11 @@
 /**
- * Dogslamloop Wiki - Editor Playground's page (v1.1)
- *
- * The page the Tools menu lists. The Playground itself is edit.html?playground
- * (js/editor/tools/editor-playground.js); this says what it is and opens it. A page of its
- * own, so a new editor finds it before they have ever opened the editor (owner,
- * 2026-10-20).
+ * The Editor Playground's own page, which the Tools menu lists: it says what the
+ * Playground is and opens it. The Playground itself is edit.html?playground
+ * (editor-playground.js). A page of its own, so a new editor finds it before
+ * ever opening the editor.
+ * @since v1.1
+ * @touches registerWikiTool (tool_page.js)
+ * @see docs/editor.md
  */
 
 (function () {

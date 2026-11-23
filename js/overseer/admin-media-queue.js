@@ -1,28 +1,15 @@
 /**
- * Dogslamloop Wiki - Admin: Media Moderation Queue
- *
- * The reviewer side of v0.13 item 1. The model lives in
- * supabase/migrations/20260812000002_media_moderation.sql; the enforcement
- * that obeys it lives in js/utility/site_utils.js.
- *
- * Two decisions shape this file, both the owner's:
- *
- *   1. **Media is not loaded until asked for.** The queue shows names, sizes
- *      and badges; the file itself downloads only when a reviewer opens that
- *      row. Unchecked media is by definition the newest media, which here
- *      means freshly recorded skill clips - the heaviest things in the
- *      bucket. Rendering twenty of them to decide whether to look at one is
- *      the wrong default.
- *
- *   2. **Usage is a first-class filter**, not a detail. "Nothing references
- *      this" is the most useful sorting question in a 316-file bucket, and
- *      the answer already existed - it just had nowhere to be shown.
- *
- * On "unused": it means nothing was FOUND, not "safe to delete". media_usage()
- * finds references by extracting them, which can miss an unusual form; the
- * garbage collector uses conservative substring matching for the same question
- * precisely because its mistakes have to fall the other way. The two numbers
- * can disagree, and when they do the collector is the one to believe.
+ * The media queue: every file in the wiki-media bucket with its status (unchecked,
+ * approved, flagged) and where it is used, a clip opened only when a reviewer asks,
+ * and deleting a file.
+ * @since v0.13
+ * @touches storage bucket wiki-media, media_moderation, media_usage(),
+ *   currentUserCanDeleteMedia and adminPrompt (admin-core.js), setQueueCount
+ * @watch "unused" means no reference was found, never "safe to delete":
+ *   media_usage() can miss an unusual form, and the owner tools' garbage collector,
+ *   which errs towards keeping files, is the one to believe. File names are
+ *   contributor text.
+ * @see docs/overseer.md
  */
 
 const MEDIA_QUEUE_PAGE_SIZE = 200;
@@ -31,9 +18,8 @@ let mediaQueueRows = [];
 let mediaQueueUsage = new Map();
 let mediaQueueLoaded = false;
 
-// Percent-encoding is not normalised in SQL - the same object appears raw in
-// some rows and encoded in others, so both sides are decoded here against the
-// bucket listing rather than guessing at a decoder in Postgres.
+// Percent-encoding differs between rows, so both sides are decoded here against
+// the bucket listing.
 function decodeMediaRef(ref) {
     try {
         return decodeURIComponent(String(ref));
@@ -50,9 +36,8 @@ function formatBytes(bytes) {
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// Paged to exhaustion, same reasoning as the garbage collector: a listing cut
-// short at a fixed limit silently hides the newest files, which in this
-// bucket are exactly the ones needing review.
+// Paged to the end: a listing cut short hides the newest files, the ones needing
+// review.
 async function listMediaObjects() {
     const files = [];
     for (let offset = 0; offset < 10000; offset += MEDIA_QUEUE_PAGE_SIZE) {
@@ -71,8 +56,7 @@ async function listMediaObjects() {
 
 async function loadMediaUsage() {
     const usage = new Map();
-    // Advisory, so a failure degrades to "usage unknown" rather than failing
-    // the whole queue - a reviewer can still moderate without it.
+    // Usage is advice, so a failure leaves it unknown rather than failing the queue.
     try {
         const { data, error } = await window.supabaseClient.rpc('media_usage');
         if (error || !Array.isArray(data)) return usage;
@@ -123,8 +107,7 @@ window.loadMediaQueue = async function() {
                 name: file.name,
                 size: file.metadata ? file.metadata.size : null,
                 createdAt: file.created_at || null,
-                // Absence of a row IS the unchecked state - the table is an
-                // overlay on the bucket, not a register of it.
+                // No row is the unchecked state: the table overlays the bucket.
                 status: record ? record.status : 'unchecked',
                 note: record ? record.note : null,
             };
@@ -180,8 +163,7 @@ window.renderMediaQueue = function() {
         const meta = [formatBytes(row.size), row.createdAt ? String(row.createdAt).slice(0, 10) : '']
             .filter(Boolean).join(' · ');
 
-        // data- attributes with a delegated listener, never an inline onclick:
-        // the file name is contributor-supplied.
+        // data- attributes and a delegated listener: the file name is contributor text.
         return `
             <div class="media-queue-row media-queue-row-${window.escapeHtml(row.status)}" data-path="${window.escapeHtml(row.name)}">
                 <div class="media-queue-head">
@@ -209,8 +191,7 @@ window.renderMediaQueue = function() {
     }).join('');
 };
 
-// Built as elements rather than innerHTML so the URL is never parsed as
-// markup, and set through .src so it cannot carry attributes.
+// Elements rather than innerHTML, and .src, so the address is never markup.
 function buildMediaElement(path, className) {
     const { data } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(path);
     const isVideo = /\.(webm|mp4|mov|ogv)$/i.test(path);
@@ -228,9 +209,8 @@ function buildMediaElement(path, className) {
     return media;
 }
 
-// The same 900px the admin layout already splits on, asked at click time
-// rather than at load: a reviewer who rotates a tablet gets the arrangement
-// that fits the width they now have.
+// admin.css's 900px split, asked at click time, so a rotated tablet gets the
+// layout for its new width.
 function hasPreviewPane() {
     return window.matchMedia('(min-width: 901px)').matches
         && !!document.getElementById('media-preview-panel');
@@ -239,8 +219,7 @@ function hasPreviewPane() {
 window.closeMediaPreview = function () {
     const panel = document.getElementById('media-preview-panel');
     if (!panel) return;
-    // Emptied, not just hidden. A hidden <video> keeps playing, and a reviewer
-    // hearing audio from a clip they closed has no way to find it.
+    // Emptied, not hidden: a hidden <video> keeps playing.
     document.getElementById('media-preview-stage').innerHTML = '';
     panel.classList.add('hidden');
     document.body.classList.remove('media-preview-open');
@@ -256,19 +235,16 @@ function showMediaInPane(path) {
     stage.appendChild(buildMediaElement(path, 'media-preview-media'));
 
     panel.classList.remove('hidden');
-    // The class the revision preview is hidden by while this is open - one
-    // pane, one thing in it, rather than a clip stacked above a page render.
+    // One thing in the pane: the revision preview hides while a clip is open.
     document.body.classList.add('media-preview-open');
 
     panel.scrollIntoView({ block: 'nearest' });
     return true;
 }
 
-// The click-to-reveal half of the owner's first decision. Nothing is fetched
-// until this runs, and it runs once per row.
+// Nothing is fetched until a reviewer opens the row.
 function revealMedia(row, path) {
-    // Desktop: the big pane, where there is room to judge a clip. Phone: in
-    // the row, unchanged - there is no second pane there and it already works.
+    // Wide screens open the clip in the pane; a phone opens it in the row.
     if (hasPreviewPane()) {
         showMediaInPane(path);
         return;
@@ -305,7 +281,7 @@ async function setMediaStatus(path, status, note) {
 }
 
 async function clearMediaStatus(path) {
-    // Deleting the row is how a file returns to unchecked.
+    // Deleting the row returns the file to unchecked.
     const { error } = await window.supabaseClient.from('media_moderation').delete().eq('path', path);
     if (error) {
         window.adminAlert(`Could not clear: ${error.message}`);
@@ -343,9 +319,8 @@ document.addEventListener('click', async (event) => {
     }
 
     if (action === 'flag') {
-        // The note is public on a flagged row - the policy has to expose
-        // flagged rows for the site to know what to hide - so the prompt says
-        // so rather than letting someone find out later.
+        // A flagged row's note is public (the site reads flagged rows to hide them), so
+        // the prompt says so.
         const note = await window.adminPrompt(
             'Why is this being flagged? This note is visible to anyone, so keep it factual.',
             'FLAG MEDIA', 'FLAG', true, 'e.g. wrong character, duplicate clip');
@@ -354,9 +329,6 @@ document.addEventListener('click', async (event) => {
         if (await setMediaStatus(path, 'flagged', note)) {
             updateLocalRow(path, 'flagged', note);
             window.renderMediaQueue();
-            // Wording updated in v0.14: deletion is now a button on this row
-            // rather than something only the owner could arrange, so the alert
-            // points at it instead of implying there is nothing to be done.
             window.adminAlert('Flagged. It will stop rendering on the site, but the file still exists at its storage URL. Use DELETE to remove it for good.');
         }
         return;
@@ -375,25 +347,13 @@ document.addEventListener('click', async (event) => {
     if (action === 'delete-confirm') { await deleteMedia(row, path); return; }
 });
 
-// --- DELETION (v0.14 item 5) ---
-//
-// Inline rather than through adminPrompt, and that is the point: this is the
-// only irreversible action in the panel, so the confirmation has to show the
-// file's name and its usage together, which a one-line text prompt cannot.
-//
-// The usage line is deliberately worded as what was FOUND. media_usage()
-// answers by extracting references, which is fast and can miss an unusual
-// form; the garbage collector answers the same question by conservative
-// substring matching precisely so its mistakes fall towards keeping files
-// alive. "Nothing references it" therefore means "nothing was found", never
-// "safe to delete", and the person about to destroy a file is exactly who
-// needs to be told the difference.
+// Its own confirmation, not adminPrompt: the only action here that cannot be
+// undone shows the file's name and what was found using it together.
 function openDeleteConfirm(row, path) {
     const box = row.querySelector('.media-queue-confirm');
     if (!box) return;
 
-    // One confirmation open at a time, so a stray click cannot land on a
-    // different row's CONFIRM than the one just read.
+    // One confirmation open at a time, so a stray click cannot confirm another row.
     document.querySelectorAll('.media-queue-confirm').forEach(other => {
         if (other !== box) { other.classList.add('hidden'); other.innerHTML = ''; }
     });
@@ -406,7 +366,6 @@ function openDeleteConfirm(row, path) {
 
     const title = document.createElement('p');
     title.className = 'media-queue-confirm-title';
-    // textContent: the file name is contributor-supplied.
     title.textContent = `Delete ${path}?`;
     box.appendChild(title);
 
@@ -459,13 +418,8 @@ function closeDeleteConfirm(row) {
     box.innerHTML = '';
 }
 
-// Storage first, then the bookkeeping.
-//
-// That order is deliberate. If the object delete fails, nothing else has
-// happened and the row is untouched. If the bookkeeping fails afterwards, the
-// file is genuinely gone and the queue says so loudly rather than pretending
-// the delete failed - which would invite a second attempt at a file that no
-// longer exists.
+// Storage first, then the record: a failed storage delete leaves everything as it
+// was, and a failed record after it says so rather than inviting a second try.
 async function deleteMedia(row, path) {
     const box = row.querySelector('.media-queue-confirm');
     const status = box ? box.querySelector('.media-queue-confirm-status') : null;
@@ -513,15 +467,14 @@ async function deleteMedia(row, path) {
 document.addEventListener('DOMContentLoaded', () => {
     ['media-queue-status', 'media-queue-usage'].forEach(id => {
         const select = document.getElementById(id);
-        // change, not input: initializeMangaSelects replaces these with a
-        // custom dropdown that only ever dispatches change.
+        // `change`, not `input`: the site's custom dropdown only dispatches change.
         if (select) select.addEventListener('change', window.renderMediaQueue);
     });
 
     const close = document.getElementById('media-preview-close');
     if (close) close.addEventListener('click', window.closeMediaPreview);
 
-    // Escape, because the panel covers the pane the reviewer was reading.
+    // Escape, since the panel covers the pane the reviewer was reading.
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
         const panel = document.getElementById('media-preview-panel');

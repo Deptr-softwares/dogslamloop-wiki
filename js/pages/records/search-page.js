@@ -1,23 +1,13 @@
 /**
- * Dogslamloop Wiki - search.html (v0.19 F1b, full-text results)
- *
- * The other half of the split the owner asked for: the sidebar box answers
- * "take me to that page or section", this page answers "where does the wiki
- * say something about X".
- *
- * It searches BOTH indexes and shows them together - structural hits first,
- * because a page or a section is a better answer than a paragraph whenever one
- * matches, then the prose. Searching only full text here would make the
- * dedicated search page worse than the box in the sidebar at finding a
- * character, which is the most common thing anybody looks for.
- *
- * The full-text index is 332 KB raw / 105 KB gzipped and is fetched ONLY here.
- * That is the whole reason it is a second file: paying it on every page view,
- * for a feature most visits never touch, is what the split avoids.
- *
- * Scoring, snippet extraction and escaping are shared with js/utility/search.js via
- * window.__siteSearch rather than reimplemented - two rankers that disagree
- * would make the same query mean different things in the box and on the page.
+ * The Search page (search.html): where the wiki says something about a word. The
+ * sidebar box takes you to a page or a section; this page shows those matches
+ * first, then the prose that mentions it, with a snippet.
+ * @since v0.19
+ * @touches data/search-fulltext.json (fetched only here), window.__siteSearch
+ *   (search.js), escapeHtml and escapeRegExp (site_utils.js)
+ * @watch scoring, snippets and escaping come from search.js, so a query ranks the
+ *   same in the box and on the page. Every snippet is contributor prose: escaped.
+ * @see docs/records.md
  */
 
 (function () {
@@ -46,12 +36,8 @@
     }
 
     /**
-     * A window of text around the first match, with the match marked.
-     *
-     * Built by slicing rather than by replacing across the whole blob: a
-     * section can be several thousand characters, and a result list that
-     * printed all of it would be unreadable and enormous. Word boundaries are
-     * respected at both ends so the snippet does not start mid-word.
+     * A window of text around the first match, the match marked, cut at word
+     * boundaries: a section can run to thousands of characters.
      */
     function snippet(text, query) {
         const at = text.toLowerCase().indexOf(query);
@@ -84,10 +70,8 @@
             const page = fulltext.pages[row[F.page]];
             if (!page) continue;
 
-            // Earlier in the section scores higher, and a whole-word match beats
-            // one inside a longer word. Deliberately simple: the alternative is
-            // a real relevance model, and with 595 sections a plain ordering
-            // that the reader can predict beats one they cannot.
+            // Earlier in the section scores higher, and a whole word beats a match inside a
+            // longer one: an order a reader can predict.
             const wholeWord = new RegExp(`\\b${window.escapeRegExp(query)}\\b`).test(text.toLowerCase());
             out.push({
                 score: (wholeWord ? 40 : 0) - Math.min(at, 400) * 0.05,
@@ -114,8 +98,7 @@
             return;
         }
 
-        // Structural first - the searchbar's own matcher, so the same query
-        // ranks the same way in both places.
+        // The search box's own matcher, so a query ranks the same in both places.
         const structural = window.__siteSearch ? window.__siteSearch.search(query) : [];
         const prose = searchFulltext(query).slice(0, MAX_RESULTS);
 
@@ -128,9 +111,7 @@
 
         status.textContent = `${total} result${total === 1 ? '' : 's'} for “${query}”`;
 
-        // Escaped at every interpolation. Page names, section titles and body
-        // text are all contributor-authored, and the snippet is a slice of raw
-        // prose - the highest-volume untrusted string on the site.
+        // Escaped at every interpolation: names, titles and prose are contributor text.
         const structuralHTML = structural.length ? `
             <h3 class="search-page-group">Pages and sections</h3>
             <ul class="search-page-list">
@@ -167,8 +148,7 @@
         const form = document.getElementById('search-page-form');
         const status = document.getElementById('search-page-status');
 
-        // ?q= so a result page can be linked and shared, and so the sidebar box
-        // can hand a query over to this page later without a second design.
+        // ?q=, so a result page can be linked and shared.
         const params = new URLSearchParams(window.location.search);
         const initial = params.get('q') || '';
         if (initial) input.value = initial;
@@ -197,15 +177,14 @@
         };
 
         input.addEventListener('input', () => {
-            // Debounced: every keystroke scans 595 sections of prose, and on a
-            // phone that is enough work to make typing feel sticky.
+            // Debounced: every keystroke scans all the prose, which a phone feels.
             clearTimeout(timer);
             timer = setTimeout(run, 120);
         });
 
         form.addEventListener('submit', (e) => { e.preventDefault(); clearTimeout(timer); run(); });
 
-        // Exposed for tests, which need to drive matching without the debounce.
+        // For the tests, which drive matching without the debounce.
         window.__searchPage = { render, searchFulltext, snippet, loadFulltext };
     });
 })();

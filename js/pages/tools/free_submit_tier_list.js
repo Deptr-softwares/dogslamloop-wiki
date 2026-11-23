@@ -1,34 +1,15 @@
 /**
- * Dogslamloop Wiki - Free Submit Tier List (v0.14 item 4)
- *
- * The community's own ranking, beside the certified per-person lists. The model
- * is in supabase/migrations/20260814000001_free_submit_tier_list.sql, and the
- * reasoning behind every limit is there rather than repeated here.
- *
- * Registered against the tool host rather than being a page of its own:
- * js/pages/types/tool_page.js builds the frame and the authored intro/notes around this,
- * so the owner can still explain the tool in the wiki's own voice without
- * touching this file.
- *
- * TWO THINGS THIS PAGE SHOWS THAT MOST TIER LISTS DO NOT, and both are
- * deliberate:
- *
- *   THE SAMPLE SIZE, on every character. "S tier" from nine people and "S tier"
- *   from four hundred are different claims, and a page that renders them
- *   identically is hiding the only number that tells them apart. A character
- *   under the floor is shown in its own row, unranked, rather than quietly
- *   omitted - an absent character reads as an oversight, and a character
- *   labelled "not enough votes yet" reads as an invitation.
- *
- *   THE DISTRIBUTION, for whichever character is selected. A median reports the
- *   middle, and a genuinely split community and a unanimous one have the same
- *   middle. The bars are what let a reader tell those apart, and they are also
- *   what makes a successful brigade legible instead of laundered.
- *
- * THE GATE IS ASKED ABOUT BEFORE THE BALLOT IS DRAWN, never discovered at
- * submit time. free_submit_eligibility() returns the reason as prose, so a
- * refusal reads as an explanation rather than an error. The RPC re-checks
- * everything it says - this copy only decides what to draw.
+ * The Free Submit Tier List: the community's own ranking, beside the certified
+ * per-person lists. Each character shows its sample size, a selected one shows
+ * how the votes spread, and the ballot says first whether the reader may vote.
+ * @since v0.14
+ * @touches free_submit_tiers, free_submit_votes, get_free_submit_rankings(),
+ *   free_submit_eligibility(), submit_tier_votes(), loadCharacterRoster
+ *   (site_data.js), registerWikiTool (tool_page.js)
+ * @watch the reasoning behind every limit is in its migration
+ *   (20260814000001_free_submit_tier_list.sql). The gate is asked before the
+ *   ballot is drawn, and the RPC checks everything again.
+ * @see docs/tier-lists.md
  */
 
 (function () {
@@ -55,26 +36,20 @@
         return node;
     }
 
-    // The normal state between writing a migration and the release that applies
-    // it, said plainly rather than as a raw error.
+    // Normal between a migration and the release that applies it, and said so.
     function notDeployed(error) {
         return !!error && (error.code === 'PGRST202' || error.code === 'PGRST205'
             || /schema cache/i.test(error.message || ''));
     }
 
-    // --- LOADING ---
-
-    // site_data.js's loadCharacterRoster, shared with every tier list. This
-    // page's own copy is why it showed names on coloured squares until v0.18
-    // FT3: it read `entry.image`, which navigation.json never carries.
+    // The roster loader every tier list shares.
     async function loadRoster() {
         if (state.roster.size) return;
         state.roster = await window.loadCharacterRoster();
     }
 
-    // navigation.json is the authority for which characters exist, the same as
-    // it is for the certified lists. The database validates against site_pages
-    // when a vote is written; this is only about what to draw.
+    // navigation.json says which characters exist; the database checks a vote
+    // against site_pages when it is written.
     function rosterIds() {
         return Array.from(state.roster.keys());
     }
@@ -90,8 +65,8 @@
             wrap.style.backgroundColor = window.CHARACTER_COLORS[meta.name];
         }
 
-        // The name sits underneath and shows through if the portrait 404s, so
-        // an unresolved key is visible rather than silently blank.
+        // The name sits underneath and shows if the portrait fails, so a missing one is
+        // visible.
         wrap.appendChild(el('span', 'tier-portrait-name', meta.name));
 
         const img = document.createElement('img');
@@ -130,7 +105,7 @@
         }
 
         const { data: gate, error } = await client().rpc('free_submit_eligibility');
-        // Returns a one-row table, which PostgREST hands back as an array.
+        // A one-row table, which PostgREST returns as an array.
         state.gate = error ? null : (Array.isArray(gate) ? gate[0] : gate);
 
         state.myVotes.clear();
@@ -143,8 +118,6 @@
         (mine || []).forEach(v => state.myVotes.set(v.character_id, v.tier));
     }
 
-    // --- THE RANKING ---
-
     function rankedEntry(pageId) {
         const row = state.rankings.get(pageId);
         const btn = el('button', 'fs-entry');
@@ -154,8 +127,8 @@
 
         btn.appendChild(portrait(pageId));
 
-        // The sample size, on the face of every character rather than in a
-        // tooltip. It is the number that makes the placement readable at all.
+        // The sample size, on the face of every character: it makes the placement
+        // readable at all.
         const count = row ? row.vote_count : 0;
         btn.appendChild(el('span', 'fs-entry-count', `${count} vote${count === 1 ? '' : 's'}`));
 
@@ -177,11 +150,8 @@
             ranked.get(row.median_tier).push(id);
         });
 
-        // Within a tier, strongest first and so left to right across the row.
-        // Sorted by the continuous median rather than a mean - see the
-        // migration for why. Ties fall back to the sample size, so of two
-        // characters the community rates identically the better-attested one
-        // leads.
+        // Strongest first within a tier, by the continuous median (the migration says
+        // why); a tie goes to the larger sample.
         ranked.forEach(list => list.sort((a, b) => {
             const ra = Number((state.rankings.get(a) || {}).median_rank) || 0;
             const rb = Number((state.rankings.get(b) || {}).median_rank) || 0;
@@ -206,9 +176,8 @@
             host.appendChild(row);
         });
 
-        // Shown rather than hidden. A character with eight votes is not ranked
-        // by this page, and saying so is both honest and the clearest possible
-        // prompt to go and vote.
+        // Shown, not hidden: a character under the floor is unranked, and saying so
+        // invites a vote.
         if (unranked.length || unvoted.length) {
             const floor = state.gate && state.gate.min_votes_to_rank;
             const row = el('div', 'fs-tier-row fs-tier-row-pending');
@@ -229,9 +198,8 @@
         }
     }
 
-    // The distribution, for one character at a time. One panel rather than a
-    // chart under all twenty-two: a median only needs interrogating when a
-    // reader doubts a specific placement.
+    // The spread of one character's votes, since a median only needs questioning
+    // when a reader doubts a placement.
     function renderDetail(host) {
         host.textContent = '';
         if (!state.selected) {
@@ -284,8 +252,6 @@
         host.appendChild(chart);
     }
 
-    // --- THE BALLOT ---
-
     function ballotRow(pageId) {
         const meta = state.roster.get(pageId) || { name: pageId };
         const row = el('div', 'fs-ballot-row');
@@ -314,8 +280,7 @@
             choices.appendChild(b);
         });
 
-        // Explicitly "no opinion" rather than an unset default, so clearing a
-        // rating you already gave is a thing you can actually do.
+        // An explicit "no opinion", so a rating given can be taken back.
         const clear = el('button', 'fs-choice fs-choice-clear', '—');
         clear.type = 'button';
         clear.dataset.vote = pageId;
@@ -357,9 +322,7 @@
             const msg = el('p', 'fs-gate-note', gate.reason || 'You cannot vote yet.');
             host.appendChild(msg);
 
-            // Why the gate exists, said once and without accusing the reader of
-            // anything. Somebody refused by a rule they cannot see assumes the
-            // page is broken.
+            // Why the gate exists, said once and without accusing anyone.
             host.appendChild(el('p', 'fs-gate-why',
                 'Ratings are limited to established accounts so a ranking reflects the community rather than whoever made the most accounts that afternoon.'));
 
@@ -393,8 +356,6 @@
         host.appendChild(bar);
     }
 
-    // --- SAVING ---
-
     async function save() {
         const { upserts, removals } = pendingChanges();
         if (!upserts.length && !removals.length) return;
@@ -411,9 +372,7 @@
                 if (status) status.textContent = data || 'Saved.';
             }
 
-            // Withdrawal is a direct delete on the caller's own rows, which is
-            // allowed even when voting is closed - taking your opinion back
-            // should never be harder than giving it.
+            // A withdrawal deletes the caller's own rows, allowed even when voting is closed.
             if (removals.length) {
                 const { error } = await client()
                     .from('free_submit_votes').delete()
@@ -433,15 +392,11 @@
             return;
         }
 
-        // Reloaded rather than patched locally: the ranking has changed, and
-        // the whole value of this page is that the number shown is the number
-        // the database computed.
+        // Reloaded, not patched: the number shown is the one the database computed.
         await loadViewer();
         await loadRankings();
         render();
     }
-
-    // --- RENDER ---
 
     function render() {
         const mount = state.mount;
@@ -465,9 +420,7 @@
         renderBallot(ballot);
     }
 
-    // One delegated listener for the whole tool. Every control carries its
-    // subject in a data- attribute, so nothing user-influenced is ever built
-    // into markup.
+    // One delegated listener: every control carries its subject in a data- attribute.
     function wire(mount) {
         mount.addEventListener('click', (e) => {
             const entry = e.target.closest('.fs-entry');
@@ -502,10 +455,8 @@
             return;
         }
 
-        // None of the three needs another, so they are asked for together: the
-        // page waits on the database once instead of three times in a row,
-        // which put it right at its 2-second target in the farthest regions
-        // (v1.2 estimate).
+        // Asked for together, since none needs another: one wait on the database, not
+        // three.
         const [, rankingError] = await Promise.all([loadScale(), loadRankings(), loadViewer()]);
 
         if (rankingError && notDeployed(rankingError)) {
@@ -514,8 +465,7 @@
             return;
         }
 
-        // The scale comes from the database, and without it there are no rows
-        // to draw the board into.
+        // Without the scale from the database there are no rows to draw.
         if (!state.scale.length) {
             mount.appendChild(el('p', 'loading-msg',
                 'The community ranking arrives with the next release.'));

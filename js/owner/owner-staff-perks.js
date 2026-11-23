@@ -1,20 +1,13 @@
 /**
- * Dogslamloop Wiki - Owner Tools: Staff Perks
- *
- * Split from owner.js for the same reason the other owner-*.js modules were,
- * and depends on it for contentNotDeployedMessage.
- *
- * One switch so far: whether Trusted Editors, Reviewers and Admins skip the
- * 3-minute submission cooldown. The owner asked for a toggle rather than a
- * constant, so it can be pulled without a migration if a staff account is
- * ever compromised.
- *
- * Worth being clear about what this toggle is: it flips a row that
- * check_revision_rate_limit() reads on every insert
- * (supabase/migrations/20260810000000_staff_cooldown_perk.sql), so it changes
- * what the *database* enforces. js/editor/core/editor-core.js reads the same row purely to
- * decide which message to show. That is the opposite direction from most of
- * this page, where the database holds content and the site renders it.
+ * Staff Perks: whether trusted editors, reviewers and admins skip the submission
+ * cooldown. A switch rather than a constant, so it can be turned off without a
+ * migration.
+ * @since v0.12
+ * @touches site_settings.staff_bypass_submission_cooldown, contentNotDeployedMessage
+ *   (owner.js)
+ * @watch the database enforces it: check_revision_rate_limit() reads this row on
+ *   every submission. The editor reads it only to choose its message.
+ * @see docs/owner-tools.md
  */
 
 async function loadStaffPerks() {
@@ -32,7 +25,7 @@ async function loadStaffPerks() {
     }
 
     box.disabled = false;
-    // No row is the same as off, matching the trigger's own COALESCE.
+    // No row is off, as the trigger's own COALESCE reads it.
     box.checked = data?.staff_bypass_submission_cooldown === true;
     results.innerHTML = '';
 }
@@ -44,16 +37,13 @@ async function saveStaffPerk(enabled) {
 
     results.innerHTML = `<p class="loading-msg loading-msg-busy">Saving...</p>`;
 
-    // Upsert on the singleton id rather than update, so a missing row is
-    // created instead of silently matching nothing and reporting success.
+    // An upsert, so a missing row is made rather than silently matching nothing.
     const { error } = await window.supabaseClient
         .from('site_settings')
         .upsert([{ id: true, staff_bypass_submission_cooldown: enabled, updated_at: new Date().toISOString() }], { onConflict: 'id' });
 
     if (error) {
-        // Put the checkbox back where it was: leaving it showing a state the
-        // database rejected is how someone ends up believing a limit is off
-        // when it is on.
+        // Back to what the database holds, so nobody believes a limit is off when it is on.
         if (box) box.checked = !enabled;
         results.innerHTML = `<p class="admin-error-text">Could not save: ${window.escapeHtml(error.message)}</p>`;
         return;
