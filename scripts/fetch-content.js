@@ -367,4 +367,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { buildFaq, buildCollaborators, buildCollaboratorsFromPage, creditsFrom, buildSiteMeta, buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END };
+module.exports = { buildFaq, buildCollaborators, buildCollaboratorsFromPage, creditsFrom, buildSiteMeta, buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END, SITE_LOOKUPS_JS_PATH };

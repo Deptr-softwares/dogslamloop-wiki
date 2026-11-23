@@ -43,6 +43,15 @@ test.describe('the content gate', () => {
         expect(missing, 'add these to playwright.content.config.js: their result depends on the content').toEqual([]);
     });
 
+    test('the pattern knows the file the colours are written into', () => {
+        // Specs read it by its quoted name. A renamed file the pattern does
+        // not know would hide them from the check above, and fail nothing.
+        const { SITE_LOOKUPS_JS_PATH } = require('../scripts/fetch-content.js');
+        const name = path.basename(SITE_LOOKUPS_JS_PATH);
+        expect(fs.existsSync(SITE_LOOKUPS_JS_PATH), name).toBe(true);
+        expect(readsGenerated(`const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', '${name}'));`)).toBe(true);
+    });
+
     test('the page sweep is in it', () => {
         // The one check that sees a page the owner made today.
         expect(listed).toContain('page-sweep.spec.js');
