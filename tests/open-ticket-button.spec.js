@@ -12,7 +12,7 @@
 // tests are about all three branches agreeing, not about permissions.
 const { test, expect } = require('@playwright/test');
 
-// Every case runs against the real updateActionButtons in a real admin.html.
+// Every case runs against the real updateActionButtons in a real overseer.html.
 async function buttonsFor(page, { roles, ownSubmission, status }) {
   return page.evaluate(({ roles, ownSubmission, status }) => {
     document.body.innerHTML = '<div id="preview-action-buttons"></div>';
@@ -28,7 +28,7 @@ async function buttonsFor(page, { roles, ownSubmission, status }) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 });
 
 test('every reviewing branch can open a ticket on a pending revision', async ({ page }) => {

@@ -263,7 +263,7 @@ const HAND_WRITTEN = {
     'edit.html': 'editor',
     'post-editor.html': 'post-editor',
     'tier-editor.html': 'tier-editor',
-    'admin.html': 'overseer',
+    'overseer.html': 'overseer',
     'owner.html': 'owner',
 };
 

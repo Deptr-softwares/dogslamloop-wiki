@@ -278,7 +278,7 @@ test('the owner may edit anyone\'s list', async ({ page }) => {
     // JUDGEMENT CALL, and a flaggable one: this stays with the OWNER rather
     // than following media deletion down to the admin. The rule is "which page
     // does the tool live on", and tier-editor.html is neither owner.html nor
-    // admin.html - so it falls back to the safer default, which is that the new
+    // overseer.html - so it falls back to the safer default, which is that the new
     // role gains nothing nobody granted it. The owner keeps exactly what they
     // had; only the admin is excluded. Mirrors save_tier_list(), which is
     // is_owner() as of 20260827000003, and assign_tier_list() beside it.

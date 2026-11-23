@@ -7,7 +7,7 @@
 // Overseer": a fourth tab, for review staff, that opens the same list for any
 // page.
 //
-// The real admin.html as an admin. navigation.json is a two-page fixture, so
+// The real overseer.html as an admin. navigation.json is a two-page fixture, so
 // nothing here depends on which pages the owner has made.
 const { test, expect } = require('@playwright/test');
 
@@ -92,7 +92,7 @@ async function openOverseer(page, { rows = [], liveError = null, slowPage = null
             },
         });
     }, { rows, live: LIVE, history: HISTORY, liveError, slowPage });
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await expect(page.locator('[data-queue-tab="revisions"]')).toBeVisible({ timeout: 15000 });
     await page.evaluate(() => {
         window.adminConfirm = async () => true;
@@ -210,7 +210,7 @@ test('when the live page cannot be read, it says so rather than comparing agains
 
 test('PAGE HISTORY on a whole-page submission takes the page off the screen, and gives it back', async ({ page }) => {
     // A bug in the button this tab grew out of. A whole-page submission opens
-    // on PENDING, where the page is drawn in admin.html's own #tab-* boxes, and
+    // on PENDING, where the page is drawn in overseer.html's own #tab-* boxes, and
     // the button only hid boxes by a class those do not carry: the list of
     // versions sat underneath the whole page.
     const wholePage = {

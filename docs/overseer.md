@@ -1,10 +1,11 @@
 # The Overseer
 
-admin.html, the staff page: the revision queue, the media queue, the report queue and Page History, each a tab, beside a preview pane where a submission is read, compared with the live page, discussed and approved. Review staff (reviewer and above) see every queue, a page expert sees their own pages' revisions, and a moderator sees the reports.
+overseer.html, the staff page: the revision queue, the media queue, the report queue and Page History, each a tab, beside a preview pane where a submission is read, compared with the live page, discussed and approved. Review staff (reviewer and above) see every queue, a page expert sees their own pages' revisions, and a moderator sees the reports.
 
 ## Files
 
-- `admin.html`: the page.
+- `overseer.html`: the page.
+- `admin.html`: its old address, which forwards here with its ?query and #section.
 - `js/overseer/admin-core.js`: the gate (who gets in, which queues they see), the state the other files share, the message and note boxes, the queue tabs.
 - `js/overseer/admin-queue.js`: the revision queue, its filters, the preview's table of contents and the action buttons.
 - `js/overseer/admin-preview.js`: opening a revision, the QA report, and the four views (PENDING SUBMISSION, LIVE VERSION, DIFF VIEW side by side, CHANGE LIST).
@@ -44,6 +45,7 @@ admin.html, the staff page: the revision queue, the media queue, the report queu
 
 Newest first. One entry per decision.
 
+- **2026-11-23, silent release, #309.** The page is `overseer.html`, the name it has on screen, so it no longer shares a name with the admin role (the owner's pick). Its old address forwards, and robots.txt and the sitemap leave both out.
 - **2026-11-21, silent release, #298.** A page's kind comes from the page list, never the submission's `page_type`: that one is the submitter's word, and it picks the renderer and is written onto the live row.
 - **2026-11-18, v1.2, #280.** DIFF VIEW draws the open tab twice, the live page and the submission, side by side, from the owner's Overseer card ("fit in the review panel that page current state with all the red parts, and the current submission with all the green parts"). It draws only the tab it needs. The old list is CHANGE LIST, kept for what a page does not draw (an editor folder, a setting); a tier list keeps it, since its board redraws by id. The queue column pops in and out (the card: "turning the navigation bar to an overlay that can pop out and in"), and the page moves over rather than dimming, since a clip's buttons stay in the column. Accolades diff by name.
 - **2026-11-17, v1.2, #276.** The queues are tabs, one on screen, each loaded the first time it opens, with a count once loaded. A Page History tab opens any page's history, for review staff only, the owner's pick of "a page picker in the Overseer": rolling a page back had needed a submission on it in the queue.

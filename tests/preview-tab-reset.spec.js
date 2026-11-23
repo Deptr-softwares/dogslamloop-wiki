@@ -38,7 +38,7 @@ const DEFAULT_TAB = VOCAB.getDefaultCharacterTabId();
 
 const para = (text) => ({ type: 'paragraph', content: text });
 
-// Boots admin.html as a real admin, so the REAL tab registration in
+// Boots overseer.html as a real admin, so the REAL tab registration in
 // js/overseer/admin-core.js runs. Same shape as tests/moderator-access.spec.js.
 async function mockAdmin(page) {
   await page.addInitScript(() => {
@@ -90,11 +90,11 @@ function seedCharacter(marker) {
   };
 }
 
-// admin.html's RBAC gate replaces the body for a logged-out visitor, so the
+// overseer.html's RBAC gate replaces the body for a logged-out visitor, so the
 // preview markup is rebuilt after it runs, with the ids the real page uses.
 // Same approach as tests/admin-preview-states.spec.js.
 async function openPreviewShell(page) {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await page.waitForSelector('.access-denied-screen');
 
   await page.evaluate(({ tabs, defaultTab }) => {
@@ -332,7 +332,7 @@ test('a reviewer who never left the default tab still lands on it', async ({ pag
 // at all"). The admin surface was missed.
 async function bootAdminWithTechsOn(page) {
   await mockAdmin(page);
-  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
 
   // The real registration having run is the precondition, not the claim. Read
   // as a property rather than an attribute selector - the groupKey contains a

@@ -30,7 +30,7 @@ const rev = (over = {}) => ({
     ...over,
 });
 
-// The real admin.html as an admin, with the queue's rows mocked. The realtime
+// The real overseer.html as an admin, with the queue's rows mocked. The realtime
 // channel an open ticket subscribes to is stubbed, so nothing here reaches the
 // real Supabase.
 async function openQueue(page, rows) {
@@ -68,7 +68,7 @@ async function openQueue(page, rows) {
             },
         });
     }, rows);
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#queue-container .update-log-item')).toHaveCount(rows.length, { timeout: 15000 });
 }
 

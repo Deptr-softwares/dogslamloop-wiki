@@ -30,7 +30,9 @@ const BUDGET = {
     'the editor_playground tool page': { js: 200, css: 50 },
     'the free_submit_tier_list tool page': { js: 205, css: 53 },
     '404.html': { js: 216, css: 53 },
-    'admin.html': { js: 277, css: 86 },
+    'overseer.html': { js: 277, css: 86 },
+    // The Overseer's old address: a forward, with nothing of its own to load.
+    'admin.html': { js: 0, css: 0 },
     'blog.html': { js: 193, css: 53 },
     'characters/index.html': { js: 205, css: 50 },
     'edit.html': { js: 408, css: 76 },

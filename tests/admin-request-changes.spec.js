@@ -5,7 +5,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('updateActionButtons: REQUEST CHANGES shows for admin and reviewer-on-someone-elses-work, not on your own submission', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(() => {
     document.body.innerHTML = '<div id="preview-action-buttons"></div>';
@@ -41,7 +41,7 @@ test('updateActionButtons: REQUEST CHANGES shows for admin and reviewer-on-someo
 });
 
 test('requestChanges: posts a changes_requested-flagged message and opens the ticket if not already open', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
     document.body.innerHTML = '<div id="ticket-workspace" class="hidden"></div>';
@@ -94,7 +94,7 @@ test('requestChanges: posts a changes_requested-flagged message and opens the ti
 });
 
 test('requestChanges: cancelling the prompt does nothing', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
     const rev = { id: 'r1', page_id: 'boomcat', author_id: 'someone-else', status: 'pending', ticket_chat: [] };
@@ -114,7 +114,7 @@ test('requestChanges: cancelling the prompt does nothing', async ({ page }) => {
 });
 
 test('renderTicketWorkspace: a changes_requested message gets distinct styling, not a plain chat line', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(() => {
     document.body.innerHTML = `

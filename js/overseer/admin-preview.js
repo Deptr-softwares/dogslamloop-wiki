@@ -218,7 +218,7 @@ async function switchVersionView(mode) {
         document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => {
             el.classList.add('hidden');
         });
-        // A character revision uses admin.html's own #tab-* panes, which carry neither
+        // A character revision uses overseer.html's own #tab-* panes, which carry neither
         // class above, so they are hidden by id.
         document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => {
             el.classList.add('hidden');

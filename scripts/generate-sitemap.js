@@ -42,6 +42,7 @@ const EXTRA_PATHS = [
 // listing a page in the sitemap while disallowing it in robots.txt is a
 // contradictory signal that Search Console reports as an error.
 const EXCLUDED = new Set([
+    'overseer.html',
     'admin.html',
     'owner.html',
     'edit.html',

@@ -237,5 +237,5 @@ test('leaving the editor from your own submission goes to My Submissions', async
     return { own, staff };
   });
   expect(where.own).toBe('submissions.html');
-  expect(where.staff, 'a reviewer still goes back to the queue').toBe('admin.html');
+  expect(where.staff, 'a reviewer still goes back to the queue').toBe('overseer.html');
 });

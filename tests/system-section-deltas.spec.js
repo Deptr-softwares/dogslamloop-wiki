@@ -245,7 +245,7 @@ async function renderSystemScope(page, scope, key, payload, live) {
     window.activePreviewMode = null;
     window.currentLiveDescData = JSON.parse(JSON.stringify(live));
     window.currentLiveFrameData = {};
-    // Pending is live WITH the delta applied, which is what admin.html does
+    // Pending is live WITH the delta applied, which is what overseer.html does
     // when it loads a revision. Setting it equal to live would make every
     // changed-tab assertion below vacuous.
     window.currentPendingDescData = window.applyDeltaToData(
@@ -272,7 +272,7 @@ async function renderSystemScope(page, scope, key, payload, live) {
 }
 
 test('a section edit is reviewable, and named by its place on the page', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const edited = clone(LIVE.tabs[0].sections[0]);
   edited.blocks[0].content = 'CHANGED intro';
@@ -292,7 +292,7 @@ test('a section edit is reviewable, and named by its place on the page', async (
 });
 
 test('a section edit marks the tab it is actually in', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const edited = clone(LIVE.tabs[0].sections[0]);
   edited.blocks[0].content = 'CHANGED intro';
@@ -305,7 +305,7 @@ test('a section edit marks the tab it is actually in', async ({ page }) => {
 });
 
 test('a tab rename reviews as a rename, not as its sections changing', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await renderSystemScope(page, 'system_tab', 'basics',
     { tabId: 'basics', tabLabel: 'The Basics', order: ['intro', 'advanced'] }, LIVE);

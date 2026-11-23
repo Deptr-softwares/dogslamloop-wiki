@@ -42,7 +42,7 @@ test('the contributors footer stays inside its column', async ({ page }) => {
 });
 
 test('a long ticket tag wraps instead of pushing the review button out', async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('body');
 
     const out = await page.evaluate(() => {
@@ -125,7 +125,7 @@ const LONG_PATCH_LABEL =
 
 for (const width of [320, 190]) {
     test(`a long patch tag wraps inside the card at ${width}px`, async ({ page }) => {
-        await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+        await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('body');
 
         const out = await page.evaluate(({ LONG_PATCH_LABEL, width }) => {

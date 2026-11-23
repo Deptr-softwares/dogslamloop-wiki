@@ -17,7 +17,7 @@ What each thing is called on screen, in the code and in the data, where those di
 | Sidebar, roster, tabs, table of contents, footer | the Page Builder | | `pagebuilder.js` |
 | Character colours, aliases, accolades and the site's icons | `CHARACTER_COLORS`, `CHARACTER_ALIASES`, `ACCOLADES`, `UI_ICONS` | `site_pages.color` (the colours) | `site_lookups.js` |
 | The site's version and settings | `site_meta` | the `site_meta` table, copied to `data/site_meta.json` | `owner.html` |
-| Overseer | `admin`: the page, its scripts and its stylesheet | | `admin.html`, `admin.css`, `admin-core.js` |
+| Overseer | `admin`: its scripts and its stylesheet | | `overseer.html`, `admin.css`, `admin-core.js` |
 | Admin, a role | `admin` | `user_roles.role` | `site_utils.js` (`window.ROLE_RANK`) |
 | A submission (the Overseer's Revision Queue) | a revision | a row of `pending_revisions`; its `scope` says which part of the page it changes (`system_tab`, `gallery_item`, `multi` and others) | `submissions.html` |
 | Workspace: the editor's main panel | `workspace` | | `edit.html` |
@@ -31,10 +31,10 @@ Picked by the owner (2026-11-22), renamed in v1.3. The devlogs and the applied m
 - `framedata.js` is `skill_card.js`.
 - `internalstyling.js` is `format_tags.js`. It also colours character names, frame terms and timings on its own.
 - `site_meta.js` is `site_lookups.js`. The `site_meta` table and `data/site_meta.json` keep their names.
+- `admin.html` is `overseer.html`. The old address forwards to it.
 
 ## Planned
 
-- `admin.html` becomes `overseer.html`. The old address forwards.
 - `pagebuilder.js` is named when it splits (B-5): it builds the sidebar, roster, tabs, table of contents and footer, and also the data grids and their filters.
 
 ## Kept

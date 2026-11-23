@@ -88,7 +88,7 @@ test('both review screens load the one shared diff, and nothing else defines it'
       .test(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')));
   expect(definers).toEqual(['utility/diff-markers.js']);
 
-  for (const page of ['admin.html', 'edit.html']) {
+  for (const page of ['overseer.html', 'edit.html']) {
     const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
     expect(html, `${page} loads js/utility/diff-markers.js`).toMatch(/<script src="js\/utility\/diff-markers\.js/);
   }

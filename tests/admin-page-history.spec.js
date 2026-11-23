@@ -6,7 +6,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('togglePageHistoryView: lists page_history rows for the active page, newest first', async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     const result = await page.evaluate(async () => {
         document.body.innerHTML = '';
@@ -47,7 +47,7 @@ test('togglePageHistoryView: lists page_history rows for the active page, newest
 });
 
 test('togglePageHistoryView: toggling again hides it and returns to the pending view', async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     const result = await page.evaluate(async () => {
         document.body.innerHTML = `
@@ -84,7 +84,7 @@ test('togglePageHistoryView: toggling again hides it and returns to the pending 
 });
 
 test('switchVersionView: switching to pending/live/diff hides the page-history pane and resets its button', async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     const result = await page.evaluate(async () => {
         document.body.innerHTML = `
@@ -114,7 +114,7 @@ test('switchVersionView: switching to pending/live/diff hides the page-history p
 });
 
 test('togglePageHistoryDiff: compares a history row against current live data using renderStructuredDiff', async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     const result = await page.evaluate(() => {
         document.body.innerHTML = `<div id="ph-diff-0" class="page-history-diff hidden"></div>`;
@@ -137,7 +137,7 @@ test('togglePageHistoryDiff: compares a history row against current live data us
 });
 
 test('restorePageHistoryVersion: upserts page_data with the selected version\'s content and reloads the list', async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     const result = await page.evaluate(async () => {
         document.body.innerHTML = `<div id="page-history-container" class="tab-content"></div>`;
@@ -191,7 +191,7 @@ test('restorePageHistoryVersion: upserts page_data with the selected version\'s 
 });
 
 test('restorePageHistoryVersion: cancelling the confirm does nothing', async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     const result = await page.evaluate(async () => {
         let supabaseWasCalled = false;

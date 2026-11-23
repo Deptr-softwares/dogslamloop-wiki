@@ -32,7 +32,7 @@ const LIVE_FRAME = {
 
 async function compileMerge(page) {
   return page.evaluate(async ({ liveDesc, liveFrame }) => {
-    // admin.html's RBAC gate wipes document.body for this logged-out visitor -
+    // overseer.html's RBAC gate wipes document.body for this logged-out visitor -
     // rebuild only the DOM openMergeCompiler actually reads.
     document.body.innerHTML = `
       <div id="compiler-modal-overlay" class="hidden">
@@ -108,7 +108,7 @@ async function compileMerge(page) {
 }
 
 test('a merged ticket is a multi-scope delta, not a full overwrite', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const captured = await compileMerge(page);
 
   expect(captured.update, 'the compiler should have written a merged ticket').toBeTruthy();
@@ -136,7 +136,7 @@ test('a merged ticket is a multi-scope delta, not a full overwrite', async ({ pa
 });
 
 test('a merged ticket keeps every contributor QA note, and takes the lowest confidence', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const captured = await compileMerge(page);
 
   const qa = captured.update.qa_metadata;
@@ -157,7 +157,7 @@ test('a merged ticket keeps every contributor QA note, and takes the lowest conf
 });
 
 test('approving a merged ticket does not clobber work approved after the merge was compiled', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const captured = await compileMerge(page);
 
   // The scenario the P0 describes: after the merge is compiled but before a

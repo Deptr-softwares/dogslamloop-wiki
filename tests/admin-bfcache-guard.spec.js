@@ -1,7 +1,7 @@
 // Regression coverage for a real bug reported live by the owner: a
-// legitimate reviewer clicked from admin.html to recent-changes.html, then
+// legitimate reviewer clicked from overseer.html to recent-changes.html, then
 // used the "Back to Previous Page" button - and got kicked to ACCESS
-// DENIED every single time, despite a manual refresh of admin.html always
+// DENIED every single time, despite a manual refresh of overseer.html always
 // working fine. That exact pattern (deterministic, refresh always fixes
 // it) is the textbook signature of the browser's back-forward cache
 // (bfcache) restoring a frozen snapshot of the page on back/forward
@@ -12,8 +12,8 @@
 // restore.
 const { test, expect } = require('@playwright/test');
 
-test('real bug fix: admin.html forces a reload when restored from bfcache, not on a normal page load', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+test('real bug fix: overseer.html forces a reload when restored from bfcache, not on a normal page load', async ({ page }) => {
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await page.evaluate(() => { window.__testMarker = 'not-reloaded'; });
 
   const navPromise = page.waitForEvent('framenavigated', { timeout: 3000 }).catch(() => null);
@@ -25,8 +25,8 @@ test('real bug fix: admin.html forces a reload when restored from bfcache, not o
   expect(nav).not.toBeNull();
 });
 
-test('admin.html does not force-reload on a normal (non-bfcache) pageshow', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+test('overseer.html does not force-reload on a normal (non-bfcache) pageshow', async ({ page }) => {
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await page.evaluate(() => { window.__testMarker = 'not-reloaded'; });
 
   await page.evaluate(() => {

@@ -1,6 +1,6 @@
 // Character states in the reviewer's preview (v0.14 bug-fix phase).
 //
-// States shipped in v0.12 and admin.html was never taught about them. The
+// States shipped in v0.12 and overseer.html was never taught about them. The
 // preview drew the base kit and offered no way to leave it, so a revision that
 // edited a state rendered as *unchanged* - and a reviewer clicking Approve on
 // a page where nothing appears to have changed is reviewing blind.
@@ -13,7 +13,7 @@ const { test, expect } = require('@playwright/test');
 
 
 // Derived from js/utility/character_tabs.js, not restated: these are the tabs
-// admin.html's static strip owns, and a second copy here would go stale the
+// overseer.html's static strip owns, and a second copy here would go stale the
 // next time one is added.
 const VOCAB = (() => {
   const src = require('fs').readFileSync(
@@ -67,12 +67,12 @@ function twoStateCharacter() {
     };
 }
 
-// admin.html's RBAC gate replaces the body for a logged-out visitor, so the
+// overseer.html's RBAC gate replaces the body for a logged-out visitor, so the
 // preview markup is rebuilt afterwards with the same ids and the same wiring
 // the page itself uses. Waiting for the gate first matters: rebuilding before
 // it runs means seeding a body it is about to replace.
 async function openPreviewShell(page) {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await page.waitForSelector('.access-denied-screen');
 
     await page.evaluate((tabs) => {
@@ -279,7 +279,7 @@ test('a batched ticket marks only the tabs changed in the state on screen', asyn
 
 test('a base-only character\'s Ultimate tab renders in the preview', async ({ page }) => {
     // The second half of the same blindness: ultimateAtk is a real frame-data
-    // category and admin.html's static strip has no button for it, so the
+    // category and overseer.html's static strip has no button for it, so the
     // whole tab was missing from every review.
     const pageErrors = [];
     page.on('pageerror', e => pageErrors.push(e.message));

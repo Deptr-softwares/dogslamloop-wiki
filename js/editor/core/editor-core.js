@@ -208,7 +208,7 @@ window.editorExitDestination = function(search = window.location.search) {
     if (params.get('editTicket')) {
         const own = window.interceptedTicketData && window.currentGlobalUserId
             && window.interceptedTicketData.author_id === window.currentGlobalUserId;
-        return own ? 'submissions.html' : 'admin.html';
+        return own ? 'submissions.html' : 'overseer.html';
     }
     if (pageId) return `${pageType === 'character' ? 'characters' : 'systems'}/${encodeURIComponent(pageId)}/`;
     return 'index.html';

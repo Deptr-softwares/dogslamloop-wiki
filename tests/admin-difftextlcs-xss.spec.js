@@ -39,7 +39,7 @@ async function throughPipeline(page, oldStr, newStr) {
 }
 
 test('real bug fix: submitted content cannot become markup in the reviewer diff', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const changed = await throughPipeline(page, 'safe old text', '<img src=x onerror="alert(1)">');
   const added = await throughPipeline(page, '', '<script>alert(2)</script>');
@@ -59,7 +59,7 @@ test('real bug fix: submitted content cannot become markup in the reviewer diff'
 });
 
 test('the markers themselves cannot be smuggled in by a contributor', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const forged = await page.evaluate(() => {
     const m = window.DIFF_MARKERS;
@@ -77,7 +77,7 @@ test('the markers themselves cannot be smuggled in by a contributor', async ({ p
 });
 
 test('word-level diff grouping still works', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await throughPipeline(page, 'The quick brown fox', 'The quick red fox');
 
@@ -85,7 +85,7 @@ test('word-level diff grouping still works', async ({ page }) => {
 });
 
 test('format_tags.js shortcode syntax survives untouched (not itself HTML)', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await throughPipeline(page, 'plain text', '[color=red]Boomcat[/color] is great');
 

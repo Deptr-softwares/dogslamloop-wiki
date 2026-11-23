@@ -2,7 +2,7 @@
 // kicked a legitimate staff member to ACCESS DENIED on the very first
 // failed getSession()/user_roles lookup, with zero retry - indistinguishable
 // from a real logged-out/unauthorized user. Reported live as "access denied
-// after going back from recent-changes.html to admin.html, every time, but
+// after going back from recent-changes.html to overseer.html, every time, but
 // a manual refresh always fixes it" - that pattern (deterministic, refresh
 // always recovers it) is consistent with a single dropped request on a
 // flaky connection, not just the earlier-fixed bfcache case (which this
@@ -89,13 +89,13 @@ async function mockAuth(page, { sessionFailWindowMs = 0, roleResults }) {
   }, { sessionFailWindowMs, roleResults });
 }
 
-test('real bug fix: admin.html recovers from a getSession() outage that clears before the retry, instead of permanently denying access', async ({ page }) => {
+test('real bug fix: overseer.html recovers from a getSession() outage that clears before the retry, instead of permanently denying access', async ({ page }) => {
   // "Down" for the first 300ms (long enough that an immediate, un-retried
   // check is guaranteed to land inside it), "recovered" well before the
   // fix's ~600ms retry delay would fire.
   await mockAuth(page, { sessionFailWindowMs: 300, roleResults: [{ data: [{ role: 'reviewer' }], error: null }] });
 
-  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
   // The gate retries once over ~600ms. Wait for the thing that proves it
   // finished - an attached queue - rather than for a duration that has to
   // out-guess it. The denial check then means something: it is asserted after
@@ -104,17 +104,17 @@ test('real bug fix: admin.html recovers from a getSession() outage that clears b
   expect(await page.locator('.access-denied-screen').count()).toBe(0);
 });
 
-test('admin.html still denies access when getSession() has no session for the whole load (genuinely logged out)', async ({ page }) => {
+test('overseer.html still denies access when getSession() has no session for the whole load (genuinely logged out)', async ({ page }) => {
   // Never recovers - a real logged-out user must still get denied even
   // with the retry in place.
   await mockAuth(page, { sessionFailWindowMs: 999999, roleResults: [{ data: [], error: null }] });
 
-  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
   // toHaveCount auto-waits, so the denial screen appearing IS the signal.
   await expect(page.locator('.access-denied-screen')).toHaveCount(1, { timeout: 15000 });
 });
 
-test('real bug fix: admin.html recovers from one failed user_roles lookup instead of permanently denying access', async ({ page }) => {
+test('real bug fix: overseer.html recovers from one failed user_roles lookup instead of permanently denying access', async ({ page }) => {
   await mockAuth(page, {
     sessionFailWindowMs: 0,
     roleResults: [
@@ -123,7 +123,7 @@ test('real bug fix: admin.html recovers from one failed user_roles lookup instea
     ],
   });
 
-  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
   // The gate retries once over ~600ms. Wait for the thing that proves it
   // finished - an attached queue - rather than for a duration that has to
   // out-guess it. The denial check then means something: it is asserted after
@@ -132,10 +132,10 @@ test('real bug fix: admin.html recovers from one failed user_roles lookup instea
   expect(await page.locator('.access-denied-screen').count()).toBe(0);
 });
 
-test('admin.html denies access immediately (no retry delay) when the role lookup succeeds but grants no elevated role', async ({ page }) => {
+test('overseer.html denies access immediately (no retry delay) when the role lookup succeeds but grants no elevated role', async ({ page }) => {
   await mockAuth(page, { sessionFailWindowMs: 0, roleResults: [{ data: [{ role: 'contributor' }], error: null }] });
 
-  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
   // Measured from right after DOMContentLoaded (when the RBAC gate's own
   // async handler starts) rather than from before goto(), so page/network
   // load time doesn't dilute what's actually being asserted here: whether

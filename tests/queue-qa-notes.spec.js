@@ -30,10 +30,10 @@ const rev = (over = {}) => ({
     ...over,
 });
 
-// The real renderQueue against the real admin.html, so every helper it reaches
+// The real renderQueue against the real overseer.html, so every helper it reaches
 // for - escapeHtml, unwrapModeDelta, timeSince - is the shipped one.
 async function render(page, rows) {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     return page.evaluate((rows) => {
         document.body.innerHTML = `
             <select id="queue-filter-page"><option value="all">All pages</option></select>
@@ -101,7 +101,7 @@ test('an unrecognised confidence invents no badge', async ({ page }) => {
 
 test('a changelog full of markup renders as text and fires nothing', async ({ page }) => {
     const PAYLOAD = '<img src=x onerror="window.__xssFired=true">';
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     const out = await page.evaluate((payload) => {
         window.__xssFired = false;

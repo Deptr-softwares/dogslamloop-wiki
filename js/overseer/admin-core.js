@@ -1,7 +1,7 @@
 /**
  * The Overseer's core: the state every admin-*.js file shares, the message and
  * prompt boxes, the queue tabs, and the gate that decides who gets in and which
- * queues they see. admin.html loads it first of its own scripts.
+ * queues they see. overseer.html loads it first of its own scripts.
  * @since v0.4, as part of admin.js
  * @touches user_roles (role, can_moderate, can_delete_media), get_user_expert_pages(),
  *   the window.current* state, rolesMeet and showAccessDenied (site_utils.js),

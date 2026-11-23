@@ -1,7 +1,7 @@
 // Coverage for owner.html/js/owner/owner.js: Personnel Management + Media Garbage
-// Collection, split out of admin.html/admin.js as part of the admin-page
+// Collection, split out of overseer.html/admin.js as part of the admin-page
 // rework (they're admin-only tools unrelated to the reviewer workflow
-// admin.html is scoped to). Same testing strategy as admin-dedupe.spec.js:
+// overseer.html is scoped to). Same testing strategy as admin-dedupe.spec.js:
 // real Supabase-session-gated behavior isn't automated here (verified
 // manually instead) - this covers what's safe to verify without auth.
 const { test, expect } = require('@playwright/test');

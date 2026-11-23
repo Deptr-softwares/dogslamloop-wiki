@@ -107,8 +107,8 @@ test('real bug fix: bar.headerClass actually colors the header/footer text on th
   expect(footerColor).toBe('rgb(59, 130, 246)');
 });
 
-test('admin.html now loads site_lookups.js: CHARACTER_COLORS/FRAME_COLORS are populated, not empty', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+test('overseer.html now loads site_lookups.js: CHARACTER_COLORS/FRAME_COLORS are populated, not empty', async ({ page }) => {
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const state = await page.evaluate(() => ({
     hasCharacterColors: !!(window.CHARACTER_COLORS && Object.keys(window.CHARACTER_COLORS).length > 0),
     hasFrameColors: !!(window.FRAME_COLORS && Object.keys(window.FRAME_COLORS).length > 0),

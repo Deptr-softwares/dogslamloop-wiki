@@ -672,7 +672,7 @@ test('page settings left alone send nothing; clearing them sends null, which rem
 // --- WHAT THE REVIEWER SEES -------------------------------------------------------
 
 test('the review diff paints a proposed word in its proposed colour and diffs the house style', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await page.evaluate(async () => {
     document.body.innerHTML = `<div class="main-content-area"></div>`;
@@ -729,7 +729,7 @@ test('the review diff paints a proposed word in its proposed colour and diffs th
 test('a merge keeps a page settings change alongside a system section edit', async ({ page }) => {
   // A system page is the case that could drop it: the compiler's system branch
   // returns before the character scan.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
     const liveDesc = {

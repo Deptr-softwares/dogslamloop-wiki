@@ -85,7 +85,7 @@ const EXPERT = null;
 
 async function openAdmin(page, roleRow, expertPages = []) {
     await mockRole(page, roleRow, expertPages);
-    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
 }
 
 const denied = (page) => page.locator('.access-denied-screen');
@@ -263,7 +263,7 @@ test('a signed-in nobody with no expert pages is still denied', async ({ page })
 
 test('the OVERSEER button and the gate agree about who may enter', async ({ page }) => {
     // The drift this project has already paid for once: pagebuilder.js listed
-    // roles admin.html did not accept, so those users got a working-looking
+    // roles overseer.html did not accept, so those users got a working-looking
     // button that dead-ended at ACCESS DENIED.
     //
     // Driven through both real code paths against the same four inputs rather
@@ -292,10 +292,10 @@ test('the OVERSEER button and the gate agree about who may enter', async ({ page
         ).toBe(expected);
 
         // ...and the gate itself.
-        await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+        await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
         await expect.poll(async () =>
             await page.evaluate(() => !document.querySelector('.access-denied-screen')),
-            { message: `${label}: admin.html admits them` }
+            { message: `${label}: overseer.html admits them` }
         ).toBe(expected);
     }
 });

@@ -7,7 +7,7 @@
  * @since v0.01
  * @touches data/navigation.json, data/banners.json, user_roles, page_experts,
  *   user_notifications, cms_config.editRole, ?tab= and #sec- in the address
- * @watch the dock's OVERSEER button and admin.html's own gate (admin-core.js) let
+ * @watch the dock's OVERSEER button and overseer.html's own gate (admin-core.js) let
  *   in the same people: change the two together
  * @see docs/page-shell.md
  */
@@ -449,13 +449,13 @@ window.initAuthDock = async function() {
     const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
     let html = '';
 
-    // OVERSEER, for exactly the people admin.html's own gate (admin-core.js) lets in:
+    // OVERSEER, for exactly the people overseer.html's own gate (admin-core.js) lets in:
     // a reviewer or above, a moderator (can_moderate) or a page expert. The two lists
     // change together, or the button dead-ends at access denied. can_moderate is a
     // capability, never a second role: user_roles holds one row per user.
     if (window.roleMeets(userRole, 'reviewer') || canModerate || isExpert) {
         html += `
-            <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
+            <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}overseer.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgGear}</span>
                 <span class="btn-manga-text dock-action-text">Overseer</span>
             </button>`;
@@ -957,14 +957,14 @@ window.buildSystemsDirectory = async function(containerId, options) {
 // Tab groups are registered, not closed over, because a tab can arrive after its
 // group is wired (the Ultimate tab, character_modes.js). Calling setupTabs again
 // with the longer list extends the group, and the click handler reads the live
-// list. Boundness is marked on the button, so a rebuilt strip (admin.html's, per
+// list. Boundness is marked on the button, so a rebuilt strip (overseer.html's, per
 // revision) gets fresh listeners.
 const tabGroupRegistry = new Map();
 
 // The tab in the address: a reader page's main strip writes ?tab=<id> on every
 // switch, so Back, a refresh and a shared link reopen it. Replaced, never pushed,
 // so Back leaves the page. The first tab writes nothing. Opt-in through `address`:
-// the editor's and admin.html's strips are theirs.
+// the editor's and overseer.html's strips are theirs.
 const TAB_PARAM = 'tab';
 const TAB_FIND_POLL_MS = 100;
 const TAB_FIND_MS = 15000;
@@ -1262,7 +1262,7 @@ window.refreshTOC = function() {
     if (!tocContainer) return;
 
     // The active tab on a character page, or the content area. Scoped to
-    // .main-content-area, because on admin.html it sits deep inside a differently
+    // .main-content-area, because on overseer.html it sits deep inside a differently
     // classed <main>.
     let targetArea = document.querySelector('.main-content-area > div[id^="tab-"]:not(.hidden)');
 
@@ -1583,7 +1583,7 @@ window.loadPageAlerts = async function(pageId) {
 };
 
 // The footer, added by script rather than copied into every page. The .site-layout
-// guard keeps it off edit.html, admin.html and owner.html, whose editor.css sets
+// guard keeps it off edit.html, overseer.html and owner.html, whose editor.css sets
 // body { overflow: hidden }. The skip link is added here too, so no page lacks it.
 document.addEventListener('DOMContentLoaded', () => {
     if (window.initSkipLink) window.initSkipLink();

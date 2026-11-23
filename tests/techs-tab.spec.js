@@ -266,11 +266,11 @@ test('Techs and Combos render into their own containers, not each other', async 
 
 // --- THE EDITOR AND REVIEWER SURFACES ---
 
-test('admin.html and edit.html ship the Techs button and panel, hidden', () => {
+test('overseer.html and edit.html ship the Techs button and panel, hidden', () => {
   // The vocabulary spec checks markup exists for every tab it can SEE, and it
   // cannot see an optional tab that is off - so that check walks straight past
   // Techs and this one has to make it instead.
-  const adminHtml = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
+  const adminHtml = fs.readFileSync(path.join(ROOT, 'overseer.html'), 'utf8');
   const editHtml = fs.readFileSync(path.join(ROOT, 'edit.html'), 'utf8');
 
   expect(adminHtml).toContain('id="nav-techs"');
@@ -304,7 +304,7 @@ test('admin.html and edit.html ship the Techs button and panel, hidden', () => {
 // clear .active off the button the user came FROM. The strip went dark.
 //
 // The THIRD surface to make this mistake. js/pages/core/page_boot.js fixed it on the
-// reader page, js/overseer/admin-core.js:355 on admin.html - and its comment records
+// reader page, js/overseer/admin-core.js:355 on overseer.html - and its comment records
 // the same symptom in the same words. The editor was missed by both.
 //
 // Written against switchEditorTab, which is what the button's onclick actually

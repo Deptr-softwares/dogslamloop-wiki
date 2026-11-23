@@ -109,7 +109,7 @@ const QUEUE = [
 ];
 
 test('a state edit shows up as its own conflict, labelled with the state', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const { sections } = await compileMerge(page, QUEUE);
 
   // Two conflicts, not one: the base overview and the ultimate matchup are
@@ -120,7 +120,7 @@ test('a state edit shows up as its own conflict, labelled with the state', async
 });
 
 test('the merged ticket carries the state edit as a mode-wrapped delta', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const { captured } = await compileMerge(page, QUEUE);
 
   expect(captured.update.is_delta).toBe(true);
@@ -136,7 +136,7 @@ test('the merged ticket carries the state edit as a mode-wrapped delta', async (
 });
 
 test('applying the merged ticket puts each edit in its own kit', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const { captured } = await compileMerge(page, QUEUE);
 
   const applied = await page.evaluate(({ payload, liveDesc, liveFrame }) => {
@@ -155,7 +155,7 @@ test('applying the merged ticket puts each edit in its own kit', async ({ page }
 });
 
 test('a move inside a state merges into that state, not over the base moveset', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const { captured } = await compileMerge(page, [
     {

@@ -165,7 +165,7 @@ test('the last-owner guard counts OWNERS', async () => {
 test('media deletion belongs to the admin, and keeps its per-user flag', async () => {
   // Corrected by the owner on 2026-08-27, and the correction is a better RULE
   // than the one it replaced: what decides who owns a tool is WHICH PAGE it
-  // lives on, not how irreversible it is. The media queue is on admin.html.
+  // lives on, not how irreversible it is. The media queue is on overseer.html.
   //
   // Asserted against the later migration, because 20260827000003 was already
   // pushed - a preview branch will not re-run a version it has recorded, so
