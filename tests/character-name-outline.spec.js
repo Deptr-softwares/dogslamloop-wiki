@@ -10,7 +10,7 @@
 //                             already readable, and outlining it only thickens
 //                             it
 //   the PAGE must be dark   - this is where the site already outlines its own
-//                             titles in white (the engine in js/site_meta.js),
+//                             titles in white (the engine in js/utility/site_lookups.js),
 //                             so elsewhere an outlined name would be the only
 //                             thing on the page treated that way
 //

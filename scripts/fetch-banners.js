@@ -3,7 +3,7 @@
  * Hover Banners (v1.2, the owner's Kanban card "Hover Banners for every
  * characters"): each character's banner, mirrored into medias/banners/, and the
  * first line of their Overview, written to data/banners.json. The roster's
- * popup (js/pagebuilder.js) and each page's Discord preview
+ * popup (js/dashboards/hub_roster.js) and each page's Discord preview
  * (scripts/generate-pages.js) read that file.
  *
  * The banner is desc_data.profile.banner, set in the editor's Profile tab like
@@ -28,7 +28,7 @@ const ROOT = path.join(__dirname, '..');
 const MANIFEST_PATH = path.join(ROOT, 'data', 'banners.json');
 const BANNER_DIR = path.join(ROOT, 'medias', 'banners');
 const REPO_REL_DIR = 'medias/banners';
-const VOCAB_PATH = path.join(ROOT, 'js', 'character_tabs.js');
+const VOCAB_PATH = path.join(ROOT, 'js', 'utility', 'character_tabs.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gtqswjspxymjdopljmfi.supabase.co';
 // The public anon key, as in scripts/fetch-previews.js, which says why.
@@ -47,7 +47,7 @@ const MAX_LINE = 160;
 
 /**
  * The first paragraph of an Overview, as plain words: the site's own style
- * tags stripped (stripStyleShortcodes, js/character_tabs.js), and cut at a
+ * tags stripped (stripStyleShortcodes, js/utility/character_tabs.js), and cut at a
  * word under MAX_LINE with "..." when longer. null when there is none.
  */
 function overviewLine(overview, strip) {
@@ -91,7 +91,7 @@ function loadStripper() {
     const fakeWindow = {};
     new Function('window', fs.readFileSync(VOCAB_PATH, 'utf8'))(fakeWindow);
     if (typeof fakeWindow.stripStyleShortcodes !== 'function') {
-        throw new Error('js/character_tabs.js did not define stripStyleShortcodes - has it moved?');
+        throw new Error('js/utility/character_tabs.js did not define stripStyleShortcodes - has it moved?');
     }
     return fakeWindow.stripStyleShortcodes;
 }

@@ -1,6 +1,11 @@
-/* =========================================
-   DESIGN SYSTEM: FORMS & INPUTS (Forms.css)
-   ========================================= */
+/* Form controls: editor rows, inputs, and the site's own dropdown, which
+   window.initializeMangaSelects (site_utils.js) builds over every
+   select.editor-select.
+   Since v0.4.
+   Watch: the .editor-select base rule stays in editor.css. It is declared twice
+   there, and a copy in this file, which loads first, would hand the win to the
+   earlier one.
+   See: docs/looks.md */
 
 .editor-row { 
     display: flex; 
@@ -36,21 +41,6 @@
 }
 
 
-/* --- THE MANGA DROPDOWN WIDGET ---
-
-   window.initializeMangaSelects (js/site_utils.js) hides every
-   select.editor-select and builds this in its place.
-
-   Moved here from style/editor.css on 2026-08-14. It lived there because the
-   editor was the only thing using it, and that stopped being true: the
-   Character Dashboard's Archetype and Tier filters are the same control on a
-   page that has no business loading the editor's stylesheet. Every page that
-   loaded editor.css already loads this file, so the move costs them nothing.
-
-   Deliberately NOT moved: the .editor-select base rule. editor.css declares
-   it twice, and pulling the later copy into a file that loads FIRST would
-   silently hand the win to the earlier one. */
-
 /* Hide the native select once our JS engine wraps it */
 select.editor-select.manga-initialized {
     display: none !important;
@@ -62,7 +52,7 @@ select.editor-select.manga-initialized {
     user-select: none;
     margin-bottom: 0.25rem;
     
-    /* THE FIX: Stops the wrapper from crushing the DAW footer */
+    /* Keeps the wrapper from crushing the Frame Track editor's footer. */
     flex: 1;
     min-width: 0; 
 }
@@ -111,10 +101,8 @@ select.editor-select.manga-initialized {
     transform: translateY(-50%) rotate(180deg);
 }
 
-/* The dropdown menu. At least as wide as its button and as wide as its
-   longest option (capped by the screen): pinned to the button's width, the
-   home page's Archetype list (a button just wide enough for "ALL") cut its
-   options to "M1 Mercha" and "Oppres" (owner's screenshot, 2026-11-20). */
+/* The menu: at least as wide as its button and as its longest option, capped by the
+   screen. Pinned to the button, a narrow "ALL" button cut its options short. */
 .manga-select-options {
     position: absolute;
     top: 100%;

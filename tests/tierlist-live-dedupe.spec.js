@@ -1,4 +1,4 @@
-// Coverage for Workstream B Tier 5 (4/4): js/tierlist.js's LIVE RENDERER
+// Coverage for Workstream B Tier 5 (4/4): js/pages/tier-lists/tierlist.js's LIVE RENDERER
 // section (fetchTierRoster, getCharPortraitHTML, loadTierList,
 // switchLiveTierTab) - the public tierlist page and the tier-list branch
 // reused by history.html. The EDITOR BUILDER section (contributor
@@ -21,7 +21,7 @@
 //
 // UPDATED 2026-08-13 (v0.14 item 3). The public tier list page no longer uses
 // this renderer - it now shows N per-person lists via
-// js/certified-tier-lists.js, covered by tests/certified-tier-lists.spec.js.
+// js/pages/tier-lists/certified-tier-lists.js, covered by tests/certified-tier-lists.spec.js.
 // The old renderer is still live for history.html and the admin preview, and
 // the CSS specificity fix below is still exactly as load-bearing there, so
 // these tests were re-pointed rather than deleted.

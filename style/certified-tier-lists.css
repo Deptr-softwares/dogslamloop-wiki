@@ -1,19 +1,14 @@
-/* --- CERTIFIED TIER LISTS (v0.14 item 3) ---
+/* The Tier List page's certified lists: the picker, landing on nobody, one list, its
+   reasoning, changelog and introduction. A sheet of its own, because the older
+   .tier-list-* classes are still live (tierlist.js) for the Overseer's preview and
+   the editor.
+   Since v0.14.
+   Watch: .tier-portrait is shared with the editor on purpose; its size is raised
+   here, on this page only, so the editor's drag targets keep theirs. The editor's
+   board and tray load this sheet too, for .tier-badge.
+   See: docs/tier-lists.md */
 
-   The page became N per-person lists. Its own stylesheet rather than more
-   rules in Layout.css, because the old .tier-list-* classes are still live -
-   js/tierlist.js renders the previous shape for the admin preview and the
-   existing editor - and adding to them would mean two features editing the
-   same rules with different intentions.
-
-   The one exception is .tier-portrait, reused deliberately: it is the same
-   character icon, and a second class for the same thing would drift. Its size
-   is raised here rather than there, so the editor's drag-and-drop portraits
-   keep the dimensions their hit-testing was built around. */
-
-/* Owner's fine-tuning item: bigger icons, less space between them. Scoped to
-   this page so the editor and any other consumer of .tier-portrait are
-   untouched. */
+/* Bigger icons, less space between them, on this page only. */
 #tier-list-ui .tier-portrait {
     width: 78px;
     height: 78px;
@@ -21,10 +16,9 @@
 
 #tier-list-ui .tier-portrait-name { font-size: 0.56rem; }
 
-/* A copy's badge (v1.2): its label on the portrait's top corner, over the art
-   (the image is z-index 3). Background and text colour are set inline by
-   tierBadgeElement (js/site_utils.js), which checks the colour first. Shared
-   with the editor's board and tray, which load this sheet too. */
+/* A copy's badge on the portrait's top corner, over the art (the image is z-index
+   3). Its colours are set inline by tierBadgeElement (site_data.js), which checks
+   the colour first. */
 .tier-badge {
     position: absolute;
     top: 2px;
@@ -43,7 +37,7 @@
     pointer-events: none;
 }
 
-/* --- THE PICKER --- */
+/* The picker */
 
 .ctl-author-btn .btn-manga-content {
     flex-direction: column;
@@ -61,21 +55,15 @@
     opacity: 0.75;
 }
 
-/* --- LANDING ON NOBODY ---
-   The state every reader arrives in, and the point of the feature rather than
-   a loading step - so it is styled as a statement, not as an empty box. */
+/* Landing on nobody: the state every reader arrives in, styled as a statement, not
+   an empty box. */
 .ctl-nobody {
     text-align: center;
     padding: 3rem 1.5rem;
     border: 2px dashed var(--border-color);
 }
 
-/* The only thing in the box now, so it carries no bottom margin - .ctl-nobody-body
-   sat under it until the owner removed that paragraph on 2026-09-09, and a
-   0.6rem gap below the last element just makes the box look off-centre. Its rule
-   went with it rather than being left behind: dead CSS in this file has been
-   cleaned up before, and tests/tierlist-live-dedupe.spec.js holds that shut for
-   the five classes it already caught. */
+/* The only thing in the box, so no bottom margin, or the box looks off-centre. */
 .ctl-nobody-title {
     font-family: var(--font-label), sans-serif;
     font-size: 1.1rem;
@@ -83,7 +71,7 @@
     margin: 0;
 }
 
-/* --- ONE LIST --- */
+/* One list */
 
 .ctl-header {
     margin-bottom: 1.25rem;
@@ -104,9 +92,8 @@
     color: var(--text-muted);
 }
 
-/* "Updated 3 weeks ago" and the patch it was written against answer the same
-   question - whether this ranking still holds - so they sit on one line
-   together rather than in two places (v0.15 item 13). */
+/* "Updated 3 weeks ago" and the game version answer one question, whether the
+   ranking still holds, so they share a line. */
 .ctl-stamp {
     display: flex;
     align-items: center;
@@ -158,8 +145,7 @@
     padding: 0.25rem;
 }
 
-/* Tighter than the old 0.5rem, per the owner's fine-tuning note - the icons
-   are larger and were starting to read as separate cards rather than a row. */
+/* Tight, so the larger icons read as a row, not separate cards. */
 .ctl-chars {
     flex: 1;
     display: flex;
@@ -178,7 +164,7 @@
     font-style: italic;
 }
 
-/* --- REASONING AND CHANGELOG --- */
+/* Reasoning and changelog */
 
 .ctl-subheading {
     font-family: var(--font-label), sans-serif;
@@ -195,7 +181,7 @@
 
 .ctl-changelog { margin-top: 1.5rem; }
 
-/* Older and newer pages of the changelog, 20 moves each (v1.0 Part 3). */
+/* The changelog's pages, 20 moves each. */
 .ctl-pager {
     display: flex;
     align-items: center;
@@ -262,10 +248,8 @@
     .ctl-chars { min-height: 68px; }
 }
 
-/* --- THE PER-PERSON INTRODUCTION (v0.14) ---
-   Sits above the tiers and replaces the page's own introduction while a list
-   is open, so a reader meets that person before their ranking. Bordered on the
-   left rather than boxed: it is the author speaking, not a callout. */
+/* The person's introduction, above the tiers, in place of the page's while a list
+   is open. A left border, not a box: the author speaking, not a callout. */
 .ctl-intro {
     margin-bottom: 1.5rem;
     padding-left: 0.9rem;
@@ -280,11 +264,7 @@
 
 .ctl-intro-body p:last-child { margin-bottom: 0; }
 
-/* --- THE SIDEBAR HEADER ---
-   Was one space-between row with no wrapping, holding a title and however many
-   buttons got injected beside it - which ran off the right edge of the window
-   as soon as there were two. Stacked instead, so the buttons wrap under the
-   title and a third one later costs nothing. */
+/* The sidebar header, stacked, so its buttons wrap under the title. */
 .tierlist-sidebar-header {
     display: flex;
     flex-direction: column;

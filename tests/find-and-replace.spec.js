@@ -124,6 +124,21 @@ test('whole-word matching does not split a longer name', async ({ page }) => {
   expect(out.strict).toBe(1);
 });
 
+test('what is typed into Find is plain text, never a pattern', async ({ page }) => {
+  // A dot or a bracket is that character: "1.5" must not also find "125".
+  await boot(page);
+
+  const out = await page.evaluate(() => {
+    const data = { overview: [{ type: 'paragraph', content: 'Hits at 1.5s, 125 total. Press [1] then 1 again.' }] };
+    return {
+      dot: window.findEditorMatches(data, '1.5', { wholeWord: false }).length,
+      brackets: window.findEditorMatches(data, '[1]', { wholeWord: false }).length,
+    };
+  });
+
+  expect(out).toEqual({ dot: 1, brackets: 1 });
+});
+
 test('replacing one occurrence leaves the others alone', async ({ page }) => {
   await boot(page);
 

@@ -1,8 +1,10 @@
-/* =========================================
-   DESIGN SYSTEM: FRAME DATA ENGINE (FrameData.css)
-   ========================================= */
+/* The Skill Card: a move's header, accolades, media box and stats, the Micro
+   Variant tabs, the Frame Track's bars, rulers and overlays, and the legend.
+   Since v0.4.
+   Touches: the phase and overlay colours (ColorCoding.css).
+   See: docs/character-page.md */
 
-/* --- 1. INTERNAL ENTRY LAYOUT --- */
+/* Entry layout */
 .skill-entry-header { 
     background-color: var(--bg-secondary); 
     padding: 1rem 1.5rem; 
@@ -15,10 +17,8 @@
     text-shadow: 2px 2px 0px var(--manga-shadow); 
 }
 .skill-subtitle { font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted); }
-/* A move's accolades, under its name (v1.2, js/framedata.js): the owner's
-   16px icon, then the name, all in the accolade's own color (the owner's 26,
-   2026-11-19), border too. A long name wraps inside its badge on a phone
-   rather than pushing the card wider. */
+/* A move's accolades under its name: the 16px icon, then the name, all in the
+   accolade's colour, border too. A long name wraps inside its badge on a phone. */
 .skill-accolades { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
 .skill-accolade {
     display: inline-flex; align-items: center; gap: 0.3rem;
@@ -48,14 +48,10 @@
 .skill-entry-card-no-frames .skill-right-col .skill-strategy-section { border-top: none; }
 .skill-entry-card-no-frames .skill-right-col .wiki-section-empty { border-top: none; }
 
-/* Media Box
-   The box matches the source rather than the source being cropped to match
-   the box (js/site_utils.js applyMediaFraming). 16:9 stays the bare default
-   for two reasons: it is what every existing card already looks like, and it
-   is the measured outcome for most gameplay capture - so nothing flips shape
-   after layout in the common case. The two modifiers below are added once the
-   media reports its real dimensions, or immediately when a contributor has
-   set an explicit framing on the move. */
+/* The media box takes the media's shape (applyMediaFraming, site_media.js). 16:9
+   is the bare default and the common case, so nothing changes shape after layout;
+   the two modifiers below come once the media reports its size, or at once for an
+   explicit framing. */
 .skill-media-wrapper {
     width: 100%; aspect-ratio: 16 / 9; background-color: var(--bg-secondary);
     border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center;
@@ -76,7 +72,7 @@
 .skill-media-filename { display: none; }
 
 
-/* --- 2. STATS TABLE --- */
+/* Stats */
 .skill-stats-box { 
     width: 100%; background-color: var(--bg-secondary); border: 2px solid var(--border-color); 
     padding: 1rem; font-size: 0.875rem; font-family: var(--text-mono); 
@@ -96,30 +92,15 @@
 .stat-value { color: var(--text-white); font-weight: bold; text-align: right; word-break: break-word; }
 
 
-/* --- 3. INTERNAL TAB BAR --- */
-/* The Micro Variant tabs wrap (v1.2 mobile pass). One row that never wrapped
-   made the whole page scroll sideways on a phone: Hired Hunter's M1s tab was
-   261px wider than a 390px screen. A single name longer than the card is cut
-   with an ellipsis, which .btn-manga-text already knows how to do. */
+/* Micro Variant tabs */
+/* The tabs wrap: one row that never wrapped made the page scroll sideways on a
+   phone. A name longer than the card ends in an ellipsis. */
 .skill-tab-bar { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.75rem; }
 .skill-tab-bar > .btn-manga { max-width: 100%; min-width: 0; }
 .skill-tab-bar-nested { margin-top: 1rem; padding-bottom: 0.5rem; }
-.skill-tab-btn { 
-    font-family: var(--font-title), sans-serif;
-    font-size: 0.85rem; color: var(--text-muted); 
-    background: var(--bg-secondary); border: 2px solid var(--border-color); padding: 0.25rem 0.75rem; 
-    cursor: pointer; transform: skewX(-10deg); transition: all 0.1s; box-shadow: 2px 2px 0px var(--manga-shadow); 
-}
-.skill-tab-btn:hover { 
-    border-color: var(--accent-blue); color: var(--text-white); 
-    transform: skewX(-10deg) translate(-1px, -1px); box-shadow: 3px 3px 0px var(--accent-blue); 
-}
-.skill-tab-btn.active { 
-    background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); box-shadow: 3px 3px 0px var(--manga-shadow); 
-}
 
 
-/* --- 4. FRAME VISUALIZER BARS --- */
+/* The Frame Track */
 .view-section { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.5rem; }
 .bar-header-info { 
     display: flex; justify-content: space-between; font-size: 0.75rem; 
@@ -138,19 +119,10 @@
 .phase-section:hover { opacity: 0.8; }
 .frame-tick { flex-grow: 1; height: 100%; border-right: 1px solid #000000; }
 
-/* A qualitative phase: recorded as "short" or "high" rather than counted.
-   js/framedata.js appends no .frame-tick children for one, so the block is
-   simply solid - and that absence is the whole marker. The frame divisions
-   are this site's visual language for "measured", so a bar without them
-   reads as an estimate without needing a key.
-
-   No hatching, no dashed border, no badge: the owner's call, and the right
-   one. Anything added here would compete with the tick colours, which carry
-   the actual meaning.
-
-   min-width only so a "Non-existent" estimate - nominally zero frames - still
-   leaves a visible mark rather than vanishing, since "there is no recovery on
-   this move" is a real thing to record. */
+/* An estimated phase: skill_card.js draws no .frame-tick in it, so the block is
+   solid, and that absence is the marker, since the ticks mean "measured". Nothing
+   else is added: it would compete with the tick colours.
+   min-width, so a "Non-existent" estimate still leaves a mark. */
 .phase-section.phase-estimated { min-width: 3px; }
 
 .legend-estimate-note {
@@ -170,12 +142,10 @@
     vertical-align: middle; margin-right: 0.4rem;
 }
 
-.hit-user-bar-style { border-bottom: none; }
-.hit-target-bar-style { border-top: none; border-style: dashed; border-color: var(--border-color); }
 .empty-frame-data-msg { margin-top: 0; border: 1px dashed var(--border-color); background-color: transparent; padding: 2rem; }
 
 
-/* --- 5. OVERLAYS, RULERS & MARKERS --- */
+/* Overlays, rulers and markers */
 .frame-ruler {
     position: relative; height: 1.5rem; margin-top: 0.25rem; margin-bottom: 1rem;
     border-top: 1px solid var(--border-color); width: 100%;
@@ -184,42 +154,16 @@
 .ruler-notch { width: 1px; height: 6px; background-color: var(--text-muted); margin-bottom: 2px; }
 .ruler-label { font-size: 0.7rem; color: var(--text-muted); font-family: var(--text-mono); }
 
-.cancel-marker {
-    position: absolute; top: -5px; bottom: -5px; width: 2px;
-    background-color: var(--accent-blue); box-shadow: 0 0 5px var(--accent-blue), 0 0 10px var(--accent-blue);
-    z-index: 10; cursor: help; animation: cancelGlow 2s infinite ease-in-out;
-}
 @keyframes cancelGlow { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
 
-.overlay-armor {
-    background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2) 10px, rgba(255, 255, 255, 0.2) 10px, rgba(255, 255, 255, 0.2) 20px) !important;
-}
-.overlay-iframe {
-    background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3) 2px, transparent 2px, transparent 8px) !important;
-}
 
 
-/* --- 6. COMBO STRINGS ---
-   Moved to style/Layout.css on 2026-08-15. .combo-container and
-   .combo-meta-group already lived there, so the block was half-styled by a
-   sheet only character pages load - a combo authored on a guide, a gallery
-   or a tool page rendered as a plain row of words. */
-
-/* --- 7. STRATEGY BLOCKS & LEGENDS --- */
+/* Strategy blocks and the legend */
 .skill-strategy-section { background-color: var(--bg-secondary); padding: 1.5rem; border-top: 2px solid var(--border-color); }
-/* .strategy-title moved to style/Layout.css, same reason as the combo
-   block above: it is an authored-block heading, not frame data. */
-.strategy-content { display: flex; flex-direction: column; gap: 1rem; color: var(--text-primary); line-height: 1.625; font-size: 0.875rem; }
-.strategy-content p { margin: 0; }
-.strategy-content ul { list-style-type: square; padding-left: 1.25rem; margin: 0; color: var(--accent-blue); }
-.strategy-content ul span { color: var(--text-primary); }
-.strategy-content li { margin-bottom: 0.5rem; }
 
-/* The legend's columns follow its own width, not the screen's (owner,
-   2026-11-18). From 1024px the sidebar takes its share, and 7 columns in what
-   was left cut "Explosion" short and stood each description one word to a
-   line; the editor's VIEW DIFF halves did the same at any size. 7 columns
-   once the legend itself is 840px wide, which a 1440px screen gives it. */
+/* The legend's columns follow its own width, not the screen's (a container query):
+   7 columns once the legend is 840px wide. In the narrower room beside a sidebar,
+   or in VIEW DIFF, 7 columns cut "Explosion" short. */
 .legend-section { padding: 1.25rem; margin-bottom: 2rem; container-type: inline-size; }
 .legend-title { font-family: var(--font-label), sans-serif; font-size: 0.875rem; color: var(--accent-blue); margin-bottom: 0.75rem; margin-top: 0; text-shadow: 1px 1px 0 #000; }
 .legend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; font-size: 0.75rem; font-family: var(--text-mono); }
@@ -229,6 +173,3 @@
 .legend-item { display: flex; align-items: flex-start; gap: 0.5rem; }
 .legend-swatch { width: 1rem; height: 1rem; border-radius: 0; border: 1px solid var(--text-white); flex-shrink: 0; margin-top: 0.125rem; box-shadow: 2px 2px 0 #000;}
 .legend-name { color: var(--text-white); display: block; font-weight: bold; }
-.legend-inline-item { display: flex; align-items: center; gap: 0.25rem; }
-.legend-inline-item .dot { width: 0.75rem; height: 0.75rem; border-radius: 0; border: 1px solid #000; display: inline-block; flex-shrink: 0; }
-.dot-hollow { width: 0.75rem; height: 0.75rem; border-radius: 0; background: transparent; display: inline-block; flex-shrink: 0; }

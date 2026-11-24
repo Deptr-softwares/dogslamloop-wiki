@@ -1,7 +1,7 @@
 // The editor's diff mode shows a contributor their change as a diff, not as tags.
 //
 // Found 2026-09-25, fixed in v0.20 batch 3. edit.html never loaded the review
-// queue's diff (then in js/admin-diff.js) and js/editor-sync.js carried an
+// queue's diff (then in js/overseer/admin-diff.js) and js/editor/core/editor-sync.js carried an
 // older copy that returned real <ins>/<del> tags. Since v0.15 the block
 // renderer escapes every field, so those tags were escaped as well: a
 // paragraph changed from "Hold the dash" to "Hold the jump" read, to the
@@ -11,7 +11,7 @@
 //
 // The call that would have turned markers into tags sat behind a typeof guard,
 // so the missing script failed silently. Both screens now load
-// js/diff-markers.js and the editor's copy is gone.
+// js/utility/diff-markers.js and the editor's copy is gone.
 //
 // Both sides of the comparison are set by this test, so it never reads the
 // owner's Boomcat content.
@@ -83,14 +83,13 @@ test('both review screens load the one shared diff, and nothing else defines it'
   const path = require('path');
   const ROOT = path.join(__dirname, '..');
 
-  const definers = fs.readdirSync(path.join(ROOT, 'js'))
-    .filter(f => f.endsWith('.js'))
+  const definers = require('../scripts/asset-version.js').SHARED_MODULES
     .filter(f => /window\.diffTextLCS\s*=|window\.resolveDiffMarkers\s*=/
       .test(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8')));
-  expect(definers).toEqual(['diff-markers.js']);
+  expect(definers).toEqual(['utility/diff-markers.js']);
 
-  for (const page of ['admin.html', 'edit.html']) {
+  for (const page of ['overseer.html', 'edit.html']) {
     const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
-    expect(html, `${page} loads js/diff-markers.js`).toMatch(/<script src="js\/diff-markers\.js/);
+    expect(html, `${page} loads js/utility/diff-markers.js`).toMatch(/<script src="js\/utility\/diff-markers\.js/);
   }
 });

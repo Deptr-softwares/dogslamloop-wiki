@@ -181,7 +181,7 @@ test('the reviewer diff and the draft sync both show a changed Practicality', ()
     // Without these a reviewer sees a card unchanged while its Practicality
     // was rewritten. Read from the source, as for every other card field.
     const missing = [];
-    for (const file of ['js/editor-sync.js', 'js/admin-preview.js']) {
+    for (const file of ['js/editor/core/editor-sync.js', 'js/overseer/admin-preview.js']) {
         const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
         if (!/\bb\.practicality = window\.diffTextLCS/.test(src)) missing.push(`${file} :: card`);
         if (!/b\.sections\[j\]\.practicality = window\.diffTextLCS/.test(src)) missing.push(`${file} :: section`);

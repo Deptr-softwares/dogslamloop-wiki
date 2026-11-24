@@ -241,3 +241,23 @@ for (const drawer of MOBILE_DRAWERS) {
         await expect(page.locator(drawer.panel)).not.toHaveClass(/mobile-open/);
     });
 }
+
+// A list of plain names, capped at 220px, holds nothing else a keyboard can
+// focus, so without a tab stop of its own it cannot be scrolled from one.
+test('the home page Credits box can be scrolled from the keyboard', async ({ page }) => {
+    const people = Array.from({ length: 30 }, (_, i) => ({ name: `Person${i}`, role: 'Tester', links: [] }));
+    await page.route('**/collaborators_data.json*', route => route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ mainContributors: people, specialThanks: [] }),
+    }));
+    await page.goto('/index.html', { waitUntil: 'networkidle' });
+    await expect(page.locator('#credits-dynamic-list .credit-name')).toHaveCount(30);
+
+    const box = page.locator('#credits-section .faq-scroll-box');
+    await expect(box).toHaveAttribute('role', 'region');
+    await expect(box).toHaveAttribute('aria-labelledby', 'credits-heading');
+    await box.focus();
+    await expect(box).toBeFocused();
+    await page.keyboard.press('PageDown');
+    await expect.poll(() => box.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+});

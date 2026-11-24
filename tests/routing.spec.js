@@ -34,7 +34,7 @@ test('editRole gate: locked page hides the Edit button, open page shows it', asy
   //
   // The button's hidden-by-default state now comes entirely from its own
   // .tab-editor-btn-sidebar class (style/Layout.css), not an inline style -
-  // js/pagebuilder.js un-hides it via classList.add('is-active') rather
+  // js/pages/core/page_shell.js un-hides it via classList.add('is-active') rather
   // than a direct style.display write (mobile-support pass). So this test
   // resets to that true default via classList.remove instead of forcing an
   // inline display: none, which a bare classList toggle correctly can't
@@ -95,7 +95,7 @@ test('homepage roster and sidebar render every navigation.json entry', async ({ 
   const totalEntries = Object.values(nav).reduce((sum, arr) => sum + arr.length, 0);
 
   // Hidden characters are private-server-only and filtered OUT of the roster by
-  // default - renderFilteredRoster in js/pagebuilder.js, where the "Show Hidden"
+  // default - renderFilteredRoster in js/dashboards/hub_roster.js, where the "Show Hidden"
   // toggle lets them back in. Counting the raw Characters length asserted the
   // opposite of that feature, so this passed only while no page was hidden. The
   // first one the owner ticked failed it, and because the regeneration job runs

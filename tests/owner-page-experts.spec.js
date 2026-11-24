@@ -5,7 +5,7 @@
 // page_experts is a table rather than a column on user_roles, whose `role` is
 // NOT NULL. So they appear in no roster, and email is the only handle for them.
 //
-// It lives on owner.html rather than admin.html by the owner's own rule
+// It lives on owner.html rather than overseer.html by the owner's own rule
 // (2026-08-27): which page a tool lives on decides who owns it. Granting review
 // rights over a page is a personnel decision, not a queue action.
 //
@@ -91,18 +91,18 @@ test('the tool sits in the People group, with personnel', async ({ page }) => {
     expect(group).toBe('people');
 });
 
-test('it is on owner.html and not on admin.html', async ({ page }) => {
+test('it is on owner.html and not on overseer.html', async ({ page }) => {
     // The owner's rule made concrete: which page a tool lives on decides who
     // owns it, and an admin has no owner-tool access at all.
     //
     // Navigates first: a relative fetch from about:blank has no base URL to
     // resolve against and throws before it asks for anything.
     await open(page);
-    const adminHtml = await page.evaluate(async () => (await fetch('/admin.html')).text());
+    const adminHtml = await page.evaluate(async () => (await fetch('/overseer.html')).text());
     expect(adminHtml).not.toContain('tool-page-experts');
     expect(adminHtml).not.toContain('assign_page_expert');
     // Paired positive, so this cannot pass on an empty response.
-    expect(adminHtml, 'and admin.html really was fetched').toContain('queue-container');
+    expect(adminHtml, 'and overseer.html really was fetched').toContain('queue-container');
 });
 
 // --- THE ROSTER ---

@@ -118,7 +118,7 @@ test('sort_order decides position within a category, not insertion order', () =>
 });
 
 test('a page with no optional flags emits none of them', () => {
-  // The flags are consumed by truthiness everywhere (js/pagebuilder.js), so
+  // The flags are consumed by truthiness everywhere (js/pages/core/page_shell.js), so
   // omitting is equivalent to false - but emitting `false` for all five on
   // every entry would bloat the file and invite the drift this replaced.
   const out = buildNavigation([{

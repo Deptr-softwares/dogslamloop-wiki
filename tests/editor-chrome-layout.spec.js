@@ -186,7 +186,7 @@ test('two rows at narrow widths too, not two-then-three', async ({ page }) => {
 
 test('the Profile toolbar keeps its own Media Library', async ({ page }) => {
   // .strategy-toolbar-row is shared with structuredFormToolbar in
-  // js/editor-tabs.js, which has no Add Block footer to move anything into.
+  // js/editor/tabs/editor-tabs.js, which has no Add Block footer to move anything into.
   // This project's standing rule is that a change to a shared class is checked
   // against every consumer, so the check is a test rather than a memory.
   await page.setViewportSize({ width: 1400, height: 950 });

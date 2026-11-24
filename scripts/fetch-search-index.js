@@ -26,7 +26,7 @@
  *
  * IT DOES NOT WALK desc_data ITSELF
  *
- * It calls window.collectSectionTargets (js/character_tabs.js), which is the
+ * It calls window.collectSectionTargets (js/utility/character_tabs.js), which is the
  * same function the in-page link picker uses. That matters for two reasons:
  *
  *   - It already mints anchor ids that MATCH assignSectionAnchors' sweep of the
@@ -52,7 +52,7 @@
  * workflow), correctness belongs to whatever reads the file.
  *
  * Credentials: the public anon key, which is not a secret - it already ships in
- * js/site_utils.js and is in the page source of every page. Deliberately NOT
+ * js/utility/site_utils.js and is in the page source of every page. Deliberately NOT
  * the service-role key. Everything read here is already world-readable through
  * the "Public Read Live Data" policy.
  *
@@ -68,7 +68,7 @@ const ROOT = path.join(__dirname, '..');
 const OUT_PATH = path.join(ROOT, 'data', 'search-index.json');
 const FULLTEXT_PATH = path.join(ROOT, 'data', 'search-fulltext.json');
 const NAV_PATH = path.join(ROOT, 'data', 'navigation.json');
-const VOCAB_PATH = path.join(ROOT, 'js', 'character_tabs.js');
+const VOCAB_PATH = path.join(ROOT, 'js', 'utility', 'character_tabs.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
@@ -100,12 +100,12 @@ const SKIP_TABS = new Set(['matchups', 'page']);
  * collectSectionTargets reaches for four things on window. Three
  * (getCharacterTabLabels, GENERIC_SECTION_TITLES, FRAME_MOVE_CATEGORIES) are
  * defined in this same module, so they arrive with it. The fourth,
- * sectionAnchorSlug, lives in js/pagebuilder.js - a DOM-heavy module that does
+ * sectionAnchorSlug, lives in js/pages/core/page_shell.js - a DOM-heavy module that does
  * not evaluate in Node - and collectSectionTargets carries an inline fallback
  * for exactly that case.
  *
  * That fallback is currently character-for-character identical to
- * pagebuilder.js's version, which is what makes the anchors this script writes
+ * page_shell.js's version, which is what makes the anchors this script writes
  * match the ids the page mints. It is an ASSUMPTION, not a guarantee, so
  * tests/search-index.spec.js asserts the two agree - if they ever drift, every
  * anchor in this file silently points at nothing.
@@ -115,7 +115,7 @@ function loadVocabulary() {
     const fakeWindow = {};
     new Function('window', src)(fakeWindow);
     if (typeof fakeWindow.collectSectionTargets !== 'function') {
-        throw new Error('js/character_tabs.js did not define collectSectionTargets - has it moved?');
+        throw new Error('js/utility/character_tabs.js did not define collectSectionTargets - has it moved?');
     }
     return fakeWindow;
 }

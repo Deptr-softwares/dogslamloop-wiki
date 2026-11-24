@@ -23,24 +23,24 @@
     <meta name="twitter:card" content="summary">
     <!-- END GENERATED: hub-meta -->
 
-    <!-- 1. FOUNDATIONS -->
-    <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/ColorCoding.css">
-    
-    <!-- 2. COMPONENTS -->
-    <link rel="stylesheet" href="style/Buttons.css">
-    <link rel="stylesheet" href="style/Modals.css">
-    <link rel="stylesheet" href="style/Forms.css">
-    <link rel="stylesheet" href="style/Badges.css">
-    <link rel="stylesheet" href="style/Alerts.css">
-    <link rel="stylesheet" href="style/Cards.css">
-    <link rel="stylesheet" href="style/FrameData.css">
-
-    <!-- 3. PAGE LAYOUT -->
-    <link rel="stylesheet" href="style/Layout.css">
-    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
+    <link rel="stylesheet" href="style/Common.css?v=44b859a9">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Buttons.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Modals.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Forms.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Badges.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Alerts.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Cards.css?v=44b859a9">
+    <link rel="stylesheet" href="style/FrameData.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Layout.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Blocks.css?v=44b859a9">
+    <link rel="stylesheet" href="style/dashboards.css?v=44b859a9">
+    <link rel="stylesheet" href="style/posts.css?v=44b859a9">
+    <link rel="stylesheet" href="style/look-classic.css?v=44b859a9">
+    <!-- END GENERATED: styles -->
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
@@ -224,7 +224,7 @@
                             </h3>
                         </div>
 
-                        <!-- Editable from owner.html; js/hub_content.js
+                        <!-- Editable from owner.html; js/dashboards/hub_content.js
                              replaces this only when site_meta has data. The
                              Discord invite is the field that actually drives
                              this being editable - it expires or gets rotated,
@@ -253,10 +253,11 @@
                 <div class="space-y-6">
                     <section class="wiki-section" id="credits-section">
                         <div class="dashboard-header-split">
-                            <h2 class="section-title section-title-clean m-0" data-heading-key="credits">&nbsp;</h2>
+                            <h2 class="section-title section-title-clean m-0" id="credits-heading" data-heading-key="credits">&nbsp;</h2>
                         </div>
-                        
-                        <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;">
+
+                        <!-- Focusable, so a keyboard can scroll a list that holds nothing else to focus. -->
+                        <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;" tabindex="0" role="region" aria-labelledby="credits-heading">
                             <ul class="credits-list" id="credits-dynamic-list">
                                 <li><p class="loading-msg loading-msg-busy">Loading credits...</p></li>
                             </ul>
@@ -291,33 +292,25 @@
 
     </div>
 
-    <!-- Deferred (v1.2, the owner's performance card). This is the one page
-         with a Content-Security-Policy meta tag, and Chrome stops fetching
-         ahead when it meets one, so these blocking scripts were fetched one at
-         a time, each when the parser reached it: twelve in a row, and the
-         page ready for its data at about 1.6s instead of 0.35s (measured,
-         2026-11-17). A deferred script never stops the parser, so it asks for
-         all of them at once; they still run in this order, once the page is
-         read, which is when they ran before. Below the policy, so it covers
-         them too. -->
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script defer src="js/vendor/supabase-js-2.118.0.js"></script>
-
-    <script defer src="js/site_meta.js?v=817fcedb"></script>
-    <script defer src="js/character_tabs.js?v=817fcedb"></script>
-    <script defer src="js/input_slots.js?v=817fcedb"></script>
-    <script defer src="js/site_utils.js?v=817fcedb"></script>
-    <script defer src="js/home_widgets.js?v=817fcedb"></script>
-    <script defer src="js/pagebuilder.js?v=817fcedb"></script>
-    <script defer src="js/search.js?v=817fcedb"></script>
-    <!-- The homepage post widget lists posts only (escaped title/summary/date)
-         and needs neither of these. The About Us section does: it renders
-         authored blocks through generateHTMLForBlocks, which lives in
-         description.js and relies on internalstyling.js for inline markup. -->
-    <script defer src="js/description.js?v=817fcedb"></script>
-    <script defer src="js/internalstyling.js?v=817fcedb"></script>
-    <script defer src="js/posts.js?v=817fcedb"></script>
-    <script defer src="js/hub_content.js?v=817fcedb"></script>
-    <script async src="js/analytics.js?v=817fcedb"></script>
+    <script defer src="js/utility/site_lookups.js?v=44b859a9"></script>
+    <script defer src="js/utility/character_tabs.js?v=44b859a9"></script>
+    <script defer src="js/utility/input_slots.js?v=44b859a9"></script>
+    <script defer src="js/utility/site_utils.js?v=44b859a9"></script>
+    <script defer src="js/utility/site_data.js?v=44b859a9"></script>
+    <script defer src="js/utility/site_media.js?v=44b859a9"></script>
+    <script defer src="js/utility/site_account.js?v=44b859a9"></script>
+    <script defer src="js/dashboards/home_widgets.js?v=44b859a9"></script>
+    <script defer src="js/pages/core/page_shell.js?v=44b859a9"></script>
+    <script defer src="js/utility/search.js?v=44b859a9"></script>
+    <script defer src="js/dashboards/hub_roster.js?v=44b859a9"></script>
+    <script defer src="js/pages/core/page_render.js?v=44b859a9"></script>
+    <script defer src="js/pages/core/format_tags.js?v=44b859a9"></script>
+    <script defer src="js/pages/community/posts.js?v=44b859a9"></script>
+    <script defer src="js/dashboards/hub_content.js?v=44b859a9"></script>
+    <script async src="js/others/analytics.js?v=44b859a9"></script>
+    <!-- END GENERATED: scripts -->
 
     <!-- A module rather than a plain script since v1.2: a module waits in the
          same queue as the deferred scripts above, so it still runs after them

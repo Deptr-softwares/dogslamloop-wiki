@@ -5,27 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Owner Tools | Dogslamloop</title>
 
-    <!-- FOUNDATIONS -->
-    <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/ColorCoding.css">
-
-    <!-- COMPONENTS -->
-    <link rel="stylesheet" href="style/Buttons.css">
-    <link rel="stylesheet" href="style/Modals.css">
-    <link rel="stylesheet" href="style/Forms.css">
-    <link rel="stylesheet" href="style/Badges.css">
-    <link rel="stylesheet" href="style/Alerts.css">
-    <link rel="stylesheet" href="style/Cards.css">
-
-    <!-- LAYOUT & OVERRIDES -->
-    <link rel="stylesheet" href="style/Layout.css">
-    <link rel="stylesheet" href="style/editor.css">
-    <link rel="stylesheet" href="style/admin.css">
+    <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
+    <link rel="stylesheet" href="style/Common.css?v=44b859a9">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Buttons.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Modals.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Forms.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Badges.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Alerts.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Cards.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Layout.css?v=44b859a9">
+    <link rel="stylesheet" href="style/editor.css?v=44b859a9">
+    <link rel="stylesheet" href="style/admin.css?v=44b859a9">
+    <!-- END GENERATED: styles -->
 </head>
 <body class="admin-body">
 
     <!--
-        Owner-only tools, split out of admin.html/js/admin.js: the things
+        Owner-only tools, split out of the Overseer: the things
         bolted onto the reviewer-workflow page that have nothing to do with
         reviewing revisions.
 
@@ -34,7 +31,7 @@
         (People / Pages / Content / Danger Zone) because ten tools in one
         scroll had no way to find anything. An earlier comment here argued
         against "building a tab system for two tools", which was right at two
-        and stopped being right somewhere around six. js/owner-nav.js does the
+        and stopped being right somewhere around six. js/owner/owner-nav.js does the
         switching; it is a show/hide, not a router.
 
         To add a tool: drop a <section> into the group it belongs to. Nothing
@@ -51,7 +48,7 @@
                     </div>
                     <div class="admin-header-actions-col">
                         <a href="post-editor.html" class="btn-sys btn-sys-regular admin-hub-btn">POST EDITOR</a>
-                        <a href="admin.html" class="btn-sys btn-sys-regular admin-hub-btn">OVERSEER</a>
+                        <a href="overseer.html" class="btn-sys btn-sys-regular admin-hub-btn">OVERSEER</a>
                         <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
                     </div>
                 </div>
@@ -126,7 +123,7 @@
                         <h3 class="update-title admin-tool-title personnel">Page Experts</h3>
                         <button onclick="loadPageExperts()" class="btn-sys btn-sys-regular admin-refresh-btn">&#8635; Refresh</button>
                     </div>
-                    <p class="admin-tool-hint">An expert reviews submissions for their own pages and nothing else. They need no role at all &mdash; a knowledgeable player with an account is enough, which is why this is granted by email rather than picked from the roster.</p>
+                    <p class="admin-tool-hint">An expert reviews submissions for their own pages and nothing else. They need no role at all; a knowledgeable player with an account is enough, which is why this is granted by email rather than picked from the roster.</p>
 
                     <div id="page-experts-roster" class="personnel-roster">
                         <p class="loading-msg loading-msg-busy">Loading experts...</p>
@@ -147,7 +144,7 @@
                         <h3 class="update-title admin-tool-title personnel">Staff Perks</h3>
                         <button onclick="loadStaffPerks()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
                     </div>
-                    <p class="admin-tool-hint">Perks for Trusted Editors, Reviewers and Admins. These change what the database enforces, not just what the editor shows &mdash; turning one off takes effect on the next submission.</p>
+                    <p class="admin-tool-hint">Perks for Trusted Editors, Reviewers and Admins. These change what the database enforces, not just what the editor shows. Turning one off takes effect on the next submission.</p>
 
                     <label class="owner-perk-row" for="perk-cooldown-bypass">
                         <input type="checkbox" id="perk-cooldown-bypass">
@@ -197,7 +194,7 @@
                         </select>
                         <!-- Where the page lives, which is a separate question
                              from how it renders. Populated from
-                             PAGE_DIRECTORIES in js/owner.js. -->
+                             PAGE_DIRECTORIES in js/owner/owner.js. -->
                         <label class="block-field-label-sm" for="new-page-directory">FOLDER</label>
                         <select id="new-page-directory" class="editor-input admin-input-full select"></select>
                         <!-- An input with a datalist, not a select: site_pages.category
@@ -263,7 +260,7 @@
                                 The character's colour. Source of truth is
                                 site_pages.color; scripts/fetch-content.js
                                 generates it into window.CHARACTER_COLORS in
-                                js/site_meta.js, which the roster cards, the
+                                js/utility/site_lookups.js, which the roster cards, the
                                 prose auto-colouring and the tier lists all read.
                                 Reaches the site on the next regeneration.
 
@@ -476,7 +473,7 @@
                     <h3 class="update-title admin-tool-title">Page Introduction</h3>
                     <p class="admin-tool-desc">
                         The text at the top of the tier list page, before anybody is picked.
-                        It is hidden while a person's list is open — theirs replaces it.
+                        It is hidden while a person's list is open; theirs replaces it.
                     </p>
 
                     <div id="tier-page-intro-editor" class="block-editor-host"></div>
@@ -512,7 +509,7 @@
                     <h3 class="update-title admin-tool-title">Community Ranking</h3>
                     <p class="admin-tool-desc">
                         The Free Submit tier list. Closing voting hides the ballot and refuses new
-                        ratings — the published ranking stays readable, because deleting the
+                        ratings. The published ranking stays readable, because deleting the
                         community's answer is a much bigger act than pausing new ones.
                     </p>
 
@@ -548,7 +545,7 @@
                             <option value="higher">Put them in the higher tier</option>
                         </select>
                         <p class="admin-tool-hint">
-                            Only changes anything for a character whose votes divide exactly in half —
+                            Only changes anything for a character whose votes divide exactly in half;
                             everyone else is decided by the middle vote either way. The lower tier is
                             the cautious answer: a character only moves up if more than half the
                             voters put them there.
@@ -626,23 +623,27 @@
         </div>
     </div>
 
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=817fcedb"></script>
-    <script src="js/input_slots.js?v=817fcedb"></script>
-    <script src="js/site_utils.js?v=817fcedb"></script>
-    <script src="js/site_meta.js?v=817fcedb"></script>
-    <script src="js/editor-folders.js?v=817fcedb"></script>
-    <script src="js/editor-blocks.js?v=817fcedb"></script>
-    <script src="js/owner.js?v=817fcedb"></script>
-    <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
-    <script src="js/owner-site-meta.js?v=817fcedb"></script>
-    <script src="js/owner-hub-text.js?v=817fcedb"></script>
-    <script src="js/owner-hub-lists.js?v=817fcedb"></script>
-    <script src="js/owner-page-meta.js?v=817fcedb"></script>
-    <script src="js/owner-staff-perks.js?v=817fcedb"></script>
-    <script src="js/owner-page-experts.js?v=817fcedb"></script>
-    <script src="js/owner-tier-lists.js?v=817fcedb"></script>
-    <script src="js/owner-media-report.js?v=817fcedb"></script>
-    <script src="js/owner-nav.js?v=817fcedb"></script>
+    <script src="js/utility/character_tabs.js?v=44b859a9"></script>
+    <script src="js/utility/input_slots.js?v=44b859a9"></script>
+    <script src="js/utility/site_utils.js?v=44b859a9"></script>
+    <script src="js/utility/site_data.js?v=44b859a9"></script>
+    <script src="js/utility/site_media.js?v=44b859a9"></script>
+    <script src="js/utility/site_account.js?v=44b859a9"></script>
+    <script src="js/utility/site_lookups.js?v=44b859a9"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=44b859a9"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=44b859a9"></script>
+    <script src="js/owner/owner.js?v=44b859a9"></script>
+    <script src="js/owner/owner-site-meta.js?v=44b859a9"></script>
+    <script src="js/owner/owner-hub-text.js?v=44b859a9"></script>
+    <script src="js/owner/owner-hub-lists.js?v=44b859a9"></script>
+    <script src="js/owner/owner-page-meta.js?v=44b859a9"></script>
+    <script src="js/owner/owner-staff-perks.js?v=44b859a9"></script>
+    <script src="js/owner/owner-page-experts.js?v=44b859a9"></script>
+    <script src="js/owner/owner-tier-lists.js?v=44b859a9"></script>
+    <script src="js/owner/owner-media-report.js?v=44b859a9"></script>
+    <script src="js/owner/owner-nav.js?v=44b859a9"></script>
+    <!-- END GENERATED: scripts -->
 </body>
 </html>

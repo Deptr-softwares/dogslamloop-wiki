@@ -358,17 +358,17 @@ test.describe('agreement with the files the relay sits between', () => {
         expect(lists.length).toBeGreaterThanOrEqual(3);
         for (const l of lists) expect(l.match(/'([^']+)'/g).map(s => s.slice(1, -1))).toEqual(core.FORUM_TAGS);
         // And the Forum page's own list, which draws the filter and the picker.
-        const page = fs.readFileSync(path.join(ROOT, 'js', 'forum.js'), 'utf8');
+        const page = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'community', 'forum.js'), 'utf8');
         const forumList = /const FORUM_TAGS = \[([^\]]+)\];/.exec(page);
-        expect(forumList, 'no FORUM_TAGS in js/forum.js').not.toBeNull();
+        expect(forumList, 'no FORUM_TAGS in js/pages/community/forum.js').not.toBeNull();
         expect(forumList[1].match(/'([^']+)'/g).map(s => s.slice(1, -1))).toEqual(core.FORUM_TAGS);
     });
 
     test('KLIPY patterns match the thread page', () => {
-        const page = fs.readFileSync(path.join(ROOT, 'js', 'discussions.js'), 'utf8');
+        const page = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'community', 'discussions.js'), 'utf8');
         const grab = (name) => {
             const m = new RegExp(`const ${name} = (.+);\\n`).exec(page);
-            expect(m, `${name} not found in js/discussions.js`).not.toBeNull();
+            expect(m, `${name} not found in js/pages/community/discussions.js`).not.toBeNull();
             return m[1];
         };
         expect(grab('KLIPY_MEDIA')).toBe(`/${core.KLIPY_MEDIA.source}/g`);
@@ -376,9 +376,9 @@ test.describe('agreement with the files the relay sits between', () => {
     });
 
     test('the wiki\'s own emojis are the ones the thread page draws, in its order', () => {
-        const page = fs.readFileSync(path.join(ROOT, 'js', 'emoji.js'), 'utf8');
+        const page = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'emoji.js'), 'utf8');
         const list = /const CUSTOM = \[([\s\S]*?)\];/.exec(page);
-        expect(list, 'no CUSTOM in js/emoji.js').not.toBeNull();
+        expect(list, 'no CUSTOM in js/utility/emoji.js').not.toBeNull();
         expect([...list[1].matchAll(/name: '([^']+)'/g)].map(m => m[1])).toEqual(core.CUSTOM_EMOJI);
     });
 
@@ -403,9 +403,9 @@ test.describe('agreement with the files the relay sits between', () => {
     // under "Site Info", and got a Discord post of its own. A character is
     // whatever the sidebar colours as one.
     test('the characters given a Discord post are the sidebar\'s Characters', () => {
-        const sidebar = fs.readFileSync(path.join(ROOT, 'js', 'pagebuilder.js'), 'utf8');
+        const sidebar = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'page_shell.js'), 'utf8');
         const word = /category === '([^']+)' && window\.CHARACTER_COLORS/.exec(sidebar);
-        expect(word, 'the sidebar\'s character test not found in js/pagebuilder.js').not.toBeNull();
+        expect(word, 'the sidebar\'s character test not found in js/pages/core/page_shell.js').not.toBeNull();
 
         const dir = path.join(ROOT, 'supabase', 'migrations');
         const defs = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()

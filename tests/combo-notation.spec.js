@@ -314,9 +314,9 @@ test('a changed style is marked in the diff, and its markers never land in an at
     // and its quotes would end the attribute and break everything after it.
     //
     // The pair both review screens load, diffTextLCS and resolveDiffMarkers
-    // from js/diff-markers.js, added to a reader page that does not load it.
+    // from js/utility/diff-markers.js, added to a reader page that does not load it.
     await boot(page);
-    await page.addScriptTag({ url: '/js/diff-markers.js' });
+    await page.addScriptTag({ url: '/js/utility/diff-markers.js' });
     const result = await page.evaluate(() => {
         const oldList = [{ label: 'Keyboard', sequence: ['LMB', 'Space'] }];
         const newList = [{ label: 'Keys', sequence: ['LMB', 'Shift'] }];
@@ -347,7 +347,7 @@ test('both review screens diff styles, on the Combo Block, the Combo Card and ea
     // its own copy of the block diff. Derived from the source, so a copy that
     // forgets styles fails here instead of in front of a reviewer.
     const missing = [];
-    for (const file of ['js/admin-preview.js', 'js/editor-sync.js']) {
+    for (const file of ['js/overseer/admin-preview.js', 'js/editor/core/editor-sync.js']) {
         const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
         const blocks = (src.match(/b\.notations = window\.diffComboNotations\(oldB\.notations, newB\.notations\)/g) || []).length;
         if (blocks !== 2) missing.push(`${file} :: Combo Block and Combo Card (found ${blocks} of 2)`);
@@ -363,8 +363,8 @@ test('both review screens diff styles, on the Combo Block, the Combo Card and ea
 test('all four editor surfaces offer styles, through the one shared helper', () => {
     // The Combo Card's two editors have drifted three times; "one surface was
     // forgotten" is not something a rendering test of any one surface can see.
-    const blocks = fs.readFileSync(path.join(ROOT, 'js', 'editor-blocks.js'), 'utf8');
-    const tabs = fs.readFileSync(path.join(ROOT, 'js', 'editor-tabs.js'), 'utf8');
+    const blocks = fs.readFileSync(path.join(ROOT, 'js', 'editor', 'blocks', 'editor-blocks.js'), 'utf8');
+    const tabs = fs.readFileSync(path.join(ROOT, 'js', 'editor', 'tabs', 'editor-tabs.js'), 'utf8');
 
     expect(blocks, 'Combo Block form, comma separated like its route').toMatch(/comboNotationFieldsHTML\(block, \{ lines: false \}\)/);
     expect(blocks, 'Combo Card block form').toMatch(/comboNotationFieldsHTML\(card, \{ lines: true \}\)/);

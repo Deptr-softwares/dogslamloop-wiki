@@ -4,20 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Submissions | Dogslamloop</title>
-    <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/Buttons.css">
-    <link rel="stylesheet" href="style/Modals.css">
-    <!-- Forms.css defines .editor-input, which the auth and profile modals
-         injected by js/site_utils.js both use. Without it the login form and
-         the profile fields render unstyled. -->
-    <link rel="stylesheet" href="style/Forms.css">
-    <link rel="stylesheet" href="style/Badges.css">
-    <link rel="stylesheet" href="style/Layout.css">
-    <link rel="stylesheet" href="style/Cards.css">
-    <link rel="stylesheet" href="style/Submissions.css">
-    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
+    <link rel="stylesheet" href="style/Common.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Buttons.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Modals.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Forms.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Badges.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Layout.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Cards.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Submissions.css?v=44b859a9">
+    <link rel="stylesheet" href="style/look-classic.css?v=44b859a9">
+    <!-- END GENERATED: styles -->
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -73,7 +72,7 @@
 
         <!-- v1.0 Part 2 (owner, 2026-10-08): the right sidebar this page had
              none of. Ko-fi is moved to its top by placeKofiOnTheRight
-             (js/pagebuilder.js); the links are the Main Dashboard's, less
+             (js/pages/core/page_shell.js); the links are the Main Dashboard's, less
              this page's own. -->
         <aside class="local-sidebar-right" aria-label="Sitewide">
             <div class="sidebar-nav-title">Sitewide</div>
@@ -82,13 +81,18 @@
         </aside>
     </div>
 
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=817fcedb"></script>
-    <script src="js/input_slots.js?v=817fcedb"></script>
-    <script src="js/site_utils.js?v=817fcedb"></script>
-    <script src="js/site_meta.js?v=817fcedb"></script>
-    <script src="js/pagebuilder.js?v=817fcedb"></script>
-    <script src="js/search.js?v=817fcedb"></script>
-    <script src="js/submissions.js?v=817fcedb"></script>
+    <script src="js/utility/character_tabs.js?v=44b859a9"></script>
+    <script src="js/utility/input_slots.js?v=44b859a9"></script>
+    <script src="js/utility/site_utils.js?v=44b859a9"></script>
+    <script src="js/utility/site_data.js?v=44b859a9"></script>
+    <script src="js/utility/site_media.js?v=44b859a9"></script>
+    <script src="js/utility/site_account.js?v=44b859a9"></script>
+    <script src="js/utility/site_lookups.js?v=44b859a9"></script>
+    <script src="js/pages/core/page_shell.js?v=44b859a9"></script>
+    <script src="js/utility/search.js?v=44b859a9"></script>
+    <script src="js/pages/community/submissions.js?v=44b859a9"></script>
+    <!-- END GENERATED: scripts -->
 </body>
 </html>

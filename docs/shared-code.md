@@ -1,0 +1,65 @@
+# Shared code
+
+What every page loads before its own scripts: the reader's settings, paths and page addresses, the Supabase client, the escapers, the role ladder, the dialog engine, media helpers, accounts, and the site's lookups (character colours, aliases, accolades, icons). Readers, editors and staff all run it.
+
+## Files
+
+- `js/utility/site_utils.js`: Site Settings, paths and page addresses, the Supabase client and its local-only override, the escapers, the role ladder, the system alert, the dropdowns, the dialog engine and the mobile preview switch.
+- `js/utility/site_data.js`: page data (`docs/page-data.md`). The delta engine is `js/utility/submission_delta.js`, which only the editor, the Overseer and History load.
+- `js/utility/site_media.js`: media framing, the blocked-media guard, the shared tooltip and math.
+- `js/utility/site_account.js`: signing in, the alert box, public profile lookups, badges and role badges, and the openers for the account boxes.
+- `js/utility/account_boxes.js`: the reader's own profile, another reader's public profile and the inbox, loaded the first time one opens (`window.loadSiteFile`, in `site_utils.js`).
+- `js/utility/site_lookups.js`: character colours (generated), aliases, accolades, the site's icons, character icon paths, frame colours, the version line and the character theme.
+
+They load in that order on every page, right after the Supabase library (`tests/site-utils-parts.spec.js`).
+
+## Data
+
+- `localStorage`: `dsl_site_settings` (Site Settings), `dsl_supabase_override` (the local-only override), `dsl_badges_pending` (a badge won signed out).
+- `user_roles`, `user_profiles`, `user_notifications`, `media_moderation`, and the RPCs `claim_badge`, `get_public_profiles` and `get_user_expert_pages`.
+- `data/navigation.json`, `data/archived-pages.json`, `data/site_meta.json`.
+- `site_pages.color`, copied into `site_lookups.js` between its generated-region markers by `scripts/fetch-content.js`.
+
+## Watch for
+
+- One escaper, `window.escapeHtml`; `page_router.js` keeps its own copy because it runs first. Test: `tests/one-escape-helper.spec.js`.
+- `ROLE_RANK` mirrors `role_rank()` in SQL, and the SQL one is the boundary. Never test a role by name (CLAUDE.md, Roles). The role badges are the one place matched by name: an icon is an identity, not a bar.
+- `SITE_BADGES` and `claim_badge()` in SQL list the same badges.
+- Only `CHARACTER_COLORS` in `site_lookups.js` is generated, between two markers that must stay exactly as they are: `scripts/fetch-content.js` refuses to write without them, and the content gate reads that region.
+- The local-only override works on localhost alone, with a key set by hand, and shows a banner on every page while it is on.
+- The blocked-media guard is a rendering guard, not a security control: a flagged file stays at its public address until it is deleted.
+
+## Decisions
+
+Newest first. One entry per decision.
+
+- **2026-11-24, silent release, #311.** No file stands in for the character-state helpers (`isBaseMode`, `getCharacterModes`, `BASE_MODE_ID`, `unwrapModeDelta`) or checks that they exist (the owner's pick). They were kept for a page whose new files met an hour-old cached copy of the shared one, which took the editor down on 2026-08-10. Every page now asks for its files by one content stamp, and every copy of the shared files a cache can hold has had them since that day, while each stand-in was a second copy of its rule.
+- **2026-11-23, silent release, #310.** The profile, a public profile and the inbox load the first time one opens (the owner's pick), from `account_boxes.js`; the inbox is no longer fetched at every page load, since the dock's unread dot has its own count. A file loaded later goes through `window.loadSiteFile`, which gives it the page's own `?v=` stamp, so it is never an older copy than the page.
+- **2026-11-21, silent release, #298.** A page's kind comes from the site's own page list (`registeredPageType`), not from the submission, which is only the submitter's word (owner, 2026-11-21).
+- **2026-11-21, silent release, #293.** One dialog engine (`runDialog`) runs every confirm, message and prompt box, and one question is open at a time, so a double click cannot run an action twice. One escaper (`window.escapeHtml`): 55 definitions were removed.
+- **2026-11-19, v1.2, #285.** The site's icons are the owner's own pixel art, replacing the SVGs an assistant drew and the copies of Feather and Lucide (owner, 2026-10-24). An icon's id is its file name, and text can show one as `[icon=ui/<id>]` (owner, 2026-11-19).
+- **2026-11-18, v1.2, #280.** Skill Card accolades: "a preset amount of accolades that editor can attach to the skill card however they want" (the owner's card). The owner's 26, in their order, with their colours (2026-11-19, their Accolade Colors page) and their wording and spelling ("cannot", one L in "canceled" and "Uncancelable", 2026-11-18).
+- **2026-11-17, v1.2, #279.** Visitors are counted by Umami Cloud, on reader pages only, because KLIPY asks for monthly active users before it issues a production key (owner). The owner's brief: "the least intrusive and minimal things": page views only, on dogslamloop.com only, without the ?query or #hash, and none for a browser sending Do Not Track. Cloudflare's Web Analytics is off.
+- **2026-10-31, v1.2, #265.** The names the game used for characters before keep linking as aliases, so older posts and Discord messages still find the page (owner's call).
+- **2026-10-23, v1.1, #250.** Badges, an early version, came with the Halloween update. A badge is drawn as a skill slot from the game with its picture in it (the owner's pick), and each person picks which of theirs to show (the owner: "they should be toggleable by users"). A badge won signed out waits on the device until its winner signs in. The event's minigame went on 2026-11-13; the badges stay.
+- **2026-10-22, v1.1, #244.** KaTeX is fetched only on a page with math in it, the first time a text node holds a `$...$` pair. It had shipped in 28 pages' heads since the first upload while no page used it (one `$` in all the indexed text, 2026-10-22), so every character page paid 81 KB and a walk of the whole page per render.
+- **2026-10-20, v1.1, #240.** Site Settings are kept per device, in one JSON object, and reach neither the account nor the database. `html.reduce-motion` is the one switch every "less motion" rule reads, on when the device asks or the reader ticks "Turn off animations"; scripted scrolls follow it too.
+- **2026-10-20, v1.1, #238.** The shared tooltip can show at a point for a delegated hover (`showTooltipAt`), for in-page links, which are drawn again with the text around them.
+- **2026-10-18, v1.1, #233.** Contributor text in frame data and profile stats keeps one tag, `<br>`, for a line break inside a value (`escapeHtmlKeepBreaks`): production held 133 of them that day, and no other tag.
+- **2026-09-09, v0.18, #179.** Whether a character colour is dark is one test (`isDarkCharacterColor`), shared by the page's ink, the title's shadows and a dark name's outline in prose, and the page is marked `page-character-dark`.
+- **2026-09-06, v0.18, #171.** A page's address comes from `navigation.json` (`site_pages.url`), not from its page type: galleries and tools live in `others/` and `tools/`, and deriving the folder sent Recent Changes and approval links to a 404.
+- **2026-09-03, v0.17, #153.** Display names are capped at 32 characters (owner). The cap is in the browser only: the name lives in auth metadata, which cannot carry a CHECK, and a trigger on `auth.users` that raises would take signup down.
+- **2026-09-03, v0.17, #151.** Someone's profile names the pages they are an expert of.
+- **2026-09-03, v0.17, #150.** Clicking a name opens that person's read-only profile, in its own overlay. A thread fetches its authors' public profiles in one request.
+- **2026-09-03, v0.17, #149.** The profile modal grew past a rename box: standing, bio, flair, privacy and a password change for accounts that have one. The role badges are one table for the dock and the profile, matched by name; a viewer shows the member badge, so a soft ban is never published on a profile.
+- **2026-08-25, v0.16, #135.** The role ladder is stated once in each language, `ROLE_RANK` here and `role_rank()` in SQL, and roles are compared by rank (`roleMeets`, `rolesMeet`). Before, every perk tested a role name. The owner outranks admin since v0.17.
+- **2026-08-25, v0.16, #133.** Code that runs on any page asks for confirmation in a box of its own (`siteConfirm`), since the editor's box is only on the editor pages.
+- **2026-08-24, v0.16, #127.** A character's icon path is derived from the page id, never stored: the owner uploads a file and nothing else.
+- **2026-08-18, v0.15, #116.** A blocked video button reads "Blocked" rather than the full notice, which was bulkier than the button it replaced (owner).
+- **2026-08-14, v0.14, #83.** The backend override shows a banner on every page, with one click to undo it: on its first day, an override left pointing at a deleted preview broke every request while the page looked normal.
+- **2026-08-14, v0.14, #90.** The names the community uses for a character are their own map (`CHARACTER_ALIASES`, the owner's list), coloured and linked like the canonical name; the colour dictionary describes only the roster.
+- **2026-08-13, v0.14, #82.** A locally served copy can point at a preview database (the local-only override), so a feature is clicked through against real Postgres before production: mocked specs never touch a database, and a green preview proves a migration applies, not that the feature works. Guarded twice: localhost only, and a key set by hand.
+- **2026-08-12, v0.13, #59.** Flagged media comes off every page through one guard on the DOM, a sweep and an observer, rather than at each of the seven places media renders. Nothing runs when nothing is flagged. A moderation table that cannot be read shows everything: blanking every image is the worse failure. It is a rendering guard; deleting the file is the owner's job.
+- **2026-08-11, v0.12, #44.** A Skill Card's media box takes the media's shape, square only when it fits (the owner's rule): 16:9 stays 16:9, a near-square still is square, a tall capture is 3:4. An editor can override the measure, and a portrait's crop is aimed with a nine-point grid.
+- **2026-08-10, v0.12, #41.** The path back to the site's root is counted from the directory depth, never from the directory's name, so a new folder works without a code change.
+- **2026-08-07, v0.8, #28.** The inbox reads `user_notifications`, fetched fresh each time it opens.

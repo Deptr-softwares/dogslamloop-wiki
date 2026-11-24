@@ -56,15 +56,15 @@ async function render(page, blocks, contextClass = '') {
 // two cannot be reached by rendering anything.
 test('all seven sites handle the block, or it breaks somewhere invisible', () => {
     const sites = {
-        'js/editor-blocks.js': [
+        'js/editor/blocks/editor-blocks.js': [
             /sectionedbox: \{ type: 'sectionedbox'/,   // 1. registry default shape
             /types: \[[^\]]*'sectionedbox'/,            // 2. offered by the picker
             /sectionedbox: '[^']+'/,                    // 3. has a human-readable name
             /block\.type === 'sectionedbox'/,           // 4. the editor form
         ],
-        'js/description.js': [/block\.type === 'sectionedbox'/],   // 5. reader
-        'js/admin-preview.js': [/b\.type === 'sectionedbox'/],     // 6. reviewer preview
-        'js/editor-sync.js': [/b\.type === 'sectionedbox'/],       // 7. draft sync
+        'js/pages/core/page_render.js': [/block\.type === 'sectionedbox'/],   // 5. reader
+        'js/overseer/admin-preview.js': [/b\.type === 'sectionedbox'/],     // 6. reviewer preview
+        'js/editor/core/editor-sync.js': [/b\.type === 'sectionedbox'/],       // 7. draft sync
     };
 
     const missing = [];

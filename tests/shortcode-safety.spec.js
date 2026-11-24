@@ -1,4 +1,4 @@
-// js/internalstyling.js - the shortcode and auto-highlight engine.
+// js/pages/core/format_tags.js - the shortcode and auto-highlight engine.
 //
 // It reads a block's innerHTML, runs string replacements over it, and writes
 // the result back. Every value it interpolates comes from PAGE CONTENT, which
@@ -98,6 +98,29 @@ test.describe('links', () => {
         expect(out.anchors[0].rel).toBe('noopener noreferrer');
     });
 
+    test('an address with & in it goes where it says', async ({ page }) => {
+        // The engine reads the address back out of innerHTML, where & is &amp;,
+        // so escaping it again sent ?v=abc&t=42 out as ?v=abc&amp;t=42.
+        const out = await render(page, '[url=https://www.youtube.com/watch?v=abc&t=42]clip[/url]');
+
+        expect(out.anchors.map(a => a.href)).toEqual(['https://www.youtube.com/watch?v=abc&t=42']);
+        expect(out.text).toBe('clip');
+    });
+
+    test('a quote with no space in it still cannot leave the address', async ({ page }) => {
+        // The whitelist refuses an address with a space, which stops the usual
+        // `" onclick="` shape before escaping matters. Without a space it passes,
+        // and the escape is then all that keeps it inside the href.
+        const out = await render(page,
+            '[url=https://ok.test"onclick="window.__pwned=1]a[/url] [url=#top"onclick="window.__pwned=1]b[/url]');
+
+        expect(out.handlers).toEqual([]);
+        expect(out.anchors.map(a => a.href)).toEqual([
+            'https://ok.test"onclick="window.__pwned=1',
+            '#top"onclick="window.__pwned=1',
+        ]);
+    });
+
     test('site-relative and fragment links are allowed', async ({ page }) => {
         const out = await render(page,
             '[url=/systems/hud/index.html]hud[/url] [url=#combos]combos[/url]');
@@ -167,11 +190,11 @@ test('formatting shortcodes render as classes, not inline styles', async ({ page
 // --------------------------------------------------------------------------
 //
 // The term list used to be hardcoded here as a second copy of
-// FRAME_COLOR_LABELS in site_meta.js, and the copies had drifted: all six
+// FRAME_COLOR_LABELS in site_lookups.js, and the copies had drifted: all six
 // OVERLAY WINDOW colours existed in WINDOW_COLORS and in the frame-data
 // legend, and not one of them was ever highlighted in prose.
 //
-// It is derived now, so the next colour token added to site_meta.js is
+// It is derived now, so the next colour token added to site_lookups.js is
 // highlighted the day it lands.
 
 async function highlighted(page, text) {

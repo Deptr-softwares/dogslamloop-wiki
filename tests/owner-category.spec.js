@@ -3,7 +3,7 @@
 // four-option <select> was the only thing preventing one, which meant a new
 // nav section could not be created from the UI at all.
 //
-// navigation.json is keyed by the category string and js/pagebuilder.js
+// navigation.json is keyed by the category string and js/pages/core/page_shell.js
 // renders one sidebar group per key, verbatim - so "Guides" and "guides "
 // would become two separate groups. That is what canonicaliseCategory guards.
 const { test, expect } = require('@playwright/test');

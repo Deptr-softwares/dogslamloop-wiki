@@ -4,7 +4,7 @@
 // and "minimal code". Their picks: a skin over today's layout, chosen in Site
 // settings, on reader pages only.
 //
-// html.look-classic comes from the stored setting (js/site_utils.js);
+// html.look-classic comes from the stored setting (js/utility/site_utils.js);
 // style/look-classic.css is linked on reader pages only, so the class does
 // nothing on the editor and staff pages. Supabase's REST API is refused here:
 // everything checked is the page's own chrome, not its content.
@@ -14,7 +14,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const STAFF = ['admin.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html'];
+const STAFF = ['overseer.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html'];
 // Puppet Master's colour is dark (46% light), so the character theme both
 // tints the page and injects its outlined-heading rule: the most it can do.
 const PAGE = '/characters/Puppet_master/index.html';
@@ -42,13 +42,14 @@ test('every reader page links the Classic stylesheet last, and no staff page doe
         .split('\n').filter(Boolean)
         .map(rel => ({ rel, html: fs.readFileSync(path.join(ROOT, rel), 'utf8') }))
         // A moved or archived stub loads no site script, so it has no look.
-        .filter(({ html }) => /src="[^"]*js\/site_utils\.js/.test(html));
+        .filter(({ html }) => /src="[^"]*js\/utility\/site_utils\.js/.test(html));
 
     const notLast = [];
     const staff = [];
     for (const { rel, html } of pages) {
         const head = html.slice(0, html.indexOf('</head>'));
-        const sheets = [...head.matchAll(/<link rel="stylesheet" href="([^"]*)">/g)].map(m => m[1]);
+        // Which file, so the cache stamp (?v=) is left off.
+        const sheets = [...head.matchAll(/<link rel="stylesheet" href="([^"]*)">/g)].map(m => m[1].replace(/\?.*$/, ''));
         const linked = sheets.some(href => href.endsWith('style/look-classic.css'));
         if (STAFF.includes(rel)) { if (linked) staff.push(rel); continue; }
         // Last, so it wins any tie of specificity with the stylesheets before it.
@@ -418,7 +419,7 @@ test('the site\'s dropdown is a plain box in Classic', async ({ page }) => {
 // Owner, 2026-11-20: "I think you forget to change the buttons on the left
 // sidebar as well. I think it's fine to leave the character text colors in."
 test('the site menu on the left is plain links, a character keeps its colour, WIP is a word', async ({ page }) => {
-    // One entry as js/pagebuilder.js builds a WIP character's, placed in the
+    // One entry as js/pages/core/page_shell.js builds a WIP character's, placed in the
     // real menu, so no roster content decides the answer.
     const read = async () => {
         await expect(page.locator('.global-sidebar-left .toc-list').first()).toBeAttached();

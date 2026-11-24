@@ -1,7 +1,7 @@
 // Coverage for the sitewide footer added in v0.8. The site had no <footer>
 // element anywhere at all, and the MIT LICENSE at the repo root was linked
 // from nothing. Rather than editing 41 HTML files, the footer is injected by
-// js/pagebuilder.js's buildSiteFooter on DOMContentLoaded.
+// js/pages/core/page_shell.js's buildSiteFooter on DOMContentLoaded.
 const { test, expect } = require('@playwright/test');
 
 // The links are built from window.getRootPath(), which resolves differently
@@ -62,10 +62,10 @@ test('every footer link actually resolves from a deep page (not a 404)', async (
 });
 
 test('editor-family pages are excluded (their layout could never scroll to a footer)', async ({ page }) => {
-  // edit.html/admin.html/owner.html are the only 3 pages without .site-layout,
+  // edit.html/overseer.html/owner.html are the only 3 pages without .site-layout,
   // and they load editor.css's unconditional body { overflow: hidden } - a
   // footer appended there would exist but be permanently unreachable.
-  for (const url of ['/edit.html', '/admin.html', '/owner.html']) {
+  for (const url of ['/edit.html', '/overseer.html', '/owner.html']) {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(400);
     expect(await page.locator('#site-footer').count(), `${url} should not get a footer`).toBe(0);

@@ -15,6 +15,25 @@ test('edit.html: editorAlert modal actually becomes visible when opened', async 
   await expect(page.locator('#editor-alert-modal')).toHaveCSS('display', 'flex');
 });
 
+test('edit.html: ACKNOWLEDGE closes the editor message box', async ({ page }) => {
+  await page.goto('/edit.html', { waitUntil: 'networkidle' });
+  await page.evaluate(() => window.editorAlert('test'));
+  const box = page.locator('#editor-alert-modal');
+  await expect(box).toBeVisible();
+  await box.getByRole('button', { name: 'ACKNOWLEDGE' }).click();
+  await expect(box).toBeHidden();
+});
+
+test('the system message box closes on ACKNOWLEDGE', async ({ page }) => {
+  await page.goto('/privacy-policy.html', { waitUntil: 'networkidle' });
+  await page.evaluate(() => window.showSystemAlert('test'));
+  const box = page.locator('#alert-modal-overlay');
+  await expect(box).toBeVisible();
+  await expect(box.locator('#alert-modal-msg')).toHaveText('test');
+  await box.getByRole('button', { name: 'ACKNOWLEDGE' }).click();
+  await expect(box).toBeHidden();
+});
+
 test('edit.html: customConfirm modal actually becomes visible when opened', async ({ page }) => {
   await page.goto('/edit.html', { waitUntil: 'networkidle' });
   page.evaluate(() => { window.customConfirm('test'); }); // fire and forget, don't await the promise
@@ -23,7 +42,7 @@ test('edit.html: customConfirm modal actually becomes visible when opened', asyn
 });
 
 test('.editor-modal-overlay class resolves to display:flex when unhidden (shared by editor.js and admin.js)', async ({ page }) => {
-  // Both edit.html and admin.html load editor.css; this checks the class
+  // Both edit.html and overseer.html load editor.css; this checks the class
   // itself rather than any specific page's auth-gated modal.
   await page.goto('/edit.html', { waitUntil: 'networkidle' });
   const display = await page.evaluate(() => {

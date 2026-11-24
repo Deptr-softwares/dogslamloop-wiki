@@ -1,4 +1,4 @@
-// js/site_utils.js injects four modals into EVERY page that loads it - auth,
+// js/utility/site_utils.js injects four modals into EVERY page that loads it - auth,
 // profile, alert and public-profile - by appending them to document.body at
 // boot. They are not opt-in, and a page cannot decline them.
 //
@@ -52,7 +52,7 @@ const PAGES = findHtml(ROOT).map(full => ({
 
 // A page "injects the modals" if it loads site_utils.js at all. There is no
 // finer condition to test: the injection is unconditional inside that file.
-const INJECTORS = PAGES.filter(p => /src="[^"]*js\/site_utils\.js/.test(p.src));
+const INJECTORS = PAGES.filter(p => /src="[^"]*js\/utility\/site_utils\.js/.test(p.src));
 
 test('the scan found pages to check', () => {
     // Guards the whole file against the vacuous shape - a broken walker finds
@@ -67,8 +67,8 @@ test('every page injecting the modals loads the stylesheets they need', () => {
     for (const page of INJECTORS) {
         for (const need of REQUIRED) {
             // Matches any depth of ../ prefix, since these pages sit at the
-            // root, one level down and two.
-            const linked = new RegExp(`href="[^"]*style/${need.file.replace('.', '\\.')}"`).test(page.src);
+            // root, one level down and two, with or without the cache stamp.
+            const linked = new RegExp(`href="[^"]*style/${need.file.replace('.', '\\.')}(\\?[^"]*)?"`).test(page.src);
             if (!linked) missing.push(`${page.rel} is missing style/${need.file} - needed for ${need.because}`);
         }
     }
@@ -92,12 +92,14 @@ test('the auth modal really is the bigger consumer of .editor-input', () => {
     // the fix turns on: the owner saw the PROFILE fields unstyled, but the
     // login and register form uses the same class more, so an anonymous visitor
     // hit this before any signed-in one could.
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'site_utils.js'), 'utf8');
+    // The sign-in markup, up to the alert box's, which follows it in site_account.js
+    // (the profile box is in account_boxes.js, loaded the first time it opens).
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_account.js'), 'utf8');
     const authStart = src.indexOf('const authModalHTML');
-    const profileStart = src.indexOf('const profileModalHTML');
+    const authEnd = src.indexOf('const alertModalHTML');
     expect(authStart, 'authModalHTML exists').toBeGreaterThan(-1);
-    expect(profileStart, 'profileModalHTML is defined after it').toBeGreaterThan(authStart);
+    expect(authEnd, 'alertModalHTML is defined after it').toBeGreaterThan(authStart);
 
-    const authUses = (src.slice(authStart, profileStart).match(/editor-input/g) || []).length;
+    const authUses = (src.slice(authStart, authEnd).match(/editor-input/g) || []).length;
     expect(authUses, 'the login form styles its inputs with .editor-input').toBeGreaterThan(0);
 });

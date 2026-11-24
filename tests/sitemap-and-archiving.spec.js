@@ -61,7 +61,7 @@ test.describe('sitemap.xml', () => {
     test('excludes external links, which belong to another host', () => {
         const xml = buildSitemap(nav);
         expect(xml).not.toContain('github.com');
-        expect(EXCLUDED.has('admin.html')).toBe(true);
+        expect(EXCLUDED.has('overseer.html')).toBe(true);
     });
 });
 

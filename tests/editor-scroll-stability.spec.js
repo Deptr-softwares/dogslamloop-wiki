@@ -1,7 +1,7 @@
 // v0.16 bug 2: "A workspace with many Blocks shakes violently when scrolling -
 // moves up and down very fast."
 //
-// The cause was arithmetic, not the scroll handling. js/editor-blocks.js runs a
+// The cause was arithmetic, not the scroll handling. js/editor/blocks/editor-blocks.js runs a
 // virtualization engine: an IntersectionObserver that, when a card leaves the
 // builder's 800px margin, measures it with getBoundingClientRect() and pins
 // `card.style.height` to that number while display:none-ing its children.

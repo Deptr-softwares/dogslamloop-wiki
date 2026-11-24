@@ -2,9 +2,10 @@
   "scripts": {
     "test": "playwright test",
     "test:content": "playwright test --config=playwright.content.config.js",
-    "validate": "node scripts/lock-migrations.js --check && node scripts/validate-navigation.js && node scripts/generate-pages.js --check && node scripts/generate-sitemap.js --check && node scripts/generate-hub-meta.js --check && node scripts/stamp-assets.js --check",
+    "validate": "node scripts/lock-migrations.js --check && node scripts/validate-navigation.js && node scripts/generate-pages.js --check && node scripts/page-scripts.js --check && node scripts/generate-sitemap.js --check && node scripts/generate-hub-meta.js --check && node scripts/stamp-assets.js --check",
+    "lint": "eslint js/",
     "lock-migrations": "node scripts/lock-migrations.js --write",
-    "generate": "node scripts/generate-pages.js --write && node scripts/generate-sitemap.js --write && node scripts/generate-hub-meta.js --write && node scripts/stamp-assets.js --write",
+    "generate": "node scripts/generate-pages.js --write && node scripts/page-scripts.js --write && node scripts/generate-sitemap.js --write && node scripts/generate-hub-meta.js --write && node scripts/stamp-assets.js --write",
     "refresh-previews": "node scripts/fetch-previews.js --write",
     "refresh-portraits": "node scripts/fetch-portraits.js --write",
     "refresh-banners": "node scripts/fetch-banners.js --write",
@@ -15,7 +16,10 @@
     "pretest": "node scripts/stamp-assets.js --check"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@playwright/test": "^1.62.1",
+    "eslint": "10.14.0",
+    "eslint-plugin-no-unsanitized": "4.1.5",
     "playwright": "^1.62.1",
     "supabase": "^2.109.1"
   }

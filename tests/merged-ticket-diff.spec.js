@@ -16,10 +16,10 @@
 // Two independent faults, and both are fixed, because either alone leaves a
 // hole:
 //
-//   1. js/admin-merge-compiler.js normalised a null key to 'full' in its
+//   1. js/overseer/admin-merge-compiler.js normalised a null key to 'full' in its
 //      mode-wrapped branch and not in its plain one, so base-kit section
 //      conflicts shipped `{ scope: 'playstyle', key: null }`.
-//   2. js/admin-preview.js interpolated `key.replace(...)`, which throws on
+//   2. js/overseer/admin-preview.js interpolated `key.replace(...)`, which throws on
 //      null, inside a bare forEach - so one bad entry abandoned every entry
 //      after it. Fixing only the compiler would leave tickets already in the
 //      queue unreviewable.
@@ -59,7 +59,7 @@ const MERGED_TICKET = {
 };
 
 async function renderDiff(page, ticket) {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
     return page.evaluate(async ({ rev, liveDesc, liveFrame }) => {
         // The RBAC gate wipes body for a logged-out visitor; rebuild only what
@@ -162,7 +162,7 @@ test('the merge compiler never emits a null key again', () => {
     // drives - this only pins the normalisation itself.
     const fs = require('fs');
     const path = require('path');
-    const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'admin-merge-compiler.js'), 'utf8');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'overseer', 'admin-merge-compiler.js'), 'utf8');
 
     // Anchored forward from pushDelta itself. Slicing to `conflicts.forEach`
     // silently produced an empty string, because an earlier one appears above

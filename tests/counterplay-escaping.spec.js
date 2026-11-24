@@ -1,4 +1,4 @@
-// The counterplay card's header (js/description.js).
+// The counterplay card's header (js/pages/core/page_render.js).
 //
 // It is the same card shape as the matchup header twenty lines above it, which
 // was escaped in v0.13 - this one was deliberately left alone at the time to

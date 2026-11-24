@@ -1,11 +1,10 @@
-/* =========================================
-   SUBMISSIONS.HTML - "MY SUBMISSIONS" (contributor self-service)
-   ========================================= */
+/* My Submissions: the status badges and a submission's ticket thread.
+   Since v0.6.
+   Touches: submissions.html; the badges build on .update-badge in Badges.css.
+   Watch: the thread has its own classes, not admin.css's .ticket-chat-*, which
+   this page does not load.
+   See: docs/records.md */
 
-/* Status badges, built on Badges.css's shared .update-badge base class -
-   same pattern admin.css uses for its own queue-card badges, kept in a
-   dedicated file since this is the first page outside admin/editor tooling
-   to need submission-status colors. */
 .badge-status-pending { background-color: var(--accent-blue); color: #fff; }
 .badge-status-ticket-open { background-color: var(--accent-yellow); color: #000; }
 .badge-status-approved { background-color: hsl(132, 59%, 33%); color: #fff; }
@@ -23,12 +22,7 @@
 
 .login-required-card { text-align: center; padding: 3rem 1.5rem; }
 
-/* --- TICKET DISCUSSION (v0.17 F13) ---
-   The contributor could read the conversation on their own submission and not
-   answer it. Own class names rather than reusing admin.css's .ticket-chat-*:
-   that stylesheet is not loaded on submissions.html, and the two views want
-   different shapes anyway - the reviewer's is a compact log in a workspace
-   pane, this is a thread on a card. */
+/* A submission's ticket thread, where the contributor reads and answers. */
 .ticket-thread {
     margin-top: 1rem;
     padding-top: 1rem;
@@ -57,8 +51,7 @@
     background: var(--bg-main);
 }
 
-/* The contributor's own replies, so a thread reads as a conversation rather
-   than a wall of undifferentiated lines. */
+/* The contributor's own replies, so the thread reads as a conversation. */
 .ticket-thread-mine { border-left-color: var(--accent-blue); }
 .ticket-thread-staff { border-left-color: var(--text-muted); }
 .ticket-thread-changes { border-left-color: #eab308; background: rgba(234, 179, 8, 0.07); }

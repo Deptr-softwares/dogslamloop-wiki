@@ -1,7 +1,7 @@
 // Multi-select blocks - v0.19 C2.
 //
 // The owner's own item, carried from v0.18, and recorded there and in the v0.19
-// devlog as "a selection model over js/editor-blocks.js, NOT a keybinding".
+// devlog as "a selection model over js/editor/blocks/editor-blocks.js, NOT a keybinding".
 // That distinction is the whole file: Ctrl+C and Ctrl+V over a hovered card
 // already existed. What did not was anything that knows WHICH blocks the author
 // means while the array underneath them is being rewritten.

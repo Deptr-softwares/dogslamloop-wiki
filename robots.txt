@@ -12,6 +12,7 @@
 User-agent: *
 
 # Staff and authoring tools.
+Disallow: /overseer.html
 Disallow: /admin.html
 Disallow: /owner.html
 Disallow: /edit.html
@@ -39,6 +40,13 @@ Disallow: /tests/
 Disallow: /scripts/
 Disallow: /devlogs/
 Disallow: /.github/
+
+# Notes on the code. GitHub Pages turns each Markdown file in the repo into a
+# page, so CLAUDE.md, docs/ and the current devlog (at the root until it moves
+# to devlogs/) are pages too.
+Disallow: /docs/
+Disallow: /CLAUDE
+Disallow: /V*-DEVLOG
 
 Allow: /
 

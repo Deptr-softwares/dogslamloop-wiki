@@ -93,7 +93,7 @@ test('every consumer of .tab-editor-btn-sidebar also carries .btn-sys', () => {
     // stylesheet order. A consumer without .btn-sys would therefore match
     // NEITHER rule and lose the sizing entirely - a worse version of the bug
     // being fixed, and invisible unless something asks.
-    const sources = ['js/page_router.js', 'js/pagebuilder.js', 'systems/tierlist/index.html'];
+    const sources = ['js/pages/core/page_router.js', 'js/pages/core/page_shell.js', 'systems/tierlist/index.html'];
     const offenders = [];
     let found = 0;
 

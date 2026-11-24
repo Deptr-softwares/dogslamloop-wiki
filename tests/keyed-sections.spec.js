@@ -11,7 +11,7 @@
 // MISSING A SITE IS SILENT. The reviewer approves a ticket and the edits are
 // never applied, or the change summary omits a section the contributor wrote.
 // That is bug 4's exact shape, which cost a release. So the sections are
-// declared once on the tab (js/character_tabs.js) and every site derives.
+// declared once on the tab (js/utility/character_tabs.js) and every site derives.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +19,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const vocab = (() => {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;
@@ -54,14 +54,14 @@ test('no pipeline site handles a keyed section by name', () => {
   // Derived, not a list of the sites that happened to be wrong. A new branch
   // that hardcodes a section name fails here rather than in production.
   const FILES = [
-    'editor-core.js', 'editor-sync.js', 'editor-tabs.js', 'editor-previews.js',
-    'admin-merge-compiler.js', 'admin-diff.js', 'admin-preview.js', 'description.js',
-    // site_utils.js holds applyDeltaToData - the step that actually WRITES an
+    'editor/core/editor-core.js', 'editor/core/editor-sync.js', 'editor/tabs/editor-tabs.js', 'editor/tools/editor-previews.js',
+    'overseer/admin-merge-compiler.js', 'overseer/admin-diff.js', 'overseer/admin-preview.js', 'pages/core/page_render.js',
+    // submission_delta.js holds applyDeltaToData - the step that actually WRITES an
     // approved edit. It was missing from this list, and that is exactly where
     // Starter Guide broke: every other stage worked, the reviewer saw a
     // success modal, and nothing was written. The most important file was the
     // one not being checked.
-    'site_utils.js',
+    'utility/submission_delta.js',
   ];
 
   // Only the sections that USE the shared machinery. Matchups keeps its own
@@ -109,7 +109,7 @@ test('a delta for every keyed section actually writes, including the first one',
   // The first-insert case is the one that broke: no existing page carries a
   // starterGuide key, so the very first topic on every character is an insert
   // into a field that does not exist yet.
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const results = await page.evaluate((sections) => {
     const out = {};
@@ -150,7 +150,7 @@ test('a delta for every keyed section actually writes, including the first one',
 test('a scope with no handler is loud, not silent', async ({ page }) => {
   // The property that would have caught the above on the first run. A delta
   // that cannot be applied must never look like one that was.
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const errors = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

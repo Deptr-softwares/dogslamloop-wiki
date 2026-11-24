@@ -6,7 +6,7 @@
 // reading a value out of the CSS by hand.
 //
 // The timing detail worth a test of its own: FRAME_COLORS and WINDOW_COLORS
-// are read out of CSS custom properties by an IIFE in js/site_meta.js. Build
+// are read out of CSS custom properties by an IIFE in js/utility/site_lookups.js. Build
 // the swatch list while this file parses and you capture empty strings, and
 // the failure looks like a row of invisible buttons that apply no colour
 // rather than like an error.

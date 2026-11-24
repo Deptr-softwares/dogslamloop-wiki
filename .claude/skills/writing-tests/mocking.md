@@ -1,6 +1,6 @@
 # Mocking Supabase in specs
 
-The site creates its client once, at script-parse time, in `js/site_utils.js`:
+The site creates its client once, at script-parse time, in `js/utility/site_utils.js`:
 
 ```js
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -131,5 +131,5 @@ A mock looser than the real call passes while the code is wrong. `.upsert(payloa
 Pages have guards that will short-circuit a test if unsatisfied:
 
 - **RBAC gates** (`admin-core.js`, `owner.js`, `post-editor.js`) retry once over ~600ms before denying, so allow >1.2s or wait on a locator rather than a fixed timeout.
-- **`kickUser()` replaces `document.body.innerHTML` entirely** — an unauthenticated `page.goto` destroys the markup under test.
+- **`window.showAccessDenied()` replaces `document.body.innerHTML` entirely**: an unauthenticated `page.goto` destroys the markup under test.
 - **The editor's submit pipeline** checks page permissions, a 3-minute localStorage cooldown, and a live collision fetch before opening the QA modal. That path is legitimately slow; wait for the outcome, don't sleep.

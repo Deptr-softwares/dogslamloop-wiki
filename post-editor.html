@@ -6,22 +6,27 @@
     <title>Post Editor | Dogslamloop</title>
     <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIcon.webp">
 
-    <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/ColorCoding.css">
-    <link rel="stylesheet" href="style/Buttons.css">
-    <link rel="stylesheet" href="style/Modals.css">
-    <link rel="stylesheet" href="style/Forms.css">
-    <link rel="stylesheet" href="style/Badges.css">
-    <link rel="stylesheet" href="style/Alerts.css">
-    <link rel="stylesheet" href="style/Cards.css">
-    <link rel="stylesheet" href="style/Layout.css">
-    <link rel="stylesheet" href="style/editor.css">
-    <link rel="stylesheet" href="style/admin.css">
+    <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
+    <link rel="stylesheet" href="style/Common.css?v=44b859a9">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Buttons.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Modals.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Forms.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Badges.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Alerts.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Cards.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Layout.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Blocks.css?v=44b859a9">
+    <link rel="stylesheet" href="style/posts.css?v=44b859a9">
+    <link rel="stylesheet" href="style/post-editor.css?v=44b859a9">
+    <link rel="stylesheet" href="style/editor.css?v=44b859a9">
+    <link rel="stylesheet" href="style/admin.css?v=44b859a9">
+    <!-- END GENERATED: styles -->
 </head>
 <body class="admin-body">
 
     <!-- Modal shells for the two helpers this page defines locally instead of
-         pulling in js/editor-core.js (whose DOMContentLoaded boots the whole
+         pulling in js/editor/core/editor-core.js (whose DOMContentLoaded boots the whole
          page-revision editor and throws without a ?page= parameter). -->
     <div id="editor-custom-modal" class="editor-modal-overlay modal-danger hidden">
         <div class="editor-modal-box auth-modal-box">
@@ -41,7 +46,7 @@
             <div class="auth-header"><h3>SYSTEM WARNING</h3></div>
             <div class="auth-body auth-body-centered">
                 <p id="editor-alert-msg" class="modal-prompt-text pre-wrap"></p>
-                <button onclick="document.getElementById('editor-alert-modal').classList.add('hidden')" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
+                <button id="editor-alert-ok" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
             </div>
         </div>
     </div>
@@ -62,7 +67,7 @@
                             <a href="blog.html" class="btn-sys btn-sys-regular admin-hub-btn">VIEW BLOG</a>
                             <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
                         </div>
-                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue admin-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
+                        <button id="mobile-preview-toggle" data-hide-text="BACK TO EDITOR" class="btn-sys btn-sys-blue admin-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
                     </div>
                 </div>
             </div>
@@ -83,8 +88,8 @@
 
                     <label class="block-field-label-sm" for="post-kind">TYPE</label>
                     <select id="post-kind" class="editor-input admin-input-full select">
-                        <option value="blog">Blog post — appears on blog.html and the homepage</option>
-                        <option value="hotfix">Hotfix note — appears in the Update Log</option>
+                        <option value="blog">Blog post, appears on blog.html and the homepage</option>
+                        <option value="hotfix">Hotfix note, appears in the Update Log</option>
                     </select>
 
                     <div class="post-editor-actions">
@@ -118,7 +123,7 @@
 
             <div class="preview-badge">PREVIEW</div>
 
-            <!-- Must be a real <main>: js/internalstyling.js watches <main>
+            <!-- Must be a real <main>: js/pages/core/format_tags.js watches <main>
                  with a MutationObserver, and that is what expands the
                  [b]/[color=]/[url=] shortcodes. Preview outside it would
                  render unstyled and misrepresent the published result. -->
@@ -129,66 +134,16 @@
 
     </div>
 
-    <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=817fcedb"></script>
-    <script src="js/input_slots.js?v=817fcedb"></script>
-    <script src="js/site_utils.js?v=817fcedb"></script>
-    <script src="js/site_meta.js?v=817fcedb"></script>
-    <script src="js/description.js?v=817fcedb"></script>
-    <script src="js/internalstyling.js?v=817fcedb"></script>
-    <!-- posts.js supplies renderPostBody, so the preview goes through exactly
-         the same render path as the published blog page. -->
-    <script src="js/posts.js?v=817fcedb"></script>
-    <script src="js/editor-folders.js?v=817fcedb"></script>
-    <script src="js/editor-blocks.js?v=817fcedb"></script>
-    <script src="js/editor-media.js?v=817fcedb"></script>
-
     <script>
         // Helpers editor-blocks.js expects from editor-core.js. Reimplemented
         // here rather than loading that file, whose DOMContentLoaded boots the
         // full page-revision editor and throws without a ?page= parameter.
-        window.editorAlert = function(message) {
-            document.getElementById('editor-alert-msg').textContent = message;
-            document.getElementById('editor-alert-modal').classList.remove('hidden');
-        };
-
-        window.customConfirm = function(message, confirmText = 'DELETE', isDanger = true) {
-            return new Promise((resolve) => {
-                const modal = document.getElementById('editor-custom-modal');
-                const confirmBtn = document.getElementById('editor-modal-confirm');
-                const cancelBtn = document.getElementById('editor-modal-cancel');
-
-                document.getElementById('editor-modal-text').textContent = message;
-                confirmBtn.textContent = confirmText;
-                confirmBtn.className = isDanger
-                    ? 'btn-sys btn-sys-red btn-danger-fill'
-                    : 'btn-sys btn-sys-green';
-                modal.classList.remove('hidden');
-
-                const cleanup = () => {
-                    modal.classList.add('hidden');
-                    confirmBtn.onclick = null;
-                    cancelBtn.onclick = null;
-                };
-                confirmBtn.onclick = () => { cleanup(); resolve(true); };
-                cancelBtn.onclick = () => { cleanup(); resolve(false); };
-            });
-        };
-
-        // Mobile pane toggle, same class contract editor.css already defines
-        // (body.mobile-preview-active + #mobile-preview-toggle).
-        window.toggleMobilePreview = function() {
-            document.body.classList.toggle('mobile-preview-active');
-            const btn = document.getElementById('mobile-preview-toggle');
-            if (btn) {
-                btn.textContent = document.body.classList.contains('mobile-preview-active')
-                    ? 'BACK TO EDITOR' : 'SHOW PREVIEW';
-            }
-        };
+        // Its two boxes come from js/editor/core/editor-dialogs.js, like edit.html's,
+        // and its SHOW PREVIEW switch from js/utility/site_utils.js.
 
         // editor-blocks.js calls updateLivePreview() by bare name from ~10
         // sites after every block change. It is a top-level function
-        // declaration in js/editor-sync.js, which this page deliberately does
+        // declaration in js/editor/core/editor-sync.js, which this page deliberately does
         // not load (it belongs to the page-revision pipeline). Without a
         // definition every block edit threw a ReferenceError and the block
         // list stopped updating. Declaring it here both fixes that and is
@@ -233,6 +188,23 @@
         window.updateLivePreview = updateLivePreview;
     </script>
 
-    <script src="js/post-editor.js?v=817fcedb"></script>
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
+    <script src="js/vendor/supabase-js-2.118.0.js"></script>
+    <script src="js/utility/character_tabs.js?v=44b859a9"></script>
+    <script src="js/utility/input_slots.js?v=44b859a9"></script>
+    <script src="js/utility/site_utils.js?v=44b859a9"></script>
+    <script src="js/utility/site_data.js?v=44b859a9"></script>
+    <script src="js/utility/site_media.js?v=44b859a9"></script>
+    <script src="js/utility/site_account.js?v=44b859a9"></script>
+    <script src="js/utility/site_lookups.js?v=44b859a9"></script>
+    <script src="js/pages/core/page_render.js?v=44b859a9"></script>
+    <script src="js/pages/core/format_tags.js?v=44b859a9"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=44b859a9"></script>
+    <script src="js/pages/community/posts.js?v=44b859a9"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=44b859a9"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=44b859a9"></script>
+    <script src="js/editor/tools/editor-media.js?v=44b859a9"></script>
+    <script src="js/owner/post-editor.js?v=44b859a9"></script>
+    <!-- END GENERATED: scripts -->
 </body>
 </html>

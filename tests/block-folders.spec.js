@@ -108,7 +108,7 @@ test('a visitor sees nothing: the rendered page is identical with and without fo
   const out = await page.evaluate(() => {
     // Rendered the way a reader page renders it. This page is the editor,
     // whose Preview marks each Block with a fingerprint of its data
-    // (window.previewBlockAnchor, js/editor-config.js), and a folder is part
+    // (window.previewBlockAnchor, js/editor/core/editor-config.js), and a folder is part
     // of that data. No reader page defines the hook.
     delete window.previewBlockAnchor;
     // One of every block type that carries content, so this is not a claim
@@ -884,7 +884,7 @@ test('find and replace does not rewrite folder names', async ({ page }) => {
 });
 
 test('Diff View names the folder field in words', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const html = await page.evaluate(() =>
     window.renderStructuredDiff(
@@ -1073,7 +1073,7 @@ test('find and replace leaves a folder colour alone', async ({ page }) => {
 });
 
 test('Diff View names the folder colour in words', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const html = await page.evaluate(() => window.renderStructuredDiff(
     { type: 'paragraph', folder: 'Setups', folderColor: '#111111' },
     { type: 'paragraph', folder: 'Setups', folderColor: '#222222' },

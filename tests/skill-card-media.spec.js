@@ -1,4 +1,4 @@
-// Skill-card media in js/framedata.js. Reported two ways - "alt text does
+// Skill-card media in js/pages/core/skill_card.js. Reported two ways - "alt text does
 // not persist" and "mp4 isn't supported in the skill card profile" - which
 // turned out to be three separate defects in the same block of markup.
 const { test, expect } = require('@playwright/test');
@@ -59,7 +59,7 @@ test('video media is detected by path, not by a raw endsWith on the URL', async 
 });
 
 test('a still image still renders as an image, with a src that actually loads', async ({ page }) => {
-  // These carried data-lazy-src, but initLazyMedia (js/description.js) only
+  // These carried data-lazy-src, but initLazyMedia (js/pages/core/page_render.js) only
   // ever promoted video[data-lazy-src] and iframe[data-lazy-src] - never img
   // - so every static skill-card image rendered with no source at all.
   const cards = await renderCards(page, [

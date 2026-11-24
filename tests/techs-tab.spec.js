@@ -9,7 +9,7 @@
 //      switches, the tab renders, and it renders the TECHS vocabulary rather
 //      than Combos' words.
 //
-// The vocabulary lives in js/character_tabs.js and the flag in
+// The vocabulary lives in js/utility/character_tabs.js and the flag in
 // page_data.tab_settings, so this file derives what it can from the module
 // rather than restating the list - see tests/character-tab-vocabulary.spec.js
 // for why restating it is the bug this project has already paid for twice.
@@ -20,7 +20,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 function loadVocabulary() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8');
   const fakeWindow = {};
   new Function('window', src)(fakeWindow);
   return fakeWindow;
@@ -266,11 +266,11 @@ test('Techs and Combos render into their own containers, not each other', async 
 
 // --- THE EDITOR AND REVIEWER SURFACES ---
 
-test('admin.html and edit.html ship the Techs button and panel, hidden', () => {
+test('overseer.html and edit.html ship the Techs button and panel, hidden', () => {
   // The vocabulary spec checks markup exists for every tab it can SEE, and it
   // cannot see an optional tab that is off - so that check walks straight past
   // Techs and this one has to make it instead.
-  const adminHtml = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
+  const adminHtml = fs.readFileSync(path.join(ROOT, 'overseer.html'), 'utf8');
   const editHtml = fs.readFileSync(path.join(ROOT, 'edit.html'), 'utf8');
 
   expect(adminHtml).toContain('id="nav-techs"');
@@ -297,14 +297,14 @@ test('admin.html and edit.html ship the Techs button and panel, hidden', () => {
 // shipped. What broke was only which button carried .active, and no test read
 // that back.
 //
-// Cause: EDITOR_MAJOR_TABS (js/editor-tabs.js:16) is a module-level const, so
+// Cause: EDITOR_MAJOR_TABS (js/editor/tabs/editor-tabs.js:16) is a module-level const, so
 // it is evaluated at PARSE time, when enabledOptionalTabs is still []. techs
 // was therefore never in it, for the life of the page. renderEditorTabNav
 // walks that list, so it never toggled edit-nav-techs ON - and, worse, it did
 // clear .active off the button the user came FROM. The strip went dark.
 //
-// The THIRD surface to make this mistake. js/page_boot.js fixed it on the
-// reader page, js/admin-core.js:355 on admin.html - and its comment records
+// The THIRD surface to make this mistake. js/pages/core/page_boot.js fixed it on the
+// reader page, js/overseer/admin-core.js:355 on overseer.html - and its comment records
 // the same symptom in the same words. The editor was missed by both.
 //
 // Written against switchEditorTab, which is what the button's onclick actually

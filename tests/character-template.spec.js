@@ -2,7 +2,7 @@
 // 9 of the 11 repeated inline-style blocks in characters/*/index.html were
 // extracted to CSS classes in style/Layout.css. Two were deliberately left
 // alone (see below). A real bug was caught while doing this: .character-nav
-// is also reused by js/history.js and systems/tierlist/index.html's static
+// is also reused by js/pages/records/history.js and systems/tierlist/index.html's static
 // nav with a *different* margin convention (margin-bottom, not margin-top)
 // - a bare .character-nav rule would have leaked margin-top/align-items
 // onto those unrelated elements, since inline styles only override the
@@ -38,7 +38,7 @@ test('previously-drifted Vessel/Template .character-nav now render identically t
   }
 });
 
-// Mobile-support pass: js/pagebuilder.js's initTabEditorButtons used to
+// Mobile-support pass: js/pages/core/page_shell.js's initTabEditorButtons used to
 // clone histBtn.style.cssText = sidebarBtn.style.cssText (and the mobile
 // equivalent) instead of sharing a class. Real bug found and fixed: on
 // system pages the mobile Edit button's static markup included an inline
@@ -100,7 +100,11 @@ test('no page re-introduces a second Edit/History pair in the body', async ({ pa
 // what tierlist-live-dedupe.spec.js exists to police, and this is the same
 // shape one file over.
 test('the stylesheet drops the rules for the buttons that were removed', async ({ page, request }) => {
-  const css = await (await request.get('/style/Layout.css')).text();
+  // Layout.css and the sheets split from it.
+  const { SPLIT_FROM_LAYOUT } = require('../scripts/page-scripts.js');
+  const sheets = await Promise.all(['Layout.css', ...SPLIT_FROM_LAYOUT]
+    .map(async name => (await request.get(`/style/${name}`)).text()));
+  const css = sheets.join('\n');
 
   // The comment recording the removal is allowed to name them; a rule is not.
   const rules = css.replace(/\/\*[\s\S]*?\*\//g, '');

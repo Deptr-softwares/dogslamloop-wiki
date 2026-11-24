@@ -15,19 +15,22 @@
 
     <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIcon.webp">
 
-    <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/Layout.css">
-    <link rel="stylesheet" href="style/Cards.css">
-    <link rel="stylesheet" href="style/Buttons.css">
-    <link rel="stylesheet" href="style/Badges.css">
-    <link rel="stylesheet" href="style/ColorCoding.css">
-    <link rel="stylesheet" href="style/Alerts.css">
-    <link rel="stylesheet" href="style/Modals.css">
-    <link rel="stylesheet" href="style/Forms.css">
-    <link rel="stylesheet" href="style/FrameData.css">
-    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
+    <link rel="stylesheet" href="/style/Common.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Layout.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Blocks.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Cards.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Buttons.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Badges.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/ColorCoding.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Alerts.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Modals.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/Forms.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/FrameData.css?v=44b859a9">
+    <link rel="stylesheet" href="/style/look-classic.css?v=44b859a9">
+    <!-- END GENERATED: styles -->
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -77,12 +80,12 @@
         <main class="main-content-area space-y-6">
 
             <header class="home-main-header">
-                <h1 class="home-main-title">404 — Page Not Found</h1>
+                <h1 class="home-main-title">404. Page Not Found</h1>
             </header>
 
             <section class="wiki-section">
                 <p class="strategy-paragraph">
-                    Whiffed. There's nothing at this address — the link might be out of date,
+                    Whiffed. There's nothing at this address. The link might be out of date,
                     or the page may have been renamed or moved.
                 </p>
                 <p class="strategy-paragraph">
@@ -98,7 +101,7 @@
 
             <section class="wiki-section">
                 <p class="strategy-paragraph" style="color: var(--text-muted); font-size: 0.85rem;">
-                    If you got here from a link on this site, that's a bug worth reporting —
+                    If you got here from a link on this site, that's a bug worth reporting;
                     let <span style="color: #a855f7; font-family: var(--text-mono); font-weight: bold;">@deptr4869</span> know on Discord.
                 </p>
             </section>
@@ -107,7 +110,7 @@
 
         <!-- v1.0 Part 2 (owner, 2026-10-08): the right sidebar this page had
              none of. Ko-fi is moved to its top by placeKofiOnTheRight
-             (js/pagebuilder.js); the links are the Main Dashboard's, less
+             (js/pages/core/page_shell.js); the links are the Main Dashboard's, less
              this page's own. -->
         <aside class="local-sidebar-right" aria-label="Sitewide">
             <div class="sidebar-nav-title">Sitewide</div>
@@ -117,32 +120,28 @@
 
     </div>
 
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="/js/vendor/supabase-js-2.118.0.js"></script>
-    <!-- Before site_utils.js and page_router.js both: page_rescue.js calls
-         buildPageSkeleton once it has resolved the route, and that needs the
-         tab vocabulary the same way a generated stub does. -->
-    <script src="/js/character_tabs.js?v=817fcedb"></script>
-    <script src="/js/input_slots.js?v=817fcedb"></script>
-    <script src="/js/site_utils.js?v=817fcedb"></script>
-    <script src="/js/site_meta.js?v=817fcedb"></script>
-    <script src="/js/pagebuilder.js?v=817fcedb"></script>
-    <script src="/js/search.js?v=817fcedb"></script>
-
-    <!-- The full page-rendering set, so an unmatched URL that turns out to be
-         a real page can be rendered here rather than 404ing until the next
-         regeneration run. page_router.js and page_boot.js both no-op without a
-         window.PAGE_ROUTE, which this page does not define - page_rescue.js
-         sets one only if the registry says the URL belongs to a live page. -->
-    <script src="/js/page_router.js?v=817fcedb"></script>
-    <script src="/js/framedata.js?v=817fcedb"></script>
-    <script src="/js/description.js?v=817fcedb"></script>
-    <script src="/js/character_modes.js?v=817fcedb"></script>
-    <script src="/js/gallery.js?v=817fcedb"></script>
-    <script src="/js/tool_page.js?v=817fcedb"></script>
-    <script src="/js/internalstyling.js?v=817fcedb"></script>
-    <script src="/js/page_boot.js?v=817fcedb"></script>
-    <script src="/js/page_rescue.js?v=817fcedb"></script>
-    <script async src="/js/analytics.js?v=817fcedb"></script>
+    <script src="/js/utility/character_tabs.js?v=44b859a9"></script>
+    <script src="/js/utility/input_slots.js?v=44b859a9"></script>
+    <script src="/js/utility/site_utils.js?v=44b859a9"></script>
+    <script src="/js/utility/site_data.js?v=44b859a9"></script>
+    <script src="/js/utility/site_media.js?v=44b859a9"></script>
+    <script src="/js/utility/site_account.js?v=44b859a9"></script>
+    <script src="/js/utility/site_lookups.js?v=44b859a9"></script>
+    <script src="/js/pages/core/page_shell.js?v=44b859a9"></script>
+    <script src="/js/utility/search.js?v=44b859a9"></script>
+    <script src="/js/pages/core/page_router.js?v=44b859a9"></script>
+    <script src="/js/pages/core/skill_card.js?v=44b859a9"></script>
+    <script src="/js/pages/core/page_render.js?v=44b859a9"></script>
+    <script src="/js/pages/core/character_modes.js?v=44b859a9"></script>
+    <script src="/js/pages/types/gallery.js?v=44b859a9"></script>
+    <script src="/js/pages/types/tool_page.js?v=44b859a9"></script>
+    <script src="/js/pages/core/format_tags.js?v=44b859a9"></script>
+    <script src="/js/pages/core/page_boot.js?v=44b859a9"></script>
+    <script src="/js/pages/core/page_rescue.js?v=44b859a9"></script>
+    <script async src="/js/others/analytics.js?v=44b859a9"></script>
+    <!-- END GENERATED: scripts -->
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

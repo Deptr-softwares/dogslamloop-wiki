@@ -12,7 +12,7 @@
 //
 // An entry in tiers[].characters is "page_id" (as before), { id, label,
 // color } for a badged original, or { id, copy, label, color } for a copy,
-// whose key is "page_id#copy" (window.tierListEntry, js/site_utils.js).
+// whose key is "page_id#copy" (window.tierListEntry, js/utility/site_data.js).
 const { test, expect } = require('@playwright/test');
 
 // --- THE EDITOR ---

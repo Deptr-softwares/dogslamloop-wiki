@@ -3,7 +3,7 @@
 //
 // 1. INTERNAL STYLING SKIPPED HEADINGS AND LIST ITEMS.
 //
-//    js/internalstyling.js reached them only through a `.vessel-content`
+//    js/pages/core/format_tags.js reached them only through a `.vessel-content`
 //    ancestor. Half the character tabs are `.tab-content` (Overview, Combos,
 //    M1s, Specials, Techs), so in those a heading kept its literal `[b]…[/b]`
 //    and a list item lost every move-name colour, while the paragraph directly

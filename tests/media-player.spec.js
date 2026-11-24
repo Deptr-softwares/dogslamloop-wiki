@@ -99,7 +99,7 @@ const awaitDecode = (img) => img.evaluate(el => el.complete && el.naturalWidth
       el.addEventListener('error', () => reject(new Error('the cell image never loaded')), { once: true });
     }));
 
-// A full character page, because the accent test needs js/site_meta.js to have
+// A full character page, because the accent test needs js/utility/site_lookups.js to have
 // themed :root for a real character. It is a heavy page and every worker
 // shares one single-threaded dev server, so the wait is generous on purpose -
 // the alternative is a spec that passes alone and scatters under load.
@@ -167,6 +167,14 @@ test('youtube blocks are untouched', async ({ page }) => {
   // (v1.0): no cookies until the reader presses play.
   expect(html).toContain('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
   expect(html).not.toContain('data-wiki-player');
+});
+
+test('a youtube embed has a name, so a screen reader can say what the frame is', async ({ page }) => {
+  await boot(page);
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML('beforeend', `<div id="yt-probe">${window.generateHTMLForBlocks([{ type: 'youtube', videoId: 'dQw4w9WgXcQ' }], '')}</div>`);
+  });
+  await expect(page.locator('#yt-probe iframe.wiki-video-embed')).toHaveAccessibleName('YouTube video');
 });
 
 test('the play button drives the video and the duration bar fills', async ({ page }) => {
@@ -328,7 +336,7 @@ test('the player paints itself in the character accent, not a fixed blue', async
   await boot(page);
   await render(page, [{ type: 'video', src: '/medias/a.webm', controls: true }]);
 
-  // js/site_meta.js sets --accent-blue on :root per character page. Read the
+  // js/utility/site_lookups.js sets --accent-blue on :root per character page. Read the
   // resolved colour and compare against the token rather than a literal hex,
   // so the test follows the palette instead of pinning it.
   const out = await page.evaluate(() => {
@@ -502,7 +510,7 @@ test('a hostile video URL never becomes a destination or an attribute break', as
   await boot(page);
 
   // The button and the modal are a new contributor-reachable path to a URL and
-  // to an attribute, which is the pair the comment at the top of description.js
+  // to an attribute, which is the pair the comment at the top of page_render.js
   // exists about.
   const out = await page.evaluate(() => {
     const hostile = 'javascript:window.__PWN=1';

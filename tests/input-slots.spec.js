@@ -40,7 +40,7 @@ async function openCrowCharmer(page, waitUntil = 'networkidle', row = CROW) {
 // rather than keeping its own copy of that list.
 const slots = (() => {
   const w = {};
-  ['character_tabs.js', 'input_slots.js'].forEach(file => {
+  ['utility/character_tabs.js', 'utility/input_slots.js'].forEach(file => {
     new Function('window', fs.readFileSync(path.join(ROOT, 'js', file), 'utf8'))(w);
   });
   return w;
@@ -496,15 +496,26 @@ test('a slot class actually CHANGES THE COLOUR, on the chip as well as inside it
 
     return slotList.map((s, i) => ({
       id: s.id,
+      declared: root.getPropertyValue(`--input-color-${s.id.toLowerCase()}`).trim(),
       painted: getComputedStyle(host.children[i]).color,
       expected: resolve(root.getPropertyValue(`--input-color-${s.id.toLowerCase()}`).trim()),
       plain: resolve(root.getPropertyValue('--text-white').trim()),
+      // What a chip shows when its slot colour fails to resolve: the text
+      // colour around it, since an undefined variable makes `color` inherit.
+      inherited: getComputedStyle(host).color,
     }));
   }, [...(await page.evaluate(() => window.INPUT_SLOTS.map(s => ({ id: s.id, cls: s.cls }))))]);
 
   for (const m of measured) {
+    // Without this, a slot whose variable is missing passes the next line:
+    // `expected` resolves the empty value to the inherited colour, which is
+    // also what the chip paints. That hid M1 from v0.18 FT1 (2026-09-08) to
+    // 2026-11-22, when a comment in ColorCoding.css closed early and the
+    // browser dropped --input-color-m1 along with the stray text after it.
+    expect(m.declared, `--input-color-${m.id.toLowerCase()} must reach the browser`).not.toBe('');
     expect(m.painted, `${m.id} must paint its own colour, not the chip default`).toBe(m.expected);
     expect(m.painted, `${m.id} must not fall back to plain text`).not.toBe(m.plain);
+    expect(m.painted, `${m.id} must not fall back to the text around it`).not.toBe(m.inherited);
   }
 });
 

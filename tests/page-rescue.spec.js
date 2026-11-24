@@ -137,7 +137,7 @@ test('a live page with no file yet renders instead of 404ing', async ({ page }) 
   await expect(page.locator('.main-content-area')).toContainText('Every gamemode, explained.');
 
   // The 404's own copy is gone rather than sitting underneath the real page.
-  await expect(page.locator('text=404 — Page Not Found')).toHaveCount(0);
+  await expect(page.locator('text=404. Page Not Found')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -158,7 +158,7 @@ test('a genuinely wrong URL still gets the ordinary 404', async ({ page }) => {
   await mockRegistry(page, [LIVE_SYSTEM_PAGE]);
   await rescueAt(page, '/characters/Not_A_Real_Character/');
 
-  await expect(page.locator('.home-main-title')).toHaveText('404 — Page Not Found');
+  await expect(page.locator('.home-main-title')).toHaveText('404. Page Not Found');
   await expect(page.locator('#rescue-banner')).toHaveCount(0);
   // And the 404's own navigation still boots.
   await expect(page.locator('#global-sidebar-nav .sidebar-group-header').first()).toBeVisible();
@@ -169,7 +169,7 @@ test('an archived page keeps its tombstone rather than being resurrected', async
   await mockRegistry(page, [{ ...LIVE_SYSTEM_PAGE, status: 'archived' }]);
   await rescueAt(page, '/others/gamemodes/');
 
-  await expect(page.locator('.home-main-title')).toHaveText('404 — Page Not Found');
+  await expect(page.locator('.home-main-title')).toHaveText('404. Page Not Found');
 });
 
 test('a registry that cannot be reached falls back to the plain 404', async ({ page }) => {
@@ -201,7 +201,7 @@ test('a registry that cannot be reached falls back to the plain 404', async ({ p
 
   await rescueAt(page, '/others/gamemodes/');
 
-  await expect(page.locator('.home-main-title')).toHaveText('404 — Page Not Found');
+  await expect(page.locator('.home-main-title')).toHaveText('404. Page Not Found');
   expect(errors, 'a failed lookup must not throw out of the handler').toEqual([]);
 });
 
@@ -221,14 +221,14 @@ test('a rescued character page gets the full character skeleton', async ({ page 
   await rescueAt(page, '/characters/Newcomer/index.html');
 
   // Longer than the 5s default on purpose. A character page boots its
-  // fetches concurrently with a deliberate 500ms TOC delay (js/page_boot.js),
+  // fetches concurrently with a deliberate 500ms TOC delay (js/pages/core/page_boot.js),
   // so this content arrives well after initPageRescue resolves - and on a
   // loaded runner the default was the binding constraint rather than
   // anything being wrong. This was the last failure left in this file at
   // 8 workers, and the one CI failed on.
   const booted = { timeout: 15000 };
   await expect(page.locator('.character-title')).toHaveText('Newcomer', booted);
-  // Count read from the page's own vocabulary (js/character_tabs.js), not
+  // Count read from the page's own vocabulary (js/utility/character_tabs.js), not
   // pinned: the claim is that the rescue builds a character strip at all, and
   // a literal would fail every time a tab is added for reasons unrelated to
   // the rescue path.

@@ -354,7 +354,7 @@ test('a removed post keeps its place so replies underneath still make sense', as
     await expect(page.locator('#post-gone > .discussion-body')).toContainText('[removed by the author]');
     // The name goes with the words. A removal that leaves the byline attached
     // to a placeholder still says who said the thing.
-    await expect(page.locator('#post-gone .discussion-author').first()).toHaveText('—');
+    await expect(page.locator('#post-gone .discussion-author').first()).toHaveText('-');
     await expect(page.locator('#post-r1')).toContainText('still here');
     await expect(page.locator('#post-gone [data-remove-post]'), 'nothing left to delete').toHaveCount(0);
 });
@@ -618,6 +618,20 @@ test('the jump button shows a count, and nothing at all when there is none', asy
     await open(page);
     // An explicit "0" reads as a dead feature. Silence does not.
     await expect(page.locator('#jump-discussion-count')).toHaveText('');
+});
+
+test('the jump button is named by what it shows, so a screen reader says the count too', async ({ page }) => {
+    await mockThread(page, { rows: [post()], session: null, count: 7 });
+    await open(page);
+    const btn = page.locator('#btn-jump-discussion');
+    await expect(page.locator('#jump-discussion-count')).toHaveText('7');
+    await expect(btn).toHaveAccessibleName('Jump to the discussion 7');
+    await expect(btn).not.toHaveAttribute('aria-label');
+
+    await page.goto('about:blank');
+    await mockThread(page, { rows: [], session: null, count: 0 });
+    await open(page);
+    await expect(page.locator('#btn-jump-discussion')).toHaveAccessibleName('Jump to the discussion');
 });
 
 test('the jump button still scrolls when the thread fails to load', async ({ page }) => {

@@ -9,15 +9,15 @@
 // with a test. v0.15 corrected it on evidence, not opinion:
 //
 //   - Contributors do not write HTML. The editor's formatting toolbar
-//     (applyFormat, js/editor-blocks.js) emits BBCODE - [b]…[/b],
-//     [color=#f00]…[/color], [url=…]…[/url] - which js/internalstyling.js
+//     (applyFormat, js/editor/blocks/editor-blocks.js) emits BBCODE - [b]…[/b],
+//     [color=#f00]…[/color], [url=…]…[/url] - which js/pages/core/format_tags.js
 //     converts to HTML after render. HTML escaping does not touch square
 //     brackets, so every one of those still works.
 //   - A scan of all live content at the time (33 pages) found ZERO angle
 //     brackets in any contributor string. Nothing depended on the behaviour
 //     the old comment was protecting.
 //   - The bold and coloured text visible on a character page comes from
-//     internalstyling.js operating on the DOM, not from stored markup.
+//     format_tags.js operating on the DOM, not from stored markup.
 //
 // So block content is escaped now, and the test below asserts the real
 // contract: BBCode renders, literal HTML does not. See

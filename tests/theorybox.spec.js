@@ -42,16 +42,16 @@ test('all seven sites handle the block, or it breaks somewhere invisible', () =>
   // offers the card" further down, which drives the real menu - between the
   // two, both the declaration and the thing it produces are pinned.
   const sites = {
-    'js/editor-blocks.js': [
+    'js/editor/blocks/editor-blocks.js': [
       /theorybox: \{ type: 'theorybox'/,          // 1. registry default shape
       /types: \[[^\]]*'theorybox'/,                // 2. offered by the picker
       /theorybox: '[^']+'/,                        // 3. has a human-readable name
       /block\.type === 'theorybox'/,               // 4. the editor form
       /field === 'sequence-lines'/,                // the route is an ARRAY
     ],
-    'js/description.js': [/block\.type === 'theorybox'/],   // 5. reader
-    'js/admin-preview.js': [/b\.type === 'theorybox'/],     // 6. reviewer preview
-    'js/editor-sync.js': [/b\.type === 'theorybox'/],       // 7. draft sync
+    'js/pages/core/page_render.js': [/block\.type === 'theorybox'/],   // 5. reader
+    'js/overseer/admin-preview.js': [/b\.type === 'theorybox'/],     // 6. reviewer preview
+    'js/editor/core/editor-sync.js': [/b\.type === 'theorybox'/],       // 7. draft sync
   };
 
   const missing = [];

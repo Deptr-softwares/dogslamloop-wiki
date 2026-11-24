@@ -1,8 +1,8 @@
 // Coverage for the contributor self-service page (v0.6 item 4, "reviewer
 // workflow/UI redesign", Phase 1). Before this page existed, a regular
 // contributor had zero way to see/edit/withdraw their own pending
-// submission - admin.html's RBAC gate blocks anyone without admin/reviewer
-// outright (js/admin-core.js:161).
+// submission - overseer.html's RBAC gate blocks anyone without admin/reviewer
+// outright (js/overseer/admin-core.js:161).
 const { test, expect } = require('@playwright/test');
 
 test('submissions.html: logged-out visitor sees a login prompt, not an access-denied wall', async ({ page }) => {
@@ -12,7 +12,7 @@ test('submissions.html: logged-out visitor sees a login prompt, not an access-de
   await expect(page.locator('#submissions-login-btn')).toBeVisible();
 
   // Real page-load path with no session - this should be reachable and
-  // openAuthModal-wired without the whole page being wiped like admin.html's
+  // openAuthModal-wired without the whole page being wiped like overseer.html's
   // kickUser() does for a role-gated page.
   const consoleErrors = [];
   page.on('pageerror', (err) => consoleErrors.push(err.message));
@@ -107,9 +107,11 @@ test('submissions.html: withdraw scopes the update to the current user and the s
     if (confirmBtn) confirmBtn.click();
     await withdrawPromise.catch(() => {});
 
-    return { capturedPayload, capturedEqCalls };
+    return { capturedPayload, capturedEqCalls, boxesLeft: document.querySelectorAll('#submissions-confirm-ok').length };
   });
 
+  // Each question builds its own box, so an answered one has to go.
+  expect(result.boxesLeft).toBe(0);
   expect(result.capturedPayload).toEqual({ status: 'withdrawn' });
   expect(result.capturedEqCalls).toContainEqual(['id', 'rev-123']);
   expect(result.capturedEqCalls).toContainEqual(['author_id', 'me']);

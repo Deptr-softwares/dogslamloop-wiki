@@ -1,8 +1,9 @@
-/* =========================================
-   DESIGN SYSTEM: BADGES & INDICATORS (Badges.css)
-   ========================================= */
+/* Badges and indicators: the Update Log's badges, author and credit badges, keybind
+   badges, status dots, and the roster's Early Access and WIP markers.
+   Since v0.4.
+   See: docs/looks.md */
 
-/* --- 1. UPDATE & TAG BADGES --- */
+/* Update and tag badges */
 .update-badge { 
     padding: 0.25rem 0.4rem 0.15rem 0.4rem; 
     border-radius: 0; 
@@ -20,7 +21,7 @@
 .badge-ea { background-color: hsl(28, 99%, 53%); color: #fff; }
 .update-badge-inline { margin-left: 0.5rem; }
 
-/* --- 2. AUTHOR & CREDITS BADGES --- */
+/* Author and credit badges */
 .author-badge {
     background: var(--bg-secondary);
     color: var(--accent-blue);
@@ -45,7 +46,7 @@
     box-shadow: 4px 4px 0px var(--accent-blue);
 }
 
-/* --- 3. KEYBIND BADGES --- */
+/* Keybind badges */
 .keybind-badge {
     background-color: var(--bg-main);
     color: var(--text-white);
@@ -60,7 +61,7 @@
     font-weight: bold;
 }
 
-/* --- 4. STATUS & UTILITY DOTS --- */
+/* Status dots */
 .status-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
 .status-dot.offline { color: #ef4444; background: #ef4444; }
 .status-dot.online { color: #22c55e; background: #22c55e; }
@@ -73,7 +74,7 @@
 .dot-grey { background-color: var(--text-muted); }
 .dot-pink { background-color: hsl(330, 81%, 60%); }
 
-/* --- 5. FLOATING INDICATORS --- */
+/* Floating indicators */
 .ea-star-indicator {
     position: absolute; top: 2px; right: 4px;
     color: var(--accent-yellow); font-size: 1rem;
@@ -81,13 +82,9 @@
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 2px 2px 0px rgba(0,0,0,0.8);
 }
 
-/* The roster's Work In Progress marker (v0.16). Opposite corner to the Early
-   Access star above, and a sibling of it by design: the owner asked for WIP to
-   read the same way EA already does. It replaces the "(WIP)" line that used to
-   sit under the name, which stopped working the moment the name became a
-   hover-revealed slit - see js/pagebuilder.js renderFilteredRoster.
-   drop-shadow rather than text-shadow: this is an emoji glyph, and text-shadow
-   paints behind the whole emoji box instead of its outline. */
+/* The roster's WIP marker, in the corner opposite the Early Access star, so the
+   two read the same way. drop-shadow, not text-shadow: on an emoji, text-shadow
+   paints the whole glyph box. */
 .roster-wip-indicator {
     position: absolute; top: 2px; left: 4px;
     font-size: 0.7rem; line-height: 1; z-index: 3;

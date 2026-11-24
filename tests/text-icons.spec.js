@@ -116,7 +116,7 @@ test('the tag stays out of section links, the contents list and search', async (
   await page.goto('/systems/hud/index.html', { waitUntil: 'networkidle' });
 
   // The shared list of style tags every anchor, contents entry and search
-  // record is cleaned with (js/character_tabs.js).
+  // record is cleaned with (js/utility/character_tabs.js).
   expect(await page.evaluate(() => window.stripStyleShortcodes('[icon=accolade/qte] QTE moves').trim())).toBe('QTE moves');
 
   const heading = page.locator('h3.wiki-block-heading', { hasText: 'QTE moves' });

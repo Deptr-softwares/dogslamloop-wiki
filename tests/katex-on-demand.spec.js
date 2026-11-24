@@ -2,7 +2,7 @@
 //
 // It used to ship in the head of every character page, the Template, admin,
 // history and the tier editor, and no page used it (2026-10-22: one `$` in all
-// the indexed text). renderMathIfAny (js/site_utils.js) now looks for a $...$
+// the indexed text). renderMathIfAny (js/utility/site_media.js) now looks for a $...$
 // pair in the page's text and loads the three files the first time it finds
 // one. These tests use a page row of their own, so the owner writing math into
 // a real page can never change what they assert.
@@ -99,7 +99,7 @@ test('math in a script is not math', async ({ page }) => {
 });
 
 test('a system page draws its math too', async ({ page }) => {
-    // The system branch of description.js has its own call. Before this batch
+    // The system branch of page_render.js has its own call. Before this batch
     // no system page loaded KaTeX at all, so math there never drew.
     await mockPageRow(page, {
         page_id: 'm1_trading', frame_data: {},

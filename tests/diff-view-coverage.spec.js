@@ -154,7 +154,7 @@ async function renderScope(page, scope, key, payload) {
 // and a list written out by hand would have to be remembered to be updated -
 // which is how all seven went missing in the first place.
 function scopesThatCanBeApplied() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'site_utils.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'submission_delta.js'), 'utf8');
   const body = src.slice(src.indexOf('applyDeltaToData'));
   const literal = [...body.matchAll(/scope === '([a-zA-Z_]+)'/g)].map(m => m[1]);
   const fixedInline = ['profile', 'playstyle', 'overview', 'strategy'];
@@ -164,7 +164,7 @@ function scopesThatCanBeApplied() {
 }
 
 test('every scope a ticket can carry renders something a reviewer can see', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   // The registry's scopes too - keyed sections and fixed block sections reach
   // applyDeltaToData through a lookup rather than a literal, so they do not
@@ -192,7 +192,7 @@ test('every scope a ticket can carry renders something a reviewer can see', asyn
 });
 
 test('a scope with no purpose-built view still shows the change, and says so', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const out = await renderScope(page, 'some_future_scope', 'full', { field: 'a value' });
 
   expect(out.blocks, 'an unknown scope must never render as an empty panel').toBeGreaterThan(0);
@@ -204,7 +204,7 @@ test('a scope with no purpose-built view still shows the change, and says so', a
 });
 
 test('a combo table edit shows the combos, not two empty panels', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const out = await renderScope(page, 'comboTable', 'M1 Starters', PAYLOADS.comboTable);
 
   // The entries hold `rows`, not `content`. Diffing `.content` compared two
@@ -216,7 +216,7 @@ test('a combo table edit shows the combos, not two empty panels', async ({ page 
 });
 
 test('the location reads as a place on the wiki, not a delta scope', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const out = await renderScope(page, 'comboIntro', 'full', PAYLOADS.comboIntro);
 
   // Was: "Suggested Edit Location: [ COMBOINTRO ➔ FULL ]" - a scope name and an
@@ -228,7 +228,7 @@ test('the location reads as a place on the wiki, not a delta scope', async ({ pa
 });
 
 test('field names are words, not schema keys', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const out = await renderScope(page, 'comboTable', 'M1 Starters', PAYLOADS.comboTable);
 
   expect(out.text).toContain('Damage');
@@ -236,7 +236,7 @@ test('field names are words, not schema keys', async ({ page }) => {
 });
 
 test('a list of objects is not dumped as JSON', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const out = await renderScope(page, 'move', 'skills::explosion', PAYLOADS.move);
 
   expect(out.text).toContain('99');
@@ -250,9 +250,9 @@ test('notation is coloured in Diff View, the same as a reader sees it', async ({
   // and the reviewer is the half that has to spot a wrong input.
   //
   // currentPageMoveSlots read cachedMasterFrameData and currentEditorFrameData.
-  // admin.html has neither: it loads a revision into currentLive*/currentPending*,
+  // overseer.html has neither: it loads a revision into currentLive*/currentPending*,
   // so the slot map came back empty and nothing was coloured at all.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await renderScope(page, 'comboGroup', 'True Combos', {
     title: 'True Combos',
@@ -290,7 +290,7 @@ test('prose diffs render as a diff, not as visible <ins> tags', async ({ page })
   // <ins>/<del> a second time. Every prose diff in the review screen rendered
   // as literal `<ins class="diff-add">` and `&quot;`. Two correct fixes that
   // cancelled each other out, and no test asserted the pair.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await renderScope(page, 'overview', 'full', [
     { type: 'heading', size: 'h3', content: 'A brand new heading' },
@@ -322,7 +322,7 @@ test('prose diffs render as a diff, not as visible <ins> tags', async ({ page })
 test('a mixed diff renders both sides as markup', async ({ page }) => {
   // The early-return paths and the main loop are different code. Fixing only
   // the wholly-added case would leave every ordinary edit still broken.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await renderScope(page, 'overview', 'full', [
     { type: 'paragraph', content: 'live CHANGED' },
@@ -339,7 +339,7 @@ test('a mixed diff renders both sides as markup', async ({ page }) => {
 });
 
 test('a submission cannot forge diff markers', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const safe = await page.evaluate(() => {
     // The markers are control characters. If a contributor could smuggle one
@@ -411,7 +411,7 @@ const SYS_LIVE = {
 };
 
 test('a system page names its location the same way a character page does', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const payload = JSON.parse(JSON.stringify(SYS_LIVE));
   payload.tabs[0].sections[0].blocks[0].content = 'CHANGED system text';
@@ -433,7 +433,7 @@ test('a system page names its location the same way a character page does', asyn
 });
 
 test('a system page renders its prose as a diff too', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const payload = JSON.parse(JSON.stringify(SYS_LIVE));
   payload.tabs[0].sections[0].blocks[0].content = 'CHANGED system text';
@@ -444,7 +444,7 @@ test('a system page renders its prose as a diff too', async ({ page }) => {
 });
 
 test('an unchanged system section is not announced as changed', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   // Two sections, one edited. The old code emitted a heading for every section
   // of every tab whether or not it changed, so a one-word edit to a long page
@@ -461,7 +461,7 @@ test('an unchanged system section is not announced as changed', async ({ page })
 });
 
 test('a tier list page also names its location', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const live = { tabs: [{ tabId: 'main', tabLabel: 'Season 1', tiers: [{ name: 'S', characters: ['Vessel'] }], changelog: [] }] };
   const payload = JSON.parse(JSON.stringify(live));
@@ -474,7 +474,7 @@ test('a tier list page also names its location', async ({ page }) => {
 });
 
 test('editing Read First marks the Combos tab, not Overview', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const tabs = await page.evaluate(async ({ liveDesc, liveFrame }) => {
     document.body.innerHTML = `<div class="main-content-area"></div>`;

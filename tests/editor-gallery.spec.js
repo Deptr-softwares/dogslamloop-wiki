@@ -138,7 +138,7 @@ test('submitting emits one delta per changed item, not one payload for the whole
 });
 
 test('two contributors adding different items do not overwrite each other', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'networkidle' });
+  await page.goto('/history.html', { waitUntil: 'networkidle' });
 
   // The reason for per-item deltas, asserted end to end through the real
   // delta engine rather than argued for in a comment.

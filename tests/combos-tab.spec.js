@@ -26,7 +26,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const vocab = (() => {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;
@@ -127,7 +127,7 @@ test('the three sections are declared with the scopes the pipeline keys off', ()
 test('every section survives a delta, including the first one', async ({ page }) => {
   // The bug that shipped for Starter Guide: a scope with no branch in
   // applyDeltaToData returns the data unchanged and reports success.
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const result = await page.evaluate(() => {
     const intro = window.applyDeltaToData({}, {}, 'comboIntro', 'full',
@@ -296,12 +296,13 @@ test('nothing a contributor writes is parsed as markup', async ({ page }) => {
   const result = await page.evaluate(() => ({
     fired: !!window.__PWN,
     injected: document.querySelectorAll('#tab-combos img').length,
-    videoHref: document.querySelector('.combo-video-link')?.getAttribute('href') || null,
+    videoCell: document.querySelector('#tab-combos .combo-cell-video')?.innerHTML || null,
   }));
 
   expect(result.fired).toBe(false);
   expect(result.injected).toBe(0);
-  expect(result.videoHref, 'a javascript: video link is dropped, not rendered').toBeNull();
+  expect(result.videoCell, 'a javascript: video is dropped, and the cell says so')
+    .toBe('<span class="combo-cell-empty">-</span>');
   expect(errors).toEqual([]);
 });
 
@@ -380,7 +381,7 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
   expect(state.table.rows[0].damage).toBe('38-46');
   expect(state.table.rows[0].difficulty).toBe('Medium');
   // A stray `rows: []` here meant editor-tabs.js had overwritten
-  // description.js's window.renderComboTableBody by declaring the same name.
+  // page_render.js's window.renderComboTableBody by declaring the same name.
   expect(Object.keys(state.table.rows[0])).not.toContain('rows');
   expect(state.previewRows, 'the live preview draws the table as it types').toBeGreaterThan(0);
 

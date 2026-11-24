@@ -5,7 +5,7 @@
 // including but not limited to making new color code, applying that color
 // throughout the site (mainly auto-coloring), and probably more."
 //
-// window.CHARACTER_COLORS was a hardcoded literal in js/site_meta.js read
+// window.CHARACTER_COLORS was a hardcoded literal in js/utility/site_lookups.js read
 // SYNCHRONOUSLY by ten files, so a new character's colour needed a code edit, a
 // PR and a release. The source is now site_pages.color, generated into a marked
 // region of the same file - which keeps the literal synchronous, because making
@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const SITE_META = path.join(ROOT, 'js', 'site_meta.js');
+const SITE_META = path.join(ROOT, 'js', 'utility', 'site_lookups.js');
 const {
     buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END,
 } = require('../scripts/fetch-content.js');
@@ -47,8 +47,8 @@ test('only characters with a colour reach the dictionary', () => {
 });
 
 test('the dictionary is keyed by name, which is what every consumer looks up', () => {
-    // page_id is the database's key. pagebuilder.js has the name, and
-    // internalstyling.js matches names in prose - so keying by page_id would
+    // page_id is the database's key. page_shell.js has the name, and
+    // format_tags.js matches names in prose - so keying by page_id would
     // produce a dictionary nothing could read.
     const out = buildCharacterColors(ROWS);
     expect(out).not.toContain('vessel"');
@@ -64,6 +64,37 @@ test('a name with a quote in it cannot break the file', () => {
     expect(out).toContain('"He said \\"hi\\""');
     // And it still parses as JS, which is the actual claim.
     expect(() => new Function(out.replace(COLORS_BEGIN, '').replace(COLORS_END, ''))).not.toThrow();
+});
+
+test('a colour that is not a plain colour stays out of the file, loudly', () => {
+    // The site writes these into style attributes unescaped, so the file takes
+    // only a hex code, rgb() or hsl() of numbers, or a colour name.
+    const warnings = [];
+    const original = console.warn;
+    console.warn = (...args) => warnings.push(args.join(' '));
+    let out;
+    try {
+        out = buildCharacterColors([
+            { name: 'Hex', page_type: 'character', color: '#c0c0bf', sort_order: 1 },
+            { name: 'Hsl', page_type: 'character', color: 'hsl(0, 100%, 80%)', sort_order: 2 },
+            { name: 'Named', page_type: 'character', color: 'crimson', sort_order: 3 },
+            { name: 'Breakout', page_type: 'character', color: 'red;" onmouseover="alert(1)', sort_order: 4 },
+            { name: 'Extra', page_type: 'character', color: 'red; background: url(https://example.com/x)', sort_order: 5 },
+            { name: 'Variable', page_type: 'character', color: 'var(--x, "><img src=x>)', sort_order: 6 },
+            // parseCharacterColor reads this as a colour (its hsl match is not
+            // anchored), so nothing else on the way would stop it.
+            { name: 'Hidden', page_type: 'character', color: 'hsl(0, 100%, 50%);" onmouseover="alert(1)', sort_order: 7 },
+        ]);
+    } finally {
+        console.warn = original;
+    }
+    expect(out).toContain('"Hex": "#c0c0bf"');
+    expect(out).toContain('"Hsl": "hsl(0, 100%, 80%)"');
+    expect(out).toContain('"Named": "crimson"');
+    for (const name of ['Breakout', 'Extra', 'Variable', 'Hidden']) {
+        expect(out, `${name} is left out`).not.toContain(`"${name}"`);
+        expect(warnings.join('\n'), `${name} is named in a warning`).toContain(name);
+    }
 });
 
 test('a database without the column yet is skipped, not failed', () => {
@@ -155,7 +186,7 @@ test('a file without the markers is refused, not guessed at', () => {
         .toThrow(/missing the CHARACTER_COLORS generated-region markers/i);
 });
 
-test('the committed js/site_meta.js still carries both markers', () => {
+test('the committed js/utility/site_lookups.js still carries both markers', () => {
     // If these are ever lost, the next regeneration fails loudly rather than
     // silently stopping - but the failure would block a release, so assert it
     // here where it costs nothing.
@@ -305,7 +336,7 @@ test('a colour the browser cannot parse is refused, not written', async ({ page 
 
 test('clearing the colour is allowed and stores NULL', async ({ page }) => {
     // Absent is a real state - it is what every new character page starts as,
-    // and pagebuilder already falls back for a name it cannot find.
+    // and page_shell.js already falls back for a name it cannot find.
     await openPageMeta(page);
     await page.fill('#page-meta-color', '');
     await page.click('#btn-save-page-meta');
@@ -409,7 +440,7 @@ test('the backfill fills only what is unset, so it cannot undo an edit', () => {
 });
 
 test('the backfill still carries exactly the 22 colours it was written with', () => {
-    // The values were extracted from js/site_meta.js programmatically rather
+    // The values were extracted from js/utility/site_lookups.js programmatically rather
     // than retyped - 22 hsl() triples is exactly the list a person transcribes
     // one digit wrong.
     //

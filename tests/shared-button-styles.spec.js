@@ -19,6 +19,9 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, 'style', f), 'utf8');
+const { SPLIT_FROM_LAYOUT } = require('../scripts/page-scripts.js');
+// Layout.css with the sheets split from it, which hold what it used to.
+const readLayout = () => ['Layout.css', ...SPLIT_FROM_LAYOUT].map(read).join('\n');
 
 // A rule that sets the button's own base look, as opposed to a scoped tweak
 // like `.combo-row-move .btn-sys` or a compound like `.btn-sys.daw-narrow-btn`.
@@ -55,7 +58,7 @@ function unscopedBaseRules(source) {
 test('.btn-sys has exactly one base definition, and it is in Buttons.css', () => {
     const buttons = unscopedBaseRules(read('Buttons.css'));
     const editor = unscopedBaseRules(read('editor.css'));
-    const layout = unscopedBaseRules(read('Layout.css'));
+    const layout = unscopedBaseRules(readLayout());
 
     // Positive first: the canonical rule exists. Without this the assertions
     // below would pass hardest if somebody deleted the class entirely.
@@ -73,7 +76,7 @@ test('no button keeps a hand-copied look of its own: every legacy alias rides on
     // give one a base look again.
     const ALIASES = ['submit-btn', 'system-page-btn', 'add-block-btn', 'btn-action-delete'];
     const sources = [
-        ...fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).map(f => path.join('js', f)),
+        ...require('../scripts/asset-version.js').SHARED_MODULES.map(f => path.join('js', f)),
         ...fs.readdirSync(ROOT).filter(f => f.endsWith('.html')),
     ];
     const offenders = [];
@@ -148,7 +151,7 @@ test('no stylesheet suppresses the focus ring on .btn-sys', () => {
     // reads 'none' whether or not the rule exists, and would have passed
     // before the change as happily as after. That is the vacuous shape, and it
     // is what the first draft of this test did.
-    ['Buttons.css', 'editor.css', 'Layout.css'].forEach(file => {
+    ['Buttons.css', 'editor.css', 'Layout.css', ...SPLIT_FROM_LAYOUT].forEach(file => {
         const css = read(file).replace(/\/\*[\s\S]*?\*\//g, '');
         // Same pattern as above, and no leading `}` for the same reason.
         const re = /([^{}]+)\{([^{}]*)\}/g;

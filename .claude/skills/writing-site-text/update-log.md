@@ -30,7 +30,7 @@ Newest first. A heading is an object, a change is a string:
 
 - `date` is MM/DD/YYYY.
 - `version` copies the label `site_meta` carries, exactly as the owner set it in owner tools ("Beta v0.19", "Stable v0.20", "Release v1.0").
-- Entries before v0.17 are flat string arrays and still render: `buildUpdateChangesHTML` (`js/home_widgets.js`) opens an unheaded list and starts a new one at each heading. A heading is an object so that a change line reading "Bug fixes" can never turn into one.
+- Entries before v0.17 are flat string arrays and still render: `buildUpdateChangesHTML` (`js/dashboards/home_widgets.js`) opens an unheaded list and starts a new one at each heading. A heading is an object so that a change line reading "Bug fixes" can never turn into one.
 - Verify the entry renders on `/systems/updatelog/index.html`.
 
 ## The three parts

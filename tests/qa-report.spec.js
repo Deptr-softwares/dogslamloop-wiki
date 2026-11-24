@@ -30,7 +30,7 @@ const rev = (over = {}) => ({
     ...over,
 });
 
-// The real admin.html as an admin, with the queue's rows mocked. The realtime
+// The real overseer.html as an admin, with the queue's rows mocked. The realtime
 // channel an open ticket subscribes to is stubbed, so nothing here reaches the
 // real Supabase.
 async function openQueue(page, rows) {
@@ -68,7 +68,7 @@ async function openQueue(page, rows) {
             },
         });
     }, rows);
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#queue-container .update-log-item')).toHaveCount(rows.length, { timeout: 15000 });
 }
 
@@ -143,7 +143,7 @@ test('a submission from before the QA form says what is missing', async ({ page 
 
 test('evidence that is not one web address is shown as text, never as a link', async ({ page }) => {
     // A merged ticket's evidence is every contributor's, one block each
-    // (js/admin-merge-compiler.js), and a contributor can type a sentence. Both
+    // (js/overseer/admin-merge-compiler.js), and a contributor can type a sentence. Both
     // used to read "not a valid http(s) URL" and hide what was written.
     const samples = [
         'javascript:alert(1)',

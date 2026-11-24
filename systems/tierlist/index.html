@@ -6,23 +6,23 @@
     <title>Tier Lists | Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
     
-    <!-- v0.4 Modular CSS Engine -->
-    <link rel="stylesheet" href="../../style/Common.css">
-    <link rel="stylesheet" href="../../style/Layout.css">
-    <link rel="stylesheet" href="../../style/certified-tier-lists.css">
-    <link rel="stylesheet" href="../../style/Cards.css">
-    <link rel="stylesheet" href="../../style/Buttons.css">
-    <link rel="stylesheet" href="../../style/Badges.css">
-    <link rel="stylesheet" href="../../style/ColorCoding.css">
-    <link rel="stylesheet" href="../../style/Alerts.css">
-    <link rel="stylesheet" href="../../style/Modals.css">
-    <!-- Forms.css defines .editor-input, which the auth and profile modals
-         injected by js/site_utils.js both use. Without it the login form and
-         the profile fields render unstyled. -->
-    <link rel="stylesheet" href="../../style/Forms.css">
-    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
+    <link rel="stylesheet" href="../../style/Common.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Layout.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Blocks.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/tierlist.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/certified-tier-lists.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Cards.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Buttons.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Badges.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/ColorCoding.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Alerts.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Modals.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Forms.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/look-classic.css?v=44b859a9">
+    <!-- END GENERATED: styles -->
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -87,7 +87,7 @@
 
             <!--
                 The page's own introduction, owner-editable from owner.html and
-                stored in tier_page_settings. Hidden by js/certified-tier-lists.js
+                stored in tier_page_settings. Hidden by js/pages/tier-lists/certified-tier-lists.js
                 the moment a person is picked, so their list reads as their space
                 rather than a subsection of somebody else's page.
 
@@ -177,32 +177,23 @@
 
     </div>
 
-    <!-- V0.4 SYSTEM SCRIPTS -->
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="../../js/character_tabs.js?v=817fcedb"></script>
-    <script src="../../js/input_slots.js?v=817fcedb"></script>
-    <script src="../../js/site_utils.js?v=817fcedb"></script>
-    <script src="../../js/site_meta.js?v=817fcedb"></script>
-    <script src="../../js/pagebuilder.js?v=817fcedb"></script>
-    <script src="../../js/search.js?v=817fcedb"></script>
-    
-    <!-- Custom Tier List Engine -->
-    <!--
-        description.js is loaded for generateHTMLForBlocks alone, which renders
-        the block arrays behind each list's introduction and reasoning. It has
-        no DOMContentLoaded handler of its own, so it behaves as a library here
-        rather than booting anything.
-
-        Its absence was a real bug: the reasoning section shipped in PR #81 and
-        could never have rendered, because the function that renders it was not
-        on the page. Every test fixture had an empty reasoning array, so nothing
-        caught it.
-    -->
-    <script src="../../js/description.js?v=817fcedb"></script>
-    <script src="../../js/internalstyling.js?v=817fcedb"></script>
-    <script src="../../js/tierlist.js?v=817fcedb"></script>
-    <script src="../../js/certified-tier-lists.js?v=817fcedb"></script>
-    <script async src="../../js/analytics.js?v=817fcedb"></script>
+    <script src="../../js/utility/character_tabs.js?v=44b859a9"></script>
+    <script src="../../js/utility/input_slots.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_utils.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_data.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_media.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_account.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_lookups.js?v=44b859a9"></script>
+    <script src="../../js/pages/core/page_shell.js?v=44b859a9"></script>
+    <script src="../../js/utility/search.js?v=44b859a9"></script>
+    <script src="../../js/pages/core/page_render.js?v=44b859a9"></script>
+    <script src="../../js/pages/core/format_tags.js?v=44b859a9"></script>
+    <script src="../../js/pages/tier-lists/tierlist.js?v=44b859a9"></script>
+    <script src="../../js/pages/tier-lists/certified-tier-lists.js?v=44b859a9"></script>
+    <script async src="../../js/others/analytics.js?v=44b859a9"></script>
+    <!-- END GENERATED: scripts -->
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -223,7 +214,7 @@
             // per-move changelog on the page itself.
             
             // v0.14: the page is now N per-person lists rather than the
-            // 22-tab desc_data shape. js/tierlist.js still loads because the
+            // 22-tab desc_data shape. js/pages/tier-lists/tierlist.js still loads because the
             // admin preview and the existing editor render the old shape from
             // page_data, which is deliberately left in place.
             if (typeof window.loadCertifiedTierLists === 'function') {

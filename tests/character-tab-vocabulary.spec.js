@@ -1,9 +1,9 @@
 // The character tab vocabulary has exactly one definition.
 //
-// js/character_tabs.js owns the list of character tabs. Before it existed, the
+// js/utility/character_tabs.js owns the list of character tabs. Before it existed, the
 // list was written out by hand at ~20 sites across 13 files - ten JS modules
 // and three HTML pages. Crucially, none of those copies were wrong: each was a
-// deliberately different subset (admin.html has no Ultimate button because
+// deliberately different subset (overseer.html has no Ultimate button because
 // admin-modes.js injects it; gallery is absent everywhere in the editor because
 // it has no editor). That is what made adding a tab dangerous - the correct
 // answer differed per site, and nothing checked it.
@@ -14,14 +14,14 @@
 // drift happened.
 //
 // The test that matters most is the last one: it fails if a tab is added to the
-// vocabulary but its button is missing from admin.html or edit.html, which is
+// vocabulary but its button is missing from overseer.html or edit.html, which is
 // precisely the mistake adding Combos and Starter Guide by hand would have made.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const VOCAB_FILE = path.join(ROOT, 'js', 'character_tabs.js');
+const VOCAB_FILE = path.join(ROOT, 'js', 'utility', 'character_tabs.js');
 
 // Loaded by evaluating the real module against a stand-in window, so this file
 // never holds a second copy of the list it is policing.
@@ -58,8 +58,8 @@ test('no other JS file restates the tab list', () => {
   // worse than a module holding one - it turns a real regression into a green
   // suite, or a vocabulary change into a spurious failure.
   const offenders = [];
-  const jsFiles = fs.readdirSync(path.join(ROOT, 'js'))
-    .filter(f => f.endsWith('.js') && f !== 'character_tabs.js')
+  const jsFiles = require('../scripts/asset-version.js').SHARED_MODULES
+    .filter(f => f !== 'utility/character_tabs.js')
     .map(f => ['js', f]);
   const testFiles = fs.readdirSync(path.join(ROOT, 'tests'))
     .filter(f => f.endsWith('.spec.js') && f !== path.basename(__filename))
@@ -68,7 +68,7 @@ test('no other JS file restates the tab list', () => {
   for (const [dir, name] of jsFiles.concat(testFiles)) {
     let src = fs.readFileSync(path.join(ROOT, dir, name), 'utf8');
 
-    // Object-form lists count too. js/page_boot.js held the tab list as
+    // Object-form lists count too. js/pages/core/page_boot.js held the tab list as
     // [{ id: 'overview' }, { id: 'm1s' }, …] and this scan walked straight
     // past it for months of edits, because it only understood arrays of bare
     // strings. Flattening `{ id: 'x' }` to `'x'` first makes both forms look
@@ -105,7 +105,7 @@ test('no other JS file restates the tab list', () => {
 
   expect(
     offenders,
-    'derive these from window.getCharacterTabIds() instead - see js/character_tabs.js'
+    'derive these from window.getCharacterTabIds() instead - see js/utility/character_tabs.js'
   ).toEqual([]);
 });
 
@@ -136,7 +136,7 @@ test('clicking EVERY tab actually switches to it', async ({ page }) => {
   //
   // Every tab, not a representative one. The first version of this drove only
   // the LAST tab - Gallery - and passed while Combos and Starter Guide were
-  // completely inert: js/page_boot.js registered a hardcoded id list with
+  // completely inert: js/pages/core/page_boot.js registered a hardcoded id list with
   // setupTabs that predated them, so their buttons existed, were drawn, and
   // did nothing when clicked. Gallery was in that stale list, so the one tab
   // this checked was the one tab that could not fail.
@@ -227,24 +227,24 @@ test('a base-only character gets Ultimate between Counterplay and Gallery', asyn
   expect(rendered[ultimateAt + 1]).toBe('gallery');
 });
 
-test('admin.html and edit.html ship a button and a panel for every tab they own', () => {
+test('overseer.html and edit.html ship a button and a panel for every tab they own', () => {
   // THE point of this file. Adding a tab to the vocabulary without adding its
   // markup here gives a tab that exists for readers and is invisible to the
   // reviewer approving it - the same class of bug as v0.15's merged-ticket
   // diff, where a reviewer approved five edits while seeing two.
   //
   // The two surfaces genuinely differ, and the difference is data:
-  //   admin.html - static editable tabs. Ultimate is injected by admin-modes.js.
+  //   overseer.html - static editable tabs. Ultimate is injected by admin-modes.js.
   //   edit.html  - the same plus Ultimate, which it ships hidden and
   //                editor-modes.js un-hides for a base-only character.
-  const adminHtml = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
+  const adminHtml = fs.readFileSync(path.join(ROOT, 'overseer.html'), 'utf8');
   const editHtml = fs.readFileSync(path.join(ROOT, 'edit.html'), 'utf8');
 
   const missing = [];
 
   for (const id of vocab.getCharacterTabIds({ editableOnly: true })) {
-    if (!adminHtml.includes(`id="nav-${id}"`)) missing.push(`admin.html is missing button nav-${id}`);
-    if (!adminHtml.includes(`id="tab-${id}"`)) missing.push(`admin.html is missing panel tab-${id}`);
+    if (!adminHtml.includes(`id="nav-${id}"`)) missing.push(`overseer.html is missing button nav-${id}`);
+    if (!adminHtml.includes(`id="tab-${id}"`)) missing.push(`overseer.html is missing panel tab-${id}`);
   }
 
   for (const id of vocab.getCharacterTabIds({ includeInjected: true, editableOnly: true })) {
@@ -268,7 +268,7 @@ test('admin.html and edit.html ship a button and a panel for every tab they own'
   expect(missing).toEqual([]);
 });
 
-test('admin.html and edit.html draw their strips in vocabulary order, with its labels', () => {
+test('overseer.html and edit.html draw their strips in vocabulary order, with its labels', () => {
   // The test above checks that each button EXISTS, which is all it ever needed
   // to while the two static strips only ever gained tabs. The owner's 2026-09-28
   // reorder (M1s, Skills, Innate before Combos) and the Specials label becoming
@@ -292,7 +292,7 @@ test('admin.html and edit.html draw their strips in vocabulary order, with its l
 
   // Optional tabs included: both strips draw Techs, hidden, for
   // applyOptionalTabVisibility to reveal.
-  const adminHtml = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
+  const adminHtml = fs.readFileSync(path.join(ROOT, 'overseer.html'), 'utf8');
   expect(stripOf(adminHtml, 'preview-tab-nav', 'nav-'))
     .toEqual(expected({ editableOnly: true, includeOptional: true }, t => t.label));
 

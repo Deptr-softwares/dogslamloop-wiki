@@ -1,0 +1,33 @@
+/* Update Log entries and their tables, and site posts: the blog, hotfix notes and
+   the post editor's preview of them.
+   Since v0.4, as part of Layout.css.
+   Touches: js/pages/community/posts.js and js/dashboards/home_widgets.js.
+   Watch: .update-title and .update-log-meta stay in Layout.css, since the
+   Overseer's queue and owner.html use them too.
+   See: docs/home.md */
+
+/* Update Log Tables */
+.update-log-summary { cursor: pointer; list-style: none; outline: none; }
+.update-log-summary::-webkit-details-marker { display: none; }
+.expand-hint { margin-left: auto; font-size: 0.75rem; color: var(--text-muted); transition: transform 0.2s ease; }
+.update-log-item[open] .expand-hint { transform: rotate(180deg); }
+.update-log-body { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 2px dashed var(--border-color); }
+
+.update-table-container { overflow-x: auto; }
+.update-row:hover { background-color: hsl(215, 28%, 17%); }
+
+/* Site posts (blog + hotfix notes, js/pages/community/posts.js). Post bodies reuse the wiki's
+   own .wiki-section block styling, so only the listing card and post header
+   need rules of their own. */
+.post-card { border: 2px solid var(--border-color); background: var(--bg-main); box-shadow: 6px 6px 0px var(--manga-shadow); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+.post-card-link { text-decoration: none; }
+.post-card-title { font-family: var(--font-label), sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+.post-card-link:hover .post-card-title { color: var(--accent-blue); }
+.post-card-meta, .post-meta { display: flex; flex-wrap: wrap; gap: 1rem; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
+.post-card-summary { margin: 0.75rem 0 0 0; color: var(--text-primary); line-height: 1.6; }
+.post-header { border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.post-title { font-family: var(--font-label), sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; }
+.post-error { color: #ef4444; }
+/* Distinguishes a hotfix note from a versioned release entry in the Update
+   Log, where the two are deliberately interleaved. */
+.badge-hotfix { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }

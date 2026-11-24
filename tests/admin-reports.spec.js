@@ -87,7 +87,7 @@ async function openQueue(page, { rows = [], rpcError = null, modError = null, re
         });
     }, { rows, rpcError, modError, resolveError, edits });
 
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     // adminPrompt is the shared modal helper; stubbed so the reason step is
     // driven rather than waiting on a dialog this spec is not testing.
     await page.evaluate(() => {
@@ -108,7 +108,7 @@ test('the queue sits in the same column as the other two, not on its own screen'
     // Three queues in one column on purpose: they are all "things waiting for
     // a reviewer", and splitting them across screens means forgetting one.
     // Each is a tab in that column since v1.2 (the owner's Overseer card).
-    const html = await (await request.get('/admin.html')).text();
+    const html = await (await request.get('/overseer.html')).text();
     await page.goto('about:blank');
 
     const layout = await page.evaluate((html) => {
@@ -246,13 +246,14 @@ test('a missing migration says so rather than showing a raw error', async ({ pag
     await expect(page.locator('#report-queue-container')).toContainText("isn't available yet");
 });
 
-test('reporter notes and post bodies are never parsed as markup', async ({ page }) => {
-    // Both are written by ordinary users and both land in a moderator's
-    // authenticated admin session, which is the worst place on the site to
-    // render untrusted markup.
+test('reporter notes, post bodies and page ids are never parsed as markup', async ({ page }) => {
+    // All three come from rows ordinary users wrote, and all three land in a
+    // moderator's authenticated admin session, which is the worst place on
+    // the site to render untrusted markup.
     await openQueue(page, {
         rows: [report({
             id: 'r1',
+            page_id: '<img src=x>page',
             note: '<img src=x onerror="window.__pwned=1">',
             post_body: '<script>window.__pwned2=1</script>hostile',
             reporter_name: '<b>bold</b>reporter',
@@ -266,6 +267,7 @@ test('reporter notes and post bodies are never parsed as markup', async ({ page 
         bolds: document.querySelectorAll('#report-queue-container b').length,
         scripts: document.querySelectorAll('#report-queue-container script').length,
         quote: document.querySelector('.report-quote').textContent,
+        pageLabel: document.querySelector('.report-page').textContent,
     }));
 
     expect(result.pwned).toBe(false);
@@ -274,6 +276,7 @@ test('reporter notes and post bodies are never parsed as markup', async ({ page 
     expect(result.bolds).toBe(0);
     expect(result.scripts).toBe(0);
     expect(result.quote).toContain('<script>');
+    expect(result.pageLabel).toContain('<IMG SRC=X>PAGE');
 });
 
 test('a reported post shows its images, and only paths that pass the rule', async ({ page }) => {

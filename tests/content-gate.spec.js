@@ -20,7 +20,7 @@ const listed = gate.testMatch.map(pattern => pattern.replace('**/', ''));
 // A Node-side read of a file the regeneration job writes. This is the rule in
 // playwright.content.config.js, as a pattern: a spec that matches it gets its
 // answer from the real content.
-const GENERATED = /(navigation|page-previews|portraits|faq|site_meta|search-index|search-fulltext|collaborators_data|video-stills|banners)\.json|sitemap\.xml|'site_meta\.js'/;
+const GENERATED = /(navigation|page-previews|portraits|faq|site_meta|search-index|search-fulltext|collaborators_data|video-stills|banners)\.json|sitemap\.xml|'site_lookups\.js'/;
 const NODE_READ = /require\(|readFileSync\(|path\.join\(/;
 const readsGenerated = (source) => source.split('\n').some(line => GENERATED.test(line) && NODE_READ.test(line));
 
@@ -41,6 +41,15 @@ test.describe('the content gate', () => {
             .filter(name => readsGenerated(fs.readFileSync(path.join(__dirname, name), 'utf8')))
             .filter(name => !listed.includes(name));
         expect(missing, 'add these to playwright.content.config.js: their result depends on the content').toEqual([]);
+    });
+
+    test('the pattern knows the file the colours are written into', () => {
+        // Specs read it by its quoted name. A renamed file the pattern does
+        // not know would hide them from the check above, and fail nothing.
+        const { SITE_LOOKUPS_JS_PATH } = require('../scripts/fetch-content.js');
+        const name = path.basename(SITE_LOOKUPS_JS_PATH);
+        expect(fs.existsSync(SITE_LOOKUPS_JS_PATH), name).toBe(true);
+        expect(readsGenerated(`const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', '${name}'));`)).toBe(true);
     });
 
     test('the page sweep is in it', () => {

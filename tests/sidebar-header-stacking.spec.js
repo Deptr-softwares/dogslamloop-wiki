@@ -1,7 +1,7 @@
 // Regression coverage for a real pre-existing bug found while converting
 // system pages to the v0.9 router.
 //
-// js/pagebuilder.js's initTabEditorButtons adds the class
+// js/pages/core/page_shell.js's initTabEditorButtons adds the class
 // `sidebar-tab-header-stacked` to the right sidebar's header container so the
 // title stacks above the Edit/History buttons instead of sitting beside them.
 // But the rule that does the stacking is a COMPOUND selector -

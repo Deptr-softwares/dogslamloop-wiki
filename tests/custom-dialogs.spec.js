@@ -120,6 +120,22 @@ test('typing a URL and confirming wraps the selection', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('Enter in the link box does what INSERT does', async ({ page }) => {
+  // What window.prompt gave for free, and what anyone typing a URL reaches for.
+  const { errors } = await workspaceWithText(page);
+  await clickLinkButton(page);
+
+  const input = page.locator('#editor-custom-modal .editor-modal-input');
+  await expect(input).toBeFocused();
+  await input.fill('/systems/writing_guide/');
+  await input.press('Enter');
+
+  await expect(page.locator('#editor-custom-modal')).toBeHidden();
+  await expect(page.locator('#block-list .editor-textarea').first())
+    .toHaveValue(/\[url=\/systems\/writing_guide\/\]guide here\[\/url\]/);
+  expect(errors).toEqual([]);
+});
+
 test('cancelling the link modal inserts nothing', async ({ page }) => {
   const { dialogs } = await workspaceWithText(page);
   const before = await page.evaluate(() =>
@@ -173,6 +189,10 @@ async function inboxFixture(page) {
   const dialogs = [];
   page.on('dialog', d => { dialogs.push(d.type()); d.dismiss(); });
   await page.goto(PUBLIC_PAGE, { waitUntil: 'domcontentloaded' });
+  // The inbox's code loads the first time a box opens (account_boxes.js), the
+  // way openNotificationModal loads it.
+  await page.waitForFunction(() => typeof window.loadSiteFile === 'function', { timeout: 45000 });
+  await page.evaluate(() => window.loadSiteFile('js/utility/account_boxes.js'));
   await page.waitForFunction(() => typeof window.clearAllNotifications === 'function', { timeout: 45000 });
 
   // The inbox modal as renderNotifications builds it, so the function under

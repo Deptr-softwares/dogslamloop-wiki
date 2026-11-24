@@ -1,5 +1,5 @@
 // Regression coverage for the reviewer-workflow redesign's Phase 0 (see
-// project memory / plan: "v0.6 Item 4: admin.html Reviewer Workflow/UI
+// project memory / plan: "v0.6 Item 4: overseer.html Reviewer Workflow/UI
 // Redesign"). Rejecting a submission used to permanently DELETE the
 // pending_revisions row - including ticket_chat, the discussion that led
 // to the decision - leaving no institutional memory of disputed/bad edits
@@ -8,10 +8,10 @@
 const { test, expect } = require('@playwright/test');
 
 test('real bug fix: rejecting a revision preserves the row and its discussion instead of deleting them', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
-    // admin.html's RBAC gate wiped document.body for this logged-out
+    // overseer.html's RBAC gate wiped document.body for this logged-out
     // visitor - reconstruct just what rejectCurrentPreview actually reads.
     document.body.innerHTML = '';
 
@@ -84,7 +84,7 @@ test('real bug fix: rejecting a revision preserves the row and its discussion in
 });
 
 test('self-withdraw also becomes a status change, not a delete', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
     document.body.innerHTML = '';

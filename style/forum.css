@@ -1,5 +1,7 @@
-/* The Forum (v1.0 batch 2): forum.html only. A post's conversation is the
-   character-thread component and is styled by discussions.css. */
+/* The Forum's list and post page (forum.html). A post's conversation is the thread
+   component, styled by discussions.css.
+   Since v1.0.
+   See: docs/discussions.md */
 
 .forum-header {
     display: flex;
@@ -42,8 +44,8 @@
     margin-bottom: 0.6rem;
 }
 
-/* Each category's colour (owner, 2026-10-23), worn by its filter button and
-   by every post's tag. Blue is a fixed value, as .btn-sys-blue's is. */
+/* Each category's colour, on its filter button and on every post's tag. Blue is a
+   fixed value, as .btn-sys-blue's is. */
 .forum-cat-question    { --cat: hsl(213, 94%, 68%); }
 .forum-cat-guide       { --cat: #22c55e; }
 .forum-cat-discussion  { --cat: #eab308; }
@@ -196,9 +198,8 @@
     font-weight: bold;
 }
 
-/* Batch 3: the starter's EDIT, then the title and category in a row, as in
-   NEW POST. Both set display (.btn-sys is inline-flex), so [hidden] is
-   restated for each. */
+/* The starter's EDIT, then the title and category in a row, as in NEW POST. Both
+   set display (.btn-sys is inline-flex), so [hidden] is restated for each. */
 .forum-edit-btn {
     align-self: flex-start;
 }

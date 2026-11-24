@@ -22,12 +22,12 @@
 // The scope is new; the data is not. page_data holds content written long
 // before it existed, and two shapes make a reorder ambiguous - an entry with no
 // identity, and two entries sharing one (combo group titles are contributor
-// text, and js/description.js already notes two groups may share a title).
+// text, and js/pages/core/page_render.js already notes two groups may share a title).
 // Both ends refuse those rather than guessing, because losing a reorder is
 // visible and repeatable while shuffling somebody's page is neither.
 const { test, expect } = require('@playwright/test');
 
-// applyDeltaToData is pure and lives in site_utils.js, so these run against the
+// applyDeltaToData is pure and lives in site_data.js, so these run against the
 // real function in a real page rather than a reimplementation of it.
 async function apply(page, baseDesc, baseFrame, scope, key, payload) {
   return page.evaluate(([d, f, s, k, p]) =>
@@ -35,7 +35,7 @@ async function apply(page, baseDesc, baseFrame, scope, key, payload) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof window.applyDeltaToData === 'function');
 });
 

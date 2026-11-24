@@ -1,4 +1,4 @@
-// Coverage for v0.8's mobile admin rehaul. admin.html shares edit.html's
+// Coverage for v0.8's mobile admin rehaul. overseer.html shares edit.html's
 // two-pane .editor-layout shell, and several parts of the reviewer workflow
 // had never had a mobile rule written for them at all - confirmed on a real
 // 375px viewport before these fixes: the ticket workspace's two columns
@@ -6,8 +6,8 @@
 // toggle bar in v0.6) hung off the right edge of the screen unreachable, and
 // the header burned four full-width button rows before any queue content.
 //
-// admin.html's RBAC gate replaces document.body.innerHTML wholesale on auth
-// failure (js/admin-core.js kickUser), so every test here has to mock a valid
+// overseer.html's RBAC gate replaces document.body.innerHTML wholesale on auth
+// failure (js/overseer/admin-core.js kickUser), so every test here has to mock a valid
 // staff session first or the markup under test is destroyed before it can be
 // measured - same client-patching approach as admin-rbac-retry.spec.js.
 const { test, expect } = require('@playwright/test');
@@ -63,7 +63,7 @@ async function mockStaffSession(page) {
 async function gotoAdminMobile(page) {
   await mockStaffSession(page);
   await page.setViewportSize(MOBILE);
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await expect(page.locator('#queue-container')).toBeAttached();
 }
 
@@ -212,7 +212,7 @@ test('the mobile menu rows have no cut corner: their top-right corner takes a cl
 test('desktop header is unchanged: no MENU button, nav links visible directly', async ({ page }) => {
   await mockStaffSession(page);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   await expect(page.locator('#admin-mobile-menu-toggle')).toBeHidden();
   await expect(page.locator('#admin-secondary-actions')).toBeVisible();

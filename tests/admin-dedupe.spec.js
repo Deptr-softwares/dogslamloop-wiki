@@ -12,15 +12,15 @@
 // (a real classList bug fix - see below) works in isolation.
 const { test, expect } = require('@playwright/test');
 
-test('admin.html: kicks logged-out visitors to the access-denied screen with real CSS backing', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+test('overseer.html: kicks logged-out visitors to the access-denied screen with real CSS backing', async ({ page }) => {
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const screen = page.locator('.access-denied-screen');
   await expect(screen).toBeVisible();
   expect(await screen.evaluate(el => getComputedStyle(el).display)).toBe('flex');
 });
 
-test('admin.html: queue status badges render with distinct classes and real colors, no inline style', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+test('overseer.html: queue status badges render with distinct classes and real colors, no inline style', async ({ page }) => {
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const result = await page.evaluate(() => {
     const container = document.createElement('div');
     container.innerHTML = `
@@ -51,7 +51,7 @@ test('admin.html: queue status badges render with distinct classes and real colo
 });
 
 test('#preview-content-area.active toggles opacity/pointer-events via classList (real bug fix: previously two separate inline style.opacity assignments, now one class)', async ({ page }) => {
-  // admin.html's DOMContentLoaded RBAC gate wipes document.body for a
+  // overseer.html's DOMContentLoaded RBAC gate wipes document.body for a
   // logged-out visitor (kickUser), so build a synthetic element with the
   // same id instead of relying on the page's own (now-gone) markup - this
   // still exercises the real CSS rule, just not the real admin.js flow.
@@ -59,7 +59,7 @@ test('#preview-content-area.active toggles opacity/pointer-events via classList 
   // giving up, so wait for the real access-denied screen first - otherwise
   // kickUser()'s innerHTML wipe can land mid-test and destroy this synthetic
   // element out from under the assertions below.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await page.locator('.access-denied-screen').waitFor({ state: 'visible', timeout: 3000 });
   const states = await page.evaluate(() => {
     const el = document.createElement('div');
@@ -82,8 +82,8 @@ test('#preview-content-area.active toggles opacity/pointer-events via classList 
   expect(states.enabled.pointerEvents).toBe('auto');
 });
 
-test('dynamically-created system-nav-btn (js/admin-diff.js updateAdminSidebar) gets its styling from a class, not inline', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+test('dynamically-created system-nav-btn (js/overseer/admin-diff.js updateAdminSidebar) gets its styling from a class, not inline', async ({ page }) => {
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   // Drives the real generator rather than a hand-built stand-in. These
   // buttons used to be bare <div class="nav-btn system-nav-btn"> styled by a
@@ -130,11 +130,11 @@ test('dynamically-created system-nav-btn (js/admin-diff.js updateAdminSidebar) g
   expect(result.xss).toBe(false);
 });
 
-test('real bug fix: window.escapeHtml (js/admin-core.js) neutralizes markup instead of letting it execute - contributor-controlled strings (author name, ticket chat, QA metadata, raw diff JSON) all pass through it before reaching innerHTML', async ({ page }) => {
+test('real bug fix: window.escapeHtml (js/overseer/admin-core.js) neutralizes markup instead of letting it execute - contributor-controlled strings (author name, ticket chat, QA metadata, raw diff JSON) all pass through it before reaching innerHTML', async ({ page }) => {
   // escapeHtml itself is defined at admin-core.js's top level, not inside
   // the RBAC-gated DOMContentLoaded handler, so it's callable even for a
   // logged-out visitor.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   const result = await page.evaluate(() => {
     const payload = `<img src=x onerror="window.__xssFired = true">`;
     const container = document.createElement('div');

@@ -265,7 +265,7 @@ test.describe('the board', () => {
     // navigation.json has no `image` field on any character - so the src was
     // never set and the name underneath, which is the deliberate 404 fallback,
     // was all anyone ever saw. The portraits are in data/portraits.json, which
-    // js/certified-tier-lists.js was already reading a few lines from an
+    // js/pages/tier-lists/certified-tier-lists.js was already reading a few lines from an
     // otherwise identical loadRoster.
     test('a character with a portrait renders it, and it actually loads', async ({ page }) => {
         await mockTool(page, { rankings: [] });

@@ -6,7 +6,7 @@
 // description. Hovering over the badges will give its full description and
 // its name". The owner's pick from the mockups (2026-11-18): under the move's
 // name. Their 26 accolades, in their order, are window.ACCOLADES
-// (js/framedata.js); a move stores the ids.
+// (js/pages/core/skill_card.js); a move stores the ids.
 const { test, expect } = require('@playwright/test');
 
 const TRACK = {
@@ -302,7 +302,7 @@ test("ticking accolades stores them in the owner's order, an opposite unticks, a
 
 // --- THE OVERSEER ---
 
-// admin.html as an admin, with one submission to a Skill Card and the live page
+// overseer.html as an admin, with one submission to a Skill Card and the live page
 // answered here (a trimmed copy of tests/side-by-side-diff.spec.js's).
 async function reviewMoveEdit(page, live, next) {
     const row = {
@@ -350,7 +350,7 @@ async function reviewMoveEdit(page, live, next) {
         });
     }, { row, frame });
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#queue-container .admin-review-btn').first()).toBeVisible({ timeout: 15000 });
     await page.locator('#queue-container .admin-review-btn').first().click();
 }

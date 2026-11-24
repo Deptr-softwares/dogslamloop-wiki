@@ -17,7 +17,7 @@
  * own script are always deployed together". That holds in the repository and
  * not in the cache - HTML is max-age=600 and js/ is max-age=3600 - and it cost
  * three releases, the worst being v0.16, whose roster changes were invisible on
- * the live site because js/pagebuilder.js was unstamped. Every module is
+ * the live site because js/pages/core/page_shell.js was unstamped. Every module is
  * stamped now, and the list is discovered rather than hand-kept. See
  * scripts/asset-version.js for why they share one version.
  *
@@ -63,7 +63,7 @@ function main() {
     for (const file of collectHtml(ROOT)) {
         const before = fs.readFileSync(file, 'utf8');
         if (before.includes(GENERATED_MARKER)) continue;
-        if (!/src="[^"]*js\/site_utils\.js/.test(before)) continue;
+        if (!/src="[^"]*js\/utility\/site_utils\.js/.test(before)) continue;
 
         checked++;
         const after = stampSharedAssets(before, version);

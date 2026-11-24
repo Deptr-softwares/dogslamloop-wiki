@@ -237,7 +237,7 @@ test('every IF NOT guard is a function that can never answer NULL', () => {
 //
 // CREATE FUNCTION grants EXECUTE to PUBLIC. Every new RPC is therefore
 // callable by `anon` from the moment it exists, over the public REST endpoint,
-// with the anon key that ships in js/site_utils.js. On 2026-08-07 that was not
+// with the anon key that ships in js/utility/site_utils.js. On 2026-08-07 that was not
 // theoretical: assign_role_by_email could be called by anybody, and it
 // assigned roles.
 //

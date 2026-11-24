@@ -6,22 +6,22 @@
     <title>Update Log | Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
     
-    <!-- THE NEW MODULAR DESIGN SYSTEM -->
-    <link rel="stylesheet" href="../../style/Common.css">
-    <link rel="stylesheet" href="../../style/Layout.css">
-    <link rel="stylesheet" href="../../style/Cards.css">
-    <link rel="stylesheet" href="../../style/Buttons.css">
-    <link rel="stylesheet" href="../../style/Badges.css">
-    <link rel="stylesheet" href="../../style/ColorCoding.css">
-    <link rel="stylesheet" href="../../style/Alerts.css">
-    <link rel="stylesheet" href="../../style/Modals.css">
-    <!-- Forms.css defines .editor-input, which the auth and profile modals
-         injected by js/site_utils.js both use. Without it the login form and
-         the profile fields render unstyled. -->
-    <link rel="stylesheet" href="../../style/Forms.css">
-    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
+    <link rel="stylesheet" href="../../style/Common.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Layout.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Blocks.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/posts.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Cards.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Buttons.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Badges.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/ColorCoding.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Alerts.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Modals.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/Forms.css?v=44b859a9">
+    <link rel="stylesheet" href="../../style/look-classic.css?v=44b859a9">
+    <!-- END GENERATED: styles -->
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -82,7 +82,7 @@
 
             <div id="character-alerts-container" class="character-alerts-container"></div>
 
-            <!-- Hotfix notes (js/posts.js, site_posts kind='hotfix'): small
+            <!-- Hotfix notes (js/pages/community/posts.js, site_posts kind='hotfix'): small
                  site changes that don't warrant a version bump. Above the
                  versioned entries because they're the most recent news;
                  renders nothing at all when there are none. -->
@@ -107,21 +107,23 @@
 
     </div>
 
-    <!-- V0.4 SYSTEM SCRIPTS -->
+    <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="../../js/character_tabs.js?v=817fcedb"></script>
-    <script src="../../js/input_slots.js?v=817fcedb"></script>
-    <script src="../../js/site_utils.js?v=817fcedb"></script>
-    <script src="../../js/site_meta.js?v=817fcedb"></script>
-    <script src="../../js/pagebuilder.js?v=817fcedb"></script>
-    <script src="../../js/search.js?v=817fcedb"></script>
-    <script src="../../js/home_widgets.js?v=817fcedb"></script>
-    <!-- description.js + internalstyling.js are needed here (unlike on the
-         homepage) because hotfix notes render their full block content. -->
-    <script src="../../js/description.js?v=817fcedb"></script>
-    <script src="../../js/internalstyling.js?v=817fcedb"></script>
-    <script src="../../js/posts.js?v=817fcedb"></script>
-    <script async src="../../js/analytics.js?v=817fcedb"></script>
+    <script src="../../js/utility/character_tabs.js?v=44b859a9"></script>
+    <script src="../../js/utility/input_slots.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_utils.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_data.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_media.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_account.js?v=44b859a9"></script>
+    <script src="../../js/utility/site_lookups.js?v=44b859a9"></script>
+    <script src="../../js/pages/core/page_shell.js?v=44b859a9"></script>
+    <script src="../../js/utility/search.js?v=44b859a9"></script>
+    <script src="../../js/dashboards/home_widgets.js?v=44b859a9"></script>
+    <script src="../../js/pages/core/page_render.js?v=44b859a9"></script>
+    <script src="../../js/pages/core/format_tags.js?v=44b859a9"></script>
+    <script src="../../js/pages/community/posts.js?v=44b859a9"></script>
+    <script async src="../../js/others/analytics.js?v=44b859a9"></script>
+    <!-- END GENERATED: scripts -->
 
     <!-- DYNAMIC FETCH & RENDER SCRIPT -->
     <script>

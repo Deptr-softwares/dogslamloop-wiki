@@ -9,14 +9,14 @@
 // So: a capability, not a role. user_roles has UNIQUE(user_id) precisely
 // because a second row broke get_my_role() for that user everywhere.
 //
-// The most important test in this file is the last one. js/pagebuilder.js
+// The most important test in this file is the last one. js/pages/core/page_shell.js
 // carries a comment about the time these two gates drifted apart and produced
 // an OVERSEER button that dead-ended at ACCESS DENIED; they are asserted here
 // against the same inputs so the next drift fails a test instead of a person.
 const { test, expect } = require('@playwright/test');
 
 // Chainable and directly awaitable, matching real supabase-js: admin-core.js
-// awaits .eq(...) while pagebuilder.js chains .single() onto it.
+// awaits .eq(...) while page_shell.js chains .single() onto it.
 async function mockRole(page, roleRow, expertPages = []) {
     await page.addInitScript(({ roleRow, expertPages }) => {
         Object.defineProperty(window, 'supabase', {
@@ -85,7 +85,7 @@ const EXPERT = null;
 
 async function openAdmin(page, roleRow, expertPages = []) {
     await mockRole(page, roleRow, expertPages);
-    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
 }
 
 const denied = (page) => page.locator('.access-denied-screen');
@@ -197,7 +197,7 @@ test('a role with neither review rights nor the capability is still denied', asy
 //
 // v0.17 gave experts review rights in SQL - the queue policies read
 // can_review_page(), which is is_staff() OR an expert row. Neither gate here
-// nor in pagebuilder.js knew the word, so the badge rendered and the door was
+// nor in page_shell.js knew the word, so the badge rendered and the door was
 // shut. Exactly the drift the last test in this file exists to catch, in the
 // one direction it was not yet asked about.
 
@@ -262,8 +262,8 @@ test('a signed-in nobody with no expert pages is still denied', async ({ page })
 });
 
 test('the OVERSEER button and the gate agree about who may enter', async ({ page }) => {
-    // The drift this project has already paid for once: pagebuilder.js listed
-    // roles admin.html did not accept, so those users got a working-looking
+    // The drift this project has already paid for once: page_shell.js listed
+    // roles overseer.html did not accept, so those users got a working-looking
     // button that dead-ended at ACCESS DENIED.
     //
     // Driven through both real code paths against the same four inputs rather
@@ -292,10 +292,10 @@ test('the OVERSEER button and the gate agree about who may enter', async ({ page
         ).toBe(expected);
 
         // ...and the gate itself.
-        await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+        await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
         await expect.poll(async () =>
             await page.evaluate(() => !document.querySelector('.access-denied-screen')),
-            { message: `${label}: admin.html admits them` }
+            { message: `${label}: overseer.html admits them` }
         ).toBe(expected);
     }
 });

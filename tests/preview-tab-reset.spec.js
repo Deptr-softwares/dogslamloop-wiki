@@ -11,7 +11,7 @@
 // the reviewer is.
 //
 // The cause is the reset at the top of switchVersionView's pending/live branch
-// (js/admin-preview.js). It hides every tab and un-hides the default, which its
+// (js/overseer/admin-preview.js). It hides every tab and un-hides the default, which its
 // own comment describes as "restoring the same default a fresh revision load
 // already starts with" - and never tells the strip. Techs is caught by the same
 // loop, being `editable` in the registry, which is why it can never be
@@ -27,7 +27,7 @@ const { test, expect } = require('@playwright/test');
 // is half of what this bug broke.
 const VOCAB = (() => {
   const src = require('fs').readFileSync(
-    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+    require('path').join(__dirname, '..', 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;
@@ -38,8 +38,8 @@ const DEFAULT_TAB = VOCAB.getDefaultCharacterTabId();
 
 const para = (text) => ({ type: 'paragraph', content: text });
 
-// Boots admin.html as a real admin, so the REAL tab registration in
-// js/admin-core.js runs. Same shape as tests/moderator-access.spec.js.
+// Boots overseer.html as a real admin, so the REAL tab registration in
+// js/overseer/admin-core.js runs. Same shape as tests/moderator-access.spec.js.
 async function mockAdmin(page) {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'supabase', {
@@ -90,11 +90,11 @@ function seedCharacter(marker) {
   };
 }
 
-// admin.html's RBAC gate replaces the body for a logged-out visitor, so the
+// overseer.html's RBAC gate replaces the body for a logged-out visitor, so the
 // preview markup is rebuilt after it runs, with the ids the real page uses.
 // Same approach as tests/admin-preview-states.spec.js.
 async function openPreviewShell(page) {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   await page.waitForSelector('.access-denied-screen');
 
   await page.evaluate(({ tabs, defaultTab }) => {
@@ -327,12 +327,12 @@ test('a reviewer who never left the default tab still lands on it', async ({ pag
 //     hides ids in its own group - hence "renders alongside", and
 //   - nothing ever removed .active from it - hence "always white".
 //
-// js/page_boot.js already fixed exactly this on the reader page and its
+// js/pages/core/page_boot.js already fixed exactly this on the reader page and its
 // comment says so ("setupTabs never heard about them, so clicking did nothing
 // at all"). The admin surface was missed.
 async function bootAdminWithTechsOn(page) {
   await mockAdmin(page);
-  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
 
   // The real registration having run is the precondition, not the claim. Read
   // as a property rather than an attribute selector - the groupKey contains a

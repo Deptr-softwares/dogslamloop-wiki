@@ -1,16 +1,16 @@
 // Regression coverage for a real layout bug reported live by the owner
-// (from an actual diff-view screenshot on admin.html): the revision-
+// (from an actual diff-view screenshot on overseer.html): the revision-
 // comparison title, the "Suggested Edit Location" label, and the diff
 // content itself all rendered on the same row instead of stacking
 // vertically. Root cause: the diff container's className copied a
-// class pairing from js/description.js's unrelated system-page tab
+// class pairing from js/pages/core/page_render.js's unrelated system-page tab
 // containers ('tab-content wiki-tab-content') - .wiki-tab-content
 // carries a display:flex;flex-wrap:wrap rule (style/Layout.css) that
 // was never wanted here.
 const { test, expect } = require('@playwright/test');
 
 test('real bug fix: diff view container stacks vertically (display:block), not wiki-tab-content flex-wrap', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
     document.body.innerHTML = '<div class="main-content-area"></div>';

@@ -7,7 +7,7 @@ const { test, expect } = require('@playwright/test');
 // Before this, the Terms were linked from the footer alone, and courts often
 // hold that terms shown only that way bind nobody: they look for a notice
 // where the person signs in. Every sign-in on the site goes through this one
-// modal (js/site_utils.js), whichever of the three providers or the email
+// modal (js/utility/site_utils.js), whichever of the three providers or the email
 // form is used, so the notice has to sit above all of them and in both tabs.
 //
 // The modal is built on every page from one template, at every folder depth,

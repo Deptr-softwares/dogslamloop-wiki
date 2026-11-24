@@ -1,8 +1,10 @@
-/* =========================================
-   DESIGN SYSTEM: ALERTS & CALLOUTS (Alerts.css)
-   ========================================= */
+/* Alerts and callouts: a page's banner alerts (WIP, Early Access, missing media),
+   the inline callout buttons Blocks draw, and the banner on a page 404.html rescues.
+   Since v0.4.
+   Touches: --callout-color, set per callout by page_render.js.
+   See: docs/looks.md */
 
-/* --- 1. WIKI BANNER ALERTS --- */
+/* Banner alerts */
 .character-alerts-container {
     display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;
 }
@@ -39,7 +41,7 @@
 .alert-subjective { border-color: hsl(180, 100%, 40%); } 
 .alert-outdated { border-color: hsl(215, 8%, 47%); } 
 
-/* --- 2. INLINE TEXT CALLOUTS --- */
+/* Inline callouts */
 
 .wiki-callout-wrapper { margin: 0.75rem 0; }
 
@@ -50,7 +52,7 @@
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
     
-    /* Dynamically grabs the color we injected from description.js! */
+    /* --callout-color comes from page_render.js, per callout. */
     border-left: 4px solid var(--callout-color, var(--accent-blue));
     color: var(--text-white);
     
@@ -64,7 +66,6 @@
     transition: all 0.15s ease;
 }
 
-/* Hover Physics */
 .inline-callout-btn:hover {
     border-color: var(--callout-color, var(--accent-blue));
     transform: translate(-2px, -2px);
@@ -75,11 +76,8 @@
 .inline-callout-btn .callout-icon {
     font-size: 0.85rem;
 }
-/* The banner on a page rescued by js/page_rescue.js - one that exists in the
-   registry but has no generated file yet, so it is being rendered by 404.html.
-   Says so plainly rather than letting the page pass for published: the
-   response is still HTTP 404, so nothing will index or unfurl it until the
-   next regeneration run. */
+/* The rescue banner (page_rescue.js): the page is still an HTTP 404, so nothing
+   indexes it until its stub is generated. */
 .rescue-banner {
     padding: 0.75rem 1rem;
     margin-bottom: 1.5rem;

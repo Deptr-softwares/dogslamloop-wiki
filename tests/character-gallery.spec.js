@@ -1,7 +1,7 @@
 // The character Gallery tab (v0.18 F9).
 //
 // The tab existed from v0.12 to v0.18 as a registry placeholder that rendered
-// nothing, and js/page_router.js said so in a comment. Making it real is one
+// nothing, and js/pages/core/page_router.js said so in a comment. Making it real is one
 // registry entry plus a renderer and an editor; everything between - submit,
 // merge, diff, apply - is the keyed-section pipeline, which is exactly the
 // claim this file has to check rather than trust.
@@ -24,7 +24,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const vocab = (() => {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;
@@ -72,7 +72,7 @@ test('the tab is editable, which is what puts it in both strips', () => {
 // --- APPLYING AN APPROVED EDIT (the Starter Guide check) ---
 
 test('an approved gallery delta actually writes, and writes to the right field', async ({ page }) => {
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+  await page.goto('/history.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate((items) => {
     const base = { gallery: [items[0]] };
@@ -299,7 +299,7 @@ test('the diff shows what changed about the media, not just the name', async ({ 
   // show the reviewer the name and two empty arrays, which is precisely how
   // the Combo List reviewed as "no change" while applying perfectly. The
   // section declares wholeEntryDiff to avoid it.
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const out = await page.evaluate(async (items) => {
     document.body.innerHTML = `<div class="main-content-area"></div>`;

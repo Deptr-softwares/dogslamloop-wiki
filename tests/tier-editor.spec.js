@@ -278,7 +278,7 @@ test('the owner may edit anyone\'s list', async ({ page }) => {
     // JUDGEMENT CALL, and a flaggable one: this stays with the OWNER rather
     // than following media deletion down to the admin. The rule is "which page
     // does the tool live on", and tier-editor.html is neither owner.html nor
-    // admin.html - so it falls back to the safer default, which is that the new
+    // overseer.html - so it falls back to the safer default, which is that the new
     // role gains nothing nobody granted it. The owner keeps exactly what they
     // had; only the admin is excluded. Mirrors save_tier_list(), which is
     // is_owner() as of 20260827000003, and assign_tier_list() beside it.
@@ -525,7 +525,7 @@ test('the preview uses the live page markup, not a second design', async ({ page
 
     const host = page.locator('#tier-preview-docs');
 
-    // The classes are the ones js/certified-tier-lists.js renders. A preview
+    // The classes are the ones js/pages/tier-lists/certified-tier-lists.js renders. A preview
     // with its own layout is not a preview - the first version of this had a
     // Finger-Paint card heading where the real page has a small mono label on
     // an accent border.
@@ -1005,7 +1005,7 @@ test('the editor board mirrors the icon treatment the reader will get', async ({
     await expect(page.locator('.tier-portrait').first().locator('.tier-portrait-name')).toBeHidden();
 });
 
-// This page loads the block builder WITHOUT js/editor-core.js, so there is no
+// This page loads the block builder WITHOUT js/editor/core/editor-core.js, so there is no
 // window.customConfirm here, and CLEAR ALL threw "window.customConfirm is not
 // a function" and cleared nothing (found 2026-10-18). Every delete now asks
 // through window.confirmDelete, which falls back to the browser's own confirm

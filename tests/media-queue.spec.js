@@ -82,7 +82,7 @@ async function openQueue(page, config = {}) {
         });
     }, { files: FILES, moderation: MODERATION, usage: USAGE, ...config });
 
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
     // The Media Queue is a tab since v1.2, and opening it is what loads it.
     await page.locator('[data-queue-tab="media"]').click();
     await expect(page.locator('#media-queue-container .media-queue-row').first()).toBeVisible();

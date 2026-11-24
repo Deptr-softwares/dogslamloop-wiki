@@ -1,15 +1,18 @@
-/* --- REVISION TAB STRIP ---
-   The reviewer used to navigate a revision through a vertical list in the
-   left sidebar, which meant scrolling the sidebar to change section while
-   reading the content. This is the same top strip the live character and
-   system pages use, in the same place, so reviewing a revision navigates
-   like reading the page it will become.
+/* The Overseer and the owner tools: the queues and their cards, the preview pane
+   and its tab strip, the ticket, Page History, the merge compiler, the tool
+   groups and their forms, and both pages' phone layout.
+   Since v0.4.
+   Touches: overseer.html, owner.html and post-editor.html load it, after
+   editor.css, whose .editor-layout, .editor-workspace and .live-preview-pane it
+   adjusts.
+   Watch: .admin-tool-card, .editor-input and .admin-tool-btn are shared by both
+   pages, so an owner-only rule is scoped to .owner-tool-area. A class that sets
+   display restates [hidden]. Inside the 900px block a rule is prefixed with body
+   where its base rule comes later in this file, so specificity decides, not order.
+   See: docs/overseer.md, docs/owner-tools.md */
 
-   Deliberately its own class rather than reusing .character-nav: that one
-   is scoped to .character-header on purpose (see style/Layout.css) because
-   history.html and the tier list reuse it with a different margin
-   convention. Nothing here touches .btn-manga itself, which is shared by
-   the roster filters, the systems directory and the tier list. */
+/* The revision's tab strip: the same top strip as the page it will become. Its
+   own class, since .character-nav is scoped to .character-header in Layout.css. */
 .admin-preview-tab-nav {
     display: flex;
     flex-wrap: wrap;
@@ -20,11 +23,7 @@
     border-bottom: 2px solid var(--accent-blue);
 }
 
-/* Marks the tabs a revision actually changed. Before, that information
-   lived only in a dismissible "Modifications Detected" popup listing tab
-   names as text - which a reviewer had to hold in their head while
-   navigating. It matters most on a merged ticket, where several tabs are
-   touched at once and there is no single target to jump to. */
+/* The tabs the revision changed. */
 .admin-preview-tab-nav .btn-manga.tab-changed .btn-manga-text::after {
     content: '';
     display: inline-block;
@@ -40,20 +39,14 @@
     border-color: var(--accent-blue);
 }
 
-/* --- CHARACTER STATE TOGGLE ---
-   The same .character-mode-chip the live page and the editor use, so a
-   reviewer picks a state with the control they already know. Only the
-   spacing and the changed-marker are admin-specific, and both are scoped to
-   #preview-mode-bar: .character-mode-chip is shared with js/character_modes.js
-   and js/editor-modes.js, and neither of those wants a review marker. */
+/* The character state toggle: the live page's .character-mode-chip, with the
+   spacing and the marker scoped to #preview-mode-bar. */
 .admin-preview-mode-bar {
     margin-top: 0;
     margin-bottom: 0.9rem;
 }
 
-/* Which states the revision touched. Deliberately the same blue dot the tab
-   strip uses for changed tabs - it is the same claim one level up, and a
-   second visual language for it would just be something else to learn. */
+/* The states the revision touched: the same blue dot as a changed tab. */
 #preview-mode-bar .character-mode-chip.tab-changed {
     border-color: var(--accent-blue);
 }
@@ -69,13 +62,7 @@
     background: var(--accent-blue);
 }
 
-/* The vertical .nav-btn rules that used to sit here are gone with the
-   sidebar tab list they styled - both the static character tabs and the
-   dynamically-created system ones now render in .admin-preview-tab-nav
-   above. The sidebar keeps the "On This Page" table of contents, which is
-   a different thing: headings within the tab you are already reading. */
-
-/* --- SIDEBAR TABLE OF CONTENTS --- */
+/* The sidebar's table of contents */
 #preview-nav-sidebar .sidebar-nav-title {
     font-family: var(--font-label), sans-serif;
     font-size: 0.7rem; 
@@ -113,10 +100,8 @@
 }
 
 
-/* --- LAYOUT OVERRIDES --- */
 .admin-body { margin: 0; overflow: hidden; background-color: #050505; }
 
-/* The Sidebar */
 .admin-sidebar { 
     flex: 0 0 320px; 
     width: 320px; 
@@ -126,30 +111,13 @@
     border-right: 1px solid #222;
 }
 
-/* --- OWNER TOOLS PAGE (owner.html, single-pane layout, js/owner.js) --- */
-/* .editor-workspace (editor.css) is built to be one of two flex children
-   alongside a .live-preview-pane sibling and defaults to a 30% width for
-   that reason - owner.html has no second pane, so left alone it would sit
-   in a narrow column with 70% of the screen empty. This override makes it
-   the page's only content, centered with a readable max width instead. */
-/* overflow-y is load-bearing: .editor-workspace (editor.css) sets
-   overflow: hidden because it expects an inner scroll region, and these
-   single-pane pages have none - so any content taller than the viewport was
-   simply unreachable. Harmless on owner.html, which is short, but it made
-   post-editor.html's Add Block button impossible to scroll to. */
-/* v0.11 widened this from 640px. That cap dated from when owner.html had two
-   tools; at ten it left most of a desktop screen empty while the forms inside
-   were cramped. */
+/* The owner tools page: one pane */
+/* .editor-workspace is 30% wide for a two-pane page; owner.html has one pane. */
+/* .editor-workspace hides overflow for an inner scroll region these pages lack. */
 .owner-workspace { width: 100%; max-width: 1100px; margin: 0 auto; border-right: none; overflow-y: auto; }
 
-/* --- OWNER TOOL GROUPS ---
-   Ten tools in one scroll had no way to find anything, and the list grows
-   every version. These four groups are the navigation.
-
-   Everything below is scoped to .owner-tool-area on purpose: .admin-tool-card,
-   .editor-input and .admin-tool-btn are all shared with admin.html, and this
-   project has been bitten before by changing a shared class for one consumer.
-   Nothing here can reach the reviewer workflow. */
+/* The owner tool groups, all scoped to .owner-tool-area: the cards, inputs and
+   buttons are shared with overseer.html. */
 .owner-nav {
     display: flex;
     flex-wrap: wrap;
@@ -165,7 +133,7 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: 0.6rem 1.1rem;
-    min-height: 44px;                    /* matches the mobile touch-target floor */
+    min-height: 44px;                    /* the phone's touch-target floor */
     color: var(--text-muted);
     background: var(--bg-main);
     border: 2px solid var(--border-color);
@@ -178,7 +146,7 @@
     border-color: var(--accent-blue);
     box-shadow: 3px 3px 0px var(--manga-shadow);
 }
-/* Destructive tools should not look like editing tools even in the nav. */
+/* A destructive tool does not look like an editing tool, even in the nav. */
 .owner-nav-btn-danger.active { border-color: #ef4444; }
 .owner-nav-btn-danger:hover { border-color: #ef4444; }
 
@@ -188,13 +156,11 @@
     gap: 1.25rem;
     align-items: start;
 }
-/* 0-2-0 beats the UA stylesheet's [hidden] rule, which display: grid above
-   would otherwise override - leaving every group visible at once. */
 .owner-group[hidden] { display: none; }
 
 .owner-group[data-group="danger"] .admin-tool-card { border-left: 4px solid #ef4444; }
 
-/* Consistent forms: one column, full-width controls, no stray results box. */
+/* One column, full-width controls. */
 .owner-tool-area .admin-tool-card { display: flex; flex-direction: column; gap: 0.75rem; }
 .owner-tool-area .editor-input,
 .owner-tool-area .editor-textarea,
@@ -202,17 +168,14 @@
 .owner-tool-area .admin-tool-results:empty { display: none; }
 .owner-tool-area .personnel-add { display: flex; flex-direction: column; gap: 0.5rem; }
 
-/* Page Details flags. Checkbox and label on one line, wrapping as a group so
-   a narrow card stacks them rather than clipping the labels. */
+/* Checkbox and label on one line, wrapping as a group on a narrow card. */
 .page-meta-flags { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.5rem 0; }
 .page-meta-flag { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
 .page-meta-flag input { width: auto; margin: 0; }
 
-/* post-editor.html is two-pane (form+blocks | live preview) but its form
-   needs more room than the 30% .editor-workspace default. */
+/* The Post editor's form needs more than the 30% default. */
 .post-editor-workspace { width: 42%; overflow-y: auto; }
 
-/* Main Content Area */
 .live-preview-pane.admin-main-pane {
     flex: 1;
     min-width: 0;
@@ -225,51 +188,20 @@
     align-items: stretch !important;
 }
 
-/* This compound selector's own display:flex!important above (specificity
-   0-2-0) otherwise always wins over editor.css's plain .live-preview-pane
-   mobile-hide rule (0-1-0, also !important) - !important ties are broken by
-   specificity, not just source order, so the more specific admin-only rule
-   was silently keeping the preview pane visible at every width and made
-   the mobile show/hide toggle a no-op regardless of whether it was wired
-   up. Matching this rule's own specificity (repeating the compound
-   selector) is what actually lets the toggle take effect on mobile. */
+/* The compound selector again: the base rule above is 0-2-0 !important, so
+   editor.css's plain mobile hide (0-1-0) loses unless matched. */
 @media (max-width: 900px) {
-    /* .admin-sidebar's flex: 0 0 320px (below) is a fixed-width rule for
-       desktop's row-direction .editor-layout - flex-basis always tracks the
-       main axis, and editor.css's own mobile rule flips .editor-layout to
-       flex-direction: column, so that same 320px silently got reinterpreted
-       as a HEIGHT constraint instead of a width one. The sidebar's visible
-       height was stuck at exactly 320px regardless of viewport size,
-       leaving everything below it as dead space with no way to scroll to
-       it - not a "some queue items are cut off" bug, the whole rest of the
-       screen was unreachable. */
+    /* The phone's column layout turns flex-basis into a height: 320px stopped the
+       sidebar's height and left the rest of the screen unreachable. */
     .admin-sidebar { flex: 1 1 auto; width: 100%; }
 
-    /* padding-bottom reserves room for the fixed #version-toggle-bar below so
-       it never covers the last of the scrolled content. Raised from 4.5rem
-       when that bar gained a second row (4 buttons wrapping 2x2, ~115px). */
+    /* Room for the fixed toggle bar below, two rows tall. */
     .live-preview-pane.admin-main-pane { display: none !important; padding-bottom: 8rem; }
     body.mobile-preview-active .live-preview-pane.admin-main-pane { display: flex !important; }
 
-    /* Sticks the Pending/Live/Diff toggle to the bottom of the screen
-       instead of the top of the (often long) preview content, so reviewers
-       don't have to scroll all the way back up just to switch views - the
-       padding-bottom above reserves room so this never covers the last bit
-       of scrolled content. position: fixed (not sticky) because the bar
-       starts at the top of the content in source order; sticky only takes
-       effect once an element's normal flow position crosses the pinned
-       edge during scroll, which never happens from the top. */
-    /* body-prefixed: #version-toggle-bar's own base rule (further down this
-       file, "CONTENT VIEWERS" section) sets margin-bottom/padding-bottom/
-       border-bottom too, at equal ID-selector specificity - being later in
-       the file, it silently won every one of those three properties over
-       this block, no matter what this rule said, leaving a real 2rem gap
-       (the base rule's margin-bottom) between the bar and the true bottom
-       edge that the .mobile-back-to-editor fix below was measured against
-       and still collided with. The extra "body" type selector bumps this
-       rule's specificity above the base rule's so it wins regardless of
-       source order, matching how the rest of this codebase handles
-       specificity ties (compound selector, not source-order luck). */
+    /* The view toggle sits fixed at the bottom of the screen, so a reviewer
+       switches views without scrolling back up; sticky never takes effect from
+       the top of the content. */
     body #version-toggle-bar {
         position: fixed;
         bottom: 0;
@@ -286,11 +218,7 @@
         gap: 0.4rem;
     }
 
-    /* The bar held 3 buttons when it was built; PAGE HISTORY was added as a
-       4th in v0.6 without revisiting mobile, which pushed it off the right
-       edge of the screen with no wrap and no way to scroll to it. Two rows of
-       two instead. white-space overrides .btn-sys's own nowrap so the longer
-       labels break inside their button rather than clipping. */
+    /* Two rows of two, wrapping inside each button. */
     body #version-toggle-bar .version-toggle-btn {
         flex: 1 1 calc(50% - 0.2rem);
         font-size: 0.62rem;
@@ -299,24 +227,12 @@
         text-align: center;
     }
 
-    /* editor.css's .mobile-back-to-editor is bottom: 1.5rem; right: 1.5rem;
-       z-index: 100 - edit.html has nothing else pinned to the bottom, but
-       here it sits directly on top of #version-toggle-bar (which is only
-       z-index: 60), visually overlapping it and eating its clicks. Moved up
-       to clear the bar instead of fighting over the same corner.
-       Raised from 4.5rem alongside the pane's padding-bottom above: 4.5rem
-       cleared a single-row bar, but once the 4 buttons wrapped to two rows
-       (~115px) this button landed back on top of it and hid LIVE VERSION. */
+    /* Above the toggle bar, which it would cover and take clicks from. */
     .mobile-back-to-editor {
         bottom: 8rem;
     }
 
-    /* .admin-live-header/#preview-action-buttons have no flex-wrap, so the
-       status text plus 2-3 action buttons (INTERCEPT & EDIT/FORCE APPROVE/
-       FORCE REJECT etc) simply overflow past the right edge of the screen
-       on mobile with nothing to scroll them into view - confirmed on a real
-       device, the reject/approve/open-ticket buttons were unreachable.
-       Stack status above actions, let the buttons wrap and share width. */
+    /* The status and the action buttons stack, and the buttons wrap. */
     .admin-live-header {
         flex-direction: column;
         align-items: stretch;
@@ -330,18 +246,7 @@
         flex: 1 1 auto;
     }
 
-    /* .ticket-workspace is a 1:2 flex row (status/QA on the left, discussion
-       log on the right) with no mobile override at all until now - both
-       columns collapsed to roughly 150px each on a phone, which made the chat
-       log unreadable and squeezed the support/oppose buttons together. Stack
-       them; the vote buttons' existing flex:1 then has real width to share. */
-    /* body-prefixed for the same reason #version-toggle-bar above is: these
-       selectors all have plain base rules further down this file, and a media
-       query adds no specificity of its own - on an equal-specificity tie the
-       later rule wins, so an unprefixed .ticket-workspace here would silently
-       lose every property to its own base rule and this block would do
-       nothing. The extra type selector settles the tie by specificity instead
-       of source-order luck. Same applies to every rule below. */
+    /* The ticket's two columns stack. */
     body .ticket-workspace {
         flex-direction: column;
         gap: 1.25rem;
@@ -357,11 +262,7 @@
         flex: 1 1 auto;
     }
 
-    /* The header used to stack OWNER TOOLS / RECENT CHANGES / HUB / SHOW
-       PREVIEW as four full-width rows, burning most of a phone screen before
-       any queue content appeared. The three navigation links collapse behind
-       a single MENU button; SHOW PREVIEW stays out as the primary action, so
-       the whole header is one row. position: relative anchors the dropdown. */
+    /* One header row: the three links fold behind MENU, and SHOW PREVIEW stays out. */
     body .admin-header-actions-col {
         flex-direction: row;
         align-items: center;
@@ -371,9 +272,7 @@
     }
     body .admin-mobile-menu-btn { display: inline-flex; }
 
-    /* Matches the .manga-select-options dropdown panel in editor.css - same
-       accent border + hard offset shadow, so this reads as the same component
-       family rather than a new one. */
+    /* The same panel as .manga-select-options in editor.css. */
     body .admin-secondary-actions {
         display: none;
         position: absolute;
@@ -391,9 +290,7 @@
     }
     body .admin-secondary-actions.open { display: flex; }
 
-    /* Inside the panel these stop being standalone buttons and become menu
-       rows - the individual borders/shadows/hover-lift would fight the panel's
-       own framing. */
+    /* Inside the panel they are menu rows, not standalone buttons. */
     .admin-secondary-actions .admin-hub-btn {
         /* Rows have no cut corner: it would notch every line of the menu. */
         --sys-cut: 0px;
@@ -410,34 +307,27 @@
     .admin-secondary-actions .admin-hub-btn:last-child { border-bottom: none; }
 }
 
-/* --- HEADERS & NAV --- */
+/* Headers and nav */
 .admin-header { border-bottom: 2px solid var(--accent-blue); padding: 1.5rem 1.5rem 1rem 1.5rem; }
 .admin-header-flex { display: flex; justify-content: space-between; align-items: flex-start; }
 .admin-title { color: var(--accent-blue); font-size: 1.1rem; margin: 0; text-transform: uppercase; }
 .admin-subtitle { font-size: 0.7rem; color: var(--text-muted); }
 .admin-hub-btn { padding: 0.3rem 0.6rem; font-size: 0.65rem; }
 .admin-header-actions-col { display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
-/* On desktop this wrapper is visually transparent - it reproduces exactly the
-   column-of-buttons the 3 links formed as direct children of
-   .admin-header-actions-col before they were grouped. It only becomes a real
-   (dropdown) container inside the mobile block further up this file. */
+/* Transparent on a desktop; a dropdown only in the phone block above. */
 .admin-secondary-actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; }
-/* Hidden by default; editor.css's #mobile-preview-toggle{display:block!important}
-   (inside its existing @media max-width:900px block) reveals it - same
-   mechanism edit.html already uses, just not previously wired up here. */
+/* Hidden here; editor.css's phone block shows #mobile-preview-toggle. */
 .admin-mobile-preview-btn { display: none; font-size: 0.6rem; padding: 0.3rem; }
-/* Same default-hidden mechanism as .admin-mobile-preview-btn above, revealed
-   by this file's own mobile block - desktop never sees the MENU button. */
+/* Hidden here; shown by this file's phone block. */
 .admin-mobile-menu-btn { display: none; font-size: 0.65rem; padding: 0.4rem 0.6rem; }
 .admin-sidebar-content { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
 
 #preview-nav-sidebar { display: block; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed #333; }
 .admin-split-header { margin-bottom: 0.75rem; border-bottom: 1px solid var(--accent-blue); padding-bottom: 0.5rem; }
 .admin-section-title { color: var(--text-white); font-size: 0.9rem; margin: 0; text-transform: uppercase; }
-.admin-nav-col { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
 .admin-toc-empty { color: var(--text-muted); font-style: italic; font-size: 0.75rem; margin: 0; }
 
-/* --- PENDING QUEUE CARDS --- */
+/* The queue cards */
 .update-log-item {
     background: var(--bg-secondary, #0a0a0a);
     border: 1px solid var(--border-color, #333);
@@ -458,10 +348,7 @@
     margin-top: 2rem;
 }
 
-/* --- ADMIN/OWNER TOOL CARDS --- */
-/* Shared by owner.html (Personnel Management, Media GC) - not admin-page-
-   specific despite the file this lives in; admin.html only reuses .btn-sys/
-   .editor-input/etc for its own unrelated controls. */
+/* Tool cards, shared by both pages */
 .admin-tool-card { position: relative; margin-bottom: 1rem; padding: 1rem; border-left: 3px solid; }
 .admin-tool-card.personnel { border-left-color: #a855f7; }
 .admin-tool-card.gc { border-left-color: #ef4444; }
@@ -480,10 +367,8 @@
 .badge-status-archived { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
 .admin-tool-hint { font-family: var(--text-mono); font-size: 0.68rem; color: var(--text-muted); line-height: 1.5; margin: 0.5rem 0 0 0; }
 
-/* The one control on a tool card that destroys data (v0.16 feature 4, Reset
-   Ranking). Set apart from the ordinary rows above it so it cannot be reached
-   by muscle memory aimed at SAVE - the two buttons are otherwise the same size
-   in the same column, and the red fill is the only thing telling them apart. */
+/* The one control on a tool card that destroys data, set apart from SAVE so
+   muscle memory cannot reach it. */
 .admin-tool-danger-row {
     margin-top: 1.25rem;
     padding-top: 1rem;
@@ -494,7 +379,7 @@
 .admin-tool-danger-row .admin-tool-hint strong { color: #ef4444; }
 .permissions-list { margin: 1rem 0; }
 
-/* --- PERSONNEL ROSTER (owner.html, js/owner.js loadPersonnel) --- */
+/* The personnel roster, on owner.html */
 .admin-tool-header-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .personnel-roster { margin: 1rem 0; }
 .personnel-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 0.6rem 0; border-bottom: 1px dashed var(--border-color); }
@@ -507,10 +392,7 @@
 .personnel-add { border-top: 1px dashed var(--border-color); padding-top: 1rem; margin-top: 1rem; }
 .owner-success-text { color: #22c55e; }
 
-/* Staff Perks toggle rows (js/owner-staff-perks.js). A <label> wrapping the
-   checkbox, so the whole row including the explanation is a hit target -
-   these sit next to destructive role controls and deserve to be hard to
-   catch by accident, not easy to miss. */
+/* A whole row is the hit target, next to role controls that are destructive. */
 .owner-perk-row {
     display: flex;
     align-items: flex-start;
@@ -536,8 +418,7 @@
     font-size: 0.7rem;
     line-height: 1.5;
 }
-/* Role colours reuse the palette the rest of the admin tooling already uses
-   for clearance levels, so a role reads the same wherever it appears. */
+/* The same role colours as the rest of the staff tooling. */
 .badge-role-admin { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid #a855f7; }
 .badge-role-reviewer { background: rgba(59,130,246,0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
 .badge-role-trusted_editor { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
@@ -549,15 +430,9 @@
 .admin-tool-btn { font-size: 0.7rem; padding: 0.4rem; width: 100%; margin-top: 0.5rem; }
 .admin-tool-results { margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.7rem; color: #888; line-height: 1.4; }
 
-/* --- MEDIA MODERATION QUEUE (js/admin-media-queue.js) --- */
-/* Deliberately text-first. The media itself is not in the DOM until a
-   reviewer presses VIEW, so these rows have to be readable and sortable
-   without any thumbnail at all - a queue of newly recorded skill clips is the
-   heaviest content in the bucket and rendering twenty to choose one is the
-   wrong default. */
-/* The queue tabs (admin.html #admin-queue-tabs): one queue on screen at a
-   time. They wrap rather than scroll, so every queue's name stays in view in
-   a column this narrow. */
+/* The media queue */
+/* Text first: a file is not in the page until a reviewer presses VIEW. */
+/* The queue tabs wrap rather than scroll, so every name stays in view. */
 .admin-queue-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
 .admin-queue-tab {
     flex: 1 1 auto; padding: 0.45rem 0.6rem; cursor: pointer;
@@ -568,7 +443,7 @@
 .admin-queue-tab:hover { color: var(--text-white); border-color: var(--accent-blue); }
 .admin-queue-tab.active { color: var(--text-white); border-color: var(--accent-blue); background: hsla(217, 91%, 60%, 0.12); }
 .admin-queue-tab[hidden] { display: none; }
-/* How many are waiting, once that queue has been loaded. */
+/* How many are waiting, once that queue has loaded. */
 .admin-queue-count:not(:empty) { margin-left: 0.4rem; color: var(--accent-blue); font-weight: bold; }
 .media-queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .media-queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
@@ -586,26 +461,19 @@
 .media-queue-status-flagged { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; }
 
 .media-queue-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; font-family: var(--text-mono); font-size: 0.65rem; color: #888; }
-/* The usage answer is the most useful sort in a 316-file bucket, so it is
-   coloured rather than left as one more grey line. */
+/* Where a file is used is the most useful sort, so it is coloured. */
 .media-queue-usage-live { color: #22c55e; }
 .media-queue-usage-history { color: #eab308; }
 .media-queue-usage-unused { color: #f97316; }
 .media-queue-pages { display: block; margin-top: 0.25rem; font-family: var(--text-mono); font-size: 0.62rem; color: #666; word-break: break-word; }
 .media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: #ef4444; }
 
-/* The inline preview, which is now the PHONE arrangement only. Above 900px a
-   clip opens in the main pane instead - see .media-preview-panel below. */
+/* The phone's preview only; wider, a clip opens in the main pane. */
 .media-queue-preview:empty { display: none; }
 .media-queue-preview { margin-top: 0.6rem; }
 .media-queue-media { width: 100%; max-height: 220px; object-fit: contain; background: #000; border: 1px solid #222; display: block; }
 
-/* --- MEDIA PREVIEW IN THE MAIN PANE (v0.14 fine-tuning, 2026-08-14) ---
-
-   A reviewer deciding whether a clip belongs on the wiki was judging it inside
-   a queue row, in the narrowest column on the page. It opens here instead, in
-   the pane a revision preview uses - which is the part of the screen that has
-   room to actually look at something. */
+/* A clip opens in the review pane, where there is room to judge it. */
 .media-preview-panel {
     display: flex;
     flex-direction: column;
@@ -625,9 +493,7 @@
     flex-wrap: wrap;
 }
 
-/* The file name is contributor-supplied and can be long. It wraps rather than
-   pushing CLOSE off the edge - the same failure the tier list sidebar header
-   had. */
+/* A long file name wraps rather than pushing CLOSE off the edge. */
 .media-preview-name {
     font-family: var(--text-mono);
     font-size: 0.72rem;
@@ -645,8 +511,7 @@
     min-height: 240px;
 }
 
-/* Bounded by the viewport rather than the file: a 4K screenshot should not
-   push the CLOSE button off the top of the pane. */
+/* Bounded by the viewport, so a large image cannot push CLOSE off the pane. */
 .media-preview-media {
     max-width: 100%;
     max-height: 65vh;
@@ -654,35 +519,27 @@
     display: block;
 }
 
-/* One pane, one thing in it. A clip stacked above a half-rendered page is
-   worse than either on its own, and the reviewer did not ask for both. */
+/* One thing in the pane. */
 body.media-preview-open #version-toggle-bar,
 body.media-preview-open .admin-main-pane > .site-body { display: none !important; }
 
 .media-queue-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
 .media-queue-btn { font-size: 0.62rem; padding: 0.3rem 0.6rem; }
 
-/* --- MEDIA GARBAGE COLLECTION (js/owner.js) --- */
-/* Stated explicitly: .owner-group once set display:grid and beat the UA
-   stylesheet's [hidden] rule, leaving every tool group on screen at once.
-   Nothing here sets display, so [hidden] already works - this pins it, since
-   the button it hides is the one that deletes files. */
+/* Media garbage collection, on owner.html */
+/* Pinned, since the button it hides deletes files. */
 .admin-tool-btn[hidden] { display: none; }
 .gc-orphan-count { color: #eab308; }
 .gc-orphan-list { margin: 0.35rem 0 0 0; padding: 0.4rem 0.4rem 0.4rem 1.4rem; max-height: 9rem; overflow-y: auto; border: 1px dashed #333; }
 .gc-orphan-list li { word-break: break-all; }
 
-/* --- LIVE PREVIEW AREA --- */
+/* The preview area */
 .admin-live-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #222; flex-shrink: 0; width: 100%; box-sizing: border-box; }
 .admin-status-container { display: flex; align-items: center; }
 
-/* --- THE QUEUE COLUMN POPS IN AND OUT (v1.2, owner's Overseer card) ---
-   "turning the navigation bar to an overlay that can pop out and in". Put
-   away, the column gives the pane, and the side-by-side in it, the whole
-   width. The page moves over for it rather than being dimmed under it: the
-   media queue opens a clip in the pane while its buttons stay in the column.
-   Wider screens only (a phone already swaps between the two), and not for a
-   moderator-only view, which has nothing in the pane. js/admin-queue.js. */
+/* The queue column pops in and out, so the pane and the side by side get the
+   whole width. The page moves over rather than dimming: a clip's buttons stay in
+   the column. Wide screens only, and not for a moderator, who has no pane. */
 .queue-toggle { display: none; margin-right: 0.75rem; }
 @media (min-width: 901px) {
     body.admin-body:not(.admin-moderator-only) .queue-toggle { display: inline-flex; }
@@ -691,7 +548,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .admin-status-text { margin-left: 1rem; font-size: 0.9rem; color: var(--text-muted); font-family: var(--text-mono); }
 #preview-action-buttons { display: flex; gap: 0.75rem; }
 
-/* --- TICKET WORKSPACE --- */
+/* The ticket */
 .ticket-workspace { 
     background: hsl(0, 0%, 2%); 
     border: 1px solid hsl(0, 0%, 20%); 
@@ -712,7 +569,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .ticket-header-title.log { color: var(--accent-blue); }
 .ticket-header-title.qa { color: #3b82f6; }
 
-/* --- QA REPORT (owner's Overseer card, v1.2): above the ticket, on every submission --- */
+/* The QA report, above the ticket, on every submission */
 .qa-report-panel {
     background: hsl(0, 0%, 2%);
     border: 1px solid hsl(0, 0%, 20%);
@@ -737,42 +594,31 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .ticket-chat-input { flex: 1; padding: 0.5rem; font-size: 0.8rem; }
 .ticket-chat-send-btn { padding: 0.4rem 1rem; font-size: 0.75rem; }
 
-/* --- CONTENT VIEWERS --- */
+/* The content views */
 #preview-content-area { opacity: 0.2; pointer-events: none; transition: opacity 0.3s ease; padding: 0; max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 #preview-content-area.active { opacity: 1; pointer-events: auto; }
-/* The side-by-side (v1.2) draws the page twice, so it takes the pane's whole
-   width rather than one page's reading width. */
+/* The side by side draws the page twice, so it takes the pane's whole width. */
 body.sbs-active .admin-main-pane .max-w-7xl,
 body.sbs-active #preview-content-area { max-width: none; }
 #version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed #222; padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
 
-/* --- ACCESS DENIED (js/admin-core.js kickUser, also js/owner.js) --- */
+/* Access denied */
 .access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #050505; }
 .access-denied-title { color: #ef4444; font-family: var(--font-label), sans-serif; }
 
-/* --- QUEUE LOADING / ERROR / EMPTY STATES (js/admin-queue.js loadQueue) --- */
+/* The queue's loading, error and empty states */
 .admin-error-text { color: #ef4444; font-size: 0.75rem; }
 .admin-queue-empty-msg { border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem; }
 
-/* --- QUEUE GROUP HEADER --- */
 .admin-queue-group-title { font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
 .admin-merge-btn { font-size: 0.65rem; padding: 0.3rem 0.6rem; }
 
-/* --- QUEUE STATUS BADGES --- */
+/* Queue badges */
 .badge-status-ticket-open { background: #eab308; color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
 .badge-status-pending { background: var(--accent-blue); color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
-/* The only .update-badge whose text is not written by hand. Every other one is
-   a fixed word - WIP, EA, TICKET OPEN, S/M/L - which is why the shared base in
-   Badges.css sets `white-space: nowrap`, and why that stays. This one carries
-   `[PATCH: <scope>: <key>]`, and a system-section key is `${tabKey}::${secKey}`
-   built from two slugified titles, so it runs to ~80 characters and could not
-   break at any width: measured 402px wide inside a 190px column, hanging 229px
-   past the card - v0.16 bug 4.
-
-   `overflow-wrap: anywhere` rather than `break-word` on purpose: only `anywhere`
-   also shrinks the element's min-content size, which is what lets it yield as a
-   flex item in .admin-queue-badges-row. `break-word` would wrap the text and
-   still reserve the full unbroken width. */
+/* The one .update-badge with text not written by hand: a system section's key
+   runs long, so it breaks anywhere. `anywhere`, not `break-word`: only it also
+   shrinks the min-content size, so the badge yields as a flex item. */
 .badge-patch-delta {
     background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid #a855f7;
     font-size: 0.55rem; padding: 0.1rem 0.4rem;
@@ -784,28 +630,20 @@ body.sbs-active #preview-content-area { max-width: none; }
 .badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-page-id { font-size: 0.5rem; background: #333; color: #fff; border: 1px solid #555; padding: 0.15rem 0.4rem; }
 
-/* Cheap size/risk hint (Phase 2 of the reviewer-workflow redesign) - a
-   rough S/M/L computed from the changed content's serialized byte length
-   at queue-load time, not an accurate diff size (that would mean diffing
-   every queue item against live data just to render the list). */
+/* A rough size hint, from the changed content's length at load. */
 .badge-size-s { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid #22c55e; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-size-m { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid #eab308; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-size-l { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
-/* v0.18 F1 - the contributor's own confidence rating, on the card.
-   Deliberately the SAME three colours as the size badges above, because they
-   answer the same question for a reviewer choosing what to open next: green is
-   safe, red wants attention. N/A is muted rather than a fourth colour - "just
-   fixing typos" is an absence of risk, not a level of it. */
+/* The contributor's confidence, in the size badges' three colours, since both
+   answer "what to open next". N/A is muted: typo fixes are no risk, not a level. */
 .badge-confidence-high { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid #22c55e; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-confidence-medium { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid #eab308; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-confidence-low { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-confidence-na { background: rgba(136,136,136,0.1); color: #888; border: 1px solid #555; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
-/* The note itself. Clamped to three lines: a changelog can be a sentence or a
-   page, and a queue where one card is six times the height of its neighbours is
-   harder to scan than one with no notes at all. The full text stays in the DOM
-   - clamping is visual only - so it remains selectable and findable. */
+/* Clamped to three lines and visual only: the full note stays selectable and
+   findable. */
 .admin-queue-qa {
     margin-top: 0.5rem;
     padding-left: 0.6rem;
@@ -831,13 +669,10 @@ body.sbs-active #preview-content-area { max-width: none; }
     color: var(--text-muted);
 }
 
-/* --- QUEUE CARD LAYOUT --- */
+/* The queue card */
 .admin-queue-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-/* min-width: 0 is load-bearing. A flex item's automatic minimum size is its
-   MIN-CONTENT size, and .update-badge is white-space: nowrap - so one long tag
-   ("PATCH: 10 TARGETS") made this column refuse to shrink and pushed the REVIEW
-   button clean out of the card. The badges row already wraps; it never got the
-   chance to, because the column would not narrow (owner, 2026-08-18). */
+/* min-width: 0, or a long badge's min-content width stops the column shrinking
+   and pushes REVIEW out of the card. */
 .admin-queue-card-info { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; flex: 1 1 auto; }
 .admin-queue-card-info .update-title { font-size: 0.85rem; }
 .admin-queue-card-info .update-log-meta { font-size: 0.65rem; color: #888; }
@@ -845,21 +680,17 @@ body.sbs-active #preview-content-area { max-width: none; }
 .admin-queue-author-name { color: var(--text-white); }
 .admin-queue-time-relative { color: var(--accent-blue); }
 .admin-queue-time-exact { opacity: 0.5; }
-/* flex-shrink: 0 so the button keeps its size while the column beside it
-   narrows - the whole point of the fix above is that the badges yield, not the
-   only control on the card. */
+/* The badges yield, not the card's only control. */
 .admin-review-btn { font-size: 0.6rem; padding: 0.3rem 0.6rem; margin-top: 0.2rem; flex-shrink: 0; }
 
-/* --- PREVIEW HEADER / DIFF VIEW --- */
+/* The preview header and the diff view */
 .admin-preview-status-highlight { color: var(--text-white); }
 .diff-view-title { color: #a855f7; }
-/* The breadcrumb naming where a change lives - the part a reviewer navigates
-   by, so it is brighter than the label line used to be. */
+/* The breadcrumb a reviewer navigates by, so it is bright. */
 .diff-location-label { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-primary); margin-bottom: 1.5rem; margin-top: 2rem; }
 .diff-location-lead { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 0.4rem; }
 .diff-crumb-sep { color: #555; margin: 0 0.15rem; }
-/* Says out loud that this is the fallback view. A reviewer seeing an unfamiliar
-   dump needs to know it is still a real change they are approving, not a bug. */
+/* Says this is the fallback view, so a reviewer knows it is a real change. */
 .diff-unknown-scope {
     font-size: 0.8rem;
     color: var(--accent-yellow);
@@ -875,10 +706,10 @@ body.sbs-active #preview-content-area { max-width: none; }
 .diff-stacked-pre.old { color: #fca5a5; }
 .diff-stacked-pre.new { color: #86efac; }
 
-/* --- TIERLIST ADMIN PREVIEW --- */
+/* The tier list preview */
 .admin-changelog-container { margin-top: 2rem; }
 
-/* --- TICKET WORKSPACE (dynamic content, js/admin-tickets.js renderTicketWorkspace) --- */
+/* The ticket's score and chat */
 .ticket-score-value { font-size: 1.1rem; }
 .ticket-perk-note { color: #a855f7; font-weight: bold; }
 .ticket-requirement-text { color: #888; font-size: 0.75rem; }
@@ -891,15 +722,12 @@ body.sbs-active #preview-content-area { max-width: none; }
 .ticket-chat-empty { color: #555; font-style: italic; }
 .ticket-chat-author { color: var(--accent-blue); }
 
-/* "Request Changes" chat entries (js/admin-actions.js requestChanges) - a
-   distinct callout instead of a plain chat line, so a specific ask doesn't
-   get lost scrolling past ordinary discussion messages. */
+/* A REQUEST CHANGES message stands out from ordinary chat. */
 .ticket-chat-changes-requested { background: rgba(234,179,8,0.08); border-left: 3px solid #eab308; padding: 0.5rem 0.75rem; margin: 0.35rem 0; }
 .ticket-chat-changes-requested-label { color: #eab308; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
 .ticket-chat-changes-requested-text { color: var(--text-white); }
 
-/* --- PAGE HISTORY (js/admin-history.js, Phase 5 of the reviewer-workflow
-   redesign - browse + restore past live versions) --- */
+/* Page History */
 .page-history-card { margin-bottom: 1rem; border-left: 4px solid var(--accent-yellow); }
 .page-history-card-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
 .page-history-card-title { margin: 0; color: var(--text-white); font-family: var(--font-label), sans-serif; font-size: 1rem; }
@@ -907,7 +735,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .page-history-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .page-history-diff { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
 
-/* --- MERGE COMPILER (js/admin-merge-compiler.js openMergeCompiler) --- */
+/* The merge compiler */
 .compiler-title-highlight { color: #fff; }
 .compiler-status-text { color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem; }
 .compiler-empty-text { color: var(--text-muted); padding: 2rem; border: 1px dashed #333; text-align: center; }
@@ -918,11 +746,8 @@ body.sbs-active #preview-content-area { max-width: none; }
 .compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
 #btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
-/* --- PER-USER CAPABILITIES (js/owner.js loadPersonnel) --- */
-/* A capability is an extra on top of a role, so it sits under the role row
-   rather than beside it - beside would read as an alternative to the role
-   select, which is exactly the confusion user_roles' UNIQUE(user_id) exists
-   to prevent. */
+/* Per-account capabilities, on owner.html */
+/* Under the role row, not beside it: beside would read as another role. */
 .personnel-capability {
     display: flex;
     align-items: center;
@@ -938,29 +763,14 @@ body.sbs-active #preview-content-area { max-width: none; }
 .personnel-capability:hover { color: var(--text-white); }
 .personnel-capability-box { cursor: pointer; }
 
-/* A disabled box is disabled for a REASON, and the reason used to live only in
-   a title attribute - invisible to somebody who has already clicked and seen
-   nothing happen, which is exactly how it got reported as broken. The label
-   now carries it, and the row dims so the box does not look merely unticked. */
+/* A disabled box says why in its label, and the row dims. */
 .personnel-capability:has(.personnel-capability-box:disabled) { cursor: default; opacity: 0.6; }
 .personnel-capability:has(.personnel-capability-box:disabled):hover { color: #888; }
 .personnel-capability-note { font-style: italic; opacity: 0.85; }
 
-/* --- ACCOUNT SEARCH (js/owner.js searchAccounts) ---
-   The roster reads user_roles and so can only show people who already hold
-   something. This finds everyone else. Same row markup, so the results need no
-   layout of their own - only the input line does.
-
-   Both children need their inherited full-width rules undone, and the button's
-   is the one that bites: .admin-tool-btn sets width:100% and
-   .owner-tool-area .admin-tool-btn sets it again more specifically, so
-   `flex: 0 0 auto` resolved the basis to 100% of the row AND forbade shrinking.
-   Measured before the fix: a 480px row with a 480px button and an 18px input.
-   width:auto is the load-bearing declaration here, not the flex shorthand.
-
-   Scoped under .owner-tool-area so this beats that rule on specificity rather
-   than on source order - the two are otherwise tied at (0,2,0), which is a
-   coin-flip for anybody who later moves a block. */
+/* Account search, on owner.html. The same rows as the roster; only the input line
+   is new. width: auto undoes .admin-tool-btn's 100%, and the scoping beats it on
+   specificity, not order. */
 .personnel-search-row { display: flex; gap: 0.5rem; align-items: center; }
 .owner-tool-area .personnel-search-row .editor-input { flex: 1 1 auto; min-width: 0; margin: 0; }
 .owner-tool-area .personnel-search-row .admin-tool-btn {
@@ -970,10 +780,8 @@ body.sbs-active #preview-content-area { max-width: none; }
     padding: 0.4rem 1rem;
 }
 
-/* --- CHARACTER COLOUR (js/owner-page-meta.js) ---
-   Three controls for one value: the text field IS the value, because it has to
-   hold hsl() as well as hex; the native picker is a way to fill it in; the
-   swatch is there because a colour string is not a colour to a person. */
+/* A character's colour, on owner.html: the text field is the value (hex or hsl()),
+   the picker fills it, the swatch shows it. */
 .page-meta-color-row { display: flex; gap: 0.5rem; align-items: center; }
 .owner-tool-area .page-meta-color-row .page-meta-color-value {
     flex: 1 1 auto;
@@ -987,8 +795,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     border: 2px solid var(--border-color);
     box-shadow: 2px 2px 0 var(--manga-shadow);
 }
-/* Diagonal stripe for "nothing set", so an unset colour cannot be mistaken for
-   a black one - which is a colour somebody might genuinely have chosen. */
+/* A stripe for "nothing set", so unset is never mistaken for black. */
 .page-meta-color-swatch-empty {
     background: repeating-linear-gradient(45deg, #222, #222 4px, #111 4px, #111 8px) !important;
 }
@@ -1002,10 +809,8 @@ body.sbs-active #preview-content-area { max-width: none; }
     cursor: pointer;
 }
 
-/* --- PAGE REGISTRY GROUPS (js/owner.js loadSitePages) ---
-   Fifty-two rows in one column with nothing between categories. <details>
-   rather than a JS toggle: the browser already handles the keyboard, and
-   find-in-page opens a closed group on its own, which a div never would. */
+/* The page registry's groups, on owner.html: <details>, so the keyboard and
+   find-in-page open them. */
 .page-group { border-bottom: 1px solid #222; }
 .page-group[hidden] { display: none; }
 .page-group-summary {
@@ -1023,8 +828,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 }
 .page-group-summary:hover { color: var(--text-white); }
 .page-group[open] > .page-group-summary { color: var(--text-white); }
-/* The count is the reason the collapsed view is useful - it says how much is
-   behind the heading without opening it. */
+/* The count says what is behind a closed heading. */
 .page-group-count {
     font-size: 0.65rem;
     color: #888;
@@ -1033,17 +837,11 @@ body.sbs-active #preview-content-area { max-width: none; }
     padding: 0.1rem 0.45rem;
 }
 .page-group .personnel-row:last-child { border-bottom: none; }
-/* .personnel-row sets display:flex, which BEATS the user-agent's
-   `[hidden] { display: none }` on specificity - so filtering set row.hidden and
-   the row stayed on screen. Caught by a test asserting what the reader sees
-   rather than that the property was set. */
+/* .personnel-row sets display: flex, which beats the browser's [hidden]. */
 .page-row[hidden] { display: none; }
 
-/* --- INLINE ROW EDITORS (FAQ, credits) ---
-   Opened by EDIT on the row itself rather than in a modal: for the FAQ the
-   paragraph splitting is the thing most likely to surprise, and seeing the
-   answer in the shape it was written is what makes that legible. Spans the full
-   row because .personnel-row is a wrapping flex container. */
+/* The FAQ's inline editor, opened on the row itself so an answer
+   is seen in the shape it was written. Full row: .personnel-row wraps. */
 .owner-inline-editor {
     flex: 1 0 100%;
     margin-top: 0.6rem;
@@ -1052,12 +850,10 @@ body.sbs-active #preview-content-area { max-width: none; }
 }
 .owner-inline-editor .block-field-label-sm { margin-top: 0.5rem; }
 .owner-inline-editor-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
-/* Undo .owner-tool-area .admin-tool-btn's width:100% the same way the search
-   row does - two buttons side by side, not two stacked banners. */
+/* Two buttons side by side: undoes .admin-tool-btn's width: 100%. */
 .owner-tool-area .owner-inline-editor-actions .btn-sys { width: auto; margin: 0; }
 
-/* The display name is what the owner searched by, so it leads; the address is
-   the thing they came to copy, and stays visible next to it. */
+/* The display name leads; the address, which is copied, stays beside it. */
 .personnel-name {
     font-family: var(--text-mono);
     font-size: 0.7rem;
@@ -1065,14 +861,11 @@ body.sbs-active #preview-content-area { max-width: none; }
     margin-right: 0.4rem;
 }
 
-/* No role is a real state now that a capability can stand on its own. Neutral
-   rather than a role colour: it is the absence of one, not another rank. */
+/* No role: neutral, since it is the absence of a rank. */
 .badge-role-none { background: #2a2a2a; color: #999; border-color: #3a3a3a; }
 
-/* --- REPORT QUEUE (v0.14 item 6) ---
-   Third queue in the sidebar column, deliberately built from the same pieces
-   as the media queue above it rather than a new visual language: a reviewer
-   working through three queues should not have to learn three layouts. */
+/* The report queue: built from the media queue's pieces, so three queues share
+   one layout. */
 .report-card {
     background: var(--bg-secondary, #111);
     border: 2px solid var(--border-color, #333);
@@ -1089,9 +882,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 .report-reason-badge { background: #eab308; color: #000; }
 
-/* The single most useful signal in the queue: three reports on one post is a
-   different situation from one, and it should be readable without counting
-   rows. Red rather than yellow because it is the thing to look at first. */
+/* The report count: red, since it is the thing to look at first. */
 .report-count-badge { background: #ef4444; color: #000; }
 
 .report-page {
@@ -1122,8 +913,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     overflow-wrap: break-word;
 }
 
-/* The reported text itself. Bordered on the left so it reads as a quotation
-   of somebody else's words rather than as the moderator's own interface. */
+/* The reported words, bordered as a quotation of someone else. */
 .report-quote {
     margin: 0 0 0.5rem 0;
     padding: 0.4rem 0 0.4rem 0.7rem;
@@ -1139,7 +929,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 .report-quote-down { opacity: 0.65; font-style: italic; }
 
-/* v1.0 batch 3: what an edited post said before, closed until opened. */
+/* What an edited post said before, closed until opened. */
 .report-edits { margin: 0 0 0.5rem 0; }
 .report-edits-summary {
     cursor: pointer;
@@ -1151,7 +941,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 }
 .report-edit-when { font-size: 0.7rem; color: var(--text-muted); margin: 0.3rem 0 0.2rem; }
 
-/* v0.20: the broken-media report in owner tools (js/owner-media-report.js). */
+/* The broken-media report, on owner.html. */
 .media-report-summary { margin: 0.5rem 0; color: var(--text-white); font-size: 0.85rem; }
 .media-report-note { margin: 0 0 0.5rem 0; color: var(--text-muted); font-size: 0.75rem; }
 .media-report-page { border-top: 1px solid var(--border-color, #333); padding: 0.5rem 0; }
@@ -1165,7 +955,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .media-report-state { font-family: var(--text-mono); font-size: 0.65rem; text-transform: uppercase; color: #ef4444; }
 .media-report-state.is-unknown { color: #facc15; }
 
-/* v0.20: the images on a reported post, small, each opening the full file. */
+/* A reported post's images, small, each opening the full file. */
 .report-images { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.5rem 0; }
 .report-images img { display: block; width: 96px; height: 96px; object-fit: cover; border: 1px solid var(--border-color, #333); }
 
@@ -1194,18 +984,11 @@ body.sbs-active #preview-content-area { max-width: none; }
     color: var(--text-muted);
 }
 
-/* Moderator-only view (v0.14). A moderator is on the staff page to work the
-   report queue and nothing else, so the control that swaps to the revision
-   preview on mobile has nothing to swap to. The queues themselves are hidden
-   by js/admin-core.js rather than here, because that has to happen before
-   anything loads - a CSS rule would let them flash in first. */
+/* A moderator has no revision preview to swap to. admin-core.js hides the
+   queues, before anything loads, so they do not flash in. */
 body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
 
-/* --- MEDIA DELETION (v0.14 item 5) ---
-   Inline rather than a modal, because the confirmation has to show the file
-   name and its usage together and a one-line prompt cannot. Red-bordered and
-   roomy: this is the only irreversible action in the panel and should not look
-   like the approve/flag buttons above it. */
+/* Deleting a file: inline, red and roomy, since it cannot be undone. */
 .media-queue-confirm {
     margin-top: 0.6rem;
     padding: 0.7rem;
@@ -1231,7 +1014,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     color: var(--text-muted);
 }
 
-/* Used on a live page: deleting breaks something that exists right now. */
+/* Used on a live page: deleting breaks something that exists now. */
 .media-queue-confirm-danger { color: #fca5a5; font-weight: bold; }
 
 .media-queue-confirm-final {
@@ -1247,26 +1030,13 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     color: var(--text-muted);
 }
 
-/* Revision queue filters (v0.17 F5). Deliberately duplicated from
-   .media-queue-filters rather than shared: two queues that look alike today are
-   not two queues that must change together, and this project has already paid
-   for shared classes reaching contexts nobody checked. */
+/* The revision queue's filters, copied from the media queue's on purpose: alike
+   today is not bound to change together. */
 .queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
 .queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: #888; margin: 0 0 0.75rem 0; }
 
-/* An expert sees only their own pages, so a queue that looks short is correct
-   rather than broken - the label is what says so. */
-.queue-scope-note {
-    font-family: var(--text-mono); font-size: 0.68rem; line-height: 1.5;
-    color: #888; margin: 0 0 0.75rem 0;
-    border-left: 3px solid var(--accent-blue); padding: 0.4rem 0.6rem;
-    background: rgba(96, 165, 250, 0.06);
-}
-
-/* Page Experts (v0.17 F5). Reuses .personnel-row from the roster above - the
-   same shape showing the same kind of thing - and adds only the per-page
-   grouping, which personnel has no equivalent of. */
+/* Page experts, on owner.html: the roster's rows, grouped by page. */
 .expert-group { margin-bottom: 1rem; }
 .expert-group-title {
     font-family: var(--text-mono); font-size: 0.7rem; text-transform: uppercase;
@@ -1275,9 +1045,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     border-bottom: 1px solid #222;
 }
 
-/* A contributor's own reply in the ticket log (v0.17 F13). Distinct from a
-   staff line so a reviewer can tell who is speaking - the author could only
-   read this conversation until now. */
+/* The contributor's own reply in the ticket, told apart from staff. */
 .ticket-chat-from-author {
     border-left: 3px solid var(--accent-blue);
     padding: 0.15rem 0.5rem;
@@ -1286,9 +1054,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
 }
 .ticket-chat-author-badge { color: var(--accent-blue); }
 
-/* A field the form is filling in for you (v0.17). Used by the page-creation
-   category box, which is pinned to "Characters" for a character page because
-   the roster reads that name literally. Reads as "decided", not as broken. */
+/* A field the form fills for you: decided, not broken. */
 .owner-field-locked {
     opacity: 0.75;
     cursor: not-allowed;

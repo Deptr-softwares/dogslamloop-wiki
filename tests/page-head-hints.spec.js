@@ -47,7 +47,7 @@ test('no page loads the Supabase library from a CDN, and every page that talks t
         if (/https:\/\/[^"]*supabase-js/.test(html)) fromCdn.push(rel);
         // site_utils.js makes the client, so a page that loads it needs the
         // library first.
-        const utils = html.search(/src="[^"]*js\/site_utils\.js/);
+        const utils = html.search(/src="[^"]*js\/utility\/site_utils\.js/);
         if (utils === -1) continue;
         const lib = html.indexOf(VENDORED);
         if (lib === -1 || lib > utils) missing.push(rel);
@@ -128,7 +128,7 @@ test('on the home page every script is deferred and covered by the policy, and t
     expect(tags.length).toBeGreaterThan(5);
     for (const t of tags) {
         // Deferred (runs in order once the page is read) or async (the visitor
-        // counter, js/analytics.js, which nothing waits for): neither stops the parser.
+        // counter, js/others/analytics.js, which nothing waits for): neither stops the parser.
         expect(t[0], 'deferred or async, so it never stops the parser').toMatch(/\b(defer|async)\b/);
         expect(t.index, `${t[0]} comes after the policy, which then covers it`).toBeGreaterThan(policy);
     }

@@ -5,7 +5,7 @@
 // are now generated from site_faq and (since v1.2) the Collaborators page's
 // Collaborator Blocks, with site_collaborators deciding until the release
 // copies it into the page. The runtime still fetches plain JSON, so the
-// generated shapes must match what js/home_widgets.js already reads - this is
+// generated shapes must match what js/dashboards/home_widgets.js already reads - this is
 // a write-back, not a redesign, and the round-trip below is what proves it.
 // That both sources give the same file is in tests/collaborators-page.spec.js.
 const { test, expect } = require('@playwright/test');

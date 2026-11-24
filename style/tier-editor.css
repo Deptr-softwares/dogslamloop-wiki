@@ -1,20 +1,15 @@
-/* --- TIER LIST EDITOR (v0.14 item 3) ---
-   Reuses the two-pane editor shell, the .ctl-* row classes from the public
-   page, and .tier-portrait. Only what is specific to editing lives here. */
+/* The tier editor (tier-editor.html): the scrolling workspace, the preview of
+   the two documents and the changelog, pending moves, tier controls, copies and
+   the document switch.
+   Since v0.14.
+   Touches: the two-pane shell from editor.css, and the reader page's .ctl-* rows
+   and .tier-portrait from certified-tier-lists.css and Layout.css.
+   Watch: the preview is the live page's own markup, so only spacing lives here;
+   restyling it would make it a second design.
+   See: docs/tier-lists.md */
 
-/* --- THE WORKSPACE SCROLLS (v0.16 fine-tuning 3) ---
-   This page marks its left pane `editor-workspace admin-sidebar` and its inner
-   column `admin-sidebar-content`, but it does NOT load admin.css - so both
-   admin classes matched nothing at all and only .editor-workspace applied.
-   That rule is `overflow: hidden`, deliberately, because it expects an inner
-   scroll region to exist. Here there was none, so everything below the fold
-   was simply unreachable: the block editor is the last thing in this column,
-   which is why writing the Introduction was close to impossible.
-
-   Fixed here rather than by loading admin.css, which would drop several
-   hundred rules onto a page that has never had them. Same call and the same
-   symptom as .owner-workspace and .post-editor-workspace in admin.css, which
-   both add overflow-y for exactly this reason. */
+/* The workspace scrolls: .editor-workspace hides overflow for an inner scroll
+   region, and this page does not load admin.css, whose classes it carries. */
 .editor-workspace .admin-sidebar-content {
     flex: 1 1 auto;
     min-height: 0;      /* a flex child will not scroll while it can grow instead */
@@ -28,23 +23,14 @@
 
 .tier-editor-board { margin-bottom: 2rem; }
 
-/* --- THE PREVIEW PANEL (v0.16 fine-tuning 3) ---
-   The preview showed the tiers alone, so the two documents an author spends
-   most of their time writing were invisible until they saved and opened the
-   live page. */
-/* Only spacing lives here. Everything inside is the LIVE page's own markup -
-   .ctl-intro, .ctl-reasoning, .ctl-changelog, .ctl-change - styled by
-   certified-tier-lists.css, which this page already loads. Restyling any of it
-   would make the preview a second design rather than a preview. */
+/* The preview shows the two documents and the changelog, not the tiers alone. */
 .tier-preview-docs { margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
 
-/* The one addition the live page has no need for: a move that is not saved
-   yet. Yellow, matching the unsaved-moves list in the sidebar, so it reads as
-   "about to be this" rather than as part of the record. */
+/* A move not saved yet: yellow, like the pending moves list, so it reads as
+   "about to be this". */
 .ctl-change-pending { border-left: 2px solid #eab308; background: rgba(234, 179, 8, 0.05); padding-left: 0.6rem; }
 
-/* Taller than the read-only row: a drop target that is only as tall as its
-   contents is nearly impossible to hit when the tier is empty. */
+/* Taller than the reader's row: an empty tier must still be easy to drop on. */
 .tier-editor-row .ctl-chars { min-height: 96px; }
 
 .tier-dropzone-hot {
@@ -60,9 +46,8 @@
     min-height: 96px;
 }
 
-/* --- PENDING MOVES ---
-   The gate on saving, so it sits above the tier controls and the reasoning
-   editor rather than below them. Yellow because it is a thing to resolve. */
+/* Pending moves: the gate on saving, so above the controls, and yellow, since
+   each is a thing to resolve. */
 .tier-pending-moves { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .tier-move {
@@ -117,17 +102,15 @@
     color: var(--text-muted);
 }
 
-/* --- TIER CONTROLS --- */
+/* Tier controls */
 .tier-controls { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.5rem; }
 
 .tier-control-row { display: flex; align-items: center; gap: 0.35rem; }
 
 .tier-control-name { flex: 1; min-width: 0; font-size: 0.78rem; }
 
-/* A swatch that opens the site's own picker, not <input type="color"> - that
-   opens the operating system's colour dialog on top of the wiki, which is the
-   thing v0.14 removed everywhere else. `background: none` is gone with it:
-   this element IS the colour now, so the inline background is the control. */
+/* A swatch that opens the site's own picker; the inline background is the
+   control. */
 .tier-color-wrap { position: relative; flex-shrink: 0; }
 
 .tier-control-color {
@@ -140,14 +123,8 @@
 }
 .tier-control-color:hover { border-color: var(--accent-blue); }
 
-/* Opens SIDEWAYS, not downward. Dropping below the swatch put it directly over
-   the next tier's swatch, so with one picker open the next one could not be
-   clicked at all - found by a click timing out rather than by any assertion.
-   Sideways it covers only its own row's name field, which is not a target
-   while you are choosing a colour.
-
-   Anchored to the row rather than the page so it travels with the tier as this
-   column scrolls. */
+/* Opens sideways: below, it covered the next tier's swatch. Anchored to the row,
+   so it travels with the tier as the column scrolls. */
 .tier-color-popup {
     position: absolute;
     top: 0;
@@ -163,10 +140,8 @@
 
 .tier-control-btn { padding: 0.3rem 0.45rem; font-size: 0.65rem; flex-shrink: 0; }
 
-/* --- COPIES (v1.2) ---
-   The add row (character, badge, + COPY) and one group per character with
-   copies: its original, then each copy, every row shaped like a tier row so
-   the two sections read as one column of controls. */
+/* Copies: the add row, then one group per character with copies, each row shaped
+   like a tier row. */
 .tier-copy-add { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.6rem; }
 .tier-copy-add .manga-select-wrapper { flex: 1.4; min-width: 0; }
 .tier-copy-label { flex: 1; min-width: 0; margin: 0; font-size: 0.78rem; }
@@ -189,8 +164,7 @@
 
 .block-editor-host { margin-bottom: 2rem; }
 
-/* One block editor, two documents - see js/tier-editor.js. The switch has to
-   read as "which am I writing", not as a pair of actions, so the inactive one
-   stays visibly a tab rather than a button that does something. */
+/* One Block editor, two documents: the switch reads as "which am I writing", so
+   the inactive one stays a tab. */
 .tier-doc-switch { display: flex; gap: 0.4rem; margin-bottom: 0.6rem; }
 .tier-doc-btn { flex: 1; font-size: 0.62rem; }

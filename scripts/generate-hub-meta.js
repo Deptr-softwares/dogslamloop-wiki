@@ -8,7 +8,7 @@
  * (roster grid, systems directory, dashboard widgets) that no generator
  * produces. But their metadata still has to be owner-editable, and it cannot
  * be injected at runtime: Discord, Twitter and Facebook unfurlers do not
- * execute JavaScript, so a tag written by js/site_meta.js is never seen by any
+ * execute JavaScript, so a tag written by js/utility/site_lookups.js is never seen by any
  * of them.
  *
  * A marked region is the narrowest thing that satisfies both. This script owns

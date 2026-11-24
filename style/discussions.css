@@ -1,25 +1,16 @@
-/* --- PER-CHARACTER DISCUSSION THREADS (v0.14 item 1) ---
+/* Discussion threads: the header row with the jump button, the composer, posts,
+   stacks, pages, images and GIFs, the GIF and emoji pickers, moderation, reporting,
+   replies, and author names with their flairs and chips. Quieter than the article
+   above it: a discussion is readers talking about the page, not part of it.
+   Since v0.14.
+   Watch: the only shared classes here are .btn-sys and .btn-manga, used as they are.
+   See: docs/discussions.md */
 
-   Its own file rather than an addition to Layout.css or Cards.css. Nothing
-   here is shared with another surface, and the classes this project has had
-   trouble with (.btn-sys, .btn-manga, .character-mode-chip) are exactly the
-   ones used across contexts that do not reference each other. The only shared
-   classes below are the two button ones, used as-is with no overrides.
-
-   Visually this is deliberately quieter than the article above it. A
-   discussion is readers talking about the page, not part of it, and matching
-   the frame-data cards' weight would make the two compete. */
-
-/* --- THE HEADER ROW ---
-   Holds the state chips and the jump-to-discussion button side by side. The
-   button is a sibling of #character-mode-bar rather than a child, because that
-   bar hides itself for a character with fewer than two states - which is 20 of
-   the 22 - and the button has to exist on all of them.
-
-   The row's own top margin replaces the one .character-mode-bar carries, so
-   the spacing under the title is identical whether or not the chips render.
-   Scoped to .character-toolbar, since .character-mode-bar is shared with the
-   editor and the admin preview and neither of those sits in a toolbar. */
+/* The header row: the state chips and the jump button side by side. The button is a
+   sibling of #character-mode-bar, which hides itself for a character with fewer than
+   two states. The row's top margin replaces the bar's, so the spacing under the
+   title is the same with or without chips; scoped to .character-toolbar, since
+   .character-mode-bar is shared with the editor and the Overseer's preview. */
 .character-toolbar {
     display: flex;
     align-items: center;
@@ -69,7 +60,7 @@
     margin-bottom: 1.25rem;
 }
 
-/* --- COMPOSER --- */
+/* Composer */
 
 .discussion-composer {
     margin-bottom: 1.5rem;
@@ -118,7 +109,7 @@
     color: var(--text-muted);
 }
 
-/* v1.0 batch 4: the Rules page, at the far end of the reply box's row. */
+/* The Rules page link, at the far end of the reply box's row. */
 .discussion-rules-link {
     margin-left: auto;
     font-family: var(--text-mono);
@@ -135,7 +126,7 @@
     color: #ef4444;
 }
 
-/* --- SIGN-IN PROMPT AND EMPTY STATE --- */
+/* Sign-in prompt and empty state */
 
 .discussion-signin {
     display: flex;
@@ -155,9 +146,8 @@
     color: var(--text-muted);
 }
 
-/* An empty thread is the state most readers meet first, and it decides
-   whether the feature reads as alive or broken. Styled as an invitation -
-   dashed, roomy, centred - rather than as an error box. */
+/* An empty thread is what most readers meet first: styled as an invitation
+   (dashed, roomy, centred), not an error box. */
 .discussion-empty {
     text-align: center;
     padding: 2rem 1rem;
@@ -185,7 +175,7 @@
     color: var(--text-muted);
 }
 
-/* --- POSTS --- */
+/* Posts */
 
 .discussion-list {
     display: flex;
@@ -201,9 +191,8 @@
     padding: 0.9rem 1.1rem 0.9rem 3.4rem;
 }
 
-/* The round letter where Discord shows a picture (kept from Part 3's channel
-   layout, owner 2026-10-12). In the card's left column, and small at the
-   start of a reply's name line. Its colour is set per person, inline. */
+/* The round letter where Discord shows a picture: in the card's left column, and
+   small at the start of a reply's name line. Its colour is set per person, inline. */
 .discussion-avatar {
     display: inline-flex;
     align-items: center;
@@ -229,10 +218,9 @@
     font-size: 0.85rem;
 }
 
-/* --- STACKS (owner, 2026-10-12) ---
-   Posts one person sends within 7 minutes share the first one's name line.
-   Each later post is a line of its own inside the card, with its time in the
-   left column when pointed at, and its buttons at the end of its words. */
+/* Stacks: posts one person sends within 7 minutes share the first one's name line.
+   Each later post is a line of its own in the card, its time in the left column on
+   hover, its buttons at the end of its words. */
 
 .discussion-post-item {
     position: relative;
@@ -277,7 +265,7 @@
     visibility: visible;
 }
 
-/* --- PAGES (kept from Part 3, owner 2026-10-12) --- */
+/* Pages */
 
 .discussion-pager {
     display: flex;
@@ -318,10 +306,9 @@
     color: var(--text-muted);
 }
 
-/* anywhere, not break-word: on a phone a stacked post's row is a column sized
-   to its words, and only `anywhere` lets an unbroken link lower that size. A
-   post that was one long Discord link grew to 626px on a 420px screen and
-   scrolled the whole page sideways (2026-10-25). */
+/* anywhere, not break-word: on a phone a stacked post's row is a column sized to its
+   words, and only `anywhere` lets an unbroken link lower that size, or one long link
+   scrolls the page sideways. */
 .discussion-body {
     font-size: 0.88rem;
     line-height: 1.55;
@@ -339,7 +326,7 @@
     display: none;
 }
 
-/* --- IMAGES AND GIFS (v0.20) --- */
+/* Images and GIFs */
 
 .discussion-media {
     display: flex;
@@ -374,7 +361,7 @@
     color: var(--text-muted);
 }
 
-/* --- ATTACHING, IN THE COMPOSER --- */
+/* Attaching, in the composer */
 
 .discussion-attachments {
     display: flex;
@@ -430,7 +417,7 @@
     font-size: 0.55rem;
 }
 
-/* --- THE GIF PICKER (js/discussions.js, v1.1 batch 8.5) --- */
+/* The GIF picker (discussions.js) */
 
 .gif-picker {
     margin-top: 0.5rem;
@@ -491,7 +478,7 @@
 
 .gif-credit { border-top: 1px solid var(--border-color); }
 
-/* --- EMOJIS (js/emoji.js, v1.1 batch 8.5) --- */
+/* Emojis (emoji.js) */
 
 /* In a sentence, 22px at Discord's 16px text, so the same ratio here. */
 .discussion-body .emoji {
@@ -603,9 +590,7 @@
     opacity: 0.75;
 }
 
-/* The target of a reply notification, so landing on the page puts the post
-   somebody was told about under an obvious marker rather than merely
-   somewhere on screen. */
+/* The target of a reply notification, under an obvious marker. */
 .discussion-post-linked {
     border-color: var(--accent-yellow);
 }
@@ -643,10 +628,8 @@
     color: #ef4444;
 }
 
-/* --- MODERATION ---
-   Only ever rendered for a moderator, so nothing here is scoped defensively
-   against ordinary readers seeing it - the server filters hidden rows out of
-   their result set entirely, which is a stronger guarantee than a CSS rule. */
+/* Moderation, drawn only for a moderator: the server filters hidden rows out of
+   everyone else's result. */
 
 .discussion-action-mod:hover {
     color: var(--accent-yellow);
@@ -698,10 +681,8 @@
     border-color: var(--accent-yellow);
 }
 
-/* --- REPORTING ---
-   Yellow like the moderation form, because both are "this goes to staff", and
-   deliberately less loud than the red of a destructive action - reporting is
-   asking someone to look, not doing something irreversible. */
+/* Reporting: yellow like the moderation form ("this goes to staff"), quieter than
+   a destructive action's red, since a report asks someone to look. */
 
 .discussion-report-form {
     margin-top: 0.6rem;
@@ -740,9 +721,7 @@
     color: #eab308;
 }
 
-/* --- REPLIES ---
-   One level only, so a single indent is the whole depth story. The left rule
-   is what carries it: no nesting to communicate, just membership. */
+/* Replies: one step in, so one indent, carried by the left rule. */
 
 .discussion-replies {
     margin-top: 0.9rem;
@@ -790,12 +769,8 @@
     }
 }
 
-/* --- CLICKABLE AUTHOR + FLAIR (v0.17 F11 part 3) ---
-   .discussion-author is now a <button> when there is a profile to open, so it
-   needs the UA button styles stripped back to what the <span> looked like -
-   otherwise it arrives with a grey background, a border and the browser's own
-   font. The span version is unchanged and still used for removed posts and for
-   authors whose account has been deleted. */
+/* The author's name is a <button> when there is a profile to open, stripped back to
+   look like the <span> used for a removed post or a deleted account. */
 
 button.discussion-author-link {
     /* Reset, not override: appearance:none removes the platform button chrome
@@ -828,9 +803,8 @@ button.discussion-author-link:focus-visible {
     color: var(--accent-blue-hover);
 }
 
-/* The flair, inline beside the name. Capped and ellipsised: it is
-   contributor-written, and although the column is limited to 32 characters
-   those can all be wide ones. */
+/* The flair beside the name, capped and ellipsised: 32 characters can all be wide
+   ones. */
 .discussion-flair {
     font-family: var(--text-mono);
     font-size: 0.6rem;
@@ -847,30 +821,18 @@ button.discussion-author-link:focus-visible {
     white-space: nowrap;
 }
 
-/* The author is a FLEX ITEM of .discussion-post-head, and a flex item's
-   automatic minimum size is its min-content width - so the button would not
-   shrink below name + EXPERT + flair, and pushed .discussion-time past the
-   right edge instead. That made the whole DOCUMENT scroll sideways on a phone.
-
-   Found 2026-09-20, and worth keeping because of how it surfaced: the cap
-   above was already there, and the header still fit Windows by 0.4px while
-   failing on CI's wider glyphs. Nothing in the repo had changed - a reader had
-   simply given themselves a long flair, so a content edit alone turned the
-   suite red and stopped the nightly regeneration from publishing anything.
-
-   min-width:0 removes that floor. The flair then gives way first for free: it
-   has overflow:hidden, so its own automatic minimum is already 0 and it just
-   ellipsises earlier. overflow-wrap covers the remaining case of a single
-   unbroken username longer than the screen. */
+/* min-width: 0, so the author's name can shrink below its contents (name, EXPERT
+   chip, flair) instead of pushing the time past the edge and the whole page
+   sideways on a phone. The flair then gives way first; overflow-wrap covers one
+   unbroken name longer than the screen. */
 .discussion-author {
     min-width: 0;
     max-width: 100%;
     overflow-wrap: anywhere;
 }
 
-/* The EXPERT chip (v0.17 F5). Deliberately louder than .discussion-flair: the
-   flair is what somebody wrote about themselves, this is the site vouching for
-   them on this page, and the two sit next to each other. */
+/* The EXPERT chip, louder than the flair: the site vouching for someone on this
+   page, beside what they wrote about themselves. */
 .discussion-expert {
     font-family: var(--text-mono);
     font-size: 0.58rem;
@@ -884,10 +846,9 @@ button.discussion-author-link:focus-visible {
     white-space: nowrap;
 }
 
-/* A message copied in from the Discord forum (v1.0 batch 1). The name is
-   plain text, since there is no wiki profile to open, so it sits in a span
-   laid out like the profile button. The chip is Discord's blurple with white
-   text, 4.6:1, the same in either theme. */
+/* A message copied in from Discord: the name is plain text, laid out like the
+   profile button. The chip is Discord's blurple with white text, 4.6:1, the same in
+   either look. */
 .discussion-author-discord {
     display: inline-flex;
     align-items: baseline;
@@ -919,7 +880,7 @@ button.discussion-author-link:focus-visible {
     font-style: italic;
 }
 
-/* Replies to replies and editing (v1.0 batch 3). */
+/* Replies to replies and editing */
 
 /* A moderator's "edited" opens the earlier versions, so it is a button that
    still reads as the quiet note everyone else sees. */

@@ -1,15 +1,18 @@
 // Cache skew between a fresh module and a stale shared dependency.
 //
 // The incident, 2026-08-10: GitHub Pages serves js/ with max-age=3600, so the
-// first load after a deploy gave the browser a brand-new js/editor-modes.js
-// and an hour-old js/site_utils.js. The new file called a helper the cached
+// first load after a deploy gave the browser a brand-new js/editor/core/editor-modes.js
+// and an hour-old js/utility/site_utils.js. The new file called a helper the cached
 // copy did not have yet, and the TypeError went straight through edit.html's
 // boot try/catch - "Editor failed to initialize context", reported on the live
 // site within minutes of the merge.
 //
-// Two defences, both tested here: the URL carries a content hash so the two
-// files can never be a deploy apart, and the modules degrade instead of
-// throwing if they somehow are.
+// The defence tested here: every URL carries one content hash, so a page and the
+// files it loads are never a deploy apart. The modules also kept stand-ins for
+// the helpers that day, until every copy of the shared file anywhere had them
+// (docs/overseer.md). The last test keeps them out: a stand-in is a second copy
+// of a shared rule, and a check that skips the call hides a file that failed to
+// load instead of failing.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -63,100 +66,25 @@ test('the hash actually changes when a shared module does', async () => {
 test('the served page really carries the query, not just the file on disk', async ({ request }) => {
   const res = await request.get('/edit.html');
   const html = await res.text();
-  expect(html).toMatch(/src="js\/site_utils\.js\?v=[0-9a-f]{8}"/);
-  expect(html).toMatch(/src="js\/character_tabs\.js\?v=[0-9a-f]{8}"/);
+  expect(html).toMatch(/src="js\/utility\/site_utils\.js\?v=[0-9a-f]{8}"/);
+  expect(html).toMatch(/src="js\/utility\/character_tabs\.js\?v=[0-9a-f]{8}"/);
 });
 
-test('a character page degrades rather than dying when site_utils is behind', async ({ page }) => {
-  // Simulates exactly the skew that happened: the shared helpers are missing,
-  // the page-level modules are current. The page must still render its
-  // content; only the state toggle is allowed to go missing.
-  await page.addInitScript(() => {
-    window.addEventListener('DOMContentLoaded', () => {
-      delete window.getCharacterModes;
-      delete window.isBaseMode;
-    }, { once: true });
-  });
-
-  const errors = [];
-  page.on('pageerror', e => errors.push(e.message));
-
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
-
-  // Count derived from the vocabulary, not pinned: Boomcat is not base-only,
-  // so it gets the static strip and no injected Ultimate tab. A literal here
-  // would fail the next time a tab is added, which is a change to the
-  // vocabulary and not a regression in this degradation path.
-  const staticTabCount = await page.evaluate(() => window.getCharacterTabIds().length);
-  await expect(page.locator('.character-nav .btn-manga')).toHaveCount(staticTabCount);
-  await expect(page.locator('#character-mode-bar')).toBeHidden();
-  expect(errors, 'a missing helper must not throw').toEqual([]);
-});
-
-test('the editor degrades rather than dying when site_utils is behind', async ({ page }) => {
-  // The exact reported failure. Before the guards, initEditorModes threw here
-  // and editor-core.js reported "Editor failed to initialize context" - the
-  // whole editor, not just the states feature.
-  await page.addInitScript(() => {
-    window.addEventListener('DOMContentLoaded', () => {
-      delete window.getCharacterModes;
-      delete window.isBaseMode;
-      delete window.BASE_MODE_ID;
-    }, { once: true });
-  });
-
-  const errors = [];
-  page.on('pageerror', e => errors.push(e.message));
-
-  await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'networkidle' });
-
-  const survived = await page.evaluate(async () => {
-    window.currentEditorPageType = 'character';
-    const desc = { overview: [], strategy: [], extras: [], matchups: [], counterplay: [], moveStrategies: {} };
-    const frame = { m1s: [], skills: [], specials: [] };
-    window.originalCloudDescData = desc;
-    window.originalCloudFrameData = frame;
-
-    await window.initEditorModes('testchar', desc, frame);
-    window.applyEditorModeView();
-
-    return {
-      // The editor still points at the real data, so edits go where they should.
-      descIsMaster: window.currentEditorDescData === desc,
-      frameIsMaster: window.currentEditorFrameData === frame,
-      mode: window.editorActiveMode,
-    };
-  });
-
-  expect(survived.descIsMaster).toBe(true);
-  expect(survived.frameIsMaster).toBe(true);
-  expect(survived.mode).toBe('base');
-  expect(errors).toEqual([]);
-});
-
-test('the admin queue stands in for the helpers it needs', async ({ page }) => {
-  // admin-core.js installs verbatim copies when site_utils is behind, because
-  // a reviewer losing the whole queue is worse than any feature going missing.
-  await page.addInitScript(() => {
-    Object.defineProperty(window, 'isBaseMode', { configurable: true, writable: true, value: undefined });
-    Object.defineProperty(window, 'unwrapModeDelta', { configurable: true, writable: true, value: undefined });
-    Object.defineProperty(window, 'getCharacterModes', { configurable: true, writable: true, value: undefined });
-  });
-
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
-
-  const standIns = await page.evaluate(() => ({
-    isBaseMode: typeof window.isBaseMode,
-    unwrapModeDelta: typeof window.unwrapModeDelta,
-    getCharacterModes: typeof window.getCharacterModes,
-    // And they behave identically to the real ones.
-    unwrapped: window.unwrapModeDelta('mode', 'ultimate::move::skills::x'),
-    plain: window.unwrapModeDelta('matchup', 'Sukuna'),
-  }));
-
-  expect(standIns.isBaseMode).toBe('function');
-  expect(standIns.unwrapModeDelta).toBe('function');
-  expect(standIns.getCharacterModes).toBe('function');
-  expect(standIns.unwrapped).toEqual({ modeId: 'ultimate', scope: 'move', key: 'skills::x' });
-  expect(standIns.plain).toEqual({ modeId: null, scope: 'matchup', key: 'Sukuna' });
+test('the mode helpers are defined once, and no file stands in for them', () => {
+  const home = {
+    isBaseMode: 'js/utility/site_data.js',
+    getCharacterModes: 'js/utility/site_data.js',
+    BASE_MODE_ID: 'js/utility/site_data.js',
+    unwrapModeDelta: 'js/utility/submission_delta.js',
+  };
+  const wrong = [];
+  for (const file of SHARED_MODULES.map(n => `js/${n}`)) {
+    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    for (const [name, definedIn] of Object.entries(home)) {
+      const defines = new RegExp(`window\\.${name}\\s*=(?!=)`).test(src);
+      if (defines !== (file === definedIn)) wrong.push(`${file} ${defines ? 'defines' : 'does not define'} ${name}`);
+      if (new RegExp(`typeof window\\.${name}\\b`).test(src)) wrong.push(`${file} checks whether ${name} exists`);
+    }
+  }
+  expect(wrong).toEqual([]);
 });

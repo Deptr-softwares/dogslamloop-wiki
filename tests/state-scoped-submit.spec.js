@@ -11,7 +11,7 @@
 //
 // Bug 6 - pressing "edit this tab" while reading an ultimate state opened the
 // base kit, because the link carried ?tab= but never ?mode=, and
-// js/editor-modes.js chooses the state by reading exactly that parameter.
+// js/editor/core/editor-modes.js chooses the state by reading exactly that parameter.
 //
 // These are unit-shaped rather than driven through the editor UI, because the
 // defect is in what the scan READS, and reproducing three edited states
@@ -22,8 +22,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const editorCore = fs.readFileSync(path.join(ROOT, 'js', 'editor-core.js'), 'utf8');
-const pageBuilder = fs.readFileSync(path.join(ROOT, 'js', 'pagebuilder.js'), 'utf8');
+const editorCore = fs.readFileSync(path.join(ROOT, 'js', 'editor', 'core', 'editor-core.js'), 'utf8');
+const pageBuilder = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'page_shell.js'), 'utf8');
 
 // --------------------------------------------------------------------------
 // Bug 6: the edit link carries the state
@@ -41,7 +41,7 @@ async function clickEditFrom(page, mode) {
         status: 200, contentType: 'text/html', body: '<!doctype html><title>stub</title>',
     }));
 
-    // networkidle, not domcontentloaded: initCharacterModes (js/character_modes.js)
+    // networkidle, not domcontentloaded: initCharacterModes (js/pages/core/character_modes.js)
     // awaits the page data and the registry, and only then decides the state.
     // Boomcat declares none, so it finishes by calling switchCharacterMode(null)
     // - which overwrites whatever this test poked into activeCharacterMode if
@@ -76,7 +76,7 @@ test('the edit link drops the parameter on the base kit', async ({ page }) => {
     const url = await clickEditFrom(page, 'base');
 
     // Base sends no mode rather than ?mode=base, matching what
-    // js/character_modes.js does to the reading page's canonical URL.
+    // js/pages/core/character_modes.js does to the reading page's canonical URL.
     expect(url, 'base must not append a mode parameter').not.toContain('mode=');
     expect(url, 'the tab is still carried').toContain('tab=skills');
 });

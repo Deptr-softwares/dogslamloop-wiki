@@ -1,9 +1,9 @@
 // v0.17 F5: filtering the revision queue.
 //
 // The owner's source list said the queue "is already built to filter character
-// submission". It was not - js/admin-queue.js contained the string "filter"
+// submission". It was not - js/overseer/admin-queue.js contained the string "filter"
 // zero times across 270 lines. This is that filtering, patterned on
-// js/admin-media-queue.js, which had two working dropdowns all along.
+// js/overseer/admin-media-queue.js, which had two working dropdowns all along.
 //
 // It matters more with experts than it did without them. An expert receives
 // only their own pages, because the "Staff can view queue" policy filters the
@@ -31,7 +31,7 @@ const rev = (over = {}) => ({
     ...over,
 });
 
-// The real renderQueue, against the real admin.html so every helper it reaches
+// The real renderQueue, against the real overseer.html so every helper it reaches
 // for (escapeHtml, unwrapModeDelta, timeSince) is the shipped one.
 async function render(page, rows, { pageFilter = 'all', statusFilter = 'all' } = {}) {
     return page.evaluate(({ rows, pageFilter, statusFilter }) => {
@@ -65,7 +65,7 @@ async function render(page, rows, { pageFilter = 'all', statusFilter = 'all' } =
 }
 
 test.beforeEach(async ({ page }) => {
-    await page.goto('/admin.html', { waitUntil: 'networkidle' });
+    await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 });
 
 test('with no filter, everything waiting is drawn', async ({ page }) => {
@@ -225,17 +225,17 @@ test('an empty queue and an empty filter say different things', async ({ page })
 
 // --- THE WIRING ---
 
-test('admin.html carries both filters and they are bound', async ({ page }) => {
+test('overseer.html carries both filters and they are bound', async ({ page }) => {
     // A filter that renders and is not wired looks exactly like a working one
     // until somebody uses it.
     //
-    // Read from the SERVED markup rather than the DOM. admin.html's RBAC gate
+    // Read from the SERVED markup rather than the DOM. overseer.html's RBAC gate
     // replaces the page for an unauthenticated visitor, and these tests drive
     // renderQueue directly rather than signing in - so a DOM query here finds
     // nothing and would fail for a reason that has nothing to do with filters.
     const { html, js } = await page.evaluate(async () => ({
-        html: await (await fetch('/admin.html')).text(),
-        js: await (await fetch('/js/admin-queue.js')).text(),
+        html: await (await fetch('/overseer.html')).text(),
+        js: await (await fetch('/js/overseer/admin-queue.js')).text(),
     }));
 
     expect(html).toContain('id="queue-filter-page"');
@@ -264,7 +264,7 @@ test('admin.html carries both filters and they are bound', async ({ page }) => {
 // while the page options are only added when the queue arrives. So the list a
 // reviewer opened only ever said "All pages". Every test above sets the bare
 // <select>'s value, which is how this passed from v0.17 until then.
-test.describe('on the real admin.html', () => {
+test.describe('on the real overseer.html', () => {
     const ROWS = [
         rev({ id: '00000000-0000-4000-8000-000000000001', page_id: 'boomcat' }),
         rev({ id: '00000000-0000-4000-8000-000000000002', page_id: 'honored_one', created_at: '2026-09-01T11:00:00Z' }),
@@ -303,7 +303,7 @@ test.describe('on the real admin.html', () => {
                 },
             });
         }, ROWS);
-        await page.goto('/admin.html', { waitUntil: 'networkidle' });
+        await page.goto('/overseer.html', { waitUntil: 'networkidle' });
         await expect(page.locator('#queue-container .update-log-item')).toHaveCount(3, { timeout: 15000 });
     }
 

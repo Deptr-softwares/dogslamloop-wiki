@@ -24,12 +24,12 @@ A test proves something only if it can fail. Most rules below are ways a passing
   expect(errors).toEqual([]);
   await expect(page.locator('#result')).toBeVisible();
   ```
-- **Read back what the browser computed, not the class that should cause it.** v0.15's notation colouring had nine green tests asserting the class `is-2` while a later stylesheet won on `color` (the owner: *"thickened but not orange"*). Compare against a resolved custom property, not a literal hex.
+- **Read back what the browser computed, not the class that should cause it.** v0.15's notation colouring had nine green tests asserting the class `is-2` while a later stylesheet won on `color` (the owner: *"thickened but not orange"*). Compare against a resolved custom property, not a literal hex, and check that the property is set: with `--input-color-m1` missing, the expected colour and the painted one were both the inherited text colour, and the test passed from v0.18 to #302.
   ```js
   const painted = await chip.evaluate(el => getComputedStyle(el).color);
   expect(painted).not.toBe(plainTextColour);
   ```
-- **Assert the positive.** An absence check (`not.toContain('onBlock')`) keeps passing once the key is spelled differently. For XSS, assert the tag survives escaped.
+- **Assert the positive.** An absence check (`not.toContain('onBlock')`) keeps passing once the key is spelled differently: after #302 stamped stylesheet links, "staff pages never load look-classic.css" matched no link at all, and passed. For XSS, assert the tag survives escaped.
 - **`toBeVisible()` is not "the user can click it".** Modals under the modal that opened them, controls under an absolutely positioned `✖`: check what is on top.
   ```js
   const onTop = await page.evaluate(() => {

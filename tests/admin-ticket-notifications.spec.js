@@ -2,7 +2,7 @@
 // reject were the ONLY actions that ever wrote to user_notifications - a
 // submission could be opened for discussion and replied to indefinitely with
 // the author never told, since contributors have no live view of ticket chat
-// (js/submissions.js only reads status/ticket_chat when they happen to visit).
+// (js/pages/community/submissions.js only reads status/ticket_chat when they happen to visit).
 //
 // Deliberately scoped to ticket-open + the FIRST staff reply rather than every
 // message, so an active back-and-forth doesn't turn into notification spam.
@@ -41,7 +41,7 @@ async function setupCapture(page, { ticketChat }) {
 }
 
 test('real bug fix: opening a ticket notifies the submission author', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const inserts = await page.evaluate(async () => {
     window.__inserts = [];
@@ -73,7 +73,7 @@ test('real bug fix: opening a ticket notifies the submission author', async ({ p
 });
 
 test('opening a ticket on your own submission does not notify you', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
 
   const inserts = await page.evaluate(async () => {
     window.__inserts = [];
@@ -102,7 +102,7 @@ test('opening a ticket on your own submission does not notify you', async ({ pag
 });
 
 test('real bug fix: the first staff reply notifies the author', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   // Only the author has spoken so far, so this reply is the first from staff.
   await setupCapture(page, { ticketChat: [{ author: 'ContributorOne', text: 'here it is', timestamp: 1 }] });
 
@@ -127,7 +127,7 @@ test('real bug fix: the first staff reply notifies the author', async ({ page })
 });
 
 test('subsequent staff replies do not notify again (no spam during an active discussion)', async ({ page }) => {
-  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.goto('/overseer.html', { waitUntil: 'networkidle' });
   // A staff message already exists in the log, so this is a follow-up.
   await setupCapture(page, {
     ticketChat: [

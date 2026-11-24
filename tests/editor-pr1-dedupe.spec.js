@@ -7,7 +7,7 @@
 // border-color: var(--accent-blue); .auth-body already sets padding: 1.5rem;
 // .auth-modal-box .editor-modal-actions already sets justify-content:
 // flex-end) - simply deleted rather than turned into new classes, same
-// pattern as the description.js remainder PR.
+// pattern as the page_render.js remainder PR.
 const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page }) => {

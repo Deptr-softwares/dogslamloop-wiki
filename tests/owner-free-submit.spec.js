@@ -1,5 +1,5 @@
 // The owner's controls for the community ranking (owner.html +
-// js/owner-tier-lists.js), added with v0.14 item 4.
+// js/owner/owner-tier-lists.js), added with v0.14 item 4.
 //
 // These are the emergency stop. When a brigade is under way the useful
 // response is to close voting from this panel within a minute, so "the button

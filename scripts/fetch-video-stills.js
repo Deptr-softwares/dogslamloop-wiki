@@ -14,7 +14,7 @@
  *     { "<file>": { "still": "medias/stills/<16 hex>.webp", "w": 1920, "h": 1080, "etag": "..." } }
  * and the stills in medias/stills/, named by a hash of the file name: the
  * name comes from page content and is not trusted to name a path.
- * js/description.js reads the list. Nothing is written to Storage.
+ * js/pages/core/page_render.js reads the list. Nothing is written to Storage.
  *
  * WHAT IT COSTS. On 2026-11-17 the pages used 388 videos, 1.2 GB. A WebM's
  * first frame is at its start, so this asks for the first 512 KB only. A file
@@ -50,7 +50,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gtqswjspxymjdopljmfi.s
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
     || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0cXN3anNweHltamRvcGxqbWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzQ1MDIsImV4cCI6MjA5NzkxMDUwMn0.6RsP5Ue1m9X8iGecXa245S3fEdYnDqML-QLux1KUAuw';
 const BUCKET = `${SUPABASE_URL}/storage/v1/object/public/wiki-media/`;
-// The extensions js/description.js treats as video (WIKI_MEDIA_VIDEO_RE).
+// The extensions js/pages/core/page_render.js treats as video (WIKI_MEDIA_VIDEO_RE).
 const VIDEO_EXT = /\.(webm|mp4|m4v|mov|ogv)$/i;
 
 const PREFIX_BYTES = 512 * 1024;
@@ -111,7 +111,7 @@ if (check) {
 // ---------------------------------------------------------------------------
 
 // The file in the bucket a value from page content names, if it is a video
-// there. The whole value, as js/description.js reads a media field.
+// there. The whole value, as js/pages/core/page_render.js reads a media field.
 function videoFileOf(value) {
     if (typeof value !== 'string') return null;
     const url = value.trim();

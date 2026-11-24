@@ -1,6 +1,6 @@
 // The tool-page editor.
 //
-// js/tool_page.js shipped a renderer that reads desc_data.tool and nothing
+// js/pages/types/tool_page.js shipped a renderer that reads desc_data.tool and nothing
 // ever wrote it, so a tool page could exist but never be pointed at anything.
 //
 // The claim worth protecting is the split: the config (where the tool lives,
@@ -160,7 +160,7 @@ test('each delta lands in its own key when applied', async ({ page }) => {
 
 test('the older gallery_intro scope still applies', async ({ page }) => {
   // Tickets carrying it may already be sitting in the queue.
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto('/history.html', { waitUntil: 'domcontentloaded' });
 
   const applied = await page.evaluate(() =>
     window.applyDeltaToData({}, {}, 'gallery_intro', 'full', [{ type: 'paragraph', content: 'Legacy.' }]).newDesc);
