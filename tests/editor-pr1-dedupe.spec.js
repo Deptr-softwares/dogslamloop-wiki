@@ -29,6 +29,9 @@ test('customConfirm: non-danger button is a blue .btn-sys, no inline color/borde
 
 test('customConfirm: danger button still uses btn-danger-fill, no leftover inline styles from a prior non-danger call', async ({ page }) => {
   await page.evaluate(() => { window.customConfirm('First', 'OK', false); });
+  // Answered first: a box already asking refuses a second question.
+  await page.locator('#editor-modal-cancel').click();
+  await expect(page.locator('#editor-custom-modal')).toBeHidden();
   page.evaluate(() => { window.customConfirm('Second', 'DELETE', true); });
   const btn = page.locator('#editor-modal-confirm');
   await expect(btn).toBeVisible();

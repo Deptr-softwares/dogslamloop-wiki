@@ -441,6 +441,7 @@ window.showSystemAlert = function(message) {
     if (msgEl) msgEl.textContent = message;
     window.runDialog(document.getElementById('alert-modal-overlay'), {
         buttons: [[document.getElementById('btn-alert-close')]],
+        backdrop: true,
     });
 };
 
@@ -605,20 +606,65 @@ window.rolesMeet = function (roles, requiredRole) {
 };
 
 /**
- * Runs every confirm, message and prompt box on the site: shows the box, resolves
+ * Opens a box (a dialog.site-dialog) over the page. The browser's own modal dialog
+ * closes it on Escape, keeps the page behind from being clicked and gives focus back
+ * to what opened it; this adds the scroll lock's room for the scrollbar, and with
+ * light, a click outside closing it, for a box with nothing typed in it.
+ * @since v1.3
+ * @watch it returns false for a box already open, and changes nothing
+ */
+window.openDialog = function (dialog, { light = false } = {}) {
+    if (!dialog || dialog.open) return false;
+    const html = document.documentElement;
+    // Read before the lock hides the scrollbar, so only for the first box: once
+    // locked, the root's clientWidth counts the kept room as page.
+    if (!document.querySelector('dialog.site-dialog[open]')) {
+        html.classList.toggle('dialog-keeps-gutter', window.innerWidth > html.clientWidth);
+    }
+
+    // Outside means the press and the release both landed on the backdrop, so a
+    // drag that starts in a field and ends outside never closes it.
+    const outside = (e) => {
+        if (e.target !== dialog) return false;
+        const r = dialog.getBoundingClientRect();
+        return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    let pressedOutside = false;
+    const onDown = (e) => { pressedOutside = outside(e); };
+    const onClick = (e) => { if (light && pressedOutside && outside(e)) dialog.close(); };
+    dialog.addEventListener('pointerdown', onDown);
+    dialog.addEventListener('click', onClick);
+    dialog.addEventListener('close', () => {
+        dialog.removeEventListener('pointerdown', onDown);
+        dialog.removeEventListener('click', onClick);
+    }, { once: true });
+
+    dialog.showModal();
+    return true;
+};
+
+// Any button marked data-dialog-close closes the box it is in.
+document.addEventListener('click', (e) => {
+    const button = e.target.closest('[data-dialog-close]');
+    const dialog = button && button.closest('dialog');
+    if (dialog && dialog.open) dialog.close();
+});
+
+/**
+ * Runs every confirm, message and prompt box on the site: opens the box, resolves
  * with the value of the button pressed, and takes its listeners off again.
  *   buttons    [[element, value]]; a function value is called at the press
- *   cancel     what Escape, a backdrop click or a refused open resolves to
- *   escape, backdrop   true to close on them
+ *   cancel     what Escape, a click outside or a refused open resolves to
+ *   backdrop   true to close on a click outside (a box with nothing typed in it)
  *   enter      what Enter resolves to; keyTarget is where keys are listened for
  *   focus      the element focused once the box shows
  *   onClose    undoes the caller's setup; runs on close and on a refusal
- * @watch one question per box: a box already showing refuses a new one with
+ * @watch one question per box: a box already open refuses a new one with
  *   `cancel`, so a double click can never run an action twice
  */
-window.runDialog = function (overlay, opts = {}) {
-    const { buttons = [], cancel, escape, backdrop, enter, keyTarget = document, focus, onClose } = opts;
-    if (!overlay.classList.contains('hidden')) {
+window.runDialog = function (dialog, opts = {}) {
+    const { buttons = [], cancel, backdrop, enter, keyTarget = document, focus, onClose } = opts;
+    if (dialog.open) {
         if (onClose) onClose();
         return Promise.resolve(cancel);
     }
@@ -628,22 +674,28 @@ window.runDialog = function (overlay, opts = {}) {
             target.addEventListener(type, handler);
             listeners.push(() => target.removeEventListener(type, handler));
         };
-        const close = (value) => {
-            const answer = typeof value === 'function' ? value() : value;
-            overlay.classList.add('hidden');
+        let answered = false;
+        let answer = cancel;
+        // Read at the press, before onClose can take the field away.
+        const answerWith = (value) => {
+            if (answered) return;
+            answered = true;
+            answer = typeof value === 'function' ? value() : value;
+            dialog.close();
+        };
+        buttons.forEach(([button, value]) => listen(button, 'click', () => answerWith(value)));
+        if (enter !== undefined) {
+            listen(keyTarget, 'keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); answerWith(enter); }
+            });
+        }
+        // Every way out ends here: a button, Escape, a click outside.
+        listen(dialog, 'close', () => {
             listeners.forEach(off => off());
             if (onClose) onClose();
             resolve(answer);
-        };
-        buttons.forEach(([button, value]) => listen(button, 'click', () => close(value)));
-        if (backdrop) listen(overlay, 'click', (e) => { if (e.target === overlay) close(cancel); });
-        if (escape || enter !== undefined) {
-            listen(keyTarget, 'keydown', (e) => {
-                if (escape && e.key === 'Escape') { e.preventDefault(); close(cancel); }
-                else if (enter !== undefined && e.key === 'Enter') { e.preventDefault(); close(enter); }
-            });
-        }
-        overlay.classList.remove('hidden');
+        });
+        window.openDialog(dialog, { light: !!backdrop });
         if (focus) focus.focus();
     });
 };
@@ -656,49 +708,81 @@ window.adminConfirm = function (message) {
             [document.getElementById('btn-admin-confirm-ok'), true],
             [document.getElementById('btn-admin-confirm-cancel'), false],
         ],
-        cancel: false,
+        cancel: false, backdrop: true,
+    });
+};
+
+// The question box every page can use, built on first use (siteConfirm, sitePrompt).
+function siteQuestionDialog() {
+    let dialog = document.getElementById('site-confirm-modal');
+    if (dialog) return dialog;
+    dialog = document.createElement('dialog');
+    dialog.id = 'site-confirm-modal';
+    dialog.className = 'site-dialog';
+    dialog.setAttribute('aria-labelledby', 'site-confirm-title');
+    dialog.innerHTML = `
+        <div class="dialog-header"><h3 id="site-confirm-title">CONFIRM</h3></div>
+        <div class="dialog-body dialog-question">
+            <p id="site-confirm-text" class="dialog-text"></p>
+            <div class="dialog-actions">
+                <button type="button" id="site-confirm-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                <button type="button" id="site-confirm-ok" class="btn-sys">CONFIRM</button>
+            </div>
+        </div>`;
+    document.body.appendChild(dialog);
+    return dialog;
+}
+
+/**
+ * A confirm box for code that runs on any page, for a destructive action: every
+ * way out but CONFIRM resolves false.
+ * @since v0.16
+ */
+window.siteConfirm = function (message, opts = {}) {
+    const dialog = siteQuestionDialog();
+    if (dialog.open) return Promise.resolve(false);
+    const btnOk = dialog.querySelector('#site-confirm-ok');
+    dialog.classList.add('tone-red');
+    dialog.querySelector('#site-confirm-title').textContent = opts.title || 'CONFIRM';
+    dialog.querySelector('#site-confirm-text').textContent = message;
+    btnOk.textContent = opts.confirmText || 'CONFIRM';
+    btnOk.className = 'btn-sys btn-sys-red btn-danger-fill';
+
+    return window.runDialog(dialog, {
+        buttons: [[dialog.querySelector('#site-confirm-cancel'), false], [btnOk, true]],
+        cancel: false, backdrop: true, focus: btnOk,
+        onClose: () => dialog.classList.remove('tone-red'),
     });
 };
 
 /**
- * A confirm box for code that runs on any page, built once from the inbox's
- * .modal-overlay and .modal-box classes.
- * @since v0.16
+ * A prompt for code that runs on any page: resolves the trimmed text, or null when
+ * it is called off or left empty. Enter accepts.
+ * @since v1.3
  */
-window.siteConfirm = function (message, opts = {}) {
-    let modal = document.getElementById('site-confirm-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'site-confirm-modal';
-        modal.className = 'modal-overlay hidden';
-        modal.innerHTML = `
-            <div class="modal-box accent-red modal-sm">
-                <div class="modal-header"><h3 id="site-confirm-title">CONFIRM</h3></div>
-                <div class="modal-body site-confirm-body">
-                    <p id="site-confirm-text" class="site-confirm-text"></p>
-                    <div class="site-confirm-actions">
-                        <button id="site-confirm-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
-                        <button id="site-confirm-ok" class="btn-sys btn-sys-red">CONFIRM</button>
-                    </div>
-                </div>
-            </div>`;
-        document.body.appendChild(modal);
-    }
-
-    const titleEl = modal.querySelector('#site-confirm-title');
-    const textEl = modal.querySelector('#site-confirm-text');
-    const btnCancel = modal.querySelector('#site-confirm-cancel');
-    const btnOk = modal.querySelector('#site-confirm-ok');
-
-    titleEl.textContent = opts.title || 'CONFIRM';
+window.sitePrompt = function (message, opts = {}) {
+    const dialog = siteQuestionDialog();
+    if (dialog.open) return Promise.resolve(null);
+    const textEl = dialog.querySelector('#site-confirm-text');
+    const btnOk = dialog.querySelector('#site-confirm-ok');
+    dialog.querySelector('#site-confirm-title').textContent = opts.title || 'ENTER A VALUE';
     textEl.textContent = message;
-    btnOk.textContent = opts.confirmText || 'CONFIRM';
+    btnOk.textContent = opts.confirmText || 'OK';
+    btnOk.className = 'btn-sys btn-sys-blue';
 
-    // Backdrop and Escape both cancel. This is a destructive action, so every
-    // ambiguous exit resolves to "no".
-    return window.runDialog(modal, {
-        buttons: [[btnCancel, false], [btnOk, true]],
-        cancel: false, escape: true, backdrop: true, focus: btnOk,
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'editor-input dialog-input';
+    input.value = opts.value || '';
+    if (opts.placeholder) input.placeholder = opts.placeholder;
+    textEl.after(input);
+
+    const typed = () => input.value.trim() || null;
+    // No click outside: it holds what was typed.
+    return window.runDialog(dialog, {
+        buttons: [[dialog.querySelector('#site-confirm-cancel'), null], [btnOk, typed]],
+        cancel: null, enter: typed, keyTarget: input, focus: input,
+        onClose: () => input.remove(),
     });
 };
 

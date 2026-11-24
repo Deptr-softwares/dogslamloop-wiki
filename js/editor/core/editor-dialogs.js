@@ -1,9 +1,12 @@
 /**
  * The editor's message and confirm boxes, #editor-alert-modal and
- * #editor-custom-modal, on window.runDialog (site_utils.js).
+ * #editor-custom-modal, on window.runDialog (site_utils.js). Escape and a click
+ * outside answer the cancel button, so on a choice between two real actions they
+ * pick the one cancelText names.
  * @since v0.4, as part of editor.js
  * @watch only edit.html and post-editor.html carry that markup and load this
- *   file: shared code checks `typeof window.customConfirm` and does without
+ *   file: shared code checks `typeof window.customConfirm` and uses
+ *   window.siteConfirm without it
  * @see docs/editor.md
  */
 
@@ -11,6 +14,7 @@ window.editorAlert = function(message) {
     document.getElementById('editor-alert-msg').textContent = message;
     window.runDialog(document.getElementById('editor-alert-modal'), {
         buttons: [[document.getElementById('editor-alert-ok')]],
+        backdrop: true,
     });
 };
 
@@ -25,6 +29,8 @@ window.customConfirm = function(message, confirmText = "DELETE", isDanger = true
     const textEl = document.getElementById('editor-modal-text');
     const btnCancel = document.getElementById('editor-modal-cancel');
     const btnConfirm = document.getElementById('editor-modal-confirm');
+    // Before anything changes: a box already asking keeps its own question.
+    if (modal.open) return Promise.resolve(false);
 
     if (btnCancel.dataset.defaultLabel === undefined) btnCancel.dataset.defaultLabel = btnCancel.textContent;
     btnCancel.textContent = cancelText || btnCancel.dataset.defaultLabel;
@@ -49,5 +55,5 @@ window.customConfirm = function(message, confirmText = "DELETE", isDanger = true
 
     const buttons = [[btnCancel, false], [btnConfirm, true]];
     if (btnAlt && altText) buttons.push([btnAlt, 'alt']);
-    return window.runDialog(modal, { buttons, cancel: false });
+    return window.runDialog(modal, { buttons, cancel: false, backdrop: true });
 };

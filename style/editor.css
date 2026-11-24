@@ -1536,18 +1536,10 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 /* Modal layers */
 .editor-modal-overlay { z-index: 10000; }
-.editor-modal-overlay.alert-layer { z-index: 10001; }
-
-/* The confirm and alert layers outrank every other modal: they answer something
-   another modal asked. At equal z-index, file order decided, and a confirmation
-   opened from the combo row modal could be seen and not clicked. Above the two
-   inline 10005s (the QA and gallery item modals) too. */
-#editor-custom-modal.editor-modal-overlay { z-index: 10020; }
-#editor-alert-modal.editor-modal-overlay { z-index: 10021; }
 
 /* The first-visit notices: above the Media Library and the 10005 modals, since
-   the library's notice answers opening it, and below the confirm layers. Stated,
-   not left to DOM order. */
+   the library's notice answers opening it. Stated, not left to DOM order. The
+   confirm and message boxes are dialogs, above every one of these. */
 .editor-notice-overlay.editor-modal-overlay { z-index: 10010; }
 
 .modal-danger .editor-modal-box { border-top-color: #ef4444; width: 450px; }
@@ -1557,30 +1549,12 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .modal-warning .editor-modal-box { border-top-color: #eab308; width: 450px; }
 .modal-warning .auth-header h3 { color: #eab308; font-size: 1rem; }
 
-.auth-body-centered {
-    text-align: center;
-    padding: 2rem;
-}
-
 .modal-prompt-text {
     font-family: var(--text-mono);
     font-size: 0.85rem;
     color: var(--text-white);
     margin: 0 0 2rem 0;
     line-height: 1.6;
-}
-.modal-prompt-text.pre-wrap { white-space: pre-wrap; }
-
-/* The field customPrompt adds between the text and the buttons, made per call
-   since the modal is shared with every delete confirmation. The negative margin
-   eats part of the text's spacing, and it is left-aligned: a centred address is
-   hard to edit. */
-.editor-modal-input {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    margin: -1rem 0 1.5rem 0;
-    text-align: left;
 }
 
 .modal-actions-centered {

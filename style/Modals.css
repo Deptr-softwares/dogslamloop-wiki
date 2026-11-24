@@ -27,6 +27,104 @@
     z-index: 9500;
 }
 
+/* The site's dialog: a box on a <dialog>, opened by window.openDialog
+   (site_utils.js), in the staff look. Sizes: .dialog-md, -lg, -xl (400 without
+   one). Tones: .tone-red, -yellow, -green, -purple (blue without one).
+   Since v1.3.
+   Watch: display goes on [open] only, or a closed dialog shows. The dialog sits in
+   the top layer, so a popup opened from inside it has to be inside it too. */
+dialog.site-dialog {
+    --dialog-tone: var(--accent-blue);
+    box-sizing: border-box;
+    width: 400px;
+    max-width: calc(100vw - 2rem);
+    max-height: 85vh;
+    margin: auto;
+    padding: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0a0a0a;
+    color: var(--text-primary);
+    text-align: left;
+    border: 1px solid #333;
+    border-top: 3px solid var(--dialog-tone);
+    border-radius: 0;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+}
+dialog.site-dialog[open] { display: flex; animation: modal-fade-in 0.15s ease-out; }
+html.reduce-motion dialog.site-dialog[open] { animation: none; }
+dialog.site-dialog::backdrop { background: rgba(0, 0, 0, 0.85); }
+
+/* The page behind stays still, and keeps its scrollbar's room so nothing shifts. */
+html:has(dialog.site-dialog[open]) { overflow: hidden; }
+html.dialog-keeps-gutter:has(dialog.site-dialog[open]) { scrollbar-gutter: stable; }
+
+dialog.site-dialog.dialog-md { width: 500px; }
+dialog.site-dialog.dialog-lg { width: 650px; }
+dialog.site-dialog.dialog-xl { width: 860px; }
+
+dialog.site-dialog.tone-red { --dialog-tone: #ef4444; }
+dialog.site-dialog.tone-yellow { --dialog-tone: #eab308; }
+dialog.site-dialog.tone-green { --dialog-tone: #22c55e; }
+dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
+
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    padding: 1rem 1.5rem;
+    background: #050505;
+    border-bottom: 1px solid #222;
+}
+.dialog-header h3 {
+    margin: 0;
+    font-family: var(--text-mono);
+    font-size: 1rem;
+    font-weight: normal;
+    color: var(--dialog-tone);
+}
+
+.dialog-body {
+    flex: 1 1 auto;
+    padding: 1.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+/* A question or a message: its text and buttons centred. */
+.dialog-body.dialog-question { padding: 2rem; text-align: center; }
+.dialog-text {
+    margin: 0 0 2rem;
+    font-family: var(--text-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-white);
+    white-space: pre-wrap;
+}
+/* The field a prompt adds under its text, left-aligned: a centred address is hard
+   to edit. */
+.dialog-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: -1rem 0 1.5rem;
+    text-align: left;
+}
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+.dialog-actions .btn-danger-fill { flex: 1; }
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    padding: 1rem 1.5rem;
+    background: #050505;
+    border-top: 1px solid #222;
+}
+
 /* The modal box */
 .modal-box {
     background: #0a0a0a;
@@ -121,27 +219,6 @@
 
 .modal-footer.centered-actions {
     justify-content: center;
-}
-/* The site-wide confirm box (window.siteConfirm), for code on any page: the
-   editor's box is only on edit.html and post-editor.html. Built from the .modal-*
-   classes above. */
-.site-confirm-body {
-    padding: 1.5rem;
-}
-
-.site-confirm-text {
-    font-family: var(--text-mono);
-    font-size: 0.8rem;
-    color: var(--text-white);
-    line-height: 1.6;
-    margin: 0 0 1.5rem 0;
-}
-
-.site-confirm-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    flex-wrap: wrap;
 }
 
 /* The profile modal. Every class here is new and prefixed profile-; .btn-sys,

@@ -12,25 +12,23 @@ test('each moderation action gets its own prompt wording, not the reject modal\'
   // wording someone eventually acts on.
   const result = await page.evaluate(async () => {
     document.body.innerHTML = `
-      <div id="admin-prompt-modal" class="hidden">
-        <div>
-          <h3></h3>
-          <p id="admin-prompt-msg"></p>
-          <textarea id="admin-prompt-input" placeholder="Type your note here..."></textarea>
-          <button id="btn-admin-prompt-ok"></button>
-          <button id="btn-admin-prompt-cancel"></button>
-        </div>
-      </div>
+      <dialog id="admin-prompt-modal" class="site-dialog">
+        <h3></h3>
+        <p id="admin-prompt-msg"></p>
+        <textarea id="admin-prompt-input" placeholder="Type your note here..."></textarea>
+        <button id="btn-admin-prompt-ok"></button>
+        <button id="btn-admin-prompt-cancel"></button>
+      </dialog>
     `;
 
     const capture = (title, confirmText, isDanger, placeholder) => {
       const p = window.adminPrompt('msg', title, confirmText, isDanger, placeholder);
-      const box = document.getElementById('admin-prompt-modal').firstElementChild;
+      const box = document.getElementById('admin-prompt-modal');
       const snapshot = {
         title: box.querySelector('h3').textContent,
         placeholder: document.getElementById('admin-prompt-input').placeholder,
         confirmText: document.getElementById('btn-admin-prompt-ok').textContent,
-        danger: box.classList.contains('accent-red'),
+        danger: box.classList.contains('tone-red'),
       };
       document.getElementById('btn-admin-prompt-cancel').click();
       return p.then(() => snapshot);

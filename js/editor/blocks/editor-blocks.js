@@ -570,7 +570,7 @@ window.confirmDelete = function (message, confirmText) {
     // The modal is shared: a second question under the first would be answered by
     // its click.
     const modal = document.getElementById('editor-custom-modal');
-    if (modal && !modal.classList.contains('hidden')) return Promise.resolve(false);
+    if (modal && modal.open) return Promise.resolve(false);
     if (typeof window.customConfirm === 'function' && modal) return window.customConfirm(message, confirmText || 'DELETE', true);
     return Promise.resolve(window.confirm(message));
 };
@@ -706,6 +706,7 @@ window.customPrompt = function (message, opts = {}) {
     if (!modal || !textEl || !btnCancel || !btnConfirm) {
         return Promise.resolve(window.prompt(message));
     }
+    if (modal.open) return Promise.resolve(null);
 
     const prevConfirmText = btnConfirm.textContent;
     const prevConfirmClass = btnConfirm.className;
@@ -716,16 +717,17 @@ window.customPrompt = function (message, opts = {}) {
 
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'editor-input editor-modal-input';
+    input.className = 'editor-input dialog-input';
     input.value = opts.value || '';
     if (opts.placeholder) input.placeholder = opts.placeholder;
     textEl.insertAdjacentElement('afterend', input);
 
     const typed = () => input.value.trim() || null;
-    // Enter accepts, Escape backs out, as window.prompt did.
+    // Enter accepts, Escape backs out, as window.prompt did. No click outside: it
+    // holds what was typed.
     const answer = window.runDialog(modal, {
         buttons: [[btnCancel, null], [btnConfirm, typed]],
-        cancel: null, escape: true, enter: typed, keyTarget: input, focus: input,
+        cancel: null, enter: typed, keyTarget: input, focus: input,
         onClose: () => {
             input.remove();
             btnConfirm.textContent = prevConfirmText;

@@ -80,20 +80,18 @@ window.injectAuthModal = function() {
     </div>`;
 
     const alertModalHTML = `
-    <div id="alert-modal-overlay" class="modal-overlay tier-priority hidden">
-        <div class="modal-box modal-sm accent-green">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>SYSTEM MESSAGE</h3>
-                <span class="status-dot online"></span>
-            </div>
-            <div class="modal-body centered-text">
-                <p id="alert-modal-msg" style="font-family: var(--text-mono); font-size: 0.85rem; color: var(--text-white); margin: 0 0 1rem 0; line-height: 1.5;"></p>
-            </div>
-            <div class="modal-footer centered-actions">
-                <button id="btn-alert-close" class="btn-sys btn-sys-green" style="width: 100%;">ACKNOWLEDGE</button>
+    <dialog id="alert-modal-overlay" class="site-dialog tone-green" aria-labelledby="alert-modal-title">
+        <div class="dialog-header">
+            <h3 id="alert-modal-title">SYSTEM MESSAGE</h3>
+            <span class="status-dot online"></span>
+        </div>
+        <div class="dialog-body dialog-question">
+            <p id="alert-modal-msg" class="dialog-text"></p>
+            <div class="dialog-actions">
+                <button type="button" id="btn-alert-close" class="btn-sys btn-sys-green">ACKNOWLEDGE</button>
             </div>
         </div>
-    </div>`;
+    </dialog>`;
 
     const div = document.createElement('div');
     div.innerHTML = authModalHTML + alertModalHTML;

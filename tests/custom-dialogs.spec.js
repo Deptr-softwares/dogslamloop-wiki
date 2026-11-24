@@ -75,9 +75,9 @@ test('the link button opens the site modal, not a browser prompt', async ({ page
 
   const seen = await page.evaluate(() => {
     const modal = document.getElementById('editor-custom-modal');
-    const input = modal.querySelector('.editor-modal-input');
+    const input = modal.querySelector('.dialog-input');
     return {
-      open: !modal.classList.contains('hidden'),
+      open: modal.open,
       hasInput: !!input,
       focused: document.activeElement === input,
       prompt: document.getElementById('editor-modal-text').textContent,
@@ -96,15 +96,15 @@ test('typing a URL and confirming wraps the selection', async ({ page }) => {
   const { errors, dialogs } = await workspaceWithText(page);
   await clickLinkButton(page);
 
-  await page.locator('#editor-custom-modal .editor-modal-input').fill('/systems/writing_guide/');
+  await page.locator('#editor-custom-modal .dialog-input').fill('/systems/writing_guide/');
   await page.locator('#editor-modal-confirm').click();
   await page.waitForTimeout(400);
 
   const after = await page.evaluate(() => ({
     value: document.querySelector('#block-list .editor-textarea').value,
     data: window.getActiveBlocks()[0].content,
-    modalHidden: document.getElementById('editor-custom-modal').classList.contains('hidden'),
-    inputGone: !document.querySelector('#editor-custom-modal .editor-modal-input'),
+    modalHidden: !document.getElementById('editor-custom-modal').open,
+    inputGone: !document.querySelector('#editor-custom-modal .dialog-input'),
   }));
 
   expect(dialogs).toEqual([]);
@@ -125,7 +125,7 @@ test('Enter in the link box does what INSERT does', async ({ page }) => {
   const { errors } = await workspaceWithText(page);
   await clickLinkButton(page);
 
-  const input = page.locator('#editor-custom-modal .editor-modal-input');
+  const input = page.locator('#editor-custom-modal .dialog-input');
   await expect(input).toBeFocused();
   await input.fill('/systems/writing_guide/');
   await input.press('Enter');
@@ -147,7 +147,7 @@ test('cancelling the link modal inserts nothing', async ({ page }) => {
 
   const after = await page.evaluate(() => ({
     value: document.querySelector('#block-list .editor-textarea').value,
-    inputGone: !document.querySelector('#editor-custom-modal .editor-modal-input'),
+    inputGone: !document.querySelector('#editor-custom-modal .dialog-input'),
   }));
 
   expect(dialogs).toEqual([]);
@@ -217,7 +217,7 @@ test('clearing the inbox asks first, in the site modal', async ({ page }) => {
     const modal = document.getElementById('site-confirm-modal');
     return {
       exists: !!modal,
-      open: modal ? !modal.classList.contains('hidden') : false,
+      open: modal ? modal.open : false,
       title: modal ? modal.querySelector('#site-confirm-title').textContent : null,
       inboxStillThere: !!document.querySelector('#site-notification-modal .notif-item'),
     };
@@ -241,7 +241,7 @@ test('cancelling leaves the inbox alone', async ({ page }) => {
 
   const seen = await page.evaluate(() => ({
     stillThere: !!document.querySelector('#site-notification-modal .notif-item'),
-    modalHidden: document.getElementById('site-confirm-modal').classList.contains('hidden'),
+    modalHidden: !document.getElementById('site-confirm-modal').open,
   }));
 
   expect(seen.stillThere, 'the notification survived').toBe(true);
@@ -278,7 +278,7 @@ test('Escape cancels rather than confirming', async ({ page }) => {
 
   const seen = await page.evaluate(() => ({
     stillThere: !!document.querySelector('#site-notification-modal .notif-item'),
-    modalHidden: document.getElementById('site-confirm-modal').classList.contains('hidden'),
+    modalHidden: !document.getElementById('site-confirm-modal').open,
   }));
 
   expect(seen.stillThere, 'Escape did not clear the inbox').toBe(true);

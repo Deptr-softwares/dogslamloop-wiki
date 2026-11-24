@@ -73,6 +73,7 @@ window.adminAlert = function(message) {
     document.getElementById('admin-alert-msg').textContent = message;
     window.runDialog(document.getElementById('admin-alert-modal'), {
         buttons: [[document.getElementById('btn-admin-alert-ok')]],
+        backdrop: true,
     });
 };
 
@@ -83,9 +84,10 @@ window.adminAlert = function(message) {
  */
 window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "CONFIRM", isDanger = false, placeholder = "Type your note here...") {
     const modal = document.getElementById('admin-prompt-modal');
+    // Before anything changes: a box already asking keeps its own question.
+    if (modal.open) return Promise.resolve(null);
 
-    const modalBox = modal.firstElementChild;
-    const titleEl = modalBox ? modalBox.querySelector('h3') : null;
+    const titleEl = modal.querySelector('h3');
     const msgEl = document.getElementById('admin-prompt-msg');
     const input = document.getElementById('admin-prompt-input');
     const btnOk = document.getElementById('btn-admin-prompt-ok');
@@ -99,10 +101,8 @@ window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "C
     }
     if (btnOk) btnOk.textContent = confirmText;
 
-    if (modalBox) {
-        modalBox.classList.remove('accent-red', 'accent-green');
-        modalBox.classList.add(isDanger ? 'accent-red' : 'accent-green');
-    }
+    modal.classList.toggle('tone-red', isDanger);
+    modal.classList.toggle('tone-green', !isDanger);
     if (btnOk) {
         btnOk.className = `btn-sys ${isDanger ? 'btn-sys-red btn-danger-fill' : 'btn-sys-green'}`;
     }
