@@ -331,13 +331,15 @@ test('deleting goes through the RPC, which is the only path that cannot rewrite'
     });
     await open(page);
 
-    page.on('dialog', d => d.accept());
-    await page.evaluate(() => { window.customConfirm = async () => true; });
-
+    const native = [];
+    page.on('dialog', d => { native.push(d.type()); d.dismiss(); });
     await page.click('#post-mine [data-remove-post]');
+    await expect(page.locator('#site-confirm-text')).toContainText('Delete your post?');
+    await page.locator('#site-confirm-ok').click();
+    expect(native, 'asked in the box the site draws').toEqual([]);
 
-    const calls = await actionCalls(page);
-    expect(calls).toEqual([{ name: 'remove_my_discussion_post', params: { p_post_id: 'mine' } }]);
+    // The box answers when it has closed, a moment after the click.
+    await expect.poll(() => actionCalls(page)).toEqual([{ name: 'remove_my_discussion_post', params: { p_post_id: 'mine' } }]);
 });
 
 test('a removed post keeps its place so replies underneath still make sense', async ({ page }) => {

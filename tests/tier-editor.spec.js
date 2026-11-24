@@ -1008,8 +1008,8 @@ test('the editor board mirrors the icon treatment the reader will get', async ({
 // This page loads the block builder WITHOUT js/editor/core/editor-core.js, so there is no
 // window.customConfirm here, and CLEAR ALL threw "window.customConfirm is not
 // a function" and cleared nothing (found 2026-10-18). Every delete now asks
-// through window.confirmDelete, which falls back to the browser's own confirm
-// on a page with no confirm modal.
+// through window.confirmDelete, which asks in the site's own confirm
+// (window.siteConfirm) on a page with no editor confirm box.
 test('CLEAR ALL asks, then clears, on a page with no confirm modal', async ({ page }) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -1019,11 +1019,44 @@ test('CLEAR ALL asks, then clears, on a page with no confirm modal', async ({ pa
         window.renderBlockList();
     });
 
-    const asked = [];
-    page.on('dialog', d => { asked.push(d.message()); d.accept(); });
+    const native = [];
+    page.on('dialog', d => { native.push(d.type()); d.dismiss(); });
     await page.locator('#btn-clear-all').click();
+    await expect(page.locator('#site-confirm-text')).toHaveText('Delete all blocks in this section?');
+    await page.locator('#site-confirm-ok').click();
 
     await expect.poll(() => page.evaluate(() => window.getActiveBlocks().length)).toBe(0);
-    expect(asked).toEqual(['Delete all blocks in this section?']);
+    expect(native, 'never the box the browser draws').toEqual([]);
+    expect(errors).toEqual([]);
+});
+
+// The link button's prompt was the browser's own on this page, for the same reason.
+test('the link button asks in the site prompt, on a page with no editor confirm box', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    const native = [];
+    page.on('dialog', d => { native.push(d.type()); d.dismiss(); });
+    await openEditor(page);
+    await page.evaluate(() => {
+        window.getActiveBlocks().push({ type: 'paragraph', content: 'Read the guide' });
+        window.renderBlockList();
+    });
+    await openEveryBlock(page);
+    // A card below the fold is unloaded until it scrolls into view.
+    const card = page.locator('#block-list .block-card').last();
+    await card.scrollIntoViewIfNeeded();
+    await expect(card).not.toHaveClass(/virtual-unloaded/);
+    const field = card.locator('.editor-textarea');
+    await field.click();
+    await page.keyboard.press('Control+End');
+    for (let i = 0; i < 'guide'.length; i++) await page.keyboard.press('Shift+ArrowLeft');
+    await page.locator('.format-toolbar .format-btn[data-tag="url"]').last().click();
+
+    const input = page.locator('#site-confirm-modal .dialog-input');
+    await expect(input).toBeFocused();
+    await input.fill('/systems/hud/');
+    await input.press('Enter');
+    await expect(field).toHaveValue(/\[url=\/systems\/hud\/\]guide\[\/url\]/);
+    expect(native, 'never the box the browser draws').toEqual([]);
     expect(errors).toEqual([]);
 });

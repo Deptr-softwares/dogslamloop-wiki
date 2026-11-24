@@ -506,7 +506,8 @@ window.initMediaLibrary = function() {
             copy.textContent = 'COPIED!';
             setTimeout(() => { if (copy.isConnected) copy.textContent = 'COPY LINK'; }, 1200);
         }).catch(() => {
-            alert("Clipboard access denied. Manual URL: " + url);
+            const say = typeof window.editorAlert === 'function' ? window.editorAlert : window.showSystemAlert;
+            say("Clipboard access denied. Manual URL: " + url);
         });
     });
 

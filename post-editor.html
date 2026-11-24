@@ -7,20 +7,20 @@
     <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIcon.webp">
 
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=44b859a9">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Buttons.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Modals.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Forms.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Badges.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Alerts.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Cards.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Layout.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Blocks.css?v=44b859a9">
-    <link rel="stylesheet" href="style/posts.css?v=44b859a9">
-    <link rel="stylesheet" href="style/post-editor.css?v=44b859a9">
-    <link rel="stylesheet" href="style/editor.css?v=44b859a9">
-    <link rel="stylesheet" href="style/admin.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Common.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Buttons.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Modals.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Forms.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Badges.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Alerts.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Cards.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Layout.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Blocks.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/posts.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/post-editor.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/editor.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/admin.css?v=06c8ce8c">
     <!-- END GENERATED: styles -->
 </head>
 <body class="admin-body">
@@ -28,28 +28,26 @@
     <!-- Modal shells for the two helpers this page defines locally instead of
          pulling in js/editor/core/editor-core.js (whose DOMContentLoaded boots the whole
          page-revision editor and throws without a ?page= parameter). -->
-    <div id="editor-custom-modal" class="editor-modal-overlay modal-danger hidden">
-        <div class="editor-modal-box auth-modal-box">
-            <div class="auth-header"><h3>SYSTEM CONFIRMATION</h3></div>
-            <div class="auth-body auth-body-centered">
-                <p id="editor-modal-text" class="modal-prompt-text">Are you sure?</p>
-                <div class="modal-actions-centered">
-                    <button id="editor-modal-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
-                    <button id="editor-modal-confirm" class="btn-sys btn-sys-red btn-danger-fill">DELETE</button>
-                </div>
+    <dialog id="editor-custom-modal" class="site-dialog tone-red" aria-labelledby="editor-custom-modal-title">
+        <div class="dialog-header"><h3 id="editor-custom-modal-title">SYSTEM CONFIRMATION</h3></div>
+        <div class="dialog-body dialog-question">
+            <p id="editor-modal-text" class="dialog-text">Are you sure?</p>
+            <div class="dialog-actions">
+                <button type="button" id="editor-modal-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                <button type="button" id="editor-modal-confirm" class="btn-sys btn-sys-red btn-danger-fill">DELETE</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
-    <div id="editor-alert-modal" class="editor-modal-overlay alert-layer modal-warning hidden">
-        <div class="editor-modal-box auth-modal-box">
-            <div class="auth-header"><h3>SYSTEM WARNING</h3></div>
-            <div class="auth-body auth-body-centered">
-                <p id="editor-alert-msg" class="modal-prompt-text pre-wrap"></p>
-                <button id="editor-alert-ok" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
+    <dialog id="editor-alert-modal" class="site-dialog tone-yellow" aria-labelledby="editor-alert-modal-title">
+        <div class="dialog-header"><h3 id="editor-alert-modal-title">SYSTEM WARNING</h3></div>
+        <div class="dialog-body dialog-question">
+            <p id="editor-alert-msg" class="dialog-text"></p>
+            <div class="dialog-actions">
+                <button type="button" id="editor-alert-ok" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <div class="editor-layout">
 
@@ -190,21 +188,21 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=44b859a9"></script>
-    <script src="js/utility/input_slots.js?v=44b859a9"></script>
-    <script src="js/utility/site_utils.js?v=44b859a9"></script>
-    <script src="js/utility/site_data.js?v=44b859a9"></script>
-    <script src="js/utility/site_media.js?v=44b859a9"></script>
-    <script src="js/utility/site_account.js?v=44b859a9"></script>
-    <script src="js/utility/site_lookups.js?v=44b859a9"></script>
-    <script src="js/pages/core/page_render.js?v=44b859a9"></script>
-    <script src="js/pages/core/format_tags.js?v=44b859a9"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=44b859a9"></script>
-    <script src="js/pages/community/posts.js?v=44b859a9"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=44b859a9"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-media.js?v=44b859a9"></script>
-    <script src="js/owner/post-editor.js?v=44b859a9"></script>
+    <script src="js/utility/character_tabs.js?v=06c8ce8c"></script>
+    <script src="js/utility/input_slots.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_utils.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_data.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_media.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_account.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_lookups.js?v=06c8ce8c"></script>
+    <script src="js/pages/core/page_render.js?v=06c8ce8c"></script>
+    <script src="js/pages/core/format_tags.js?v=06c8ce8c"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=06c8ce8c"></script>
+    <script src="js/pages/community/posts.js?v=06c8ce8c"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=06c8ce8c"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-media.js?v=06c8ce8c"></script>
+    <script src="js/owner/post-editor.js?v=06c8ce8c"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>

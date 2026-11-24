@@ -136,8 +136,8 @@ test('the notice outranks the Media Library by stated z-index, not by DOM order'
   // DELETED, because the notice is appended to body last and wins at the shared
   // 10000 on DOM order alone. So that test does not discriminate, and without
   // this one the rule could be removed with the suite still green - leaving the
-  // notice resting on exactly the mechanism style/editor.css's confirm-layer
-  // comment blames for two shipped bugs.
+  // notice resting on DOM order, the mechanism behind two shipped bugs (a confirm
+  // that could be seen and not clicked).
   //
   // Resolved values, so this follows the stylesheet instead of pinning a number
   // in two places.
@@ -151,13 +151,18 @@ test('the notice outranks the Media Library by stated z-index, not by DOM order'
     return {
       notice: z('#editor-notice-mediaLibrary'),
       media: z('#media-modal-overlay'),
-      confirm: z('#editor-custom-modal'),
     };
   });
 
   expect(layers.notice).toBeGreaterThan(layers.media);
-  // And still below the confirm layer, which outranks everything by design.
-  expect(layers.notice).toBeLessThan(layers.confirm);
+  // And below a confirm, which is a dialog in the top layer, above every z-index.
+  await page.evaluate(() => { window.customConfirm('Delete it?'); });
+  const confirmOnTop = await page.evaluate(() => {
+    const b = document.getElementById('editor-modal-confirm');
+    const r = b.getBoundingClientRect();
+    return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === b;
+  });
+  expect(confirmOnTop, 'the confirm is on top of the notice').toBe(true);
 });
 
 test('the Media Library notice bolds and links exactly what was specified', async ({ page }) => {

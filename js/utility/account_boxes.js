@@ -17,13 +17,12 @@ window.injectAccountBoxes = function () {
     window.injectAuthModal();
 
     const profileModalHTML = `
-    <div id="profile-modal-overlay" class="modal-overlay hidden">
-        <div class="modal-box modal-lg accent-purple">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>SYSTEM PROFILE</h3>
+    <dialog id="profile-modal-overlay" class="site-dialog dialog-lg tone-purple" aria-labelledby="profile-modal-title">
+            <div class="dialog-header">
+                <h3 id="profile-modal-title">SYSTEM PROFILE</h3>
                 <span class="status-dot online"></span>
             </div>
-            <div class="modal-body">
+            <div class="dialog-body">
                 <div class="profile-identity">
                     <span id="profile-standing-icon" class="profile-standing-icon"></span>
                     <div class="profile-identity-text">
@@ -71,28 +70,25 @@ window.injectAccountBoxes = function () {
 
                 <p class="profile-feedback hidden" id="profile-feedback"></p>
             </div>
-            <div class="modal-footer" style="justify-content: space-between;">
-                <button id="btn-profile-logout" class="btn-sys btn-sys-red">LOGOUT</button>
+            <div class="dialog-footer" style="justify-content: space-between;">
+                <button type="button" id="btn-profile-logout" class="btn-sys btn-sys-red">LOGOUT</button>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn-sys btn-sys-regular" onclick="document.getElementById('profile-modal-overlay').classList.add('hidden')">CANCEL</button>
-                    <button id="btn-profile-save" class="btn-sys btn-sys-purple">SAVE CHANGES</button>
+                    <button type="button" class="btn-sys btn-sys-regular" data-dialog-close>CANCEL</button>
+                    <button type="button" id="btn-profile-save" class="btn-sys btn-sys-purple">SAVE CHANGES</button>
                 </div>
             </div>
-        </div>
-    </div>`;
+    </dialog>`;
 
-    // Somebody else's profile, read-only, opened by clicking a name: its own overlay,
+    // Somebody else's profile, read-only, opened by clicking a name: its own box,
     // not a mode of the profile form (which is bound to the signed-in user and has
     // LOGOUT). It borrows .profile-identity, so a person looks the same either way.
-    // tier-priority, so it opens over a discussion thread's own modals.
     const publicProfileHTML = `
-    <div id="public-profile-overlay" class="modal-overlay tier-priority hidden">
-        <div class="modal-box modal-sm accent-blue">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>PROFILE</h3>
+    <dialog id="public-profile-overlay" class="site-dialog" aria-labelledby="public-profile-title">
+            <div class="dialog-header">
+                <h3 id="public-profile-title">PROFILE</h3>
                 <span class="status-dot online"></span>
             </div>
-            <div class="modal-body">
+            <div class="dialog-body">
                 <div class="profile-identity" id="pubprofile-identity">
                     <span id="pubprofile-icon" class="profile-standing-icon"></span>
                     <div class="profile-identity-text">
@@ -112,11 +108,10 @@ window.injectAccountBoxes = function () {
                 <p id="pubprofile-bio" class="pubprofile-bio"></p>
                 <p id="pubprofile-joined" class="profile-hint"></p>
             </div>
-            <div class="modal-footer centered-actions">
-                <button class="btn-sys btn-sys-regular" style="width: 100%;" onclick="document.getElementById('public-profile-overlay').classList.add('hidden')">CLOSE</button>
+            <div class="dialog-footer">
+                <button type="button" class="btn-sys btn-sys-regular" style="width: 100%;" data-dialog-close>CLOSE</button>
             </div>
-        </div>
-    </div>`;
+    </dialog>`;
 
     const div = document.createElement('div');
     div.innerHTML = profileModalHTML + publicProfileHTML;
@@ -127,7 +122,7 @@ window.injectAccountBoxes = function () {
 
     if (btnLogout) {
         btnLogout.addEventListener('click', async () => {
-            document.getElementById('profile-modal-overlay').classList.add('hidden');
+            document.getElementById('profile-modal-overlay').close();
             await window.supabaseClient.auth.signOut();
             location.reload(); 
         });
@@ -205,7 +200,7 @@ window.injectAccountBoxes = function () {
                 window.setProfileFeedback("Could not save. " + problems.join("; ") + ".", false);
                 return;
             }
-            document.getElementById('profile-modal-overlay').classList.add('hidden');
+            document.getElementById('profile-modal-overlay').close();
             window.checkActiveSession();
         });
     }
@@ -367,13 +362,13 @@ window.showProfileBox = async function (session) {
     window.setProfileFeedback('', true);
     await window.hydrateProfileModal(session);
 
-    document.getElementById('profile-modal-overlay').classList.remove('hidden');
+    window.openDialog(document.getElementById('profile-modal-overlay'));
     nameInput.focus();
 
     // Always opened at the top: the header sits outside the scrolling body, and the
     // identity strip under it (the name and standing) must never need scrolling to.
     // Unconditional, since focus, zoom and the open animation can each move it.
-    document.querySelector('#profile-modal-overlay .modal-body').scrollTop = 0;
+    document.querySelector('#profile-modal-overlay .dialog-body').scrollTop = 0;
 };
 
 window.showPublicProfile = async function (userId) {
@@ -402,7 +397,8 @@ window.showPublicProfile = async function (userId) {
     badgesList.textContent = '';
     bioEl.textContent = '';
     joinedEl.textContent = '';
-    overlay.classList.remove('hidden');
+    // Nothing typed in it: a click outside closes it.
+    window.openDialog(overlay, { light: true });
 
     // Clicking a second name before the first resolves must not have the first
     // response overwrite the second.
@@ -494,9 +490,10 @@ window.initNotifications = async function() {
 
     let modal = document.getElementById('site-notification-modal');
     if (!modal) {
-        modal = document.createElement('div');
+        modal = document.createElement('dialog');
         modal.id = 'site-notification-modal';
-        modal.className = 'modal-overlay hidden';
+        modal.className = 'site-dialog dialog-md';
+        modal.setAttribute('aria-labelledby', 'site-notification-title');
         document.body.appendChild(modal);
     }
 
@@ -524,26 +521,28 @@ window.initNotifications = async function() {
         `).join('');
 
     modal.innerHTML = `
-        <div class="modal-box modal-md accent-blue">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="dialog-header">
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <h3>SYSTEM INBOX</h3>
-                    ${notifs.length > 0 ? `<button onclick="clearAllNotifications()" style="background: none; border: none; color: #ef4444; font-size: 0.65rem; font-family: var(--text-mono); cursor: pointer; text-decoration: underline; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">CLEAR ALL</button>` : ''}
+                    <h3 id="site-notification-title">SYSTEM INBOX</h3>
+                    ${notifs.length > 0 ? `<button type="button" data-notif-clear style="background: none; border: none; color: #ef4444; font-size: 0.65rem; font-family: var(--text-mono); cursor: pointer; text-decoration: underline; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">CLEAR ALL</button>` : ''}
                 </div>
             </div>
-            <div class="modal-body" style="padding: 0; overflow-x: hidden;">
+            <div class="dialog-body" style="padding: 0; overflow-x: hidden;">
                 ${notifHTML}
             </div>
-            <div class="modal-footer">
-                <button class="btn-sys btn-sys-regular" onclick="document.getElementById('site-notification-modal').classList.add('hidden')">CLOSE</button>
+            <div class="dialog-footer">
+                <button type="button" class="btn-sys btn-sys-regular" data-dialog-close>CLOSE</button>
             </div>
-        </div>
     `;
 
     // Delegated, not inline: the row id and link are stored values, and an onclick=""
     // built from them is an injection surface escaping does not close (the browser
     // unescapes it before the JS parser sees it).
     modal.onclick = (event) => {
+        if (event.target.closest('[data-notif-clear]')) {
+            window.clearAllNotifications();
+            return;
+        }
         const deleteBtn = event.target.closest('[data-notif-delete]');
         if (deleteBtn) {
             window.deleteNotification(deleteBtn.getAttribute('data-notif-delete'), event);
@@ -561,7 +560,7 @@ window.showInbox = async function() {
         await window.initNotifications();
     }
     const modal = document.getElementById('site-notification-modal');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) window.openDialog(modal, { light: true });
 };
 
 window.markNotifRead = async function(id, link) {
@@ -619,8 +618,8 @@ window.clearAllNotifications = async function() {
     if (!ok) return;
 
 
-    const body = document.querySelector('#site-notification-modal .modal-body');
-    const clearBtn = document.querySelector('#site-notification-modal button[onclick="clearAllNotifications()"]');
+    const body = document.querySelector('#site-notification-modal .dialog-body');
+    const clearBtn = document.querySelector('#site-notification-modal [data-notif-clear]');
     
     if (body) {
         body.innerHTML = `<div style="text-align: center; padding: 2.5rem; color: #555; font-family: var(--text-mono); font-size: 0.75rem;">Inbox is empty.</div>`;

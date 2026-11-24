@@ -371,7 +371,7 @@ test('+ STATE asks how the new state starts, and CANCEL makes nothing', async ({
   const modal = page.locator('#editor-custom-modal');
   await expect(modal).toBeVisible();
   await expect(modal.locator('#editor-modal-text')).toContainText('How should the new state start?');
-  await expect(modal.locator('.modal-actions-centered button:visible')).toHaveText(['CANCEL', 'START EMPTY', 'COPY BASE KIT']);
+  await expect(modal.locator('.dialog-actions button:visible')).toHaveText(['CANCEL', 'START EMPTY', 'COPY BASE KIT']);
 
   await modal.getByRole('button', { name: 'CANCEL' }).click();
   await expect(modal).toBeHidden();

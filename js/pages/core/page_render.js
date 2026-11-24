@@ -2567,24 +2567,23 @@ function wikiVideoModal() {
     let modal = document.getElementById('wiki-video-modal');
     if (modal) return modal;
 
-    modal = document.createElement('div');
+    // The site's dialog, in the player's own look: it is a player, not a box.
+    modal = document.createElement('dialog');
     modal.id = 'wiki-video-modal';
-    modal.className = 'wiki-video-modal hidden';
+    modal.className = 'site-dialog video-dialog';
+    modal.setAttribute('aria-label', 'Video');
     modal.innerHTML = `
-        <div class="wiki-video-modal-backdrop" data-video-modal-close></div>
-        <div class="wiki-video-modal-panel" role="dialog" aria-modal="true" aria-label="Video">
-            <button type="button" class="wiki-video-modal-close" data-video-modal-close
-                    aria-label="Close">&#10007;</button>
-            <div class="wiki-video-modal-body"></div>
-        </div>
+        <button type="button" class="wiki-video-modal-close" data-dialog-close
+                aria-label="Close">&#10007;</button>
+        <div class="wiki-video-modal-body"></div>
     `;
     document.body.appendChild(modal);
 
-    modal.addEventListener('click', (e) => {
-        if (e.target.closest('[data-video-modal-close]')) window.closeWikiVideoModal();
-    });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') window.closeWikiVideoModal();
+    // Emptied rather than just closed, however it closes: a paused video left in
+    // the DOM keeps its buffer, and reopening on a different clip would flash the
+    // old frame.
+    modal.addEventListener('close', () => {
+        modal.querySelector('.wiki-video-modal-body').innerHTML = '';
     });
     return modal;
 }
@@ -2596,7 +2595,7 @@ window.openWikiVideoModal = function (url) {
     const modal = wikiVideoModal();
     const body = modal.querySelector('.wiki-video-modal-body');
     body.innerHTML = window.wikiVideoPlayerHTML(src, 'wiki-player-modal');
-    modal.classList.remove('hidden');
+    window.openDialog(modal, { light: true });
 
     const video = body.querySelector('video');
     if (video) {
@@ -2604,16 +2603,6 @@ window.openWikiVideoModal = function (url) {
         video.play().catch(() => { /* the play button is right there */ });
     }
     return modal;
-};
-
-window.closeWikiVideoModal = function () {
-    const modal = document.getElementById('wiki-video-modal');
-    if (!modal || modal.classList.contains('hidden')) return;
-    modal.classList.add('hidden');
-    // Emptied rather than just hidden: a paused video left in the DOM keeps
-    // its buffer, and reopening on a different clip would flash the old frame.
-    const body = modal.querySelector('.wiki-video-modal-body');
-    if (body) body.innerHTML = '';
 };
 
 window.loadPageDescriptions = loadPageDescriptions;

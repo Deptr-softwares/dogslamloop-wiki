@@ -6,84 +6,42 @@
     <title>Wiki Contributor Editor</title>
     
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=44b859a9">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Buttons.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Modals.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Forms.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Badges.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Alerts.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Cards.css?v=44b859a9">
-    <link rel="stylesheet" href="style/FrameData.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Layout.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Blocks.css?v=44b859a9">
-    <link rel="stylesheet" href="style/tierlist.css?v=44b859a9">
-    <link rel="stylesheet" href="style/editor.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Common.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Buttons.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Modals.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Forms.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Badges.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Alerts.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Cards.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/FrameData.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Layout.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Blocks.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/tierlist.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/editor.css?v=06c8ce8c">
     <!-- END GENERATED: styles -->
 </head>
 <body>
-    <div id="editor-custom-modal" class="editor-modal-overlay modal-danger hidden">
-        <div class="editor-modal-box auth-modal-box">
-            <div class="auth-header">
-                <h3>SYSTEM CONFIRMATION</h3>
-            </div>
-            <div class="auth-body auth-body-centered">
-                <p id="editor-modal-text" class="modal-prompt-text">Are you sure?</p>
-                <div class="modal-actions-centered">
-                    <button id="editor-modal-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
-                    <button id="editor-modal-confirm" class="btn-sys btn-sys-red btn-danger-fill">DELETE</button>
-                </div>
+    <dialog id="editor-custom-modal" class="site-dialog tone-red" aria-labelledby="editor-custom-modal-title">
+        <div class="dialog-header"><h3 id="editor-custom-modal-title">SYSTEM CONFIRMATION</h3></div>
+        <div class="dialog-body dialog-question">
+            <p id="editor-modal-text" class="dialog-text">Are you sure?</p>
+            <div class="dialog-actions">
+                <button type="button" id="editor-modal-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                <button type="button" id="editor-modal-confirm" class="btn-sys btn-sys-red btn-danger-fill">DELETE</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
-    <div id="editor-alert-modal" class="editor-modal-overlay alert-layer modal-warning hidden">
-        <div class="editor-modal-box auth-modal-box">
-            <div class="auth-header">
-                <h3>SYSTEM WARNING</h3>
-            </div>
-            <div class="auth-body auth-body-centered">
-                <p id="editor-alert-msg" class="modal-prompt-text pre-wrap"></p>
-                <button id="editor-alert-ok" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
+    <dialog id="editor-alert-modal" class="site-dialog tone-yellow" aria-labelledby="editor-alert-modal-title">
+        <div class="dialog-header"><h3 id="editor-alert-modal-title">SYSTEM WARNING</h3></div>
+        <div class="dialog-body dialog-question">
+            <p id="editor-alert-msg" class="dialog-text"></p>
+            <div class="dialog-actions">
+                <button type="button" id="editor-alert-ok" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
             </div>
         </div>
-    </div>
-
-    <!-- QA / SUBMISSION METADATA MODAL -->
-    <div id="qa-modal-overlay" class="editor-modal-overlay hidden" style="z-index: 10005;">
-        <div class="editor-modal-box auth-modal-box" style="border-top-color: #a855f7; width: 500px;">
-            <div class="auth-header" style="border-bottom: 1px solid #333; background: #050505;">
-                <h3 style="color: #a855f7; font-size: 1rem;">QUALITY ASSURANCE</h3>
-            </div>
-            <div class="auth-body" style="padding: 1.5rem; text-align: left;">
-                <p style="font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-top: 0; margin-bottom: 1.5rem;">Please provide context for your changes to assist the staff review process.</p>
-                
-                <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
-                    <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">CHANGELOG / SUMMARY OF CHANGES</label>
-                    <textarea id="qa-changelog" class="editor-textarea" placeholder="e.g. Added M1 frame data, fixed Vessel combo typo..." style="min-height: 60px; margin: 0;"></textarea>
-                </div>
-
-                <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
-                    <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">DATA CONFIDENCE RATING</label>
-                    <select id="qa-confidence" class="editor-select" style="margin: 0; font-weight: bold;">
-                        <option value="high" style="color: #22c55e;">High (Frame-stepped / Datamined / Dev Confirmed)</option>
-                        <option value="medium" style="color: #eab308;" selected>Medium (In-game testing / Reputable source)</option>
-                        <option value="low" style="color: #ef4444;">Low (Eyeballed / Estimated / Unverified)</option>
-                        <option value="n/a" style="color: #888;">N/A (Just fixing typos or formatting)</option>
-                    </select>
-                </div>
-
-                <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
-                    <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">EVIDENCE / SOURCING LINK (Optional)</label>
-                    <input type="text" id="qa-evidence" class="editor-input" placeholder="YouTube, Streamable, or Doc link..." style="margin: 0;">
-                </div>
-            </div>
-            <div class="editor-modal-actions" style="border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0; justify-content: flex-end; gap: 1rem;">
-                <button onclick="document.getElementById('qa-modal-overlay').classList.add('hidden')" class="btn-sys btn-sys-regular">CANCEL</button>
-                <button id="btn-qa-confirm-submit" class="btn-sys btn-sys-purple btn-purple-fill">CONFIRM & UPLOAD</button>
-            </div>
-        </div>
-    </div>
+    </dialog>
 
     <!-- GALLERY: ADD ITEM -->
     <!-- Two fields on purpose. Everything else about a gallery item is
@@ -387,45 +345,45 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=44b859a9"></script>
-    <script src="js/utility/input_slots.js?v=44b859a9"></script>
-    <script src="js/utility/site_utils.js?v=44b859a9"></script>
-    <script src="js/utility/site_data.js?v=44b859a9"></script>
-    <script src="js/utility/site_media.js?v=44b859a9"></script>
-    <script src="js/utility/site_account.js?v=44b859a9"></script>
-    <script src="js/utility/site_lookups.js?v=44b859a9"></script>
-    <script src="js/utility/submission_delta.js?v=44b859a9"></script>
-    <script src="js/pages/core/page_shell.js?v=44b859a9"></script>
-    <script src="js/utility/search.js?v=44b859a9"></script>
-    <script src="js/pages/core/skill_card.js?v=44b859a9"></script>
-    <script src="js/pages/core/page_render.js?v=44b859a9"></script>
-    <script src="js/pages/core/format_tags.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-playground.js?v=44b859a9"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=44b859a9"></script>
-    <script src="js/editor/core/editor-config.js?v=44b859a9"></script>
-    <script src="js/editor/core/editor-modes.js?v=44b859a9"></script>
-    <script src="js/editor/core/editor-core.js?v=44b859a9"></script>
-    <script src="js/editor/tabs/editor-tabs.js?v=44b859a9"></script>
-    <script src="js/editor/tabs/editor-framedata.js?v=44b859a9"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=44b859a9"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-previews.js?v=44b859a9"></script>
-    <script src="js/utility/diff-markers.js?v=44b859a9"></script>
-    <script src="js/utility/side-by-side.js?v=44b859a9"></script>
-    <script src="js/editor/core/editor-sync.js?v=44b859a9"></script>
-    <script src="js/editor/core/editor-drafts.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-media.js?v=44b859a9"></script>
-    <script src="js/editor/tabs/editor-system.js?v=44b859a9"></script>
-    <script src="js/pages/types/tool_page.js?v=44b859a9"></script>
-    <script src="js/editor/tabs/editor-tool.js?v=44b859a9"></script>
-    <script src="js/pages/types/gallery.js?v=44b859a9"></script>
-    <script src="js/editor/tabs/editor-gallery.js?v=44b859a9"></script>
-    <script src="js/pages/tier-lists/tierlist.js?v=44b859a9"></script>
-    <script src="js/editor/blocks/editor-reorder.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-find-replace.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-writing-checks.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-notices.js?v=44b859a9"></script>
-    <script src="js/editor/tools/editor-tutorial.js?v=44b859a9"></script>
+    <script src="js/utility/character_tabs.js?v=06c8ce8c"></script>
+    <script src="js/utility/input_slots.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_utils.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_data.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_media.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_account.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_lookups.js?v=06c8ce8c"></script>
+    <script src="js/utility/submission_delta.js?v=06c8ce8c"></script>
+    <script src="js/pages/core/page_shell.js?v=06c8ce8c"></script>
+    <script src="js/utility/search.js?v=06c8ce8c"></script>
+    <script src="js/pages/core/skill_card.js?v=06c8ce8c"></script>
+    <script src="js/pages/core/page_render.js?v=06c8ce8c"></script>
+    <script src="js/pages/core/format_tags.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-playground.js?v=06c8ce8c"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=06c8ce8c"></script>
+    <script src="js/editor/core/editor-config.js?v=06c8ce8c"></script>
+    <script src="js/editor/core/editor-modes.js?v=06c8ce8c"></script>
+    <script src="js/editor/core/editor-core.js?v=06c8ce8c"></script>
+    <script src="js/editor/tabs/editor-tabs.js?v=06c8ce8c"></script>
+    <script src="js/editor/tabs/editor-framedata.js?v=06c8ce8c"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=06c8ce8c"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-previews.js?v=06c8ce8c"></script>
+    <script src="js/utility/diff-markers.js?v=06c8ce8c"></script>
+    <script src="js/utility/side-by-side.js?v=06c8ce8c"></script>
+    <script src="js/editor/core/editor-sync.js?v=06c8ce8c"></script>
+    <script src="js/editor/core/editor-drafts.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-media.js?v=06c8ce8c"></script>
+    <script src="js/editor/tabs/editor-system.js?v=06c8ce8c"></script>
+    <script src="js/pages/types/tool_page.js?v=06c8ce8c"></script>
+    <script src="js/editor/tabs/editor-tool.js?v=06c8ce8c"></script>
+    <script src="js/pages/types/gallery.js?v=06c8ce8c"></script>
+    <script src="js/editor/tabs/editor-gallery.js?v=06c8ce8c"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=06c8ce8c"></script>
+    <script src="js/editor/blocks/editor-reorder.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-find-replace.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-writing-checks.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-notices.js?v=06c8ce8c"></script>
+    <script src="js/editor/tools/editor-tutorial.js?v=06c8ce8c"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>

@@ -632,15 +632,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     fakeTitle.textContent = exactCharName;
     document.body.appendChild(fakeTitle);
 
-    const confidenceSelect = document.getElementById('qa-confidence');
-    if (confidenceSelect) {
-        confidenceSelect.innerHTML = `
-            <option value="high">HIGH - I am 100% certain. Verified in-game or via files.</option>
-            <option value="medium" selected>MEDIUM - Fairly confident, based on strong observation.</option>
-            <option value="low">LOW - I am guessing or estimating. Staff please verify.</option>
-        `;
-    }
-
     if (typeof window.applyCharacterTheme === 'function') {
         window.applyCharacterTheme();
     }

@@ -208,15 +208,6 @@ html.look-classic .dock-badge {
 }
 html.look-classic .dock-badge::before { content: '(new)'; }
 
-/* Pop-ups: one plain box, no coloured top, no slide-in. */
-html.look-classic .modal-box {
-    border: 1px solid var(--border-color);
-    box-shadow: none;
-    animation: none;
-}
-html.look-classic .modal-box .modal-header h3 { color: var(--text-primary); font-family: var(--font-title), serif; font-weight: normal; letter-spacing: 0; }
-html.look-classic .modal-footer { border-top-style: solid; }
-
 /* Content Blocks: thin rules, no shadow, nothing that moves. A callout keeps its
    colour as a left edge, which says what kind it is. */
 html.look-classic .inline-callout-btn {
@@ -253,8 +244,7 @@ html.look-classic .manga-option:hover { padding-left: 0.75rem; font-weight: norm
 html.look-classic .manga-option.selected { border-left: 0; font-weight: bold; }
 
 /* Words the default look writes in capitals read as written. */
-html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .modal-header h3, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sbox-tab, .manga-select-trigger, .manga-option) {
+html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sbox-tab, .manga-select-trigger, .manga-option) {
     text-transform: none;
     font-family: Arial, Helvetica, sans-serif;
 }
-html.look-classic .modal-box .modal-header h3 { font-family: var(--font-title), serif; }

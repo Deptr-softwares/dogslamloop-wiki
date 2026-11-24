@@ -6,17 +6,17 @@
     <title>Owner Tools | Dogslamloop</title>
 
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=44b859a9">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Buttons.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Modals.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Forms.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Badges.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Alerts.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Cards.css?v=44b859a9">
-    <link rel="stylesheet" href="style/Layout.css?v=44b859a9">
-    <link rel="stylesheet" href="style/editor.css?v=44b859a9">
-    <link rel="stylesheet" href="style/admin.css?v=44b859a9">
+    <link rel="stylesheet" href="style/Common.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Buttons.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Modals.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Forms.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Badges.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Alerts.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Cards.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Layout.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/editor.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/admin.css?v=06c8ce8c">
     <!-- END GENERATED: styles -->
 </head>
 <body class="admin-body">
@@ -607,43 +607,38 @@
         </aside>
     </div>
 
-    <!-- STANDARD CONFIRM MODAL -->
-    <div id="admin-confirm-modal" class="editor-modal-overlay modal-warning hidden" style="z-index: 10000;">
-        <div class="editor-modal-box auth-modal-box confirm-box">
-            <div class="auth-header admin-modal-header">
-                <h3 class="admin-modal-title confirm">SYSTEM CONFIRMATION</h3>
-            </div>
-            <div class="auth-body admin-modal-body">
-                <p id="admin-confirm-msg" class="admin-modal-msg"></p>
-                <div class="admin-modal-actions">
-                    <button id="btn-admin-confirm-cancel" class="btn-sys btn-sys-regular admin-modal-btn">CANCEL</button>
-                    <button id="btn-admin-confirm-ok" class="btn-sys btn-sys-yellow admin-modal-btn confirm-ok">CONFIRM</button>
-                </div>
+    <dialog id="admin-confirm-modal" class="site-dialog tone-yellow" aria-labelledby="admin-confirm-title">
+        <div class="dialog-header"><h3 id="admin-confirm-title">SYSTEM CONFIRMATION</h3></div>
+        <div class="dialog-body dialog-question">
+            <p id="admin-confirm-msg" class="dialog-text"></p>
+            <div class="dialog-actions">
+                <button type="button" id="btn-admin-confirm-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                <button type="button" id="btn-admin-confirm-ok" class="btn-sys btn-sys-yellow">CONFIRM</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=44b859a9"></script>
-    <script src="js/utility/input_slots.js?v=44b859a9"></script>
-    <script src="js/utility/site_utils.js?v=44b859a9"></script>
-    <script src="js/utility/site_data.js?v=44b859a9"></script>
-    <script src="js/utility/site_media.js?v=44b859a9"></script>
-    <script src="js/utility/site_account.js?v=44b859a9"></script>
-    <script src="js/utility/site_lookups.js?v=44b859a9"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=44b859a9"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=44b859a9"></script>
-    <script src="js/owner/owner.js?v=44b859a9"></script>
-    <script src="js/owner/owner-site-meta.js?v=44b859a9"></script>
-    <script src="js/owner/owner-hub-text.js?v=44b859a9"></script>
-    <script src="js/owner/owner-hub-lists.js?v=44b859a9"></script>
-    <script src="js/owner/owner-page-meta.js?v=44b859a9"></script>
-    <script src="js/owner/owner-staff-perks.js?v=44b859a9"></script>
-    <script src="js/owner/owner-page-experts.js?v=44b859a9"></script>
-    <script src="js/owner/owner-tier-lists.js?v=44b859a9"></script>
-    <script src="js/owner/owner-media-report.js?v=44b859a9"></script>
-    <script src="js/owner/owner-nav.js?v=44b859a9"></script>
+    <script src="js/utility/character_tabs.js?v=06c8ce8c"></script>
+    <script src="js/utility/input_slots.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_utils.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_data.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_media.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_account.js?v=06c8ce8c"></script>
+    <script src="js/utility/site_lookups.js?v=06c8ce8c"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=06c8ce8c"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-site-meta.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-hub-text.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-hub-lists.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-page-meta.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-staff-perks.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-page-experts.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-tier-lists.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-media-report.js?v=06c8ce8c"></script>
+    <script src="js/owner/owner-nav.js?v=06c8ce8c"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>

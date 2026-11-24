@@ -17,19 +17,18 @@ window.injectAuthModal = function() {
     if (document.getElementById('auth-modal-overlay')) return;
 
     const authModalHTML = `
-    <div id="auth-modal-overlay" class="modal-overlay hidden">
-        <div class="modal-box modal-sm accent-blue">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: none; padding-bottom: 0;">
-                <h3>SYSTEM ACCESS</h3>
+    <dialog id="auth-modal-overlay" class="site-dialog" aria-labelledby="auth-modal-title">
+            <div class="dialog-header">
+                <h3 id="auth-modal-title">SYSTEM ACCESS</h3>
                 <span id="auth-status-indicator" class="status-dot offline"></span>
             </div>
-            
+
             <div class="auth-tabs" style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem; padding: 0 1.5rem;">
                 <button id="auth-tab-login" class="btn-ghost active" style="flex: 1; border-bottom: none; opacity: 1; border-radius: 0; padding: 1rem 0;">LOGIN</button>
                 <button id="auth-tab-register" class="btn-ghost" style="flex: 1; border-bottom: none; opacity: 0.5; border-radius: 0; padding: 1rem 0;">REGISTER</button>
             </div>
 
-            <div class="modal-body" style="padding-top: 0;">
+            <div class="dialog-body" style="padding-top: 0;">
                 <!-- v1.0 Part 3 (owner, 2026-10-08). Terms linked only from a
                      footer are often held to bind nobody; courts look for a
                      notice where the person signs in. Above every button, so it
@@ -73,27 +72,24 @@ window.injectAuthModal = function() {
 
                 <div id="auth-feedback-message" class="hidden" style="font-size: 0.75rem; font-family: var(--text-mono); text-align: left; margin-top: 0.75rem; padding: 0.5rem; border-radius: 4px;"></div>
             </div>
-            <div class="modal-footer" style="justify-content: center;">
-                <button class="btn-sys btn-sys-regular" style="width: 100%;" onclick="document.getElementById('auth-modal-overlay').classList.add('hidden')">CANCEL</button>
+            <div class="dialog-footer">
+                <button type="button" class="btn-sys btn-sys-regular" style="width: 100%;" data-dialog-close>CANCEL</button>
             </div>
-        </div>
-    </div>`;
+    </dialog>`;
 
     const alertModalHTML = `
-    <div id="alert-modal-overlay" class="modal-overlay tier-priority hidden">
-        <div class="modal-box modal-sm accent-green">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>SYSTEM MESSAGE</h3>
-                <span class="status-dot online"></span>
-            </div>
-            <div class="modal-body centered-text">
-                <p id="alert-modal-msg" style="font-family: var(--text-mono); font-size: 0.85rem; color: var(--text-white); margin: 0 0 1rem 0; line-height: 1.5;"></p>
-            </div>
-            <div class="modal-footer centered-actions">
-                <button id="btn-alert-close" class="btn-sys btn-sys-green" style="width: 100%;">ACKNOWLEDGE</button>
+    <dialog id="alert-modal-overlay" class="site-dialog tone-green" aria-labelledby="alert-modal-title">
+        <div class="dialog-header">
+            <h3 id="alert-modal-title">SYSTEM MESSAGE</h3>
+            <span class="status-dot online"></span>
+        </div>
+        <div class="dialog-body dialog-question">
+            <p id="alert-modal-msg" class="dialog-text"></p>
+            <div class="dialog-actions">
+                <button type="button" id="btn-alert-close" class="btn-sys btn-sys-green">ACKNOWLEDGE</button>
             </div>
         </div>
-    </div>`;
+    </dialog>`;
 
     const div = document.createElement('div');
     div.innerHTML = authModalHTML + alertModalHTML;
@@ -137,7 +133,7 @@ window.injectAuthModal = function() {
             feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
             feedbackMsg.textContent = "Error: " + error.message;
         } else {
-            document.getElementById('auth-modal-overlay').classList.add('hidden');
+            document.getElementById('auth-modal-overlay').close();
             document.getElementById('auth-password-login').value = ''; 
             window.checkActiveSession(); 
             window.showSystemAlert("Authentication successful! You are now securely connected.");
@@ -179,7 +175,7 @@ window.injectAuthModal = function() {
             // Signed straight in when the project does not require email verification.
             if (data.session) {
                 setTimeout(() => {
-                    document.getElementById('auth-modal-overlay').classList.add('hidden');
+                    document.getElementById('auth-modal-overlay').close();
                     window.checkActiveSession();
                 }, 2000);
             }
@@ -436,7 +432,7 @@ window.openAuthModal = async function() {
     
     if (session) return withAccountBoxes(() => window.showProfileBox(session));
 
-    document.getElementById('auth-modal-overlay').classList.remove('hidden');
+    window.openDialog(document.getElementById('auth-modal-overlay'));
 };
 
 window.triggerOAuth = async function(providerName) {
@@ -445,7 +441,7 @@ window.triggerOAuth = async function(providerName) {
         provider: providerName,
         options: { redirectTo: window.location.origin + window.location.pathname + window.location.search }
     });
-    if (error) { console.error("OAuth Error:", error.message); alert("Failed to connect to " + providerName); }
+    if (error) { console.error("OAuth Error:", error.message); window.showSystemAlert("Failed to connect to " + providerName); }
 };
 
 window.checkActiveSession = async () => {

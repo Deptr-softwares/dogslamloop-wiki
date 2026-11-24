@@ -4,7 +4,7 @@ What every page loads before its own scripts: the reader's settings, paths and p
 
 ## Files
 
-- `js/utility/site_utils.js`: Site Settings, paths and page addresses, the Supabase client and its local-only override, the escapers, the role ladder, the system alert, the dropdowns, the dialog engine and the mobile preview switch.
+- `js/utility/site_utils.js`: Site Settings, paths and page addresses, the Supabase client and its local-only override, the escapers, the role ladder, the system alert, the dropdowns, the dialog engine (`openDialog`, `runDialog`), the confirm and prompt any page can use (`siteConfirm`, `sitePrompt`), and the mobile preview switch.
 - `js/utility/site_data.js`: page data (`docs/page-data.md`). The delta engine is `js/utility/submission_delta.js`, which only the editor, the Overseer and History load.
 - `js/utility/site_media.js`: media framing, the blocked-media guard, the shared tooltip and math.
 - `js/utility/site_account.js`: signing in, the alert box, public profile lookups, badges and role badges, and the openers for the account boxes.
@@ -28,11 +28,15 @@ They load in that order on every page, right after the Supabase library (`tests/
 - Only `CHARACTER_COLORS` in `site_lookups.js` is generated, between two markers that must stay exactly as they are: `scripts/fetch-content.js` refuses to write without them, and the content gate reads that region.
 - The local-only override works on localhost alone, with a key set by hand, and shows a banner on every page while it is on.
 - The blocked-media guard is a rendering guard, not a security control: a flagged file stays at its public address until it is deleted.
+- A box is a `<dialog class="site-dialog">` opened by `window.openDialog`, and whether it is open is `dialog.open`, never a `hidden` class. It sits in the top layer, so a popup opened from inside a box has to be inside it too, or it ends up underneath (`tests/site-dialogs.spec.js`).
+- No page uses the browser's own alert, confirm or prompt: `npm run lint` refuses them (`no-alert`), and a page without the editor's box asks in `siteConfirm` or `sitePrompt`.
 
 ## Decisions
 
 Newest first. One entry per decision.
 
+- **2026-11-25, v1.3, #314.** No box is the browser's own. Five were left: a Block delete and the link button on owner.html and tier-editor.html, which have no editor box (bug 9 of the review), deleting your own discussion post, the media library's clipboard message, and a sign-in that could not reach its provider. They ask in the site's boxes, and the lint's `no-alert` keeps new ones out.
+- **2026-11-25, v1.3, #314.** Every box is one dialog: a `<dialog>` opened by `openDialog`, in the staff look, opening with fade and rise, at 400, 500, 650 or 860 wide (the owner's picks from mockups: "Staff box", "Fade and rise", "Four: 400, 500, 650, 860"). Escape closes any box, and a click outside closes one with nothing typed in it ("Esc always, click outside only if nothing typed"). The page behind does not scroll, focus goes back to what opened the box, and a box opened over another sits on top, which replaces the boxes' z-index values. Turned down: the reader box's look and three sizes (400, 560, 800), Claude's recommendations.
 - **2026-11-24, silent release, #311.** No file stands in for the character-state helpers (`isBaseMode`, `getCharacterModes`, `BASE_MODE_ID`, `unwrapModeDelta`) or checks that they exist (the owner's pick). They were kept for a page whose new files met an hour-old cached copy of the shared one, which took the editor down on 2026-08-10. Every page now asks for its files by one content stamp, and every copy of the shared files a cache can hold has had them since that day, while each stand-in was a second copy of its rule.
 - **2026-11-23, silent release, #310.** The profile, a public profile and the inbox load the first time one opens (the owner's pick), from `account_boxes.js`; the inbox is no longer fetched at every page load, since the dock's unread dot has its own count. A file loaded later goes through `window.loadSiteFile`, which gives it the page's own `?v=` stamp, so it is never an older copy than the page.
 - **2026-11-21, silent release, #298.** A page's kind comes from the site's own page list (`registeredPageType`), not from the submission, which is only the submitter's word (owner, 2026-11-21).

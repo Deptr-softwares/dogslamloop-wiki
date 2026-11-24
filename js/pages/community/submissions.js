@@ -12,45 +12,48 @@
  */
 
 function showConfirm(message, confirmText = 'CONFIRM', isDanger = false) {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay hidden';
-    overlay.innerHTML = `
-        <div class="modal-box modal-md accent-blue">
-            <div class="modal-header"><h3>PLEASE CONFIRM</h3></div>
-            <div class="modal-body"><p>${window.escapeHtml(message)}</p></div>
-            <div class="modal-footer">
-                <button class="btn-sys btn-sys-regular" id="submissions-confirm-cancel">CANCEL</button>
-                <button class="btn-sys ${isDanger ? 'btn-sys-red' : 'btn-sys-green'}" id="submissions-confirm-ok">${window.escapeHtml(confirmText)}</button>
+    const dialog = document.createElement('dialog');
+    dialog.className = 'site-dialog';
+    dialog.setAttribute('aria-labelledby', 'submissions-confirm-title');
+    dialog.innerHTML = `
+        <div class="dialog-header"><h3 id="submissions-confirm-title">PLEASE CONFIRM</h3></div>
+        <div class="dialog-body dialog-question">
+            <p class="dialog-text">${window.escapeHtml(message)}</p>
+            <div class="dialog-actions">
+                <button type="button" class="btn-sys btn-sys-regular" id="submissions-confirm-cancel">CANCEL</button>
+                <button type="button" class="btn-sys ${isDanger ? 'btn-sys-red btn-danger-fill' : 'btn-sys-green'}" id="submissions-confirm-ok">${window.escapeHtml(confirmText)}</button>
             </div>
         </div>
     `;
-    document.body.appendChild(overlay);
-    return window.runDialog(overlay, {
+    document.body.appendChild(dialog);
+    return window.runDialog(dialog, {
         buttons: [
-            [overlay.querySelector('#submissions-confirm-cancel'), false],
-            [overlay.querySelector('#submissions-confirm-ok'), true],
+            [dialog.querySelector('#submissions-confirm-cancel'), false],
+            [dialog.querySelector('#submissions-confirm-ok'), true],
         ],
-        cancel: false,
-        onClose: () => overlay.remove(),
+        cancel: false, backdrop: true,
+        onClose: () => dialog.remove(),
     });
 }
 
 function showAlert(message) {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay hidden';
-    overlay.innerHTML = `
-        <div class="modal-box modal-md accent-blue">
-            <div class="modal-header"><h3>NOTICE</h3></div>
-            <div class="modal-body"><p>${window.escapeHtml(message)}</p></div>
-            <div class="modal-footer">
-                <button class="btn-sys btn-sys-regular" id="submissions-alert-ok">OK</button>
+    const dialog = document.createElement('dialog');
+    dialog.className = 'site-dialog';
+    dialog.setAttribute('aria-labelledby', 'submissions-alert-title');
+    dialog.innerHTML = `
+        <div class="dialog-header"><h3 id="submissions-alert-title">NOTICE</h3></div>
+        <div class="dialog-body dialog-question">
+            <p class="dialog-text">${window.escapeHtml(message)}</p>
+            <div class="dialog-actions">
+                <button type="button" class="btn-sys btn-sys-regular" id="submissions-alert-ok">OK</button>
             </div>
         </div>
     `;
-    document.body.appendChild(overlay);
-    window.runDialog(overlay, {
-        buttons: [[overlay.querySelector('#submissions-alert-ok')]],
-        onClose: () => overlay.remove(),
+    document.body.appendChild(dialog);
+    window.runDialog(dialog, {
+        buttons: [[dialog.querySelector('#submissions-alert-ok')]],
+        backdrop: true,
+        onClose: () => dialog.remove(),
     });
 }
 

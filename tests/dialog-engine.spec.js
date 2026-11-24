@@ -1,7 +1,8 @@
 // window.runDialog (js/utility/site_utils.js) runs every confirm, message and prompt
-// box on the site. Each box keeps its own markup and look; the engine shows
-// it, resolves with the value of the button pressed, and takes its listeners
-// off again.
+// box on the site, each a <dialog> opened by window.openDialog: it opens the box,
+// resolves with the value of the button pressed, and takes its listeners off
+// again. Escape always closes a box and answers `cancel`; a click outside does
+// only when the box has nothing typed in it (`backdrop`).
 //
 // Thirteen functions each did this themselves before 2026-11-20, and two
 // families of them disagreed about a box that was already open: the onclick
@@ -13,9 +14,9 @@ async function openBox(page) {
     await page.goto('/privacy-policy.html', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => typeof window.runDialog === 'function');
     await page.evaluate(() => {
-        const box = document.createElement('div');
+        const box = document.createElement('dialog');
         box.id = 'test-box';
-        box.className = 'hidden';
+        box.className = 'site-dialog';
         box.innerHTML = '<input id="test-input"><button id="test-ok">OK</button><button id="test-no">NO</button>';
         document.body.appendChild(box);
         window.__answers = [];
@@ -30,10 +31,11 @@ async function openBox(page) {
     return page.locator('#test-box');
 }
 
-test('it shows the box, answers with the button pressed, and hides it', async ({ page }) => {
+test('it opens the box as a modal, answers with the button pressed, and closes it', async ({ page }) => {
     const box = await openBox(page);
     await page.evaluate(() => { window.__ask(); });
     await expect(box).toBeVisible();
+    expect(await box.evaluate(d => d.matches(':modal'))).toBe(true);
     await page.click('#test-ok');
     await expect(box).toBeHidden();
     expect(await page.evaluate(() => window.__answers)).toEqual([true]);
@@ -56,32 +58,34 @@ test('a second question on a box already showing is refused, so one click answer
     expect(await page.evaluate(() => window.__closes)).toBe(closes);
 });
 
-test('Escape and the backdrop close it only when the box asks for them', async ({ page }) => {
+test('Escape always closes it with cancel; a click outside only when the box asks for it', async ({ page }) => {
     const box = await openBox(page);
-    // The backdrop is the overlay itself, so the click is sent to it directly.
-    const clickBackdrop = () => page.evaluate(() => document.getElementById('test-box').click());
+    // A real click on the backdrop, well clear of the box.
+    const clickOutside = () => page.mouse.click(8, 8);
     await page.evaluate(() => { window.__ask(); });
+    await clickOutside();
+    await expect(box, 'no backdrop asked for: still open').toBeVisible();
     await page.keyboard.press('Escape');
-    await clickBackdrop();
-    await expect(box).toBeVisible();
-    expect(await page.evaluate(() => window.__answers)).toEqual([]);
-    await page.click('#test-no');
+    await expect(box).toBeHidden();
+    expect(await page.evaluate(() => window.__answers)).toEqual([false]);
 
-    // Listening for Enter is not taking Escape.
+    // Listening for Enter does not take Escape away.
     await page.evaluate(() => { window.__ask({ enter: true }); });
     await page.keyboard.press('Escape');
-    await expect(box).toBeVisible();
-    await page.click('#test-no');
-    expect(await page.evaluate(() => window.__answers)).toEqual([false, false]);
-    await page.evaluate(() => { window.__answers = []; });
+    await expect(box).toBeHidden();
 
-    await page.evaluate(() => { window.__ask({ escape: true, backdrop: true }); });
-    await page.keyboard.press('Escape');
+    await page.evaluate(() => { window.__ask({ backdrop: true }); });
+    await clickOutside();
     await expect(box).toBeHidden();
-    await page.evaluate(() => { window.__ask({ escape: true, backdrop: true }); });
-    await clickBackdrop();
-    await expect(box).toBeHidden();
-    expect(await page.evaluate(() => window.__answers)).toEqual([false, false]);
+    expect(await page.evaluate(() => window.__answers)).toEqual([false, false, false]);
+
+    // A click inside the box, on no button, is not outside.
+    await page.evaluate(() => { window.__ask({ backdrop: true }); });
+    const r = await box.boundingBox();
+    await page.mouse.click(r.x + 4, r.y + 4);
+    await expect(box).toBeVisible();
+    await page.click('#test-ok');
+    expect(await page.evaluate(() => window.__answers)).toEqual([false, false, false, true]);
 });
 
 test('Enter answers from where the box listens, and a value can be read at the press', async ({ page }) => {
@@ -90,7 +94,7 @@ test('Enter answers from where the box listens, and a value can be read at the p
         const input = document.getElementById('test-input');
         window.__ask({
             buttons: [[document.getElementById('test-ok'), () => input.value.trim()]],
-            cancel: null, escape: true, keyTarget: input, focus: input,
+            cancel: null, keyTarget: input, focus: input,
             enter: () => input.value.trim(),
         });
     });

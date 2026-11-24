@@ -107,7 +107,7 @@ async function openProfile(page, overrides = {}) {
     await mockProfile(page, { ...DEFAULTS, ...overrides });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.locator('#dock-btn-auth').click();
-    await expect(page.locator('#profile-modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#profile-modal-overlay')).toBeVisible();
     return errors;
 }
 
@@ -190,14 +190,14 @@ test('reopening the profile shows the standing again, not where you left off', a
 
     const stripInView = () => page.evaluate(() => {
         const strip = document.querySelector('.profile-identity');
-        const box = document.querySelector('#profile-modal-overlay .modal-body');
+        const box = document.querySelector('#profile-modal-overlay .dialog-body');
         const s = strip.getBoundingClientRect(), b = box.getBoundingClientRect();
         return s.top >= b.top - 1 && s.bottom <= b.bottom + 1;
     });
 
     // The body must genuinely overflow, or this test proves nothing at all.
     const overflows = await page.evaluate(() => {
-        const b = document.querySelector('#profile-modal-overlay .modal-body');
+        const b = document.querySelector('#profile-modal-overlay .dialog-body');
         return b.scrollHeight > b.clientHeight;
     });
     expect(overflows, 'the body scrolls at this height - otherwise this test is vacuous').toBe(true);
@@ -205,22 +205,22 @@ test('reopening the profile shows the standing again, not where you left off', a
     // Scroll to the bottom and close, the way somebody reaching CHANGE PASSWORD
     // would leave it.
     await page.evaluate(() => {
-        const b = document.querySelector('#profile-modal-overlay .modal-body');
+        const b = document.querySelector('#profile-modal-overlay .dialog-body');
         b.scrollTop = b.scrollHeight;
     });
     expect(await stripInView(), 'precondition: scrolled away').toBe(false);
     // Scoped to the footer and named: '.btn-sys-regular' alone also matches the
     // password UPDATE button, which sits earlier in the DOM, so the unscoped
     // selector clicked that instead and the modal never closed.
-    await page.locator('#profile-modal-overlay .modal-footer')
+    await page.locator('#profile-modal-overlay .dialog-footer')
         .getByRole('button', { name: 'CANCEL' }).click();
-    await expect(page.locator('#profile-modal-overlay')).toHaveClass(/hidden/);
+    await expect(page.locator('#profile-modal-overlay')).toBeHidden();
 
     // Reopen: the strip is what you see, not the password field.
     await page.locator('#dock-btn-auth').click();
-    await expect(page.locator('#profile-modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#profile-modal-overlay')).toBeVisible();
     expect(await page.evaluate(() =>
-        document.querySelector('#profile-modal-overlay .modal-body').scrollTop)).toBe(0);
+        document.querySelector('#profile-modal-overlay .dialog-body').scrollTop)).toBe(0);
     expect(await stripInView(), 'the identity strip is back in view').toBe(true);
     await expect(page.locator('#profile-standing-label')).toHaveText('Owner');
 });
@@ -283,7 +283,7 @@ test('saving writes the bio, flair and privacy to user_profiles', async ({ page 
     await page.check('#profile-private');
     await page.click('#btn-profile-save');
 
-    await expect(page.locator('#profile-modal-overlay')).toHaveClass(/hidden/);
+    await expect(page.locator('#profile-modal-overlay')).toBeHidden();
     const sent = await page.evaluate(() => window.__upserts);
     expect(sent.length).toBe(1);
     expect(sent[0]).toMatchObject({
@@ -354,7 +354,7 @@ test('a blocked write explains itself instead of showing a Postgres string', asy
     await expect(feedback).toContainText('cannot post content');
     await expect(feedback).not.toContainText('row-level security');
     // And the modal stays open, so the text they typed is not thrown away.
-    await expect(page.locator('#profile-modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#profile-modal-overlay')).toBeVisible();
     await expect(page.locator('#profile-bio')).toHaveValue('hello');
 });
 
@@ -415,7 +415,7 @@ test('a pasted over-long name is refused, not silently truncated', async ({ page
     // Nothing was sent, and the modal stays open with the text intact.
     expect(await page.evaluate(() => window.__updateUser.length)).toBe(0);
     expect(await page.evaluate(() => window.__upserts.length)).toBe(0);
-    await expect(page.locator('#profile-modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#profile-modal-overlay')).toBeVisible();
 });
 
 test('a name at exactly the cap still saves', async ({ page }) => {
@@ -427,7 +427,7 @@ test('a name at exactly the cap still saves', async ({ page }) => {
     });
     await page.click('#btn-profile-save');
 
-    await expect(page.locator('#profile-modal-overlay')).toHaveClass(/hidden/);
+    await expect(page.locator('#profile-modal-overlay')).toBeHidden();
     const calls = await page.evaluate(() => window.__updateUser);
     expect(calls[0].data.display_name).toBe('y'.repeat(32));
 });

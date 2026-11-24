@@ -1617,9 +1617,8 @@
     }
 
     async function removePost(postId) {
-        const ok = window.customConfirm
-            ? await window.customConfirm('Delete your post? The text is removed for good; replies to it stay.', 'DELETE POST', true)
-            : window.confirm('Delete your post? The text is removed for good.');
+        const ok = await window.siteConfirm('Delete your post? The text is removed for good; replies to it stay.',
+            { title: 'DELETE POST', confirmText: 'DELETE POST' });
         if (!ok) return;
 
         // Read before the call: removal empties the column server-side.

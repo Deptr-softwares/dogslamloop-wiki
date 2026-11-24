@@ -19,12 +19,14 @@ How the reader pages look: the shared stylesheets every reader page loads, the C
 - Which sheets a kind of page loads, and in what order, is its list in `scripts/page-scripts.js`. Of two rules that tie, the later sheet's wins, so moving a sheet in a list can change the page (`docs/page-shell.md`).
 - Moving a rule between `Layout.css` and a sheet split from it moves it in the cascade. A few rules stay in `Layout.css` for that reason, each marked: it loses a tie to a later `Layout.css` rule, as it always has. A rule that ends in `*`, like the `.space-y-*` spacing, can tie with any rule on its children.
 - The Classic look wins by its `html.look-classic` prefix and loads last; the editor and staff pages never load it.
+- Every box is the site's dialog (`dialog.site-dialog` in `Modals.css`, `docs/shared-code.md`), in the staff look in both looks: Classic has no rule for it.
 - `.tier-portrait` is shared between the Tier List page and the tier editor; its size on the page is raised in `certified-tier-lists.css` only.
 
 ## Decisions
 
 Newest first. One entry per decision.
 
+- **2026-11-25, v1.3, #314.** Every box is the staff box in both looks (the owner's call, as groundwork for the CSS pass): the Classic look's plain pop-up (no coloured top, no slide-in, the title as written) from v1.2 is gone with the reader box. Sign In, Site Settings, Edit Profile, a public profile and the inbox are the site's dialog; the video player is too, in its own look, since it is a player rather than a box.
 - **2026-11-24, silent release, #311.** `Layout.css` is split by job (the owner's pick, "By job, Blocks too"): the Blocks, the hubs, Update Log entries and posts, the tier list, the Search page and the post editor each have a sheet that only the pages drawing them load. Each loads right after `Layout.css`, so its rules keep their place against every other sheet. A character page loads 10% less CSS, and a page without Blocks a third less. Turned down: moving only the parts one or two pages use and keeping the Blocks, and leaving the file whole until the cascade layers.
 - **2026-11-20, v1.2, #287.** An open dropdown is at least as wide as its button and as its longest option, capped by the screen: pinned to the button, a narrow "ALL" button cut its options short (the owner's screenshot).
 - **2026-11-20, v1.2, #287.** An authored strategy block's heading is the card's heading, with a rule across the panel, so Overview & Strategy and the move write-ups read like the other tabs (owner, 2026-11-20: "This type of small heading and underline is seemingly only used in the Overview and Strategy, M1s, Skills, and Innate sections").

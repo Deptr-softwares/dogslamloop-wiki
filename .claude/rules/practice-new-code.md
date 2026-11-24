@@ -10,7 +10,7 @@ paths:
 ## Rule
 
 - Before writing, search for code that already does the job, by what it does as well as by its name, and reuse it. Change it when it almost fits.
-- A new feature extends what exists: a Block through the editor's `blockTemplates`, a box through `window.runDialog`, a shared helper in the `site_utils` part for its job. Something new beside an existing mechanism is fine when its reason is written in the area's `docs/` page (owner, 2026-11-22).
+- A new feature extends what exists: a Block through the editor's `blockTemplates`, a box as a `dialog.site-dialog` through `window.openDialog` or `window.runDialog`, a shared helper in the `site_utils` part for its job. Something new beside an existing mechanism is fine when its reason is written in the area's `docs/` page (owner, 2026-11-22).
 - One rule, one place. Two copies of a rule that must agree drift; the rules in `.claude/rules/` name the known pairs. Small per-file duplication is still preferred over one feature file depending on another (`owner.js` runs its own RBAC gate rather than importing `admin-core.js`'s).
 - Split a file by job when a page kind can skip part of it, or when it passes about 1,500 lines.
 - The smallest change that solves the stated problem. No option or layer for a case that does not exist yet, and no refactor in passing.
