@@ -62,3 +62,17 @@ test('openQAModal: renders with no inline styles beyond the dynamic max-width, t
   const confirmBtn = overlay.locator('#btn-qa-confirm');
   expect(await confirmBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
 });
+
+// edit.html carried a second submit box that nothing opened, with the live box's
+// field ids, so a lookup by id could find the dead box's field first.
+test('the submit box is the only thing on the page with its field ids', async ({ page }) => {
+  page.evaluate(() => { window.openQAModal(false); });
+  await expect(page.locator('#dynamic-qa-modal-overlay')).toBeVisible();
+  const counts = await page.evaluate(() => ['qa-changelog', 'qa-confidence', 'qa-evidence']
+    .map(id => [id, document.querySelectorAll(`#${id}`).length]));
+  for (const [id, n] of counts) expect(n, `#${id} at most once`).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => {
+    const field = document.getElementById('qa-changelog');
+    return !!field && !!field.closest('#dynamic-qa-modal-overlay');
+  }), 'a lookup by id finds the field in the box that is open').toBe(true);
+});
