@@ -75,7 +75,7 @@ test('the account boxes load the first time one opens, and only once', async ({ 
     expect(asked).toHaveLength(1);
     expect(asked[0]).toMatch(/account_boxes\.js\?v=[0-9a-f]{8}$/);
 
-    await page.locator('#site-notification-modal .modal-footer button').click();
+    await page.locator('#site-notification-modal .dialog-footer button').click();
     await page.locator('#dock-btn-auth').click();
     await expect(page.locator('#profile-modal-overlay')).toBeVisible();
     await expect(page.locator('#profile-current-name')).toHaveText('me');

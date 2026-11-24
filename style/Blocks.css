@@ -320,17 +320,18 @@
 }
 .wiki-clip-open:hover .wiki-clip-open-glyph { background: var(--character-ink, #000); }
 
-.wiki-video-modal { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; }
-.wiki-video-modal.hidden { display: none; }
-.wiki-video-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.8); }
-.wiki-video-modal-panel {
-    position: relative;
+/* The video player: the site's dialog (Modals.css) in the player's own look. */
+dialog.site-dialog.video-dialog {
     width: min(92vw, 900px);
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: 2rem 1rem 1rem;
     background: var(--bg-secondary, #111);
     border: 2px solid var(--accent-blue);
     box-shadow: 8px 8px 0px var(--manga-shadow);
-    padding: 2rem 1rem 1rem;
 }
+dialog.site-dialog.video-dialog[open] { display: block; }
 .wiki-video-modal-close {
     position: absolute;
     top: 0.35rem;

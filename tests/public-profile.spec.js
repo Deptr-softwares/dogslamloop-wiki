@@ -165,7 +165,7 @@ test('clicking an author opens their profile', async ({ page }) => {
 
     await page.locator('.discussion-author-link').first().click();
     const modal = page.locator('#public-profile-overlay');
-    await expect(modal).not.toHaveClass(/hidden/);
+    await expect(modal).toBeVisible();
 
     await expect(page.locator('#pubprofile-name')).toHaveText('mango_kun');
     await expect(page.locator('#pubprofile-standing')).toHaveText('Reviewer');
@@ -304,7 +304,7 @@ test('a failed profile request costs the thread nothing', async ({ page }) => {
     await expect(page.locator('.discussion-flair')).toHaveCount(0);
 
     await page.locator('.discussion-author-link').first().click();
-    await expect(page.locator('#public-profile-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#public-profile-overlay')).toBeVisible();
     // The modal must REACH a state, not sit on its placeholder.
     //
     // Asserting only that the overlay is visible was too weak, and mutation

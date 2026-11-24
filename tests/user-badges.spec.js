@@ -266,7 +266,7 @@ async function openOwnProfile(page, profileRow) {
   await mockSupabase(page, { session: SESSION, profileRow });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.locator('#dock-btn-auth').click();
-  await expect(page.locator('#profile-modal-overlay')).not.toHaveClass(/hidden/);
+  await expect(page.locator('#profile-modal-overlay')).toBeVisible();
   return errors;
 }
 

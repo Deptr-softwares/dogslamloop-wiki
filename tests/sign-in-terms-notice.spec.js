@@ -21,7 +21,7 @@ async function openSignIn(page, path) {
     await page.goto(path, { waitUntil: 'domcontentloaded' });
     // The real dock button, signed out: openAuthModal shows the sign-in window.
     await page.locator('#dock-btn-auth').click();
-    await expect(page.locator('#auth-modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#auth-modal-overlay')).toBeVisible();
     return errors;
 }
 
@@ -68,5 +68,5 @@ test('opening the Terms from the sign-in window keeps the window open', async ({
     ]);
     await terms.waitForLoadState('domcontentloaded');
     await expect(terms.locator('h1')).toHaveText('Terms of Service');
-    await expect(page.locator('#auth-modal-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#auth-modal-overlay')).toBeVisible();
 });

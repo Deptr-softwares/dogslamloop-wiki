@@ -21,7 +21,7 @@ async function setAnimationsOff(page, off) {
   const box = page.locator('#site-setting-motion-off');
   await expect(box).toBeVisible();
   if (off) await box.check(); else await box.uncheck();
-  await page.locator('[data-site-settings-close]').click();
+  await page.locator('#site-settings-overlay [data-dialog-close]').click();
   await expect(page.locator('#site-settings-overlay')).toBeHidden();
 }
 

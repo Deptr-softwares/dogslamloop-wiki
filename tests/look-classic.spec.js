@@ -343,16 +343,34 @@ test('"On this tab" is a list of plain links', async ({ page }) => {
     expect(link).toEqual({ ground: 'rgba(0, 0, 0, 0)', border: '0px', colour: ACCENT });
 });
 
-test('pop-ups are one plain box with the title as written', async ({ page }) => {
+// Reversed 2026-11-25 (C-1): every box is the staff box in both looks, the
+// owner's call, as groundwork for the CSS pass. It was one plain box in Classic.
+// The same box, with the look's own variables: Classic re-points the accent and
+// the monospace font, and the box follows them.
+test('pop-ups are the same staff box in both looks', async ({ page }) => {
     const open = () => page.evaluate(() => {
         window.openSiteSettings();
-        const box = getComputedStyle(document.querySelector('#site-settings-overlay .modal-box'));
-        return { title: document.getElementById('site-settings-title').innerText, top: box.borderTopColor, topWidth: box.borderTopWidth, rise: box.animationName };
+        const dialog = document.getElementById('site-settings-overlay');
+        const box = getComputedStyle(dialog);
+        const title = document.getElementById('site-settings-title');
+        const probe = document.createElement('span');
+        probe.style.cssText = 'color: var(--accent-blue); font-family: var(--text-mono)';
+        dialog.appendChild(probe);
+        const vars = getComputedStyle(probe);
+        const seen = {
+            title: title.innerText, width: Math.round(dialog.getBoundingClientRect().width),
+            topWidth: box.borderTopWidth, rise: box.animationName,
+            topIsAccent: box.borderTopColor === vars.color,
+            titleIsMono: getComputedStyle(title).fontFamily === vars.fontFamily,
+        };
+        probe.remove();
+        return seen;
     });
+    const staffBox = { title: 'SITE SETTINGS', width: 400, topWidth: '3px', rise: 'modal-fade-in', topIsAccent: true, titleIsMono: true };
     await boot(page, 'default');
-    expect((await open()).title, 'Default still shows the title in capitals').toBe('SITE SETTINGS');
+    expect(await open(), 'Default').toEqual(staffBox);
     await boot(page, 'classic');
-    expect(await open()).toEqual({ title: 'Site settings', top: 'rgb(84, 89, 93)', topWidth: '1px', rise: 'none' });
+    expect(await open(), 'Classic shows the same box').toEqual(staffBox);
 });
 
 // --- ROUND 3 (owner, 2026-11-20): "custom build blocks such as callout and

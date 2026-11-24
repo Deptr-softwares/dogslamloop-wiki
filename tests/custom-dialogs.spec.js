@@ -195,14 +195,15 @@ async function inboxFixture(page) {
   await page.evaluate(() => window.loadSiteFile('js/utility/account_boxes.js'));
   await page.waitForFunction(() => typeof window.clearAllNotifications === 'function', { timeout: 45000 });
 
-  // The inbox modal as renderNotifications builds it, so the function under
-  // test finds the node it actually wipes.
+  // The inbox as initNotifications builds it, open, so the function under test
+  // finds the node it actually wipes.
   await page.evaluate(() => {
-    const modal = document.createElement('div');
+    const modal = document.createElement('dialog');
     modal.id = 'site-notification-modal';
-    modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal-box"><div class="modal-body"><div class="notif-item">A notification</div></div></div>';
+    modal.className = 'site-dialog dialog-md';
+    modal.innerHTML = '<div class="dialog-body"><div class="notif-item">A notification</div></div>';
     document.body.appendChild(modal);
+    window.openDialog(modal, { light: true });
   });
   return dialogs;
 }
@@ -260,7 +261,7 @@ test('confirming wipes the inbox', async ({ page }) => {
 
   const seen = await page.evaluate(() => ({
     stillThere: !!document.querySelector('#site-notification-modal .notif-item'),
-    body: document.querySelector('#site-notification-modal .modal-body').textContent,
+    body: document.querySelector('#site-notification-modal .dialog-body').textContent,
   }));
 
   expect(seen.stillThere, 'the notification is gone').toBe(false);

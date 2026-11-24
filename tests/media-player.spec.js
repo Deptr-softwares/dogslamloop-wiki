@@ -458,11 +458,11 @@ test('clicking the button opens a modal that plays it, and closing empties it', 
   await page.locator('#render-host .wiki-video-btn').click();
 
   const modal = page.locator('#wiki-video-modal');
-  await expect(modal).not.toHaveClass(/hidden/);
+  await expect(modal).toBeVisible();
   await expect(modal.locator('[data-wiki-player] video')).toHaveCount(1);
 
   await modal.locator('.wiki-video-modal-close').click();
-  await expect(modal).toHaveClass(/hidden/);
+  await expect(modal).toBeHidden();
 
   // Emptied, not just hidden: a paused video left behind keeps buffering and
   // flashes its last frame when a different clip is opened next.

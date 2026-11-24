@@ -112,13 +112,13 @@ document.addEventListener('click', e => {
 window.openSiteSettings = function () {
     let overlay = document.getElementById('site-settings-overlay');
     if (!overlay) {
-        overlay = document.createElement('div');
+        overlay = document.createElement('dialog');
         overlay.id = 'site-settings-overlay';
-        overlay.className = 'modal-overlay hidden';
+        overlay.className = 'site-dialog';
+        overlay.setAttribute('aria-labelledby', 'site-settings-title');
         overlay.innerHTML = `
-            <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
-                <div class="modal-header"><h3 id="site-settings-title">Site settings</h3></div>
-                <div class="modal-body site-settings-body">
+                <div class="dialog-header"><h3 id="site-settings-title">Site settings</h3></div>
+                <div class="dialog-body site-settings-body">
                     <fieldset class="site-setting-group">
                         <legend class="site-setting-name">Look</legend>
                         <label class="site-setting" for="site-setting-look-default">
@@ -146,16 +146,9 @@ window.openSiteSettings = function () {
                     <p class="site-settings-note">Saved on this device only.</p>
                     <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn-sys btn-sys-regular" data-site-settings-close>CLOSE</button></div>
-            </div>`;
+                <div class="dialog-footer"><button type="button" class="btn-sys btn-sys-regular" data-dialog-close>CLOSE</button></div>`;
         document.body.appendChild(overlay);
 
-        const close = () => overlay.classList.add('hidden');
-        overlay.addEventListener('click', e => {
-            // The backdrop itself, or CLOSE.
-            if (e.target === overlay || e.target.closest('[data-site-settings-close]')) close();
-        });
-        overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
         overlay.querySelector('#site-setting-motion-off').addEventListener('change', e => {
             const saved = window.siteSettings.set('motionOff', e.target.checked);
             overlay.querySelector('.site-settings-error').hidden = saved;
@@ -168,7 +161,8 @@ window.openSiteSettings = function () {
     const look = window.siteSettings.get('look') === 'classic' ? 'classic' : 'default';
     overlay.querySelector(`#site-setting-look-${look}`).checked = true;
     overlay.querySelector('#site-setting-motion-off').checked = window.siteSettings.get('motionOff');
-    overlay.classList.remove('hidden');
+    // Nothing typed in it: a click outside closes it.
+    window.openDialog(overlay, { light: true });
     overlay.querySelector(`#site-setting-look-${look}`).focus();
 };
 

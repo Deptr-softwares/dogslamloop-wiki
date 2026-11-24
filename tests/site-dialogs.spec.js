@@ -291,3 +291,173 @@ test('the site prompt gives back what was typed, on OK or Enter', async ({ page 
     await expect(page.locator('#site-confirm-modal .dialog-input')).toHaveCount(0);
     expect(errors).toEqual([]);
 });
+
+// --- The reader's boxes, opened through their own controls ---
+
+// A signed-in reader with one notification, as far as the dock and the account
+// boxes ask (the stand-in account-boxes-on-open.spec.js uses).
+async function signedIn(page) {
+    await page.addInitScript(() => {
+        const notifications = [{
+            id: 'n-1', created_at: '2026-11-20T00:00:00Z', user_id: 'me',
+            message: 'Your edit to Boomcat was approved.', link: '', is_read: false,
+        }];
+        Object.defineProperty(window, 'supabase', {
+            configurable: true,
+            get() { return window.__lib; },
+            set(lib) {
+                window.__lib = lib;
+                if (!lib || !lib.createClient || lib.__patched) return;
+                lib.__patched = true;
+                const orig = lib.createClient.bind(lib);
+                lib.createClient = (...args) => {
+                    const client = orig(...args);
+                    client.auth.getSession = async () => ({
+                        data: { session: { user: { id: 'me', email: 'me@example.com', user_metadata: {} }, access_token: 'tok' } },
+                    });
+                    client.auth.getUser = async () => ({ data: { user: { id: 'me' } } });
+                    const inert = new Proxy({}, {
+                        get(_t, prop) {
+                            if (prop === 'then') return resolve => resolve({ data: [], error: null });
+                            if (prop === 'single' || prop === 'maybeSingle') return async () => ({ data: null, error: null });
+                            return () => inert;
+                        },
+                    });
+                    client.from = table => {
+                        if (table !== 'user_notifications') return inert;
+                        const chain = {
+                            head: false,
+                            select(_cols, opts) { chain.head = !!(opts && opts.head); return chain; },
+                            eq() { return chain; },
+                            order() { return chain; },
+                            limit() { return Promise.resolve({ data: notifications, error: null }); },
+                            then(resolve, reject) {
+                                return Promise.resolve(chain.head ? { count: 1, error: null } : { data: notifications, error: null }).then(resolve, reject);
+                            },
+                        };
+                        return chain;
+                    };
+                    client.rpc = async () => ({ data: [], error: null });
+                    return client;
+                };
+            },
+        });
+    });
+}
+
+// The box is open as a modal, in the staff look (or the player's own), at its size
+// and tone; a click outside closes it only when it is light.
+async function checkBox(page, id, { width, tone, light, ownLook = false }) {
+    const box = page.locator(`#${id}`);
+    await expect(box).toBeVisible();
+    const seen = await box.evaluate(d => {
+        const s = getComputedStyle(d);
+        const title = d.querySelector('.dialog-header h3');
+        return {
+            modal: d.matches(':modal'),
+            width: Math.round(d.getBoundingClientRect().width),
+            top: s.borderTopColor,
+            titleFont: title ? getComputedStyle(title).fontFamily : null,
+            titleCase: title ? getComputedStyle(title).textTransform : null,
+        };
+    });
+    expect(seen.modal, `${id} opened as a modal`).toBe(true);
+    expect(seen.width, `${id} is ${width} wide`).toBe(width);
+    if (tone) expect(seen.top, `${id} in its tone`).toBe(tone);
+    if (!ownLook) {
+        expect(seen.titleFont, `${id} has the staff title`).toMatch(/monospace/);
+        expect(seen.titleCase).toBe('uppercase');
+    }
+    await page.mouse.click(6, 6);
+    await page.waitForTimeout(200);
+    if (light) await expect(box, `${id}: a click outside closes it`).toBeHidden();
+    else await expect(box, `${id}: a click outside leaves it, it holds what was typed`).toBeVisible();
+}
+
+test('Sign In: opened from the dock, kept open by a click outside, and Escape goes back to the button', async ({ page }) => {
+    const errors = await load(page, READER);
+    await page.locator('#dock-btn-auth').click();
+    await checkBox(page, 'auth-modal-overlay', { width: 400, light: false });
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#auth-modal-overlay')).toBeHidden();
+    await expect(page.locator('#dock-btn-auth'), 'focus is back on the button').toBeFocused();
+    await page.locator('#dock-btn-auth').click();
+    await page.locator('#auth-modal-overlay').getByRole('button', { name: 'CANCEL' }).click();
+    await expect(page.locator('#auth-modal-overlay')).toBeHidden();
+    expect(errors).toEqual([]);
+});
+
+test('Site Settings: opened from the dock, closed by a click outside or CLOSE', async ({ page }) => {
+    const errors = await load(page, READER);
+    await page.locator('#dock-btn-settings').click();
+    await checkBox(page, 'site-settings-overlay', { width: 400, light: true });
+    await page.locator('#dock-btn-settings').click();
+    await expect(page.locator('#site-setting-look-default'), 'focus on the look in use').toBeFocused();
+    await page.locator('#site-settings-overlay').getByRole('button', { name: 'CLOSE' }).click();
+    await expect(page.locator('#site-settings-overlay')).toBeHidden();
+    await expect(page.locator('#dock-btn-settings')).toBeFocused();
+    expect(errors).toEqual([]);
+});
+
+test('Edit Profile: a 650 purple box that a click outside leaves open', async ({ page }) => {
+    await signedIn(page);
+    const errors = await load(page, READER);
+    await page.locator('#dock-btn-auth').click();
+    await checkBox(page, 'profile-modal-overlay', { width: 650, tone: 'rgb(168, 85, 247)', light: false });
+    await page.locator('#profile-modal-overlay').getByRole('button', { name: 'CANCEL' }).click();
+    await expect(page.locator('#profile-modal-overlay')).toBeHidden();
+    expect(errors).toEqual([]);
+});
+
+test('the inbox: a 500 box, and CLEAR ALL asks on top of it', async ({ page }) => {
+    await signedIn(page);
+    const errors = await load(page, READER);
+    await page.locator('#dock-btn-inbox').click();
+    await checkBox(page, 'site-notification-modal', { width: 500, light: true });
+
+    await page.locator('#dock-btn-inbox').click();
+    await expect(page.locator('#site-notification-modal')).toContainText('Your edit to Boomcat was approved.');
+    await page.locator('#site-notification-modal [data-notif-clear]').click();
+    await expect(page.locator('#site-confirm-modal')).toBeVisible();
+    const onTop = await page.evaluate(() => {
+        const b = document.getElementById('site-confirm-cancel');
+        const r = b.getBoundingClientRect();
+        return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === b;
+    });
+    expect(onTop, 'the confirm sits over the inbox').toBe(true);
+    await page.locator('#site-confirm-cancel').click();
+    await expect(page.locator('#site-notification-modal'), 'the inbox is still open under it').toBeVisible();
+    await page.locator('#site-notification-modal').getByRole('button', { name: 'CLOSE' }).click();
+    await expect(page.locator('#site-notification-modal')).toBeHidden();
+    expect(errors).toEqual([]);
+});
+
+test('a public profile: a 400 box that a click outside closes', async ({ page }) => {
+    await signedIn(page);
+    const errors = await load(page, READER);
+    await page.evaluate(() => window.openPublicProfile('u-other'));
+    await checkBox(page, 'public-profile-overlay', { width: 400, light: true });
+    expect(errors).toEqual([]);
+});
+
+test('the video player: the dialog in its own look, light, and emptied when it closes', async ({ page }) => {
+    await page.route(/\.(mp4|webm)(\?|$)/, route => route.abort());
+    const errors = await load(page, READER);
+    const open = () => page.evaluate(() => window.openWikiVideoModal('https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/clip.mp4'));
+    await open();
+    // The clip itself is refused, so the site's missing-media notice may stand in
+    // for the <video>: what counts is that the player has something in it.
+    const inside = page.locator('#wiki-video-modal .wiki-video-modal-body > *');
+    await expect(inside).not.toHaveCount(0);
+    await checkBox(page, 'wiki-video-modal', { width: 900, light: true, ownLook: true });
+    expect(await inside.count(), 'emptied on close').toBe(0);
+
+    await open();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#wiki-video-modal')).toBeHidden();
+    await open();
+    await page.locator('#wiki-video-modal .wiki-video-modal-close').click();
+    await expect(page.locator('#wiki-video-modal')).toBeHidden();
+    expect(await inside.count()).toBe(0);
+    expect(errors).toEqual([]);
+});

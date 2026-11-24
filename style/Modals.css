@@ -1,15 +1,11 @@
-/* Modals: the overlays and their stacking tiers, the .modal-box and its accents,
-   the sign-in, profile and public-profile modals, the site-wide confirm box, and
-   badges.
+/* Modals: the site's dialog (every box), the overlay the editor's own boxes still
+   use, the sign-in and profile boxes' parts, and badges.
    Since v0.4.
    Watch: every page loads this file.
    See: docs/looks.md */
 
-/* Overlays and their stacking tiers */
-/* Tier 1: standard modals, with the old names site_utils.js still uses */
-.modal-overlay,
-.editor-modal-overlay,
-#auth-modal {
+/* The overlay of the editor's and Overseer's own boxes, until they are dialogs too. */
+.editor-modal-overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100vw; height: 100vh; /* Safer than inset:0 for absolute containment */
@@ -19,12 +15,6 @@
     justify-content: center;
     align-items: center;
     z-index: 9000; 
-}
-
-/* Tier 2: Priority Modals */
-.modal-overlay.tier-priority,
-.editor-modal-overlay.tier-priority {
-    z-index: 9500;
 }
 
 /* The site's dialog: a box on a <dialog>, opened by window.openDialog
@@ -83,6 +73,7 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     font-family: var(--text-mono);
     font-size: 1rem;
     font-weight: normal;
+    text-transform: uppercase;
     color: var(--dialog-tone);
 }
 
@@ -125,28 +116,11 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     border-top: 1px solid #222;
 }
 
-/* The modal box */
-.modal-box {
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-top: 3px solid #555; /* Default Accent */
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
-    display: flex;
-    flex-direction: column;
-    width: 500px;
-    max-width: 95vw;
-    max-height: 85vh;
-    animation: modal-fade-in 0.15s ease-out;
-}
-
+/* The dialog's fade and rise. */
 @keyframes modal-fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
-/* Modal Sizing Modifiers */
-.modal-box.modal-sm { width: 400px; }
-.modal-box.modal-lg { width: 650px; }
 
 /* Auth modal inline feedback (error/success message) */
 #auth-feedback-message { display: block; }
@@ -163,66 +137,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
 .auth-terms-notice a { color: var(--accent-blue); text-decoration: underline; }
 
 
-/* Accent colours, the top bar */
-.modal-box.accent-blue { border-top-color: var(--accent-blue); }
-.modal-box.accent-purple { border-top-color: #a855f7; }
-.modal-box.accent-red { border-top-color: #ef4444; }
-.modal-box.accent-green { border-top-color: #22c55e; }
-
-
-/* Header, body and footer */
-/* The Header */
-.modal-header {
-    background: #050505;
-    border-bottom: 1px solid #333;
-    padding: 1rem 1.5rem;
-    flex-shrink: 0;
-}
-
-.modal-header h3,
-#auth-modal h2 {
-    margin: 0;
-    font-family: var(--font-label), sans-serif;
-    font-size: 0.9rem;
-    color: var(--text-white);
-    text-transform: uppercase;
-}
-
-/* Inherit Header Colors */
-.modal-box.accent-blue .modal-header h3 { color: var(--accent-blue); }
-.modal-box.accent-purple .modal-header h3 { color: #a855f7; }
-.modal-box.accent-red .modal-header h3 { color: #ef4444; }
-
-/* The Body */
-.modal-body {
-    padding: 1.5rem;
-    flex-grow: 1;
-    overflow-y: auto;
-    text-align: left;
-}
-
-.modal-body.centered-text {
-    text-align: center;
-}
-
-/* The Footer (Action Buttons) */
-.modal-footer {
-    border-top: 1px dashed #333;
-    padding: 1rem 1.5rem;
-    margin-top: 0;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 1rem;
-    flex-shrink: 0;
-}
-
-.modal-footer.centered-actions {
-    justify-content: center;
-}
-
 /* The profile modal. Every class here is new and prefixed profile-; .btn-sys,
-   .editor-input and .modal-* are used as they are, since their other users are not
+   .editor-input and the dialog's parts are used as they are, since their other users are not
    in this file. */
 
 .profile-identity {
