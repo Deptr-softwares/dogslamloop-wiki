@@ -13,6 +13,10 @@
 // list built with .map().join() is reported too. The writes found when the
 // rule arrived are recorded in eslint-suppressions.json; a new one fails the
 // lint (.claude/rules/practice-escaping.md).
+//
+// The browser's own alert, confirm and prompt boxes (no-alert): every box is
+// the site's own dialog (window.showSystemAlert, window.siteConfirm,
+// window.sitePrompt in site_utils.js).
 const noUnsanitized = require('eslint-plugin-no-unsanitized');
 
 const ESCAPERS = { methods: ['window.escapeHtml', 'window.escapeHtmlKeepBreaks', 'escapeHtml', 'escapeHtmlKeepBreaks'] };
@@ -29,6 +33,7 @@ module.exports = [
             'no-eval': 'error',
             'no-implied-eval': 'error',
             'no-new-func': 'error',
+            'no-alert': 'error',
             'no-unsanitized/property': ['error', { escape: ESCAPERS }],
             'no-unsanitized/method': ['error', { escape: ESCAPERS }],
         },

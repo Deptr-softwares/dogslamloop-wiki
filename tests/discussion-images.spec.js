@@ -438,9 +438,8 @@ test('deleting your own post deletes its images too', async ({ page }) => {
     const mine = `${ME}/abc123.webp`;
     await openThread(page, { session: SESSION, roleRow: { role: 'trusted_editor' },
         rows: [post({ author_id: ME, images: [mine] })] });
-    await page.evaluate(() => { window.customConfirm = async () => true; });
-
     await page.click('#post-p1 [data-remove-post]');
+    await page.locator('#site-confirm-ok').click();
     await expect.poll(() => page.evaluate(() => window.__removes)).toEqual([{ bucket: 'discussion-media', paths: [mine] }]);
     expect(await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'remove_my_discussion_post').length)).toBe(1);
 });

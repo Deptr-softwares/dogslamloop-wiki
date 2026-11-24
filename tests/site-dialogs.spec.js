@@ -242,6 +242,34 @@ test('a box opened over another sits on top and answers first', async ({ page })
     expect(errors).toEqual([]);
 });
 
+test('a sign-in that cannot reach its provider says so in the site message box', async ({ page }) => {
+    await page.addInitScript(() => {
+        Object.defineProperty(window, 'supabase', {
+            configurable: true,
+            get() { return window.__lib; },
+            set(lib) {
+                window.__lib = lib;
+                if (!lib || !lib.createClient || lib.__patched) return;
+                lib.__patched = true;
+                const real = lib.createClient.bind(lib);
+                lib.createClient = (...args) => {
+                    const client = real(...args);
+                    client.auth.getSession = async () => ({ data: { session: null } });
+                    client.auth.signInWithOAuth = async () => ({ data: null, error: { message: 'provider down' } });
+                    return client;
+                };
+            },
+        });
+    });
+    const errors = await load(page, READER);
+    await page.locator('#dock-btn-auth').click();
+    await expect(page.locator('#auth-modal-overlay')).toBeVisible();
+    await page.getByRole('button', { name: /LOGIN WITH DISCORD/ }).click();
+    await expect(page.locator('#alert-modal-msg')).toHaveText('Failed to connect to discord');
+    await expect(page.locator('#alert-modal-overlay')).toBeVisible();
+    expect(errors, 'no browser alert box').toEqual([]);
+});
+
 test('the site prompt gives back what was typed, on OK or Enter', async ({ page }) => {
     const errors = await load(page, READER);
     await ask(page, "window.sitePrompt('Which address?', { value: '/systems/' })");

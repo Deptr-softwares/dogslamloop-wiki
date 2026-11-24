@@ -562,8 +562,8 @@ window.saveBlockHistory = function() {
  * all off at once. A prompt that asks a real question (restore a draft, replace
  * all) calls customConfirm itself and is never switched off.
  * @since v1.1
- * @watch owner.html and tier-editor.html have no customConfirm: the browser's
- *   own confirm stands in there
+ * @watch owner.html and tier-editor.html have no customConfirm: the site's own
+ *   confirm box (window.siteConfirm) asks there
  */
 window.confirmDelete = function (message, confirmText) {
     if (window.editorConfig && !window.editorConfig.get('confirmDeletes')) return Promise.resolve(true);
@@ -572,7 +572,7 @@ window.confirmDelete = function (message, confirmText) {
     const modal = document.getElementById('editor-custom-modal');
     if (modal && modal.open) return Promise.resolve(false);
     if (typeof window.customConfirm === 'function' && modal) return window.customConfirm(message, confirmText || 'DELETE', true);
-    return Promise.resolve(window.confirm(message));
+    return window.siteConfirm(message, { confirmText: confirmText || 'DELETE' });
 };
 
 document.addEventListener('keydown', (e) => {
@@ -702,9 +702,9 @@ window.customPrompt = function (message, opts = {}) {
     const btnCancel = document.getElementById('editor-modal-cancel');
     const btnConfirm = document.getElementById('editor-modal-confirm');
 
-    // No modal on this page: the link button still works.
+    // No editor box on this page (owner.html, tier-editor.html): the site's own.
     if (!modal || !textEl || !btnCancel || !btnConfirm) {
-        return Promise.resolve(window.prompt(message));
+        return window.sitePrompt(message, { ...opts, confirmText: opts.confirmText || 'INSERT' });
     }
     if (modal.open) return Promise.resolve(null);
 

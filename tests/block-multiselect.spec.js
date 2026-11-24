@@ -58,12 +58,15 @@ const selected = (page) => page.evaluate(() =>
 const headerRow = (n) => `#block-list .block-card[data-index="${n}"] .block-type-row`;
 const ctrlClick = (page, n) => page.click(headerRow(n), { modifiers: ['Control'] });
 
-// Says yes to every confirm and records what it asked. build() replaces the
-// page body, confirm modal and all, so window.confirmDelete asks through the
-// browser's own dialog here.
-function acceptDialogs(page) {
-    const asked = [];
-    page.on('dialog', d => { asked.push(d.message()); d.accept(); });
+// Says yes in the site's own confirm and returns what it asked. build() replaces
+// the page body, the editor's confirm box and all, so window.confirmDelete asks
+// through window.siteConfirm here, which builds its box on first use.
+async function confirmInSiteBox(page) {
+    const box = page.locator('#site-confirm-modal');
+    await expect(box).toBeVisible();
+    const asked = await page.locator('#site-confirm-text').textContent();
+    await page.locator('#site-confirm-ok').click();
+    await expect(box).toBeHidden();
     return asked;
 }
 
@@ -253,13 +256,11 @@ test('Delete removes exactly the selected blocks', async ({ page }) => {
     await ctrlClick(page, 0);
     await ctrlClick(page, 2);
 
-    // It asks first since v1.1. This harness replaces the page body, modal and
-    // all, so the question comes as the browser's own confirm.
-    const asked = acceptDialogs(page);
+    // It asks first since v1.1.
     await page.keyboard.press('Delete');
+    expect(await confirmInSiteBox(page)).toBe('Delete the 2 selected blocks?');
 
     await expect.poll(() => contents(page)).toEqual(['two', 'four']);
-    expect(asked).toEqual(['Delete the 2 selected blocks?']);
     expect(await selected(page), 'and the selection goes with them').toEqual([]);
     await expect(page.locator('#block-selection-bar')).toHaveCount(0);
 });
@@ -384,8 +385,8 @@ test('undo after a multi-delete puts every block back', async ({ page }) => {
     await ctrlClick(page, 1);
     await ctrlClick(page, 2);
 
-    acceptDialogs(page);
     await page.keyboard.press('Delete');
+    await confirmInSiteBox(page);
     await expect.poll(() => contents(page)).toEqual(['a', 'd']);
 
     // deleteSelectedBlocks snapshots BEFORE the splice and updateLivePreview

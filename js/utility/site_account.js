@@ -443,7 +443,7 @@ window.triggerOAuth = async function(providerName) {
         provider: providerName,
         options: { redirectTo: window.location.origin + window.location.pathname + window.location.search }
     });
-    if (error) { console.error("OAuth Error:", error.message); alert("Failed to connect to " + providerName); }
+    if (error) { console.error("OAuth Error:", error.message); window.showSystemAlert("Failed to connect to " + providerName); }
 };
 
 window.checkActiveSession = async () => {
