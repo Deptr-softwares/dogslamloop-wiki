@@ -668,14 +668,21 @@ window.runDialog = function (dialog, opts = {}) {
             target.addEventListener(type, handler);
             listeners.push(() => target.removeEventListener(type, handler));
         };
-        let answered = false;
-        let answer = cancel;
-        // Read at the press, before onClose can take the field away.
+        let settled = false;
+        const finish = (answer) => {
+            if (settled) return;
+            settled = true;
+            listeners.forEach(off => off());
+            if (onClose) onClose();
+            resolve(answer);
+        };
+        // A button or Enter answers at the press: the value is read before onClose
+        // can take the field away, and the caller does not wait for the close event.
         const answerWith = (value) => {
-            if (answered) return;
-            answered = true;
-            answer = typeof value === 'function' ? value() : value;
+            if (settled) return;
+            const answer = typeof value === 'function' ? value() : value;
             dialog.close();
+            finish(answer);
         };
         buttons.forEach(([button, value]) => listen(button, 'click', () => answerWith(value)));
         if (enter !== undefined) {
@@ -683,12 +690,8 @@ window.runDialog = function (dialog, opts = {}) {
                 if (e.key === 'Enter') { e.preventDefault(); answerWith(enter); }
             });
         }
-        // Every way out ends here: a button, Escape, a click outside.
-        listen(dialog, 'close', () => {
-            listeners.forEach(off => off());
-            if (onClose) onClose();
-            resolve(answer);
-        });
+        // Escape and a click outside close it without a button: `cancel`.
+        listen(dialog, 'close', () => finish(cancel));
         window.openDialog(dialog, { light: !!backdrop });
         if (focus) focus.focus();
     });
