@@ -17,13 +17,13 @@
   },
   "cursed_partners": {
     "image": "medias/banners/cursed_partners.webp",
-    "overview": "Cursed Partners main gimmick are fast dash moves with supreme block pressure, along with good defense via Outburst (Parry) and Rika Haymaker, allowing him to be..."
+    "overview": "Cursed Partners main gimmicks are fast dash moves with supreme block pressure, along with good defense via Outburst (Parry) and Rika Haymaker, allowing him to..."
   },
   "defense_attorney": {
     "overview": "A strong M1-centric rushdown augmented with some of the fastest mobility in the game, Defense Attorney excels at tripping his opponents up with his blistering..."
   },
   "disaster_plants": {
-    "overview": "Disaster Plants is a set play zoner who controls the battlefield and plays from range punishing reckless approaches. While threatening devastating combos with..."
+    "overview": "Disaster Plants is a set play zoner who controls the battlefield and plays from range punishing reckless approaches. While threatening combos with ranged..."
   },
   "head_hei": {
     "image": "medias/banners/head_hei.webp",
@@ -34,6 +34,7 @@
     "overview": "The primary focus of Hired Hunter's kit is the insane diversity of his skills in their many, many variants with many different applications - his main gimmick..."
   },
   "honored_one": {
+    "image": "medias/banners/honored_one.webp",
     "overview": "Generic \"C tier\" M1 merchant with all the standard tools needed to win at JJS. Safe poke options, fast block breakers, rushdown tools, strong evasive baits, and..."
   },
   "locust_guy": {
@@ -59,7 +60,8 @@
     "overview": "Restless Gambler is a scrappy brawler with tools intended to be able to used in almost any situation, which is meant to make him very well-rounded. However, as..."
   },
   "salaryman": {
-    "overview": "Salaryman, the character based off of the standard of the Grade 1 Sorcerer, Kento Nanami, is a heavy hitter wrapped intricate and technical difficulty..."
+    "image": "medias/banners/salaryman.webp",
+    "overview": "Salaryman, based off of the character Kento Nanami, is an intricate and technical character, specializing in burst damage and interrupting the opponent's..."
   },
   "sky_assassin": {
     "overview": "Sky Bender is defined by her air focused kit, with her second m1 allowing her to slam down any opponent that was flung high into the sky by her. Blind Rage is a..."

@@ -1439,6 +1439,18 @@
     "h": 1000,
     "etag": "\"d33be4c359700500af95c7900913d47c\""
   },
+  "Nanami_Cleaving_Whirlwind_Example_1_ntskellys_1.webm": {
+    "still": "medias/stills/4c47366e3c9e4a36.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"f9c961c9c062135b60ea2bb4efb2b4d2\""
+  },
+  "Nanami_Cleaving_Whirlwind_Example_2_ntskellys.webm": {
+    "still": "medias/stills/514b3e736fe31ca3.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"ed824a962a6d7fc26efed487d33d46ee\""
+  },
   "No Stunning.webm": {
     "still": "medias/stills/ca1646dae1b96af2.webp",
     "w": 1920,
@@ -2093,12 +2105,6 @@
     "h": 708,
     "etag": "\"1d60997993ec5b4893943ba2c78608d6\""
   },
-  "air def res uppercut stall.webm": {
-    "still": "medias/stills/e3788d28881474fb.webp",
-    "w": 1405,
-    "h": 720,
-    "etag": "\"d9b68892c01845f4c426a2cb254eb294\""
-  },
   "barrage stack 1.webm": {
     "still": "medias/stills/44c13c7d14f82a85.webp",
     "w": 1920,
@@ -2224,12 +2230,6 @@
     "w": 1920,
     "h": 1080,
     "etag": "\"66f90f7bb50ba25b59f6b11b06a23de7\""
-  },
-  "grounded def res uppercut stall.webm": {
-    "still": "medias/stills/858133c0bc9109a3.webp",
-    "w": 1405,
-    "h": 720,
-    "etag": "\"b8742f8f1f02eddef154c8e15b19d26b\""
   },
   "grounded def response 1 spike 75.webm": {
     "still": "medias/stills/39188b7c1d8b5e8f.webp",
@@ -2374,12 +2374,6 @@
     "w": 1518,
     "h": 910,
     "etag": "\"90a2b2ab87c1fdd84065abab2471506e\""
-  },
-  "root swarm air def res double uppercut stall-compressed.webm": {
-    "still": "medias/stills/877bceaffd7ffe4c.webp",
-    "w": 1281,
-    "h": 720,
-    "etag": "\"0d3d8155ff0c8395ebe6c26990599a95\""
   },
   "second m1 (gojo).webm": {
     "still": "medias/stills/97f65907282dd316.webp",
