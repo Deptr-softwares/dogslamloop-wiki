@@ -500,6 +500,13 @@ for (const t of TOOLS) {
         await t.open(page);
         await expect(page.locator(`#${t.id}`)).toBeVisible();
         expect(await page.locator(`#${t.id}`).evaluate(d => d.contains(document.activeElement)), 'focus moved into it').toBe(true);
+        // The title in the box's tone, as on every question box: no page rule for
+        // the old box's title may win over the dialog's.
+        const colours = await page.locator(`#${t.id}`).evaluate(d => ({
+            top: getComputedStyle(d).borderTopColor,
+            title: getComputedStyle(d.querySelector('.dialog-header h3')).color,
+        }));
+        expect(colours.title, 'the title in the box\'s tone').toBe(colours.top);
         await checkBox(page, t.id, { width: t.width, tone: t.tone, light: t.light });
         if (!t.light) {
             await page.keyboard.press('Escape');
