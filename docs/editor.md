@@ -41,6 +41,7 @@ edit.html: where editors write a page and send it for review. The header and its
 - `triggerManualSync` and `updateLivePreview` branch on the page type and tab almost alike: a new tab or page type needs both.
 - The Block buffer reaches the page's data only on sync, so anything that switches what is on screen (a tab, a state, Find and Replace, VIEW DIFF) flushes first.
 - The tour's and the MoS's words come from the Writing Guide, never from code: a heading added there is a step in the tour.
+- The tour listens for keys on the whole page and leaves them alone while a box is open, so a box's Escape closes that box and not the tour behind it.
 - What the Playground cannot do is switched off where it happens (Submit, uploads, the Conflict Check, page drafts), not hidden from one place.
 
 ## Decisions

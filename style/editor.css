@@ -443,31 +443,6 @@ input[type="checkbox"]:checked {
 }
 .daw-inspector { background: #0a0a0a; padding: 1rem; border: 1px solid #222; border-left: 3px solid #ef4444; border-radius: 0; }
 
-/* Modals */
-.editor-modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 10006;
-    backdrop-filter: none !important;
-    /* No display here: Modals.css's shared overlay rule gives display:flex, and a
-       display:none at equal specificity would override it. */
-    align-items: center; justify-content: center;
-}
-.editor-modal-box {
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-top: 3px solid #ef4444;
-    padding: 2rem; width: 350px;
-    text-align: center;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.8);
-    border-radius: 0
-}
-.editor-modal-box h3 {
-    margin: 0 0 1.5rem 0; color: #fff;
-    font-family: var(--text-mono); font-size: 1rem; font-weight: normal;
-}
-.editor-modal-actions { display: flex; gap: 1rem; }
-
 /* Drag and drop */
 .block-card.drag-over-top {
     box-shadow: 0 -3px 0 0 var(--accent-blue) !important;
@@ -856,24 +831,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     background: transparent !important;
 }
 
-/* The sign-in modal's editor parts */
-.auth-modal-box {
-    width: 400px;
-    border-top: 3px solid var(--accent-blue);
-    padding: 0;
-}
-
-.auth-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #222;
-    background: #050505;
-}
-
-.auth-header h3 { margin: 0; }
-
+/* The sign-in box's connection dot */
 .status-dot {
     width: 8px;
     height: 8px;
@@ -882,17 +840,6 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .status-dot.offline { color: #ef4444; background: #ef4444; }
 .status-dot.online { color: #22c55e; background: #22c55e; }
-
-.auth-body {
-    padding: 1.5rem;
-    background: #0a0a0a;
-}
-
-.auth-modal-box .editor-modal-actions {
-    padding: 1rem 1.5rem;
-    background: #050505;
-    justify-content: flex-end;
-}
 
 /* The QA modal (openQAModal) */
 .editor-intercept-label { color: #a855f7; }
@@ -1526,9 +1473,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-upload-ask-text { margin: 0 0 0.6rem; color: #f4cc43; line-height: 1.5; }
 .media-upload-ask-actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
 
-/* Modal layers */
-.editor-modal-overlay { z-index: 10000; }
-
+/* The writing checks' line above their list. */
 .modal-prompt-text {
     font-family: var(--text-mono);
     font-size: 0.85rem;
@@ -1677,14 +1622,6 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     .block-card { padding: 0.5rem !important; }
     .editor-input, .editor-select { font-size: 0.7rem !important; padding: 0.4rem !important; margin-bottom: 0.4rem !important;}
     .block-header { margin-bottom: 0.5rem !important; }
-    
-    /* Modals on a phone */
-    .editor-modal-box, .auth-modal-box, .media-modal-box {
-        width: 95vw !important;
-        max-width: 95vw !important;
-        padding: 1rem !important;
-        box-sizing: border-box;
-    }
     
     /* The library's controls stack. */
     .media-modal-footer {
@@ -2234,8 +2171,8 @@ del.diff-del {
    box-shadow on the cut-out, one rectangle to move, with no seams at an edge. */
 .tutorial-overlay {
     position: fixed; inset: 0; z-index: 10020;
-    /* Above the notices, which hand over and are removed first, and above the
-       editor's 10005 modals, so a tour from MoS is never behind one. */
+    /* Above the editor's own layers. A box is in the top layer, over the tour,
+       which steps aside while one is open. */
     pointer-events: none;
 }
 
