@@ -1475,10 +1475,10 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
         });
     });
 
-    const close = () => {
-        modal.classList.add('hidden');
-        window.renderDocumentListEditor(tabId);
-    };
+    // Every way of closing it (DONE, DELETE COMBO, Escape, a click outside) redraws the
+    // list with the row as it is now.
+    modal.onclose = () => window.renderDocumentListEditor(tabId);
+    const close = () => modal.close();
 
     const done = document.getElementById('combo-row-modal-done');
     const del = document.getElementById('combo-row-modal-delete');
@@ -1492,9 +1492,9 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
             window.renderDocumentPreview(tabId);
         };
     }
-    modal.onclick = (e) => { if (e.target === modal) close(); };
 
-    modal.classList.remove('hidden');
+    // Saved as it is typed, so nothing is lost to a click outside.
+    window.openDialog(modal, { light: true });
 };
 
 window.loadKeyedEntryIntoEditor = function(tabId, idx) {
@@ -1789,8 +1789,7 @@ function bindStructuredFormToolbar(container, history) {
     if (media) {
         media.addEventListener('click', () => {
             // The library copies a URL on click, so it needs no target.
-            document.getElementById('media-modal-overlay').classList.remove('hidden');
-            if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
+            if (typeof window.openMediaLibrary === 'function') window.openMediaLibrary();
         });
     }
 

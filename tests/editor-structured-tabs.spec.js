@@ -90,7 +90,7 @@ test('the Media Library button actually opens the gallery', async ({ page }) => 
   await page.click('#overview-editor-container [data-form-media]');
 
   const result = await page.evaluate(() => ({
-    modalVisible: !document.getElementById('media-modal-overlay').classList.contains('hidden'),
+    modalVisible: document.getElementById('media-modal-overlay').open,
     galleryLoaded: !!window.__galleryLoaded,
   }));
 

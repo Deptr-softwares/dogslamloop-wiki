@@ -34,11 +34,11 @@ const LIVE_FRAME = {
 async function compileMerge(page, queue) {
   return page.evaluate(async ({ liveDesc, liveFrame, queue }) => {
     document.body.innerHTML = `
-      <div id="compiler-modal-overlay" class="hidden">
+      <dialog id="compiler-modal-overlay">
         <h3>SMART COMPILER: <span id="compiler-char-name"></span></h3>
         <div id="compiler-modal-body"></div>
         <button id="btn-compiler-confirm"></button>
-      </div>
+      </dialog>
     `;
 
     const captured = { update: null, updateId: null, deletedIds: null };

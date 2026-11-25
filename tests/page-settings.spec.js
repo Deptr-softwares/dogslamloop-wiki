@@ -737,11 +737,11 @@ test('a merge keeps a page settings change alongside a system section edit', asy
         sections: [{ sectionTitle: 'Intro', layout: 'full', blocks: [{ type: 'paragraph', content: 'live' }] }] }],
     };
     document.body.innerHTML = `
-      <div id="compiler-modal-overlay" class="hidden">
+      <dialog id="compiler-modal-overlay">
         <h3>SMART COMPILER: <span id="compiler-char-name"></span></h3>
         <div id="compiler-modal-body"></div>
         <button id="btn-compiler-confirm"></button>
-      </div>`;
+      </dialog>`;
     const captured = { update: null };
     window.supabaseClient = {
       from(table) {

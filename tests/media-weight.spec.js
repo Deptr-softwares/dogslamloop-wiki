@@ -63,7 +63,7 @@ async function openLibrary(page) {
 
     await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'networkidle' });
     await page.evaluate(() => {
-        document.getElementById('media-modal-overlay').classList.remove('hidden');
+        document.getElementById('media-modal-overlay').showModal();
         if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
     });
     await expect(page.locator('#media-upload-zone')).toBeVisible();

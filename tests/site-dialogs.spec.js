@@ -11,6 +11,7 @@ test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } });
 
 const READER = '/characters/Boomcat/index.html';
 const EDITOR = '/edit.html?char=boomcat&type=character&tab=overview';
+const EDITOR_GALLERY = '/edit.html?char=boomcat&type=character&tab=gallery';
 const OWNER = '/owner.html';
 const OVERSEER = '/overseer.html';
 const SUBMISSIONS = '/submissions.html';
@@ -18,6 +19,7 @@ const SUBMISSIONS = '/submissions.html';
 const RED = 'rgb(239, 68, 68)';
 const YELLOW = 'rgb(234, 179, 8)';
 const GREEN = 'rgb(34, 197, 94)';
+const PURPLE = 'rgb(168, 85, 247)';
 const BLUE = 'accent-blue';
 
 // Every question and message box, as its own code opens it. `answer` is what a way
@@ -464,6 +466,17 @@ test('the video player: the dialog in its own look, light, and emptied when it c
 
 // --- The editor's and Overseer's tool boxes (C-1b) ---
 
+// The Merge Compiler with no tickets, over a page fetch that answers at once: the
+// stand-in session has no real token, so a live fetch would be refused.
+const openCompiler = page => page.evaluate(() => {
+    window.currentQueueData = [];
+    const from = window.supabaseClient.from.bind(window.supabaseClient);
+    window.supabaseClient.from = table => (table === 'page_data'
+        ? { select() { return this; }, eq() { return this; }, single: async () => ({ data: { desc_data: {}, frame_data: {} }, error: null }) }
+        : from(table));
+    window.openMergeCompiler('boomcat');
+});
+
 // Each tool box, opened the way the editor opens it. `light`: a click outside
 // closes it (nothing typed in it to lose).
 const TOOLS = [
@@ -472,12 +485,18 @@ const TOOLS = [
     { name: 'House Style', open: page => page.evaluate(() => window.openHouseStyle()), id: 'editor-house-style-modal', width: 650, light: true },
     { name: 'the editor notice', open: page => page.evaluate(() => window.showEditorNotice('editor', { force: true })), id: 'editor-notice-editor', width: 400, light: true },
     { name: 'move id', open: page => ask(page, 'window.promptForMoveId()'), id: 'move-id-modal', width: 400, tone: GREEN, light: false },
+    { name: 'Add a Gallery Item', page: EDITOR_GALLERY, open: page => page.locator('#char-gallery-add').click(), id: 'gallery-item-modal', width: 400, light: false },
+    { name: 'Find & Replace', open: page => page.locator('#btn-find-replace').click(), id: 'find-replace-modal', width: 650, light: false },
+    { name: 'the Media Library', open: page => page.locator('#btn-media-library').click(), id: 'media-modal-overlay', width: 860, light: false },
+    { name: 'the Drafts Manager', open: page => page.locator('#btn-drafts').click(), id: 'draft-manager-modal', width: 650, light: true },
+    { name: 'the Merge Compiler', page: OVERSEER, open: openCompiler, id: 'compiler-modal-overlay', width: 650, tone: PURPLE, light: false },
 ];
 
 for (const t of TOOLS) {
     test(`${t.name}: a ${t.width} site dialog, focus inside, Escape closes it, a click outside ${t.light ? 'does too' : 'does not'}`, async ({ page }) => {
-        const errors = await load(page, EDITOR);
-        await page.waitForFunction(() => window.currentEditorDescData);
+        const url = t.page || EDITOR;
+        const errors = await load(page, url);
+        if (url !== OVERSEER) await page.waitForFunction(() => window.currentEditorDescData);
         await t.open(page);
         await expect(page.locator(`#${t.id}`)).toBeVisible();
         expect(await page.locator(`#${t.id}`).evaluate(d => d.contains(document.activeElement)), 'focus moved into it').toBe(true);
@@ -519,5 +538,22 @@ test('Escape on the move id box answers cancelled', async ({ page }) => {
     await page.keyboard.press('Escape');
     await expect(page.locator('#move-id-modal')).toBeHidden();
     await expect.poll(() => page.evaluate(() => window.__answer)).toBe(null);
+    expect(errors).toEqual([]);
+});
+
+test('Escape on the Media Library picker disarms it and leaves the gallery item box open', async ({ page }) => {
+    const errors = await load(page, EDITOR_GALLERY);
+    await page.waitForFunction(() => window.currentEditorDescData);
+    await page.locator('#char-gallery-add').click();
+    await expect(page.locator('#gallery-item-modal')).toBeVisible();
+    await page.locator('#gallery-item-pick').click();
+    await expect(page.locator('#media-modal-overlay')).toBeVisible();
+    expect(await page.evaluate(() => typeof window.mediaPickHandler), 'armed while it is open').toBe('function');
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#media-modal-overlay')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => typeof window.mediaPickHandler), { message: 'disarmed, so the next open is not a picker' }).toBe('object');
+    await expect(page.locator('#gallery-item-modal'), 'one Escape closes the top box only').toBeVisible();
+    await expect(page.locator('#media-lib-preview')).toContainText('Pick a file to preview it here.');
     expect(errors).toEqual([]);
 });

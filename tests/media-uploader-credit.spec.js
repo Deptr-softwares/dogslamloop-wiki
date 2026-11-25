@@ -93,7 +93,7 @@ async function openLibrary(page, config = {}) {
     await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'networkidle' });
     await page.evaluate(() => {
         window.measureMediaSource = async () => null;
-        document.getElementById('media-modal-overlay').classList.remove('hidden');
+        document.getElementById('media-modal-overlay').showModal();
         if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
     });
     await expect(page.locator('#media-upload-zone')).toBeVisible();

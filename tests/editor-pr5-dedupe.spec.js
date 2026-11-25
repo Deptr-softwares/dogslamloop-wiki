@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 
 test('media library: status/error messages and a file row render with no inline styles', async ({ page }) => {
   await page.evaluate(() => {
-    document.getElementById('media-modal-overlay').classList.remove('hidden');
+    document.getElementById('media-modal-overlay').showModal();
     window.initMediaLibrary();
     const grid = document.getElementById('media-gallery-grid');
     grid.innerHTML = '<div class="media-status-msg">Connecting to Cloud Storage...</div>';

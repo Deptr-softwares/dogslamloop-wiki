@@ -1538,8 +1538,6 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 }
 
 /* The Media Library modal */
-.media-modal-box { width: 800px; max-width: 95vw; border-top-color: var(--accent-blue); }
-.media-modal-box .auth-header h3 { color: var(--accent-blue); }
 .media-modal-body { height: 60vh; display: flex; flex-direction: column; }
 
 .media-search-input { flex: 2; margin: 0; }
@@ -1710,10 +1708,10 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     .media-browser { flex-direction: column; gap: 0.5rem; }
     .media-lib-preview { flex: none; max-height: 55%; order: -1; }
     .media-lib-preview-frame { aspect-ratio: auto; height: 112px; }
-    /* The footer stacks into three rows, so the library takes more of the screen. */
+    /* The footer stacks into three rows, so the library takes more of the screen,
+       past the usual box height. */
     .media-modal-body { height: 80vh; }
-
-    .auth-body { padding: 1rem !important; }
+    #media-modal-overlay { max-height: calc(100vh - 2rem); }
 }
 
 /* Buttons */
@@ -2095,17 +2093,11 @@ del.diff-del {
 }
 .combo-row-move .btn-sys:disabled { opacity: 0.35; cursor: default; }
 
-/* The row form is a modal, not the sidebar, which shares the screen with the
+/* The row form is a box, not the sidebar, which shares the screen with the
    preview. Three columns of short fields, one below 720px; the route and the
-   notes span the width. */
-.combo-row-modal-box {
-    width: min(860px, 94vw);
-    /* Blue: the red top border belongs to the delete confirmation it shares markup
-       with. */
-    border-top-color: var(--accent-blue);
-}
+   notes span the width. DELETE COMBO sits apart from DONE. */
 .combo-row-modal-body { padding: 0.9rem 1.1rem; text-align: left; max-height: 72vh; overflow-y: auto; }
-.combo-row-modal-actions { justify-content: space-between; gap: 1rem; padding: 0.9rem 1.25rem; border-top: 1px dashed #333; }
+.combo-row-modal-actions { justify-content: space-between; }
 
 .combo-field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem 0.7rem; }
 .combo-field-grid label { display: block; margin-bottom: 0.15rem; font-size: 0.6rem; }
@@ -2127,9 +2119,8 @@ del.diff-del {
 @media (max-width: 720px) { .combo-card-fields { grid-template-columns: 1fr; } }
 
 /* Find and Replace */
-/* Taller than the other modals: the list is the feature, and how a contributor
+/* Taller than the other boxes: the list is the feature, and how a contributor
    spots matches they did not mean. */
-.find-replace-box { width: min(720px, 94vw); }
 .find-replace-body { display: flex; flex-direction: column; gap: 0.75rem; max-height: 70vh; }
 .find-replace-controls { display: flex; flex-direction: column; gap: 0.3rem; }
 .find-replace-options {

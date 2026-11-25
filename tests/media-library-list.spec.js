@@ -75,7 +75,7 @@ async function openLibrary(page, config = {}) {
     await page.evaluate(() => { window.measureMediaSource = async () => null; });
     if (config.open === false) return;
     await page.evaluate(() => {
-        document.getElementById('media-modal-overlay').classList.remove('hidden');
+        document.getElementById('media-modal-overlay').showModal();
         window.loadMediaGallery();
     });
     await expect(page.locator('#media-upload-zone')).toBeVisible();
@@ -242,7 +242,7 @@ test('the whole bucket is listed, past the first 1000 files, and the upload chec
     expect(refused).toContain('already exists');
 
     await page.evaluate(() => {
-        document.getElementById('media-modal-overlay').classList.remove('hidden');
+        document.getElementById('media-modal-overlay').showModal();
         window.loadMediaGallery();
     });
     await page.locator('#media-search-input').fill('F1204');

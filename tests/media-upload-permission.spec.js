@@ -29,7 +29,7 @@ async function openLibrary(page, answers) {
             upload: async () => ({ data: null, error: { message: 'new row violates row-level security policy', statusCode: '403' } }),
             getPublicUrl: (p) => ({ data: { publicUrl: p } }),
         }) };
-        document.getElementById('media-modal-overlay').classList.remove('hidden');
+        document.getElementById('media-modal-overlay').showModal();
     }, answers);
     await page.evaluate(() => window.loadMediaGallery());
     await expect.poll(() => page.evaluate(() => window.__permissionAsks)).toBeGreaterThan(0);

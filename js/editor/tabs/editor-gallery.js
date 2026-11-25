@@ -131,7 +131,7 @@ function syncGalleryPreview() {
 // ADD is pressed, so the duplicate check sees the list as it is then.
 function openMediaItemModal(ctx) {
     const overlay = document.getElementById('gallery-item-modal');
-    if (!overlay) return;
+    if (!overlay || overlay.open) return;
 
     const fileInput = document.getElementById('gallery-item-file');
     const nameInput = document.getElementById('gallery-item-name');
@@ -149,7 +149,8 @@ function openMediaItemModal(ctx) {
     status.textContent = '';
     if (picked) picked.textContent = '';
     confirm.disabled = false;
-    overlay.classList.remove('hidden');
+    // No click outside: it holds a file and a name.
+    window.openDialog(overlay);
     nameInput.focus();
 
     // "Wave" from wave.mp4 or .../wave_emote.webp, as for a picked file.
@@ -197,13 +198,14 @@ function openMediaItemModal(ctx) {
         nameInput.value = nameFromFilename(file.name);
     };
 
-    const close = () => {
-        overlay.classList.add('hidden');
+    // Every way of closing it (CANCEL, ADD, Escape) drops this open's handlers.
+    overlay.addEventListener('close', () => {
         confirm.onclick = null;
         cancel.onclick = null;
         fileInput.onchange = null;
         if (pickBtn) pickBtn.onclick = null;
-    };
+    }, { once: true });
+    const close = () => overlay.close();
 
     cancel.onclick = close;
 

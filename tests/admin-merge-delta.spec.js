@@ -35,11 +35,11 @@ async function compileMerge(page) {
     // overseer.html's RBAC gate wipes document.body for this logged-out visitor -
     // rebuild only the DOM openMergeCompiler actually reads.
     document.body.innerHTML = `
-      <div id="compiler-modal-overlay" class="hidden">
+      <dialog id="compiler-modal-overlay">
         <h3>SMART COMPILER: <span id="compiler-char-name"></span></h3>
         <div id="compiler-modal-body"></div>
         <button id="btn-compiler-confirm"></button>
-      </div>
+      </dialog>
     `;
 
     const captured = { update: null, updateId: null, deletedIds: null };

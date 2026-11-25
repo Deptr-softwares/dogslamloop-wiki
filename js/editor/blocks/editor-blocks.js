@@ -1492,8 +1492,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     const btnMediaLib = container.querySelector('#btn-media-library');
     if (btnMediaLib) {
         btnMediaLib.addEventListener('click', () => {
-            document.getElementById('media-modal-overlay').classList.remove('hidden');
-            if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
+            if (typeof window.openMediaLibrary === 'function') window.openMediaLibrary();
         });
     }
 

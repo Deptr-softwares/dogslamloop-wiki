@@ -145,14 +145,14 @@ test('Media Library still opens the media manager from its new home', async ({ p
   // hidden, which proves the markup exists and nothing about the button - the
   // exact shape of vacuous pass this project keeps producing.
   const before = await page.evaluate(() =>
-    document.getElementById('media-modal-overlay').classList.contains('hidden'));
+    !document.getElementById('media-modal-overlay').open);
   expect(before, 'setup: the media manager starts closed').toBe(true);
 
   await page.locator('#btn-media-library').click();
   await page.waitForTimeout(600);
 
   const after = await page.evaluate(() =>
-    document.getElementById('media-modal-overlay').classList.contains('hidden'));
+    !document.getElementById('media-modal-overlay').open);
   expect(after, 'clicking it in its new home still opens the media manager').toBe(false);
 });
 
