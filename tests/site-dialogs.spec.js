@@ -557,3 +557,69 @@ test('Escape on the Media Library picker disarms it and leaves the gallery item 
     await expect(page.locator('#media-lib-preview')).toContainText('Pick a file to preview it here.');
     expect(errors).toEqual([]);
 });
+
+// --- What opens inside a box ---
+
+test('a tooltip shown from inside a box draws on top of it', async ({ page }) => {
+    // House Style is a page's own writing, so it can link to one of the page's
+    // sections; that link's hover names where it goes, in the site's tooltip.
+    const errors = await load(page, EDITOR);
+    await page.waitForFunction(() => window.currentEditorDescData);
+    await page.evaluate(() => {
+        const target = document.createElement('h3');
+        target.id = 'sec-dialog-tooltip';
+        target.textContent = 'Neutral Game';
+        document.body.appendChild(target);
+        window.currentEditorDescData.pageConfig = { words: [], houseStyle: 'Read [url=#sec-dialog-tooltip]this part[/url] first.' };
+        window.openHouseStyle();
+    });
+    const link = page.locator('#editor-house-style-modal a.wiki-link-jump');
+    await expect(link).toBeVisible();
+    await link.hover();
+    const tip = page.locator('#wiki-frame-tooltip');
+    await expect(tip).toBeVisible();
+    await expect(tip).toContainText('Neutral Game');
+
+    // The tooltip lets the pointer through, so it is hit-tested with that off.
+    const onTop = await tip.evaluate(el => {
+        el.style.pointerEvents = 'auto';
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        el.style.pointerEvents = 'none';
+        return el === hit || el.contains(hit);
+    });
+    expect(onTop, 'the tooltip is drawn over the box, not under it').toBe(true);
+
+    // And once the box is gone, the next tooltip draws on the page again.
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#editor-house-style-modal')).toHaveCount(0);
+    await page.evaluate(() => window.showTooltipAt('On the page', 50, 50));
+    await expect(tip).toBeVisible();
+    await expect(tip).toHaveText('On the page');
+    expect(errors).toEqual([]);
+});
+
+test('a bound tooltip (a callout, a Frame Track phase) inside a box draws on top of it too', async ({ page }) => {
+    const errors = await load(page, EDITOR);
+    await page.waitForFunction(() => window.currentEditorDescData);
+    await page.evaluate(() => {
+        window.openHouseStyle();
+        const btn = document.createElement('button');
+        btn.id = 'test-callout';
+        btn.textContent = 'Startup';
+        document.querySelector('#editor-house-style-modal .dialog-body').appendChild(btn);
+        window.bindTooltip(btn, 'Frames before the hitbox comes out.');
+    });
+    await page.locator('#test-callout').hover();
+    const tip = page.locator('#wiki-frame-tooltip');
+    await expect(tip).toHaveText('Frames before the hitbox comes out.');
+    const onTop = await tip.evaluate(el => {
+        el.style.pointerEvents = 'auto';
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        el.style.pointerEvents = 'none';
+        return el === hit || el.contains(hit);
+    });
+    expect(onTop).toBe(true);
+    expect(errors).toEqual([]);
+});

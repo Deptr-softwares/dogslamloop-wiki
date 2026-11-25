@@ -494,3 +494,30 @@ test('a tour that opens while a notice is up opens paused', async ({ page }) => 
     });
     expect(onTop, 'the notice is still the element at that point').toBe(true);
 });
+
+test('keys pressed in a box over the tour belong to the box, not the tour', async ({ page }) => {
+    // The tour listens on the whole page, so the Escape that closed a box also
+    // closed the tour behind it, and the arrows stepped a tour nobody could see.
+    await openEditor(page, { seen: false });
+    await page.evaluate(() => window.startEditorTutorial({ force: true }));
+    const box = page.locator('#editor-tutorial .tutorial-box');
+    await expect(box).toBeVisible();
+    const first = await box.textContent();
+
+    for (const open of [() => window.editorAlert('One more thing.'), () => window.showEditorNotice('mediaLibrary', { force: true })]) {
+        await page.evaluate(open);
+        await expect(page.locator('dialog.site-dialog[open]')).toHaveCount(1);
+        await page.keyboard.press('ArrowRight');
+        expect(await box.textContent(), 'the arrow did not step the tour behind the box').toBe(first);
+        await page.keyboard.press('Escape');
+        await expect(page.locator('dialog.site-dialog[open]')).toHaveCount(0);
+        await expect(page.locator('#editor-tutorial'), 'Escape closed the box, not the tour').toHaveCount(1);
+        await expect(box, 'and the tour is back').toBeVisible();
+    }
+
+    // With no box up, the tour's own keys work again.
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => box.textContent()).not.toBe(first);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#editor-tutorial')).toHaveCount(0);
+});

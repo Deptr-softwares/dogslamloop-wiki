@@ -180,6 +180,8 @@
 
     function onKeydown(e) {
         if (!overlay) return;
+        // A box over the tour has the keys: its Escape closes the box alone.
+        if (document.querySelector('dialog[open]')) return;
         if (e.key === 'Escape') { close(); return; }
         if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
         if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
