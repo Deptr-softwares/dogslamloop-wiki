@@ -21,7 +21,8 @@ window.openMergeCompiler = async function(pageId) {
     titleSpan.parentElement.innerHTML = `MERGE COMPILER: <span id="compiler-char-name" class="compiler-title-highlight">${window.escapeHtml(pageId.toUpperCase())}</span>`;
 
     body.innerHTML = `<p class="compiler-status-text">Analyzing revisions and fetching live database...</p>`;
-    modal.classList.remove('hidden');
+    // No click outside: it holds the choices being made.
+    window.openDialog(modal);
     confirmBtn.disabled = true;
 
     const { data: liveData, error: liveErr } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', pageId).single();
@@ -381,8 +382,8 @@ window.openMergeCompiler = async function(pageId) {
         });
 
         if (selectedTicketIds.size === 0) {
+            modal.close();
             window.adminAlert("No tickets were selected. All conflicts were set to keep Live Data.");
-            modal.classList.add('hidden');
             return;
         }
 
@@ -448,8 +449,8 @@ window.openMergeCompiler = async function(pageId) {
             await window.supabaseClient.from('pending_revisions').delete().in('id', otherTicketIds);
         }
 
+        modal.close();
         window.adminAlert(`Successfully merged ${selectedTicketIds.size} tickets!`);
-        modal.classList.add('hidden');
 
         resetPreviewState();
         loadQueue();

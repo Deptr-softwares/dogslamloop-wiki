@@ -239,7 +239,8 @@ window.openDraftManager = function() {
         container.addEventListener('click', onDraftListClick);
     }
     draftManagerRows = drafts;
-    document.getElementById('draft-manager-modal').classList.remove('hidden');
+    // A list to pick from: a click outside closes it.
+    window.openDialog(document.getElementById('draft-manager-modal'), { light: true });
 };
 
 async function onDraftListClick(e) {

@@ -120,34 +120,34 @@
     async function openPullPicker() {
         let overlay = byId('playground-pull-modal');
         if (!overlay) {
-            overlay = document.createElement('div');
+            overlay = document.createElement('dialog');
             overlay.id = 'playground-pull-modal';
-            overlay.className = 'editor-modal-overlay hidden';
+            overlay.className = 'site-dialog dialog-md';
+            overlay.setAttribute('aria-labelledby', 'playground-pull-title');
             overlay.innerHTML = `
-                <div class="editor-modal-box playground-pull-box" role="dialog" aria-modal="true" aria-labelledby="playground-pull-title">
-                    <h3 id="playground-pull-title">PULL A PAGE</h3>
+                <div class="dialog-header"><h3 id="playground-pull-title">PULL A PAGE</h3></div>
+                <div class="dialog-body playground-pull-box">
                     <p class="playground-pull-hint">Copies the page as it is live now into the Playground. The page itself is not touched.</p>
                     <input type="search" class="editor-input" id="playground-pull-search" placeholder="Search pages..." autocomplete="off" aria-label="Search pages">
                     <div class="playground-pull-list" id="playground-pull-list"></div>
-                    <div class="editor-modal-actions">
-                        <button type="button" class="btn-sys btn-sys-regular" id="playground-pull-close">CLOSE</button>
-                    </div>
+                </div>
+                <div class="dialog-footer">
+                    <button type="button" class="btn-sys btn-sys-regular" id="playground-pull-close" data-dialog-close>CLOSE</button>
                 </div>`;
             document.body.appendChild(overlay);
 
-            const close = () => overlay.classList.add('hidden');
             overlay.addEventListener('click', (e) => {
-                if (e.target === overlay || e.target.closest('#playground-pull-close')) { close(); return; }
                 const pick = e.target.closest('[data-pull-page]');
                 if (pick) pullPage(pick.dataset.pullPage, pick.dataset.pullType, pick.dataset.pullName);
             });
-            overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
             byId('playground-pull-search').addEventListener('input', filterPicker);
         }
+        if (overlay.open) return;
 
         const list = byId('playground-pull-list');
         list.textContent = 'Loading pages...';
-        overlay.classList.remove('hidden');
+        // A page to pick and a search: a click outside closes it.
+        window.openDialog(overlay, { light: true });
         byId('playground-pull-search').value = '';
         byId('playground-pull-search').focus();
 

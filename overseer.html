@@ -6,20 +6,20 @@
     <title>Staff Overseer | Revision Queue</title>
     
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Buttons.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Modals.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Forms.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Badges.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Alerts.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Cards.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/FrameData.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Layout.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/Blocks.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/tierlist.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/editor.css?v=06c8ce8c">
-    <link rel="stylesheet" href="style/admin.css?v=06c8ce8c">
+    <link rel="stylesheet" href="style/Common.css?v=98839c59">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=98839c59">
+    <link rel="stylesheet" href="style/Buttons.css?v=98839c59">
+    <link rel="stylesheet" href="style/Modals.css?v=98839c59">
+    <link rel="stylesheet" href="style/Forms.css?v=98839c59">
+    <link rel="stylesheet" href="style/Badges.css?v=98839c59">
+    <link rel="stylesheet" href="style/Alerts.css?v=98839c59">
+    <link rel="stylesheet" href="style/Cards.css?v=98839c59">
+    <link rel="stylesheet" href="style/FrameData.css?v=98839c59">
+    <link rel="stylesheet" href="style/Layout.css?v=98839c59">
+    <link rel="stylesheet" href="style/Blocks.css?v=98839c59">
+    <link rel="stylesheet" href="style/tierlist.css?v=98839c59">
+    <link rel="stylesheet" href="style/editor.css?v=98839c59">
+    <link rel="stylesheet" href="style/admin.css?v=98839c59">
     <!-- END GENERATED: styles -->
     
 </head>
@@ -322,20 +322,16 @@
     </dialog>
 
     <!-- SMART COMPILER MODAL -->
-    <div id="compiler-modal-overlay" class="editor-modal-overlay hidden" style="z-index: 9999;">
-        <div class="editor-modal-box auth-modal-box" style="border-top-color: #a855f7; width: 650px; max-height: 85vh; display: flex; flex-direction: column;">
-            <div class="auth-header" style="border-bottom: 1px solid #333; background: #050505;">
-                <h3 style="color: #a855f7; font-size: 1rem;">SMART COMPILER: <span id="compiler-char-name"></span></h3>
-            </div>
-            <div class="auth-body" style="padding: 1.5rem; text-align: left; overflow-y: auto; flex-grow: 1; background: #0a0a0a;" id="compiler-modal-body">
+    <dialog id="compiler-modal-overlay" class="site-dialog dialog-lg tone-purple" aria-labelledby="compiler-modal-title">
+            <div class="dialog-header"><h3 id="compiler-modal-title">SMART COMPILER: <span id="compiler-char-name"></span></h3></div>
+            <div class="dialog-body" id="compiler-modal-body">
                 <!-- Content injected via JS -->
             </div>
-            <div class="editor-modal-actions" style="border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0; justify-content: flex-end; gap: 1rem;">
-                <button onclick="document.getElementById('compiler-modal-overlay').classList.add('hidden')" class="btn-sys btn-sys-regular">CANCEL</button>
+            <div class="dialog-footer">
+                <button type="button" class="btn-sys btn-sys-regular" data-dialog-close>CANCEL</button>
                 <button id="btn-compiler-confirm" class="btn-sys btn-sys-purple btn-purple-fill">COMPILE MASTER TICKET</button>
             </div>
-        </div>
-    </div>
+    </dialog>
 
     <dialog id="admin-alert-modal" class="site-dialog" aria-labelledby="admin-alert-title">
         <div class="dialog-header"><h3 id="admin-alert-title">SYSTEM MESSAGE</h3></div>
@@ -361,33 +357,33 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=06c8ce8c"></script>
-    <script src="js/utility/input_slots.js?v=06c8ce8c"></script>
-    <script src="js/utility/site_utils.js?v=06c8ce8c"></script>
-    <script src="js/utility/site_data.js?v=06c8ce8c"></script>
-    <script src="js/utility/site_media.js?v=06c8ce8c"></script>
-    <script src="js/utility/site_account.js?v=06c8ce8c"></script>
-    <script src="js/utility/site_lookups.js?v=06c8ce8c"></script>
-    <script src="js/utility/submission_delta.js?v=06c8ce8c"></script>
-    <script src="js/pages/core/page_shell.js?v=06c8ce8c"></script>
-    <script src="js/utility/search.js?v=06c8ce8c"></script>
-    <script src="js/pages/core/skill_card.js?v=06c8ce8c"></script>
-    <script src="js/pages/core/page_render.js?v=06c8ce8c"></script>
-    <script src="js/pages/core/format_tags.js?v=06c8ce8c"></script>
-    <script src="js/pages/tier-lists/tierlist.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-core.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-queue.js?v=06c8ce8c"></script>
-    <script src="js/utility/diff-markers.js?v=06c8ce8c"></script>
-    <script src="js/utility/side-by-side.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-diff.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-modes.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-preview.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-tickets.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-actions.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-merge-compiler.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-history.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-media-queue.js?v=06c8ce8c"></script>
-    <script src="js/overseer/admin-reports.js?v=06c8ce8c"></script>
+    <script src="js/utility/character_tabs.js?v=98839c59"></script>
+    <script src="js/utility/input_slots.js?v=98839c59"></script>
+    <script src="js/utility/site_utils.js?v=98839c59"></script>
+    <script src="js/utility/site_data.js?v=98839c59"></script>
+    <script src="js/utility/site_media.js?v=98839c59"></script>
+    <script src="js/utility/site_account.js?v=98839c59"></script>
+    <script src="js/utility/site_lookups.js?v=98839c59"></script>
+    <script src="js/utility/submission_delta.js?v=98839c59"></script>
+    <script src="js/pages/core/page_shell.js?v=98839c59"></script>
+    <script src="js/utility/search.js?v=98839c59"></script>
+    <script src="js/pages/core/skill_card.js?v=98839c59"></script>
+    <script src="js/pages/core/page_render.js?v=98839c59"></script>
+    <script src="js/pages/core/format_tags.js?v=98839c59"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=98839c59"></script>
+    <script src="js/overseer/admin-core.js?v=98839c59"></script>
+    <script src="js/overseer/admin-queue.js?v=98839c59"></script>
+    <script src="js/utility/diff-markers.js?v=98839c59"></script>
+    <script src="js/utility/side-by-side.js?v=98839c59"></script>
+    <script src="js/overseer/admin-diff.js?v=98839c59"></script>
+    <script src="js/overseer/admin-modes.js?v=98839c59"></script>
+    <script src="js/overseer/admin-preview.js?v=98839c59"></script>
+    <script src="js/overseer/admin-tickets.js?v=98839c59"></script>
+    <script src="js/overseer/admin-actions.js?v=98839c59"></script>
+    <script src="js/overseer/admin-merge-compiler.js?v=98839c59"></script>
+    <script src="js/overseer/admin-history.js?v=98839c59"></script>
+    <script src="js/overseer/admin-media-queue.js?v=98839c59"></script>
+    <script src="js/overseer/admin-reports.js?v=98839c59"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>

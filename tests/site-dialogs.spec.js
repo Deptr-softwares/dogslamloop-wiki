@@ -11,6 +11,7 @@ test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } });
 
 const READER = '/characters/Boomcat/index.html';
 const EDITOR = '/edit.html?char=boomcat&type=character&tab=overview';
+const EDITOR_GALLERY = '/edit.html?char=boomcat&type=character&tab=gallery';
 const OWNER = '/owner.html';
 const OVERSEER = '/overseer.html';
 const SUBMISSIONS = '/submissions.html';
@@ -18,6 +19,7 @@ const SUBMISSIONS = '/submissions.html';
 const RED = 'rgb(239, 68, 68)';
 const YELLOW = 'rgb(234, 179, 8)';
 const GREEN = 'rgb(34, 197, 94)';
+const PURPLE = 'rgb(168, 85, 247)';
 const BLUE = 'accent-blue';
 
 // Every question and message box, as its own code opens it. `answer` is what a way
@@ -459,5 +461,172 @@ test('the video player: the dialog in its own look, light, and emptied when it c
     await page.locator('#wiki-video-modal .wiki-video-modal-close').click();
     await expect(page.locator('#wiki-video-modal')).toBeHidden();
     expect(await inside.count()).toBe(0);
+    expect(errors).toEqual([]);
+});
+
+// --- The editor's and Overseer's tool boxes (C-1b) ---
+
+// The Merge Compiler with no tickets, over a page fetch that answers at once: the
+// stand-in session has no real token, so a live fetch would be refused.
+const openCompiler = page => page.evaluate(() => {
+    window.currentQueueData = [];
+    const from = window.supabaseClient.from.bind(window.supabaseClient);
+    window.supabaseClient.from = table => (table === 'page_data'
+        ? { select() { return this; }, eq() { return this; }, single: async () => ({ data: { desc_data: {}, frame_data: {} }, error: null }) }
+        : from(table));
+    window.openMergeCompiler('boomcat');
+});
+
+// Each tool box, opened the way the editor opens it. `light`: a click outside
+// closes it (nothing typed in it to lose).
+const TOOLS = [
+    { name: 'QA submit', open: page => ask(page, 'window.openQAModal(false)'), id: 'dynamic-qa-modal-overlay', width: 400, light: false },
+    { name: 'Config', open: page => page.locator('#btn-editor-config').click(), id: 'editor-config-modal', width: 500, light: false },
+    { name: 'House Style', open: page => page.evaluate(() => window.openHouseStyle()), id: 'editor-house-style-modal', width: 650, light: true },
+    { name: 'the editor notice', open: page => page.evaluate(() => window.showEditorNotice('editor', { force: true })), id: 'editor-notice-editor', width: 400, light: true },
+    { name: 'move id', open: page => ask(page, 'window.promptForMoveId()'), id: 'move-id-modal', width: 400, tone: GREEN, light: false },
+    { name: 'Add a Gallery Item', page: EDITOR_GALLERY, open: page => page.locator('#char-gallery-add').click(), id: 'gallery-item-modal', width: 400, light: false },
+    { name: 'Find & Replace', open: page => page.locator('#btn-find-replace').click(), id: 'find-replace-modal', width: 650, light: false },
+    { name: 'the Media Library', open: page => page.locator('#btn-media-library').click(), id: 'media-modal-overlay', width: 860, light: false },
+    { name: 'the Drafts Manager', open: page => page.locator('#btn-drafts').click(), id: 'draft-manager-modal', width: 650, light: true },
+    { name: 'the Merge Compiler', page: OVERSEER, open: openCompiler, id: 'compiler-modal-overlay', width: 650, tone: PURPLE, light: false },
+];
+
+for (const t of TOOLS) {
+    test(`${t.name}: a ${t.width} site dialog, focus inside, Escape closes it, a click outside ${t.light ? 'does too' : 'does not'}`, async ({ page }) => {
+        const url = t.page || EDITOR;
+        const errors = await load(page, url);
+        if (url !== OVERSEER) await page.waitForFunction(() => window.currentEditorDescData);
+        await t.open(page);
+        await expect(page.locator(`#${t.id}`)).toBeVisible();
+        expect(await page.locator(`#${t.id}`).evaluate(d => d.contains(document.activeElement)), 'focus moved into it').toBe(true);
+        // The title in the box's tone, as on every question box: no page rule for
+        // the old box's title may win over the dialog's.
+        const colours = await page.locator(`#${t.id}`).evaluate(d => ({
+            top: getComputedStyle(d).borderTopColor,
+            title: getComputedStyle(d.querySelector('.dialog-header h3')).color,
+        }));
+        expect(colours.title, 'the title in the box\'s tone').toBe(colours.top);
+        await checkBox(page, t.id, { width: t.width, tone: t.tone, light: t.light });
+        if (!t.light) {
+            await page.keyboard.press('Escape');
+            await expect(page.locator(`#${t.id}`)).toBeHidden();
+        }
+        await t.open(page);
+        await expect(page.locator(`#${t.id}`)).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.locator(`#${t.id}`)).toBeHidden();
+        expect(errors).toEqual([]);
+    });
+}
+
+test('Escape on QA submit answers cancelled, so the submit never waits on it', async ({ page }) => {
+    const errors = await load(page, EDITOR);
+    await ask(page, 'window.openQAModal(false)');
+    await page.locator('#qa-changelog').fill('Fixed the startup of M1.');
+    await page.mouse.click(6, 6);
+    await expect(page.locator('#dynamic-qa-modal-overlay'), 'a click outside keeps the changelog').toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#dynamic-qa-modal-overlay')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.__answer)).toBe(null);
+
+    // And opens again, answering the next time.
+    await ask(page, 'window.openQAModal(false)');
+    await page.locator('#qa-changelog').fill('Fixed the startup of M1.');
+    await page.locator('#btn-qa-confirm').click();
+    await expect.poll(() => page.evaluate(() => window.__answer && window.__answer.changelog)).toBe('Fixed the startup of M1.');
+    expect(errors).toEqual([]);
+});
+
+test('Escape on the move id box answers cancelled', async ({ page }) => {
+    const errors = await load(page, EDITOR);
+    await ask(page, 'window.promptForMoveId()');
+    await page.locator('#new-move-name').fill('Cursed Strike');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#move-id-modal')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.__answer)).toBe(null);
+    expect(errors).toEqual([]);
+});
+
+test('Escape on the Media Library picker disarms it and leaves the gallery item box open', async ({ page }) => {
+    const errors = await load(page, EDITOR_GALLERY);
+    await page.waitForFunction(() => window.currentEditorDescData);
+    await page.locator('#char-gallery-add').click();
+    await expect(page.locator('#gallery-item-modal')).toBeVisible();
+    await page.locator('#gallery-item-pick').click();
+    await expect(page.locator('#media-modal-overlay')).toBeVisible();
+    expect(await page.evaluate(() => typeof window.mediaPickHandler), 'armed while it is open').toBe('function');
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#media-modal-overlay')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => typeof window.mediaPickHandler), { message: 'disarmed, so the next open is not a picker' }).toBe('object');
+    await expect(page.locator('#gallery-item-modal'), 'one Escape closes the top box only').toBeVisible();
+    await expect(page.locator('#media-lib-preview')).toContainText('Pick a file to preview it here.');
+    expect(errors).toEqual([]);
+});
+
+// --- What opens inside a box ---
+
+test('a tooltip shown from inside a box draws on top of it', async ({ page }) => {
+    // House Style is a page's own writing, so it can link to one of the page's
+    // sections; that link's hover names where it goes, in the site's tooltip.
+    const errors = await load(page, EDITOR);
+    await page.waitForFunction(() => window.currentEditorDescData);
+    await page.evaluate(() => {
+        const target = document.createElement('h3');
+        target.id = 'sec-dialog-tooltip';
+        target.textContent = 'Neutral Game';
+        document.body.appendChild(target);
+        window.currentEditorDescData.pageConfig = { words: [], houseStyle: 'Read [url=#sec-dialog-tooltip]this part[/url] first.' };
+        window.openHouseStyle();
+    });
+    const link = page.locator('#editor-house-style-modal a.wiki-link-jump');
+    await expect(link).toBeVisible();
+    await link.hover();
+    const tip = page.locator('#wiki-frame-tooltip');
+    await expect(tip).toBeVisible();
+    await expect(tip).toContainText('Neutral Game');
+
+    // The tooltip lets the pointer through, so it is hit-tested with that off.
+    const onTop = await tip.evaluate(el => {
+        el.style.pointerEvents = 'auto';
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        el.style.pointerEvents = 'none';
+        return el === hit || el.contains(hit);
+    });
+    expect(onTop, 'the tooltip is drawn over the box, not under it').toBe(true);
+
+    // And once the box is gone, the next tooltip draws on the page again.
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#editor-house-style-modal')).toHaveCount(0);
+    await page.evaluate(() => window.showTooltipAt('On the page', 50, 50));
+    await expect(tip).toBeVisible();
+    await expect(tip).toHaveText('On the page');
+    expect(errors).toEqual([]);
+});
+
+test('a bound tooltip (a callout, a Frame Track phase) inside a box draws on top of it too', async ({ page }) => {
+    const errors = await load(page, EDITOR);
+    await page.waitForFunction(() => window.currentEditorDescData);
+    await page.evaluate(() => {
+        window.openHouseStyle();
+        const btn = document.createElement('button');
+        btn.id = 'test-callout';
+        btn.textContent = 'Startup';
+        document.querySelector('#editor-house-style-modal .dialog-body').appendChild(btn);
+        window.bindTooltip(btn, 'Frames before the hitbox comes out.');
+    });
+    await page.locator('#test-callout').hover();
+    const tip = page.locator('#wiki-frame-tooltip');
+    await expect(tip).toHaveText('Frames before the hitbox comes out.');
+    const onTop = await tip.evaluate(el => {
+        el.style.pointerEvents = 'auto';
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        el.style.pointerEvents = 'none';
+        return el === hit || el.contains(hit);
+    });
+    expect(onTop).toBe(true);
     expect(errors).toEqual([]);
 });

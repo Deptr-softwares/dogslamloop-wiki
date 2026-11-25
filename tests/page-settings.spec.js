@@ -414,9 +414,9 @@ test('with the colour picker open, Config still fits the screen and every picker
   await page.locator('[data-word-text]').fill('Domain');
   await page.click('[data-word-swatch]');
 
-  const title = await box(page.locator('#editor-config-modal .auth-header'));
+  const title = await box(page.locator('#editor-config-modal .dialog-header'));
   expect(title.top, 'the Config title is on screen').toBeGreaterThanOrEqual(0);
-  const modal = await box(page.locator('#editor-config-modal .config-modal-box'));
+  const modal = await box(page.locator('#editor-config-modal'));
   expect(modal.bottom).toBeLessThanOrEqual(700);
 
   // The last control in the picker, scrolled to the way a person would, and
@@ -737,11 +737,11 @@ test('a merge keeps a page settings change alongside a system section edit', asy
         sections: [{ sectionTitle: 'Intro', layout: 'full', blocks: [{ type: 'paragraph', content: 'live' }] }] }],
     };
     document.body.innerHTML = `
-      <div id="compiler-modal-overlay" class="hidden">
+      <dialog id="compiler-modal-overlay">
         <h3>SMART COMPILER: <span id="compiler-char-name"></span></h3>
         <div id="compiler-modal-body"></div>
         <button id="btn-compiler-confirm"></button>
-      </div>`;
+      </dialog>`;
     const captured = { update: null };
     window.supabaseClient = {
       from(table) {

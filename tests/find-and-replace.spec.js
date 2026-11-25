@@ -407,7 +407,7 @@ test('the combo row modal can confirm a delete', async ({ page }) => {
       { starter: 'Test Starter', rows: [{ combo: 'M1 M1 Test', damage: '10' }] },
     ];
     window.openDocumentRowModal('combos', 0, 0);
-    return !document.getElementById('combo-row-modal').classList.contains('hidden');
+    return document.getElementById('combo-row-modal').open;
   });
   expect(opened).toBe(true);
 

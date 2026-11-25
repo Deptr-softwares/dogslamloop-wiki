@@ -1,21 +1,8 @@
-/* Modals: the site's dialog (every box), the overlay the editor's own boxes still
-   use, the sign-in and profile boxes' parts, and badges.
+/* Modals: the site's dialog (every box), the sign-in and profile boxes' parts, and
+   badges.
    Since v0.4.
    Watch: every page loads this file.
    See: docs/looks.md */
-
-/* The overlay of the editor's and Overseer's own boxes, until they are dialogs too. */
-.editor-modal-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh; /* Safer than inset:0 for absolute containment */
-    background: rgba(0, 0, 0, 0.85);
-    /* No backdrop-filter: it makes a stacking context that traps the editor's layers. */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9000; 
-}
 
 /* The site's dialog: a box on a <dialog>, opened by window.openDialog
    (site_utils.js), in the staff look. Sizes: .dialog-md, -lg, -xl (400 without

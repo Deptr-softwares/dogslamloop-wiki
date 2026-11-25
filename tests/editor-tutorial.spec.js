@@ -329,6 +329,25 @@ test('OK just closes it', async ({ page }) => {
     await expect(page.locator('#editor-tutorial')).toHaveCount(0);
 });
 
+test('the MoS is a 650 site dialog that Escape and a click outside close, with no tour', async ({ page }) => {
+    await openEditor(page);
+    await page.setViewportSize({ width: 1400, height: 900 });
+    const mos = page.locator('#editor-mos-modal');
+    await page.evaluate(() => window.openStyleManual());
+    await expect(mos).toBeVisible();
+    const seen = await mos.evaluate(d => ({ modal: d.matches('dialog.site-dialog:modal'), width: Math.round(d.getBoundingClientRect().width) }));
+    expect(seen).toEqual({ modal: true, width: 650 });
+    await expect(mos.locator('[data-mos="ok"]'), 'focus on OK').toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(mos).toHaveCount(0);
+
+    await page.evaluate(() => window.openStyleManual());
+    await expect(mos).toBeVisible();
+    await page.mouse.click(6, 6);
+    await expect(mos, 'only reading in it: a click outside closes it').toHaveCount(0);
+    await expect(page.locator('#editor-tutorial'), 'and the tour did not start').toHaveCount(0);
+});
+
 test('a hostile guide rule is escaped', async ({ page }) => {
     // The Writing Guide is owner-authored rather than contributor-authored, but
     // it reaches innerHTML like everything else and the standard is escape at
@@ -380,6 +399,20 @@ test('the Media Library notice does NOT hand over', async ({ page }) => {
 
     await page.locator('[data-notice-dismiss]').click();
     await expect(page.locator('#editor-tutorial')).toHaveCount(0);
+});
+
+test('Escape or a click outside the editor notice closes it without starting the tour', async ({ page }) => {
+    // GOT IT is the click that proves somebody is looking at the editor; leaving
+    // the notice any other way is not.
+    await openEditor(page, { seen: false });
+    for (const leave of [() => page.keyboard.press('Escape'), () => page.mouse.click(6, 6)]) {
+        await page.evaluate(() => window.showEditorNotice('editor', { force: true }));
+        await expect(page.locator('#editor-notice-editor')).toBeVisible();
+        await leave();
+        await expect(page.locator('#editor-notice-editor')).toHaveCount(0);
+        await page.waitForTimeout(300);
+        await expect(page.locator('#editor-tutorial')).toHaveCount(0);
+    }
 });
 
 test('a hostile guide paragraph is escaped in the TOUR body too', async ({ page }) => {
@@ -460,4 +493,31 @@ test('a tour that opens while a notice is up opens paused', async ({ page }) => 
         return btn.contains(hit) || hit === btn;
     });
     expect(onTop, 'the notice is still the element at that point').toBe(true);
+});
+
+test('keys pressed in a box over the tour belong to the box, not the tour', async ({ page }) => {
+    // The tour listens on the whole page, so the Escape that closed a box also
+    // closed the tour behind it, and the arrows stepped a tour nobody could see.
+    await openEditor(page, { seen: false });
+    await page.evaluate(() => window.startEditorTutorial({ force: true }));
+    const box = page.locator('#editor-tutorial .tutorial-box');
+    await expect(box).toBeVisible();
+    const first = await box.textContent();
+
+    for (const open of [() => window.editorAlert('One more thing.'), () => window.showEditorNotice('mediaLibrary', { force: true })]) {
+        await page.evaluate(open);
+        await expect(page.locator('dialog.site-dialog[open]')).toHaveCount(1);
+        await page.keyboard.press('ArrowRight');
+        expect(await box.textContent(), 'the arrow did not step the tour behind the box').toBe(first);
+        await page.keyboard.press('Escape');
+        await expect(page.locator('dialog.site-dialog[open]')).toHaveCount(0);
+        await expect(page.locator('#editor-tutorial'), 'Escape closed the box, not the tour').toHaveCount(1);
+        await expect(box, 'and the tour is back').toBeVisible();
+    }
+
+    // With no box up, the tour's own keys work again.
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(() => box.textContent()).not.toBe(first);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#editor-tutorial')).toHaveCount(0);
 });

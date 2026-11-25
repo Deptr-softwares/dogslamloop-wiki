@@ -1,11 +1,5 @@
-// Regression coverage for a real bug caught during Workstream B Tier 1:
-// editor.css had its own separate .editor-modal-overlay rule (loaded after
-// style/Modals.css's shared one) that set display:none. The original inline
-// style.display='flex' toggling always won on specificity, masking the
-// conflict. Converting to classList.remove('hidden') exposed it - every
-// modal using .editor-modal-overlay (editor.js AND admin.js, both load
-// editor.css) rendered display:none even when "open". Fixed by removing the
-// conflicting declaration from editor.css. This test would have caught it.
+// The editor's and the site's message and confirm boxes open, show and close, and
+// the old box overlay (a div shown and hidden by class) is not used again.
 const { test, expect } = require('@playwright/test');
 
 test('edit.html: editorAlert modal actually becomes visible when opened', async ({ page }) => {
@@ -41,17 +35,22 @@ test('edit.html: customConfirm modal actually becomes visible when opened', asyn
   await expect(page.locator('#editor-custom-modal')).toHaveCSS('display', 'flex');
 });
 
-test('.editor-modal-overlay class resolves to display:flex when unhidden (shared by editor.js and admin.js)', async ({ page }) => {
-  // Both edit.html and overseer.html load editor.css; this checks the class
-  // itself rather than any specific page's auth-gated modal.
-  await page.goto('/edit.html', { waitUntil: 'networkidle' });
-  const display = await page.evaluate(() => {
-    const el = document.createElement('div');
-    el.className = 'editor-modal-overlay';
-    document.body.appendChild(el);
-    const d = getComputedStyle(el).display;
-    el.remove();
-    return d;
+test('no page, script or stylesheet uses the old box overlay: every box is a dialog', () => {
+  // The old family (a full-screen div shown and hidden by class, with a z-index
+  // per box) is gone; a box built on it again would sit under any open dialog.
+  const fs = require('fs');
+  const path = require('path');
+  const root = path.join(__dirname, '..');
+  const OLD = /\b(editor-modal-overlay|editor-modal-box|editor-modal-actions|auth-modal-box|auth-header|auth-body|editor-notice-overlay|modal-danger|modal-warning|modal-actions-centered)\b/;
+  const files = [];
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach(e => {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) { if (!['node_modules', '.git', 'tests', 'vendor', 'test-results', 'supabase', 'medias', 'devlogs'].includes(e.name) && !e.name.startsWith('.')) walk(p); }
+    else if (/\.(js|html|css)$/.test(e.name)) files.push(p);
   });
-  expect(display).toBe('flex');
+  ['js', 'style'].forEach(d => walk(path.join(root, d)));
+  fs.readdirSync(root).filter(n => n.endsWith('.html')).forEach(n => files.push(path.join(root, n)));
+  const hits = files.filter(p => OLD.test(fs.readFileSync(p, 'utf8'))).map(p => path.relative(root, p));
+  expect(files.length, 'the scan reached the code').toBeGreaterThan(50);
+  expect(hits).toEqual([]);
 });

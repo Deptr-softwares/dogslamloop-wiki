@@ -49,15 +49,7 @@
         catch (e) { /* it will show once more */ }
     }
 
-    function dismiss(overlay) {
-        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-        document.removeEventListener('keydown', onKeydown);
-    }
-
     let openOverlay = null;
-    function onKeydown(e) {
-        if (e.key === 'Escape' && openOverlay) { dismiss(openOverlay); openOverlay = null; }
-    }
 
     /**
      * Shows a notice once per browser, by id, never by markup. True if it was shown.
@@ -76,37 +68,39 @@
         const pausedTutorial = typeof window.pauseEditorTutorial === 'function'
             && window.pauseEditorTutorial();
 
-        const overlay = document.createElement('div');
-        // Its own z-index: appended last at the shared 10000 it would win by DOM order,
-        // the mechanism editor.css warns about. A response to opening the library is
-        // never the one underneath.
-        overlay.className = 'editor-modal-overlay editor-notice-overlay';
+        // A dialog: opened over the library, it is on top of it by opening last.
+        const overlay = document.createElement('dialog');
+        overlay.className = 'site-dialog';
         overlay.id = `editor-notice-${id}`;
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', `editor-notice-${id}-title`);
         overlay.innerHTML = `
-            <div class="editor-modal-box auth-modal-box">
-                <div class="auth-header"><h3>${notice.title}</h3></div>
-                <div class="auth-body">
-                    <p class="modal-prompt-text">${notice.body}</p>
-                    <div class="modal-actions-centered">
+                <div class="dialog-header"><h3 id="editor-notice-${id}-title">${notice.title}</h3></div>
+                <div class="dialog-body dialog-question">
+                    <p class="dialog-text">${notice.body}</p>
+                    <div class="dialog-actions">
                         <button type="button" class="btn-sys btn-sys-green" data-notice-dismiss>GOT IT</button>
                     </div>
-                </div>
-            </div>`;
+                </div>`;
 
         document.body.appendChild(overlay);
         openOverlay = overlay;
         markSeen(id);
 
+        let gotIt = false;
         overlay.querySelector('[data-notice-dismiss]').addEventListener('click', () => {
-            dismiss(overlay);
+            gotIt = true;
+            overlay.close();
+        });
+
+        // Every way out (GOT IT, Escape, a click outside) gives the tour back.
+        overlay.addEventListener('close', () => {
+            overlay.remove();
             openOverlay = null;
 
             // GOT IT on the editor's notice starts the tour: the click proves somebody is
             // looking at the editor. Not after the library's notice: they are picking a file.
             // startEditorTutorial is once per browser on its own.
-            if (id === 'editor' && typeof window.startEditorTutorial === 'function') {
+            if (gotIt && id === 'editor' && typeof window.startEditorTutorial === 'function') {
                 window.startEditorTutorial();
             }
 
@@ -118,7 +112,8 @@
                 window.resumeEditorTutorial();
             }
         });
-        document.addEventListener('keydown', onKeydown);
+        // Only reading in it: a click outside closes it.
+        window.openDialog(overlay, { light: true });
 
         const btn = overlay.querySelector('[data-notice-dismiss]');
         if (btn && typeof btn.focus === 'function') btn.focus();

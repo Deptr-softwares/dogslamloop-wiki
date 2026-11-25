@@ -245,6 +245,13 @@ window.initTooltip = function() {
     }
 };
 
+// Puts the tooltip in the open box that holds node, or on the page: a box is in the
+// top layer, so a tooltip outside it draws under it whatever its z-index.
+function hostTooltipFor(node) {
+    const host = (node && node.closest && node.closest('dialog[open]')) || document.body;
+    if (frameTooltip.parentNode !== host) host.appendChild(frameTooltip);
+}
+
 // Positions the shared tooltip near (x, y), flipping away from the right/bottom
 // viewport edges. Shared by the mouse and touch bindings below.
 function positionTooltip(x, y) {
@@ -282,6 +289,7 @@ function closeTooltipIfOutside(target) {
 window.bindTooltip = function(element, titleHtml) {
     element.addEventListener('mouseenter', () => {
         window.initTooltip();
+        hostTooltipFor(element);
         frameTooltip.innerHTML = titleHtml;
         frameTooltip.style.display = 'block';
     });
@@ -311,6 +319,7 @@ window.bindTooltip = function(element, titleHtml) {
             return;
         }
 
+        hostTooltipFor(element);
         frameTooltip.innerHTML = titleHtml;
         frameTooltip.style.display = 'block';
         tooltipOwner = element;
@@ -326,6 +335,8 @@ window.bindTooltip = function(element, titleHtml) {
  */
 window.showTooltipAt = function(html, x, y) {
     window.initTooltip();
+    // What is under the pointer, past the tooltip, which lets the pointer through.
+    hostTooltipFor(document.elementFromPoint(x, y));
     frameTooltip.innerHTML = html;
     frameTooltip.style.display = 'block';
     positionTooltip(x, y);

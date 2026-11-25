@@ -443,31 +443,6 @@ input[type="checkbox"]:checked {
 }
 .daw-inspector { background: #0a0a0a; padding: 1rem; border: 1px solid #222; border-left: 3px solid #ef4444; border-radius: 0; }
 
-/* Modals */
-.editor-modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 10006;
-    backdrop-filter: none !important;
-    /* No display here: Modals.css's shared overlay rule gives display:flex, and a
-       display:none at equal specificity would override it. */
-    align-items: center; justify-content: center;
-}
-.editor-modal-box {
-    background: #0a0a0a;
-    border: 1px solid #333;
-    border-top: 3px solid #ef4444;
-    padding: 2rem; width: 350px;
-    text-align: center;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.8);
-    border-radius: 0
-}
-.editor-modal-box h3 {
-    margin: 0 0 1.5rem 0; color: #fff;
-    font-family: var(--text-mono); font-size: 1rem; font-weight: normal;
-}
-.editor-modal-actions { display: flex; gap: 1rem; }
-
 /* Drag and drop */
 .block-card.drag-over-top {
     box-shadow: 0 -3px 0 0 var(--accent-blue) !important;
@@ -856,24 +831,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     background: transparent !important;
 }
 
-/* The sign-in modal's editor parts */
-.auth-modal-box {
-    width: 400px;
-    border-top: 3px solid var(--accent-blue);
-    padding: 0;
-}
-
-.auth-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #222;
-    background: #050505;
-}
-
-.auth-header h3 { margin: 0; }
-
+/* The sign-in box's connection dot */
 .status-dot {
     width: 8px;
     height: 8px;
@@ -883,25 +841,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .status-dot.offline { color: #ef4444; background: #ef4444; }
 .status-dot.online { color: #22c55e; background: #22c55e; }
 
-.auth-body {
-    padding: 1.5rem;
-    background: #0a0a0a;
-}
-
-.auth-modal-box .editor-modal-actions {
-    padding: 1rem 1.5rem;
-    background: #050505;
-    justify-content: flex-end;
-}
-
 /* The QA modal (openQAModal) */
 .editor-intercept-label { color: #a855f7; }
-.qa-modal-elevated { z-index: 10005; }
-/* Compound: .auth-modal-box sets width at the same specificity. */
-.auth-modal-box.qa-modal-box { width: 100%; transition: max-width 0.3s ease; }
-.qa-modal-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; }
 .qa-form-container { display: flex; flex-direction: column; text-align: left; }
-.qa-modal-actions-divided { border-top: 1px dashed #333; }
 .qa-tabs-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .qa-tab-btn { flex: 1; font-size: 0.7rem; }
 .qa-field-label { font-family: var(--text-mono); font-size: 0.65rem; color: #888; }
@@ -912,9 +854,6 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .qa-textarea-long { min-height: 150px; }
 
 /* The move id modal (promptForMoveId) */
-.move-id-modal-elevated { z-index: 10006; }
-.auth-modal-box.move-id-modal-box { border-top-color: #22c55e; width: 100%; max-width: 400px; }
-.move-id-modal-title { color: #22c55e; font-family: var(--font-label), sans-serif; }
 .move-id-form-fields { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
 
 /* The tier list editor's notice where the preview would be */
@@ -1534,21 +1473,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-upload-ask-text { margin: 0 0 0.6rem; color: #f4cc43; line-height: 1.5; }
 .media-upload-ask-actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
 
-/* Modal layers */
-.editor-modal-overlay { z-index: 10000; }
-
-/* The first-visit notices: above the Media Library and the 10005 modals, since
-   the library's notice answers opening it. Stated, not left to DOM order. The
-   confirm and message boxes are dialogs, above every one of these. */
-.editor-notice-overlay.editor-modal-overlay { z-index: 10010; }
-
-.modal-danger .editor-modal-box { border-top-color: #ef4444; width: 450px; }
-.modal-danger .auth-header h3 { color: #ef4444; font-size: 1rem; }
-.modal-danger .btn-danger-fill { color: #000; background: #ef4444; border-color: #ef4444; flex: 1; }
-
-.modal-warning .editor-modal-box { border-top-color: #eab308; width: 450px; }
-.modal-warning .auth-header h3 { color: #eab308; font-size: 1rem; }
-
+/* The writing checks' line above their list. */
 .modal-prompt-text {
     font-family: var(--text-mono);
     font-size: 0.85rem;
@@ -1557,15 +1482,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     line-height: 1.6;
 }
 
-.modal-actions-centered {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-}
-
 /* The Media Library modal */
-.media-modal-box { width: 800px; max-width: 95vw; border-top-color: var(--accent-blue); }
-.media-modal-box .auth-header h3 { color: var(--accent-blue); }
 .media-modal-body { height: 60vh; display: flex; flex-direction: column; }
 
 .media-search-input { flex: 2; margin: 0; }
@@ -1706,14 +1623,6 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     .editor-input, .editor-select { font-size: 0.7rem !important; padding: 0.4rem !important; margin-bottom: 0.4rem !important;}
     .block-header { margin-bottom: 0.5rem !important; }
     
-    /* Modals on a phone */
-    .editor-modal-box, .auth-modal-box, .media-modal-box {
-        width: 95vw !important;
-        max-width: 95vw !important;
-        padding: 1rem !important;
-        box-sizing: border-box;
-    }
-    
     /* The library's controls stack. */
     .media-modal-footer {
         display: flex !important;
@@ -1736,11 +1645,10 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     .media-browser { flex-direction: column; gap: 0.5rem; }
     .media-lib-preview { flex: none; max-height: 55%; order: -1; }
     .media-lib-preview-frame { aspect-ratio: auto; height: 112px; }
-    /* The footer stacks into three rows, so the library takes more of the screen. */
+    /* The footer stacks into three rows, so the library takes more of the screen,
+       past the usual box height. */
     .media-modal-body { height: 80vh; }
-
-    .modal-actions-centered { flex-direction: column; }
-    .auth-body { padding: 1rem !important; }
+    #media-modal-overlay { max-height: calc(100vh - 2rem); }
 }
 
 /* Buttons */
@@ -2122,17 +2030,11 @@ del.diff-del {
 }
 .combo-row-move .btn-sys:disabled { opacity: 0.35; cursor: default; }
 
-/* The row form is a modal, not the sidebar, which shares the screen with the
+/* The row form is a box, not the sidebar, which shares the screen with the
    preview. Three columns of short fields, one below 720px; the route and the
-   notes span the width. */
-.combo-row-modal-box {
-    width: min(860px, 94vw);
-    /* Blue: the red top border belongs to the delete confirmation it shares markup
-       with. */
-    border-top-color: var(--accent-blue);
-}
+   notes span the width. DELETE COMBO sits apart from DONE. */
 .combo-row-modal-body { padding: 0.9rem 1.1rem; text-align: left; max-height: 72vh; overflow-y: auto; }
-.combo-row-modal-actions { justify-content: space-between; gap: 1rem; padding: 0.9rem 1.25rem; border-top: 1px dashed #333; }
+.combo-row-modal-actions { justify-content: space-between; }
 
 .combo-field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem 0.7rem; }
 .combo-field-grid label { display: block; margin-bottom: 0.15rem; font-size: 0.6rem; }
@@ -2154,9 +2056,8 @@ del.diff-del {
 @media (max-width: 720px) { .combo-card-fields { grid-template-columns: 1fr; } }
 
 /* Find and Replace */
-/* Taller than the other modals: the list is the feature, and how a contributor
+/* Taller than the other boxes: the list is the feature, and how a contributor
    spots matches they did not mean. */
-.find-replace-box { width: min(720px, 94vw); }
 .find-replace-body { display: flex; flex-direction: column; gap: 0.75rem; max-height: 70vh; }
 .find-replace-controls { display: flex; flex-direction: column; gap: 0.3rem; }
 .find-replace-options {
@@ -2270,8 +2171,8 @@ del.diff-del {
    box-shadow on the cut-out, one rectangle to move, with no seams at an edge. */
 .tutorial-overlay {
     position: fixed; inset: 0; z-index: 10020;
-    /* Above the notices, which hand over and are removed first, and above the
-       editor's 10005 modals, so a tour from MoS is never behind one. */
+    /* Above the editor's own layers. A box is in the top layer, over the tour,
+       which steps aside while one is open. */
     pointer-events: none;
 }
 
@@ -2333,10 +2234,7 @@ del.diff-del {
     .tutorial-box { bottom: 0; max-height: 60vh; width: 100vw; }
 }
 
-/* The Manual of Style, in the notice's box, so the two Writing Guide surfaces
-   look alike, with room for a list of rules. */
-.mos-modal-box { width: min(640px, calc(100vw - 2rem)); }
-
+/* The Manual of Style and House Style boxes' text. */
 .mos-body { text-align: left; max-height: 70vh; overflow-y: auto; }
 
 .mos-heading {
@@ -2355,8 +2253,6 @@ del.diff-del {
     margin: 1rem 0 0;
 }
 .mos-footnote a { color: var(--accent-blue); }
-
-.mos-actions { display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; }
 
 /* Paused while a notice is up: hidden, not removed, so resuming is a class. */
 .tutorial-overlay.is-paused .tutorial-box,
@@ -2444,9 +2340,6 @@ del.diff-del {
 
 /* The Config panel. Each setting is a class on <body>, and every rule below is
    keyed on its body.cfg-* class, so untouched the editor is as it was. */
-/* Never taller than the screen: the overlay does not scroll, so the body does,
-   under a header that stays. */
-.config-modal-box { max-width: 560px; max-height: calc(100vh - 2rem); display: flex; flex-direction: column; }
 .config-body { display: flex; flex-direction: column; gap: 0.75rem; text-align: left; overflow-y: auto; min-height: 0; }
 .config-panel { display: flex; flex-direction: column; gap: 0.6rem; }
 .config-option { display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; }
@@ -2614,15 +2507,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 }
 .playground-banner strong { color: var(--accent-yellow); }
 
-.editor-modal-box.playground-pull-box {
-    width: min(560px, calc(100vw - 2rem));
-    max-height: calc(100vh - 4rem);
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    text-align: left;
-}
-.editor-modal-box.playground-pull-box h3 { margin: 0; }
+.playground-pull-box { display: flex; flex-direction: column; gap: 0.75rem; }
 .playground-pull-hint {
     margin: 0;
     font-family: var(--text-mono);

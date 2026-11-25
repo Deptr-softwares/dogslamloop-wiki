@@ -215,7 +215,7 @@ test('the editor mounts the gallery bin and its add control is clickable', async
     stored: (window.currentEditorDescData.gallery || []).map(i => i.name),
     rows: document.querySelectorAll('#char-gallery-bin-list .gallery-bin-row').length,
     previewCards: document.querySelectorAll('#tab-gallery .gallery-card').length,
-    modalOpen: !document.getElementById('gallery-item-modal').classList.contains('hidden'),
+    modalOpen: document.getElementById('gallery-item-modal').open,
   }));
 
   // THE IMPORTANT ONE: written into currentEditorDescData.gallery, which is
@@ -483,22 +483,21 @@ test('the Media Library opens ABOVE the item modal, and a pick re-uses instead o
   await page.click('#gallery-item-pick');
   await page.waitForTimeout(200);
 
-  // RESOLVED z-index, not the presence of a rule. The library is a tier-1
-  // overlay at 9000 and the modal that opens it sets 10005 inline, so opened
-  // as-is it renders fully and is completely unclickable - visible, present,
-  // and underneath its own caller. toBeVisible() passes on exactly that.
+  // Both are modal dialogs, so the library sits on top of its caller by opening
+  // last. Opened any other way it can render fully and be unclickable - visible,
+  // present, and underneath its own caller. toBeVisible() passes on exactly that.
   const z = await page.evaluate(() => ({
-    lib: parseInt(getComputedStyle(document.getElementById('media-modal-overlay')).zIndex, 10),
-    modal: parseInt(getComputedStyle(document.getElementById('gallery-item-modal')).zIndex, 10),
+    lib: document.getElementById('media-modal-overlay').matches(':modal'),
+    modal: document.getElementById('gallery-item-modal').matches(':modal'),
     armed: typeof window.mediaPickHandler === 'function',
   }));
   expect(z.armed, 'the picker is armed while the library is open').toBe(true);
-  expect(z.lib).toBeGreaterThan(z.modal);
+  expect(z, 'both open as modals').toMatchObject({ lib: true, modal: true });
 
-  // The real control. Clicking the file is what proves the picker outranks
-  // the modal - if the lift were missing this click would hit the item modal
-  // instead and time out, which no z-index assertion alone would catch. Since
-  // v1.2 a click previews the file, and USE THIS picks it.
+  // The real control. Clicking the file is what proves the picker is on top
+  // of the item box - if it were under it this click would hit the item box
+  // instead and time out. Since v1.2 a click previews the file, and USE THIS
+  // picks it.
   await page.click('#media-gallery-grid .media-row');
   await page.click('#media-lib-preview [data-media-use]');
   await page.waitForTimeout(200);
@@ -506,11 +505,13 @@ test('the Media Library opens ABOVE the item modal, and a pick re-uses instead o
   const afterPick = await page.evaluate(() => ({
     name: document.getElementById('gallery-item-name').value,
     armed: typeof window.mediaPickHandler === 'function',
-    libZ: document.getElementById('media-modal-overlay').style.zIndex,
+    libOpen: document.getElementById('media-modal-overlay').open,
+    itemOpen: document.getElementById('gallery-item-modal').open,
   }));
   expect(afterPick.name, 'the name is guessed from the picked filename').toBe('Reused');
   expect(afterPick.armed, 'a one-shot handler is disarmed once it fires').toBe(false);
-  expect(afterPick.libZ, 'and the lift is dropped, so the library stacks normally next time').toBe('');
+  expect(afterPick.libOpen, 'the library closes on the pick').toBe(false);
+  expect(afterPick.itemOpen, 'back to the item box, still open').toBe(true);
 
   await page.click('#gallery-item-confirm');
   await page.waitForTimeout(300);

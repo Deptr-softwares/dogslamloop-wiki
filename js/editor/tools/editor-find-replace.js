@@ -321,7 +321,8 @@
         undoSnapshot = null;
         refreshUndoButton();
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
-        modal.classList.remove('hidden');
+        // No click outside: it holds what was typed, and UNDO lasts only while it is open.
+        window.openDialog(modal);
         const input = document.getElementById('find-input');
         if (input) input.focus();
         renderResults();
@@ -329,7 +330,7 @@
 
     function closePanel() {
         const modal = document.getElementById('find-replace-modal');
-        if (modal) modal.classList.add('hidden');
+        if (modal) modal.close();
     }
 
     document.addEventListener('DOMContentLoaded', () => {

@@ -140,6 +140,30 @@ test('opens as a blank character page for anyone, with the banner, and Pull wher
     expect(errors).toEqual([]);
 });
 
+test('the Pull list is a 500 site dialog that Escape, CLOSE and a click outside all close', async ({ page }) => {
+    const errors = await open(page);
+    await page.setViewportSize({ width: 1400, height: 900 });
+    const picker = page.locator('#playground-pull-modal');
+
+    await page.locator('#submit-payload-btn').click();
+    await expect(picker).toBeVisible();
+    const seen = await picker.evaluate(d => ({ modal: d.matches('dialog.site-dialog:modal'), width: Math.round(d.getBoundingClientRect().width) }));
+    expect(seen).toEqual({ modal: true, width: 500 });
+    await expect(page.locator('#playground-pull-search'), 'focus in its search').toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(picker).toBeHidden();
+
+    await page.locator('#submit-payload-btn').click();
+    await expect(picker).toBeVisible();
+    await page.mouse.click(6, 6);
+    await expect(picker, 'only a page to pick in it: a click outside closes it').toBeHidden();
+
+    await page.locator('#submit-payload-btn').click();
+    await picker.locator('#playground-pull-close').click();
+    await expect(picker).toBeHidden();
+    expect(errors).toEqual([]);
+});
+
 test('Pull lists the pages, asks first, then copies the live page in and keeps it', async ({ page }) => {
     const errors = await open(page);
 
@@ -230,7 +254,7 @@ test('nothing is ever sent: no submission, no upload, no Conflict Check, no offe
     await page.locator('#playground-pull-close').click();
     // No QA form, no writing checks, no alert: Pull opened its list and
     // nothing else ran.
-    await expect(page.locator('.editor-modal-overlay:visible')).toHaveCount(0);
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
 
     // The library opens and still lists media, but takes no files.
     await page.evaluate(() => window.loadMediaGallery());

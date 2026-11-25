@@ -80,7 +80,7 @@ async function openLibrary(page, config = {}) {
         // Measuring dimensions opens the fake buffer in a <video>, which only
         // resolves on its error path after a delay. Not what is under test.
         window.measureMediaSource = async () => null;
-        document.getElementById('media-modal-overlay').classList.remove('hidden');
+        document.getElementById('media-modal-overlay').showModal();
         if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
     });
     await expect(page.locator('#media-upload-zone')).toBeVisible();

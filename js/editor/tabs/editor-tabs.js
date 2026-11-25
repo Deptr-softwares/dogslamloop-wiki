@@ -511,18 +511,17 @@ window.promptForMoveId = function() {
     return new Promise((resolve) => {
         let overlay = document.getElementById('move-id-modal');
         if (!overlay) {
-            overlay = document.createElement('div');
+            overlay = document.createElement('dialog');
             overlay.id = 'move-id-modal';
-            overlay.className = 'editor-modal-overlay move-id-modal-elevated';
+            overlay.className = 'site-dialog tone-green';
+            overlay.setAttribute('aria-labelledby', 'move-id-modal-title');
             document.body.appendChild(overlay);
         }
+        if (overlay.open) { resolve(null); return; }
 
         overlay.innerHTML = `
-            <div class="editor-modal-box auth-modal-box move-id-modal-box">
-                <div class="auth-header">
-                    <h3 class="move-id-modal-title">ADD NEW MOVE</h3>
-                </div>
-                <div class="auth-body">
+                <div class="dialog-header"><h3 id="move-id-modal-title">ADD NEW MOVE</h3></div>
+                <div class="dialog-body">
                     <div class="move-id-form-fields">
                         <div>
                             <label class="qa-field-label">MOVE DISPLAY NAME</label>
@@ -534,14 +533,23 @@ window.promptForMoveId = function() {
                         </div>
                     </div>
                 </div>
-                <div class="editor-modal-actions qa-modal-actions-divided">
+                <div class="dialog-footer">
                     <button id="btn-move-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
                     <button id="btn-move-confirm" class="btn-sys btn-sys-green">INITIALIZE</button>
                 </div>
-            </div>
         `;
 
-        overlay.classList.remove('hidden');
+        // Every way out but INITIALIZE is a cancel, Escape included.
+        let settled = false;
+        const finish = (value) => {
+            if (settled) return;
+            settled = true;
+            overlay.close();
+            resolve(value);
+        };
+        overlay.addEventListener('close', () => finish(null), { once: true });
+        // No click outside: it holds what was typed.
+        window.openDialog(overlay);
 
         // The technical id follows the name as it is typed.
         const nameInp = overlay.querySelector('#new-move-name');
@@ -555,10 +563,7 @@ window.promptForMoveId = function() {
 
         idInp.addEventListener('input', () => { idInp.dataset.manuallyEdited = 'true'; });
 
-        overlay.querySelector('#btn-move-cancel').onclick = () => {
-            overlay.classList.add('hidden');
-            resolve(null);
-        };
+        overlay.querySelector('#btn-move-cancel').onclick = () => finish(null);
 
         overlay.querySelector('#btn-move-confirm').onclick = () => {
             const mName = nameInp.value.trim();
@@ -577,8 +582,7 @@ window.promptForMoveId = function() {
                 return;
             }
 
-            overlay.classList.add('hidden');
-            resolve({ name: mName, id: mId });
+            finish({ name: mName, id: mId });
         };
     });
 };
@@ -1471,10 +1475,10 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
         });
     });
 
-    const close = () => {
-        modal.classList.add('hidden');
-        window.renderDocumentListEditor(tabId);
-    };
+    // Every way of closing it (DONE, DELETE COMBO, Escape, a click outside) redraws the
+    // list with the row as it is now.
+    modal.onclose = () => window.renderDocumentListEditor(tabId);
+    const close = () => modal.close();
 
     const done = document.getElementById('combo-row-modal-done');
     const del = document.getElementById('combo-row-modal-delete');
@@ -1488,9 +1492,9 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
             window.renderDocumentPreview(tabId);
         };
     }
-    modal.onclick = (e) => { if (e.target === modal) close(); };
 
-    modal.classList.remove('hidden');
+    // Saved as it is typed, so nothing is lost to a click outside.
+    window.openDialog(modal, { light: true });
 };
 
 window.loadKeyedEntryIntoEditor = function(tabId, idx) {
@@ -1785,8 +1789,7 @@ function bindStructuredFormToolbar(container, history) {
     if (media) {
         media.addEventListener('click', () => {
             // The library copies a URL on click, so it needs no target.
-            document.getElementById('media-modal-overlay').classList.remove('hidden');
-            if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
+            if (typeof window.openMediaLibrary === 'function') window.openMediaLibrary();
         });
     }
 

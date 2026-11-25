@@ -359,8 +359,7 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
   await page.locator('#combo-row-add').click();
   await page.waitForTimeout(350);
 
-  await expect(page.locator('#combo-row-modal'), 'adding a combo opens its editor')
-    .not.toHaveClass(/\bhidden\b/);
+  await expect(page.locator('#combo-row-modal'), 'adding a combo opens its editor').toBeVisible();
 
   await page.locator('[data-combo-field="sequence"]').fill('M1\n\nMURMURATE\nR↑');
   await page.locator('[data-combo-field="damage"]').fill('38-46');
@@ -389,10 +388,51 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
   await page.waitForTimeout(250);
 
   const closed = await page.evaluate(() => ({
-    hidden: document.getElementById('combo-row-modal').classList.contains('hidden'),
+    hidden: !document.getElementById('combo-row-modal').open,
     summary: document.querySelector('.combo-row-open')?.textContent,
   }));
   expect(closed.hidden).toBe(true);
   expect(closed.summary, 'a row is recognised by its route').toBe('M1 > MURMURATE > R↑');
+  expect(errors).toEqual([]);
+});
+
+test('a combo row is an 860 site dialog, and Escape or a click outside closes it and redraws the list', async ({ page }) => {
+  // The row saves as it is typed, so leaving it any way keeps the edit; the list
+  // under it is drawn again on every close, not only on DONE.
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  await page.locator('#combos-nav-list').click();
+  await page.locator('#combo-table-add').click();
+  await page.locator('#combo-table-name').fill('M1 Starters');
+  await page.locator('#combo-row-add').click();
+
+  const modal = page.locator('#combo-row-modal');
+  await expect(modal).toBeVisible();
+  const seen = await modal.evaluate(d => ({ modal: d.matches('dialog.site-dialog:modal'), width: Math.round(d.getBoundingClientRect().width) }));
+  expect(seen).toEqual({ modal: true, width: 860 });
+
+  // Typing updates the row's summary in place; a redraw replaces the button, so
+  // the old one is marked to tell the two apart.
+  const markRow = () => page.locator('.combo-row-open').first().evaluate(b => { b.dataset.before = '1'; });
+  const redrawn = () => page.locator('.combo-row-open').first().evaluate(b => !b.dataset.before);
+
+  await page.locator('[data-combo-field="sequence"]').fill('M1\nDASH');
+  await markRow();
+  await page.keyboard.press('Escape');
+  await expect(modal).toBeHidden();
+  await expect.poll(redrawn, { message: 'Escape redraws the list' }).toBe(true);
+  await expect(page.locator('.combo-row-open').first()).toHaveText('M1 > DASH');
+
+  await page.locator('.combo-row-open').first().click();
+  await expect(modal).toBeVisible();
+  await page.locator('[data-combo-field="sequence"]').fill('M1\nR');
+  await markRow();
+  await page.mouse.click(6, 6);
+  await expect(modal).toBeHidden();
+  await expect.poll(redrawn, { message: 'so does a click outside' }).toBe(true);
+  await expect(page.locator('.combo-row-open').first()).toHaveText('M1 > R');
   expect(errors).toEqual([]);
 });

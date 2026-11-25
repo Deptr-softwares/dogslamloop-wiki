@@ -249,6 +249,33 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
     }
 };
 
+// Disarms the picker and empties the preview: run on the dialog's close event, so
+// Escape does it too. A closed library still downloads a clip it holds, and the next
+// open must not offer the last file's button.
+function resetMediaLibrary() {
+    window.mediaPickHandler = null;
+    window.mediaSelectedName = null;
+    const preview = document.getElementById('media-lib-preview');
+    if (preview) preview.innerHTML = MEDIA_PREVIEW_EMPTY;
+}
+
+/**
+ * Opens the Media Library, from the Block toolbar, a structured tab's toolbar or
+ * the picker. A box opened over another sits on top by opening last.
+ * @since v1.3
+ */
+window.openMediaLibrary = function () {
+    const overlay = document.getElementById('media-modal-overlay');
+    if (!overlay) return;
+    if (!overlay.dataset.wired) {
+        overlay.dataset.wired = '1';
+        overlay.addEventListener('close', resetMediaLibrary);
+    }
+    // No click outside: an upload or a pick can be under way.
+    window.openDialog(overlay);
+    if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
+};
+
 /**
  * Opens the Media Library to pick a file already uploaded (the Gallery bin):
  * the file's button hands its URL to onPick instead of copying it.
@@ -258,33 +285,18 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
  */
 window.openMediaLibraryPicker = function (onPick) {
     window.mediaPickHandler = typeof onPick === 'function' ? onPick : null;
-    const overlay = document.getElementById('media-modal-overlay');
-    if (overlay) {
-        // The library is a z-index 9000 overlay, and the Gallery item modal that opens it
-        // sets 10005, so it is lifted above its caller and put back on close.
-        overlay.style.zIndex = '10010';
-        overlay.classList.remove('hidden');
-    }
-    if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
+    window.openMediaLibrary();
 };
 
 /**
- * Every way of closing the library, so one place disarms the picker and drops
- * the lift.
+ * Closes the library; the close event disarms the picker. Disarmed here as well, so
+ * a pick handed over just before is the last one.
  * @since v0.18
  */
 window.closeMediaLibrary = function () {
-    window.mediaPickHandler = null;
+    resetMediaLibrary();
     const overlay = document.getElementById('media-modal-overlay');
-    if (overlay) {
-        overlay.style.zIndex = '';
-        overlay.classList.add('hidden');
-    }
-    // A hidden overlay still downloads a clip it holds, and the next open must not
-    // offer the last file's button.
-    window.mediaSelectedName = null;
-    const preview = document.getElementById('media-lib-preview');
-    if (preview) preview.innerHTML = MEDIA_PREVIEW_EMPTY;
+    if (overlay) overlay.close();
 };
 
 window.initMediaLibrary = function() {
