@@ -567,36 +567,26 @@
             : `<p class="house-style-empty">This page's house style hasn't been written yet.</p>
                <p class="mos-footnote">Anyone can write it in Config &gt; Page.</p>`;
 
-        const box = document.createElement('div');
-        box.className = 'editor-modal-overlay editor-notice-overlay';
+        const box = document.createElement('dialog');
+        box.className = 'site-dialog dialog-lg';
         box.id = 'editor-house-style-modal';
-        box.setAttribute('role', 'dialog');
-        box.setAttribute('aria-modal', 'true');
-        box.setAttribute('aria-label', 'House Style');
+        box.setAttribute('aria-labelledby', 'editor-house-style-title');
 
         // The renderer escapes the text, then the styling pass turns its tags into
         // formatting, as on a page.
         box.innerHTML = `
-            <div class="editor-modal-box auth-modal-box mos-modal-box">
-                <div class="auth-header"><h3>HOUSE STYLE</h3></div>
-                <div class="auth-body mos-body">
-                    ${body}
-                    <div class="modal-actions-centered mos-actions">
-                        <button type="button" class="btn-sys btn-sys-green" data-house-style-ok>OK</button>
-                    </div>
-                </div>
-            </div>`;
+                <div class="dialog-header"><h3 id="editor-house-style-title">HOUSE STYLE</h3></div>
+                <div class="dialog-body mos-body">${body}</div>
+                <div class="dialog-footer">
+                    <button type="button" class="btn-sys btn-sys-green" data-dialog-close data-house-style-ok>OK</button>
+                </div>`;
 
         document.body.appendChild(box);
         if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
 
-        const shut = () => {
-            if (box.parentNode) box.parentNode.removeChild(box);
-            document.removeEventListener('keydown', onKey);
-        };
-        function onKey(e) { if (e.key === 'Escape') shut(); }
-        box.addEventListener('click', (e) => { if (e.target.closest('[data-house-style-ok]')) shut(); });
-        document.addEventListener('keydown', onKey);
+        box.addEventListener('close', () => box.remove());
+        // Only reading in it: a click outside closes it.
+        window.openDialog(box, { light: true });
 
         const ok = box.querySelector('[data-house-style-ok]');
         if (ok) ok.focus();
@@ -843,19 +833,16 @@
     window.openEditorConfig = function () {
         if (document.getElementById('editor-config-modal')) return false;
 
-        const box = document.createElement('div');
-        box.className = 'editor-modal-overlay editor-notice-overlay';
+        const box = document.createElement('dialog');
+        box.className = 'site-dialog dialog-md';
         box.id = 'editor-config-modal';
-        box.setAttribute('role', 'dialog');
-        box.setAttribute('aria-modal', 'true');
-        box.setAttribute('aria-label', 'Config');
+        box.setAttribute('aria-labelledby', 'editor-config-title');
 
         const withPage = pageSettingsHere();
 
         box.innerHTML = `
-            <div class="editor-modal-box auth-modal-box config-modal-box">
-                <div class="auth-header"><h3>CONFIG</h3></div>
-                <div class="auth-body config-body">
+                <div class="dialog-header"><h3 id="editor-config-title">CONFIG</h3></div>
+                <div class="dialog-body config-body">
                     <div class="daw-variant-tabs config-tabs" role="tablist">
                         <button type="button" class="daw-tab-btn active" role="tab" aria-selected="true" data-config-tab="editor">Editor</button>
                         <button type="button" class="daw-tab-btn" role="tab" aria-selected="false" data-config-tab="actions">Actions</button>
@@ -904,21 +891,17 @@
                     </div>
 
                     ${withPage ? pagePanelHTML() : ''}
-
-                    <div class="modal-actions-centered">
-                        <button type="button" class="btn-sys btn-sys-green" data-config-close>DONE</button>
-                    </div>
                 </div>
-            </div>`;
+                <div class="dialog-footer">
+                    <button type="button" class="btn-sys btn-sys-green" data-config-close>DONE</button>
+                </div>`;
 
         document.body.appendChild(box);
         if (withPage) wirePagePanel(box.querySelector('[data-config-panel="page"]'));
 
-        const shut = () => {
-            if (box.parentNode) box.parentNode.removeChild(box);
-            document.removeEventListener('keydown', onKey);
-        };
-        function onKey(e) { if (e.key === 'Escape') shut(); }
+        // Built per open, so every way of closing it takes it away.
+        box.addEventListener('close', () => box.remove());
+        const shut = () => box.close();
 
         box.addEventListener('change', (e) => {
             const input = e.target.closest('[data-config-key]');
@@ -965,7 +948,8 @@
             }
         });
 
-        document.addEventListener('keydown', onKey);
+        // No click outside: the Page panel holds what was typed.
+        window.openDialog(box);
         const done = box.querySelector('[data-config-close]');
         if (done) done.focus();
         return true;

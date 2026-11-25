@@ -39,22 +39,21 @@ test('customConfirm: danger button still uses btn-danger-fill, no leftover inlin
   expect(await btn.evaluate(el => el.hasAttribute('style'))).toBe(false);
 });
 
-test('openQAModal: renders with no inline styles beyond the dynamic max-width, tab switching works', async ({ page }) => {
+test('openQAModal: the site dialog with no inline styles, 400 wide for Short and 650 for Long, tab switching works', async ({ page }) => {
   page.evaluate(() => { window.openQAModal(false); });
   const overlay = page.locator('#dynamic-qa-modal-overlay');
   await expect(overlay).toBeVisible();
-  expect(await overlay.evaluate(el => el.className)).toBe('editor-modal-overlay qa-modal-elevated');
-
-  const box = overlay.locator('.qa-modal-box');
-  const boxStyle = await box.getAttribute('style');
-  expect(boxStyle.trim()).toBe('max-width: 400px;');
+  expect(await overlay.evaluate(el => el.matches('dialog.site-dialog:modal'))).toBe(true);
+  expect(await overlay.evaluate(el => el.hasAttribute('style'))).toBe(false);
+  const width = () => overlay.evaluate(el => Math.round(el.getBoundingClientRect().width));
+  expect(await width()).toBe(400);
 
   // Short form's textarea: qa-textarea-short must win over .editor-textarea's own min-height: 50px default.
   expect(await overlay.locator('#qa-changelog').evaluate(el => getComputedStyle(el).minHeight)).toBe('80px');
 
   // Switch to the "Long" form and confirm the width grows + textarea gets the long variant.
   await page.locator('#qa-tab-long').click();
-  expect((await box.getAttribute('style')).trim()).toBe('max-width: 600px;');
+  expect(await width()).toBe(650);
   await expect(overlay.locator('#qa-changelog')).toHaveClass(/qa-textarea-long/);
   expect(await overlay.locator('#qa-changelog').evaluate(el => getComputedStyle(el).minHeight)).toBe('150px');
 

@@ -909,17 +909,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         return new Promise((resolve) => {
             let overlay = document.getElementById('dynamic-qa-modal-overlay');
             if (!overlay) {
-                overlay = document.createElement('div');
+                overlay = document.createElement('dialog');
                 overlay.id = 'dynamic-qa-modal-overlay';
-                overlay.className = 'editor-modal-overlay qa-modal-elevated';
+                overlay.className = 'site-dialog';
+                overlay.setAttribute('aria-labelledby', 'qa-modal-title');
                 document.body.appendChild(overlay);
             }
+            if (overlay.open) { resolve(null); return; }
 
-            let currentForm = 'short'; 
-            
+            // Every way out but CONFIRM is a cancel, Escape included, or the submit
+            // would wait on this box for good.
+            let settled = false;
+            const finish = (value) => {
+                if (settled) return;
+                settled = true;
+                overlay.close();
+                resolve(value);
+            };
+            overlay.addEventListener('close', () => finish(null), { once: true });
+
+            let currentForm = 'short';
+
             const renderForm = () => {
                 let formHtml = '';
-                let modalWidth = '400px';
 
                 const tabsHtml = `
                     <div class="qa-tabs-row">
@@ -937,7 +949,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <input type="text" id="qa-evidence" class="editor-input" placeholder="URL or link to proof...">
                     `;
                 } else if (currentForm === 'long') {
-                    modalWidth = '600px';
                     formHtml = `
                         <label class="qa-field-label">DETAILED CHANGELOG (Max 500 Words)</label>
                         <textarea id="qa-changelog" class="editor-textarea qa-textarea-long" placeholder="Provide a detailed explanation of your edits, reasoning, and context..."></textarea>
@@ -945,7 +956,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <input type="text" id="qa-evidence" class="editor-input" placeholder="URL or link to proof...">
                     `;
                 } else if (currentForm === 'technical') {
-                    modalWidth = '600px';
                     formHtml = `
                         <div class="qa-field-row">
                             <div class="qa-field-col">
@@ -967,21 +977,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     `;
                 }
 
+                // The Long and Technical forms hold the longer changelog.
+                overlay.classList.toggle('dialog-lg', currentForm !== 'short');
                 overlay.innerHTML = `
-                    <div class="editor-modal-box auth-modal-box qa-modal-box" style="max-width: ${modalWidth};">
-                        <div class="auth-header">
-                            <h3 class="qa-modal-title">QUALITY ASSURANCE</h3>
+                    <div class="dialog-header"><h3 id="qa-modal-title">QUALITY ASSURANCE</h3></div>
+                    <div class="dialog-body">
+                        ${tabsHtml}
+                        <div id="qa-form-container" class="qa-form-container">
+                            ${formHtml}
                         </div>
-                        <div class="auth-body">
-                            ${tabsHtml}
-                            <div id="qa-form-container" class="qa-form-container">
-                                ${formHtml}
-                            </div>
-                        </div>
-                        <div class="editor-modal-actions qa-modal-actions-divided">
-                            <button id="btn-qa-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
-                            <button id="btn-qa-confirm" class="btn-sys btn-sys-blue">${isIntercept ? 'UPDATE SUBMISSION' : 'CONFIRM & UPLOAD'}</button>
-                        </div>
+                    </div>
+                    <div class="dialog-footer">
+                        <button id="btn-qa-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                        <button id="btn-qa-confirm" class="btn-sys btn-sys-blue">${isIntercept ? 'UPDATE SUBMISSION' : 'CONFIRM & UPLOAD'}</button>
                     </div>
                 `;
 
@@ -989,10 +997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 overlay.querySelector('#qa-tab-long').onclick = () => { currentForm = 'long'; renderForm(); };
                 overlay.querySelector('#qa-tab-technical').onclick = () => { currentForm = 'technical'; renderForm(); };
 
-                overlay.querySelector('#btn-qa-cancel').onclick = () => {
-                    overlay.classList.add('hidden');
-                    resolve(null);
-                };
+                overlay.querySelector('#btn-qa-cancel').onclick = () => finish(null);
 
                 overlay.querySelector('#btn-qa-confirm').onclick = () => {
                     const changelog = overlay.querySelector('#qa-changelog').value.trim();
@@ -1014,13 +1019,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
 
-                    overlay.classList.add('hidden');
-                    resolve({ changelog, confidence, evidence });
+                    finish({ changelog, confidence, evidence });
                 };
             };
 
             renderForm();
-            overlay.classList.remove('hidden');
+            // No click outside: it holds the changelog being typed.
+            window.openDialog(overlay);
         });
     };
 

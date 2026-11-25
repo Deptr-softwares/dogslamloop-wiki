@@ -71,15 +71,14 @@ test('daw-tab-item + remove button pattern renders identically for moves and ext
   expect(await tabBtn.evaluate(el => getComputedStyle(el).paddingRight)).toBe('24px'); // 1.5rem
 });
 
-test('promptForMoveId: green modal variant renders with no inline styles, submit button wins the color/border specificity tie', async ({ page }) => {
+test('promptForMoveId: the green site dialog with no inline styles, submit button wins the color/border specificity tie', async ({ page }) => {
   page.evaluate(() => { window.promptForMoveId(); });
   const overlay = page.locator('#move-id-modal');
   await expect(overlay).toBeVisible();
-  expect(await overlay.evaluate(el => el.className)).toBe('editor-modal-overlay move-id-modal-elevated');
+  expect(await overlay.evaluate(el => el.matches('dialog.site-dialog.tone-green:modal'))).toBe(true);
 
-  const box = overlay.locator('.move-id-modal-box');
-  expect(await box.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  expect(await box.evaluate(el => getComputedStyle(el).borderTopColor)).toBe('rgb(34, 197, 94)'); // #22c55e
+  expect(await overlay.evaluate(el => el.hasAttribute('style'))).toBe(false);
+  expect(await overlay.evaluate(el => getComputedStyle(el).borderTopColor)).toBe('rgb(34, 197, 94)'); // #22c55e
 
   const confirmBtn = overlay.locator('#btn-move-confirm');
   expect(await confirmBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);

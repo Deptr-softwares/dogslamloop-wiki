@@ -246,37 +246,29 @@
         const found = changedIssues();
         if (!found.length) return Promise.resolve(true);
 
-        return new Promise((resolve) => {
-            const overlay = document.createElement('div');
-            overlay.className = 'editor-modal-overlay modal-warning writing-checks-modal';
-            overlay.innerHTML = `
-                <div class="editor-modal-box auth-modal-box" role="dialog" aria-modal="true" aria-labelledby="writing-checks-title">
-                    <div class="auth-header"><h3 id="writing-checks-title">CHECK BEFORE SENDING</h3></div>
-                    <div class="auth-body">
-                        <p class="modal-prompt-text">${found.length === 1 ? '1 thing' : `${found.length} things`} to check before sending:</p>
-                        <ul class="writing-checks-list">${found.map(f => `
-                            <li><span class="writing-checks-where">${window.escapeHtml(f.where)}:</span> ${window.escapeHtml(f.text)}</li>`).join('')}
-                        </ul>
-                        <div class="modal-actions-centered">
-                            <button type="button" class="btn-sys btn-sys-regular" data-writing-back>GO BACK</button>
-                            <button type="button" class="btn-sys btn-sys-yellow" data-writing-send>SEND ANYWAY</button>
-                        </div>
-                    </div>
+        const overlay = document.createElement('dialog');
+        overlay.className = 'site-dialog dialog-md tone-yellow writing-checks-modal';
+        overlay.setAttribute('aria-labelledby', 'writing-checks-title');
+        overlay.innerHTML = `
+                <div class="dialog-header"><h3 id="writing-checks-title">CHECK BEFORE SENDING</h3></div>
+                <div class="dialog-body">
+                    <p class="modal-prompt-text">${found.length === 1 ? '1 thing' : `${found.length} things`} to check before sending:</p>
+                    <ul class="writing-checks-list">${found.map(f => `
+                        <li><span class="writing-checks-where">${window.escapeHtml(f.where)}:</span> ${window.escapeHtml(f.text)}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="dialog-footer">
+                    <button type="button" class="btn-sys btn-sys-regular" data-writing-back>GO BACK</button>
+                    <button type="button" class="btn-sys btn-sys-yellow" data-writing-send>SEND ANYWAY</button>
                 </div>`;
+        document.body.appendChild(overlay);
 
-            const onKey = (e) => { if (e.key === 'Escape') done(false); };
-            function done(send) {
-                document.removeEventListener('keydown', onKey);
-                overlay.remove();
-                resolve(send);
-            }
-            overlay.addEventListener('click', (e) => {
-                if (e.target.closest('[data-writing-back]')) done(false);
-                else if (e.target.closest('[data-writing-send]')) done(true);
-            });
-            document.addEventListener('keydown', onKey);
-            document.body.appendChild(overlay);
-            overlay.querySelector('[data-writing-back]').focus();
+        // Escape and a click outside are GO BACK: nothing is sent without SEND ANYWAY.
+        const back = overlay.querySelector('[data-writing-back]');
+        return window.runDialog(overlay, {
+            buttons: [[back, false], [overlay.querySelector('[data-writing-send]'), true]],
+            cancel: false, backdrop: true, focus: back,
+            onClose: () => overlay.remove(),
         });
     };
 })();

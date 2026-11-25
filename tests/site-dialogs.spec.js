@@ -461,3 +461,63 @@ test('the video player: the dialog in its own look, light, and emptied when it c
     expect(await inside.count()).toBe(0);
     expect(errors).toEqual([]);
 });
+
+// --- The editor's and Overseer's tool boxes (C-1b) ---
+
+// Each tool box, opened the way the editor opens it. `light`: a click outside
+// closes it (nothing typed in it to lose).
+const TOOLS = [
+    { name: 'QA submit', open: page => ask(page, 'window.openQAModal(false)'), id: 'dynamic-qa-modal-overlay', width: 400, light: false },
+    { name: 'Config', open: page => page.locator('#btn-editor-config').click(), id: 'editor-config-modal', width: 500, light: false },
+    { name: 'House Style', open: page => page.evaluate(() => window.openHouseStyle()), id: 'editor-house-style-modal', width: 650, light: true },
+    { name: 'the editor notice', open: page => page.evaluate(() => window.showEditorNotice('editor', { force: true })), id: 'editor-notice-editor', width: 400, light: true },
+    { name: 'move id', open: page => ask(page, 'window.promptForMoveId()'), id: 'move-id-modal', width: 400, tone: GREEN, light: false },
+];
+
+for (const t of TOOLS) {
+    test(`${t.name}: a ${t.width} site dialog, focus inside, Escape closes it, a click outside ${t.light ? 'does too' : 'does not'}`, async ({ page }) => {
+        const errors = await load(page, EDITOR);
+        await page.waitForFunction(() => window.currentEditorDescData);
+        await t.open(page);
+        await expect(page.locator(`#${t.id}`)).toBeVisible();
+        expect(await page.locator(`#${t.id}`).evaluate(d => d.contains(document.activeElement)), 'focus moved into it').toBe(true);
+        await checkBox(page, t.id, { width: t.width, tone: t.tone, light: t.light });
+        if (!t.light) {
+            await page.keyboard.press('Escape');
+            await expect(page.locator(`#${t.id}`)).toBeHidden();
+        }
+        await t.open(page);
+        await expect(page.locator(`#${t.id}`)).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.locator(`#${t.id}`)).toBeHidden();
+        expect(errors).toEqual([]);
+    });
+}
+
+test('Escape on QA submit answers cancelled, so the submit never waits on it', async ({ page }) => {
+    const errors = await load(page, EDITOR);
+    await ask(page, 'window.openQAModal(false)');
+    await page.locator('#qa-changelog').fill('Fixed the startup of M1.');
+    await page.mouse.click(6, 6);
+    await expect(page.locator('#dynamic-qa-modal-overlay'), 'a click outside keeps the changelog').toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#dynamic-qa-modal-overlay')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.__answer)).toBe(null);
+
+    // And opens again, answering the next time.
+    await ask(page, 'window.openQAModal(false)');
+    await page.locator('#qa-changelog').fill('Fixed the startup of M1.');
+    await page.locator('#btn-qa-confirm').click();
+    await expect.poll(() => page.evaluate(() => window.__answer && window.__answer.changelog)).toBe('Fixed the startup of M1.');
+    expect(errors).toEqual([]);
+});
+
+test('Escape on the move id box answers cancelled', async ({ page }) => {
+    const errors = await load(page, EDITOR);
+    await ask(page, 'window.promptForMoveId()');
+    await page.locator('#new-move-name').fill('Cursed Strike');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#move-id-modal')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.__answer)).toBe(null);
+    expect(errors).toEqual([]);
+});

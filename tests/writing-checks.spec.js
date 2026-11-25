@@ -213,12 +213,41 @@ test('Submit lists only what this edit wrote, and GO BACK or SEND ANYWAY decide'
   await modal.locator('[data-writing-back]').click();
   await expect(modal).toHaveCount(0);
   await expect(page.locator('#submit-payload-btn')).toHaveText('Submit');
-  await expect(page.locator('#dynamic-qa-modal-overlay:not(.hidden)')).toHaveCount(0);
+  await expect(page.locator('#dynamic-qa-modal-overlay[open]')).toHaveCount(0);
 
   await page.locator('#submit-payload-btn').click();
   await modal.locator('[data-writing-send]').click();
   await expect(modal).toHaveCount(0);
   await expect(page.locator('#dynamic-qa-modal-overlay')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('the list is a 500 yellow site dialog, and Escape or a click outside is GO BACK', async ({ page }) => {
+  const errors = await bootEditor(page);
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await paragraph(page, 1).fill('Yuji and [b]Todo');
+  const modal = page.locator('.writing-checks-modal');
+
+  await page.locator('#submit-payload-btn').click();
+  await expect(modal).toBeVisible();
+  const seen = await modal.evaluate(d => ({
+    modal: d.matches('dialog.site-dialog:modal'),
+    width: Math.round(d.getBoundingClientRect().width),
+    top: getComputedStyle(d).borderTopColor,
+  }));
+  expect(seen).toEqual({ modal: true, width: 500, top: 'rgb(234, 179, 8)' });
+  await expect(modal.locator('[data-writing-back]'), 'focus on GO BACK').toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(modal).toHaveCount(0);
+  await expect(page.locator('#dynamic-qa-modal-overlay[open]'), 'nothing goes on to send').toHaveCount(0);
+
+  await page.locator('#submit-payload-btn').click();
+  await expect(modal).toBeVisible();
+  await page.mouse.click(6, 6);
+  await expect(modal).toHaveCount(0);
+  await expect(page.locator('#dynamic-qa-modal-overlay[open]')).toHaveCount(0);
+  await expect(page.locator('#submit-payload-btn'), 'and Submit still works').toHaveText('Submit');
   expect(errors).toEqual([]);
 });
 

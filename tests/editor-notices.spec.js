@@ -47,7 +47,7 @@ test('the editor notice appears on a first visit, worded exactly as specified', 
 
   const notice = page.locator('#editor-notice-editor');
   await expect(notice).toBeVisible();
-  expect(await notice.locator('.modal-prompt-text').innerText()).toBe(EDITOR_COPY);
+  expect(await notice.locator('.dialog-text').innerText()).toBe(EDITOR_COPY);
 });
 
 test('the editor notice bolds exactly the words the owner named', async ({ page }) => {
@@ -55,14 +55,14 @@ test('the editor notice bolds exactly the words the owner named', async ({ page 
 
   // Not "contains a <strong>" - WHICH words are emphasised was specified, and
   // an assertion that some bold exists would survive it moving.
-  const bold = await page.locator('#editor-notice-editor .modal-prompt-text strong').allInnerTexts();
+  const bold = await page.locator('#editor-notice-editor .dialog-text strong').allInnerTexts();
   expect(bold).toEqual(['make sure to read up on the']);
 });
 
 test('the Writing Guide link resolves, and does not navigate the editor away', async ({ page }) => {
   await boot(page);
 
-  const link = page.locator('#editor-notice-editor .modal-prompt-text a');
+  const link = page.locator('#editor-notice-editor .dialog-text a');
   await expect(link).toHaveText('Writing Guide');
   await expect(link).toHaveAttribute('href', GUIDE);
 
@@ -108,7 +108,7 @@ test('the Media Library notice appears over the library, and can be clicked', as
   await page.locator('#btn-media-library').click();
   const notice = page.locator('#editor-notice-mediaLibrary');
   await expect(notice).toBeVisible();
-  expect(await notice.locator('.modal-prompt-text').innerText()).toBe(MEDIA_COPY);
+  expect(await notice.locator('.dialog-text').innerText()).toBe(MEDIA_COPY);
 
   // The Media Library really is open underneath - otherwise this proves the
   // notice sits above nothing.
@@ -131,31 +131,18 @@ test('the Media Library notice appears over the library, and can be clicked', as
   await expect(page.locator('#media-modal-overlay')).toBeVisible();
 });
 
-test('the notice outranks the Media Library by stated z-index, not by DOM order', async ({ page }) => {
-  // MEASURED, NOT ASSUMED: the hit test above passes with the z-index rule
-  // DELETED, because the notice is appended to body last and wins at the shared
-  // 10000 on DOM order alone. So that test does not discriminate, and without
-  // this one the rule could be removed with the suite still green - leaving the
-  // notice resting on DOM order, the mechanism behind two shipped bugs (a confirm
-  // that could be seen and not clicked).
-  //
-  // Resolved values, so this follows the stylesheet instead of pinning a number
-  // in two places.
+test('the notice is a modal dialog, on top by opening last, and a confirm goes over it', async ({ page }) => {
+  // The hit test above cannot tell a dialog in the top layer from a div that
+  // wins on z-index or DOM order, the mechanism behind two shipped bugs (a
+  // confirm that could be seen and not clicked). :modal can: only a dialog
+  // opened with showModal() matches it.
   await boot(page);
   await page.locator('#editor-notice-editor [data-notice-dismiss]').click();
   await page.locator('#btn-media-library').click();
   await expect(page.locator('#editor-notice-mediaLibrary')).toBeVisible();
 
-  const layers = await page.evaluate(() => {
-    const z = (sel) => parseInt(getComputedStyle(document.querySelector(sel)).zIndex, 10);
-    return {
-      notice: z('#editor-notice-mediaLibrary'),
-      media: z('#media-modal-overlay'),
-    };
-  });
-
-  expect(layers.notice).toBeGreaterThan(layers.media);
-  // And below a confirm, which is a dialog in the top layer, above every z-index.
+  expect(await page.locator('#editor-notice-mediaLibrary').evaluate(el => el.matches(':modal'))).toBe(true);
+  // And a confirm opened over it is on top of it.
   await page.evaluate(() => { window.customConfirm('Delete it?'); });
   const confirmOnTop = await page.evaluate(() => {
     const b = document.getElementById('editor-modal-confirm');
@@ -170,7 +157,7 @@ test('the Media Library notice bolds and links exactly what was specified', asyn
   await page.locator('#editor-notice-editor [data-notice-dismiss]').click();
   await page.locator('#btn-media-library').click();
 
-  const scope = page.locator('#editor-notice-mediaLibrary .modal-prompt-text');
+  const scope = page.locator('#editor-notice-mediaLibrary .dialog-text');
   expect(await scope.locator('strong').allInnerTexts())
     .toEqual(['section when it comes to Local Resource!']);
   await expect(scope.locator('a')).toHaveText('Writing Guide');

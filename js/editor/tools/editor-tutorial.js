@@ -227,7 +227,7 @@
 
         // Opens paused if a notice is up: the tour waits on its fetch, so it can arrive
         // on top of a notice opened meanwhile.
-        if (document.querySelector('.editor-notice-overlay')) overlay.classList.add('is-paused');
+        if (document.querySelector('dialog.site-dialog[open]')) overlay.classList.add('is-paused');
 
         document.body.appendChild(overlay);
 
@@ -326,18 +326,15 @@
             return false;
         }
 
-        const box = document.createElement('div');
-        box.className = 'editor-modal-overlay editor-notice-overlay';
+        const box = document.createElement('dialog');
+        box.className = 'site-dialog dialog-lg';
         box.id = 'editor-mos-modal';
-        box.setAttribute('role', 'dialog');
-        box.setAttribute('aria-modal', 'true');
-        box.setAttribute('aria-label', 'Manual of Style');
+        box.setAttribute('aria-labelledby', 'editor-mos-title');
 
         // Escaped, then styled: "[s]Yuji[/s], Vessel" is the rule showing itself.
         box.innerHTML = `
-            <div class="editor-modal-box auth-modal-box mos-modal-box">
-                <div class="auth-header"><h3>MANUAL OF STYLE</h3></div>
-                <div class="auth-body mos-body">
+                <div class="dialog-header"><h3 id="editor-mos-title">MANUAL OF STYLE</h3></div>
+                <div class="dialog-body mos-body">
                     <h4 class="mos-heading">The language</h4>
                     ${LANGUAGE_STANDARD.map(p => `<p class="strategy-paragraph">${p}</p>`).join('')}
 
@@ -349,29 +346,25 @@
                         <a href="${GUIDE_URL}" target="_blank" rel="noopener">Writing Guide</a>,
                         which is the full version and the one edits are judged against.
                     </p>
-
-                    <div class="modal-actions-centered mos-actions">
-                        <button type="button" class="btn-sys btn-sys-regular" data-mos="rewatch">REWATCH TUTORIAL</button>
-                        <button type="button" class="btn-sys btn-sys-green" data-mos="ok">OK</button>
-                    </div>
                 </div>
-            </div>`;
+                <div class="dialog-footer">
+                    <button type="button" class="btn-sys btn-sys-regular" data-mos="rewatch">REWATCH TUTORIAL</button>
+                    <button type="button" class="btn-sys btn-sys-green" data-mos="ok">OK</button>
+                </div>`;
 
         document.body.appendChild(box);
         if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
 
-        const shut = () => { if (box.parentNode) box.parentNode.removeChild(box); document.removeEventListener('keydown', onMosKey); };
-        function onMosKey(e) { if (e.key === 'Escape') shut(); }
-
+        box.addEventListener('close', () => box.remove());
         box.addEventListener('click', (e) => {
             const action = e.target.closest('[data-mos]');
             if (!action) return;
-            if (action.getAttribute('data-mos') === 'ok') { shut(); return; }
-            // Closed first, or the tour would spotlight something this modal covers.
-            shut();
-            window.replayEditorTutorial();
+            // Closed first, or the tour would spotlight something this box covers.
+            box.close();
+            if (action.getAttribute('data-mos') === 'rewatch') window.replayEditorTutorial();
         });
-        document.addEventListener('keydown', onMosKey);
+        // Only reading in it: a click outside closes it.
+        window.openDialog(box, { light: true });
 
         const ok = box.querySelector('[data-mos="ok"]');
         if (ok && typeof ok.focus === 'function') ok.focus();

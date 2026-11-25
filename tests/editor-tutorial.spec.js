@@ -329,6 +329,25 @@ test('OK just closes it', async ({ page }) => {
     await expect(page.locator('#editor-tutorial')).toHaveCount(0);
 });
 
+test('the MoS is a 650 site dialog that Escape and a click outside close, with no tour', async ({ page }) => {
+    await openEditor(page);
+    await page.setViewportSize({ width: 1400, height: 900 });
+    const mos = page.locator('#editor-mos-modal');
+    await page.evaluate(() => window.openStyleManual());
+    await expect(mos).toBeVisible();
+    const seen = await mos.evaluate(d => ({ modal: d.matches('dialog.site-dialog:modal'), width: Math.round(d.getBoundingClientRect().width) }));
+    expect(seen).toEqual({ modal: true, width: 650 });
+    await expect(mos.locator('[data-mos="ok"]'), 'focus on OK').toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(mos).toHaveCount(0);
+
+    await page.evaluate(() => window.openStyleManual());
+    await expect(mos).toBeVisible();
+    await page.mouse.click(6, 6);
+    await expect(mos, 'only reading in it: a click outside closes it').toHaveCount(0);
+    await expect(page.locator('#editor-tutorial'), 'and the tour did not start').toHaveCount(0);
+});
+
 test('a hostile guide rule is escaped', async ({ page }) => {
     // The Writing Guide is owner-authored rather than contributor-authored, but
     // it reaches innerHTML like everything else and the standard is escape at
@@ -380,6 +399,20 @@ test('the Media Library notice does NOT hand over', async ({ page }) => {
 
     await page.locator('[data-notice-dismiss]').click();
     await expect(page.locator('#editor-tutorial')).toHaveCount(0);
+});
+
+test('Escape or a click outside the editor notice closes it without starting the tour', async ({ page }) => {
+    // GOT IT is the click that proves somebody is looking at the editor; leaving
+    // the notice any other way is not.
+    await openEditor(page, { seen: false });
+    for (const leave of [() => page.keyboard.press('Escape'), () => page.mouse.click(6, 6)]) {
+        await page.evaluate(() => window.showEditorNotice('editor', { force: true }));
+        await expect(page.locator('#editor-notice-editor')).toBeVisible();
+        await leave();
+        await expect(page.locator('#editor-notice-editor')).toHaveCount(0);
+        await page.waitForTimeout(300);
+        await expect(page.locator('#editor-tutorial')).toHaveCount(0);
+    }
 });
 
 test('a hostile guide paragraph is escaped in the TOUR body too', async ({ page }) => {

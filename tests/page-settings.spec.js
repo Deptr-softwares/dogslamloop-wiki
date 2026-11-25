@@ -414,9 +414,9 @@ test('with the colour picker open, Config still fits the screen and every picker
   await page.locator('[data-word-text]').fill('Domain');
   await page.click('[data-word-swatch]');
 
-  const title = await box(page.locator('#editor-config-modal .auth-header'));
+  const title = await box(page.locator('#editor-config-modal .dialog-header'));
   expect(title.top, 'the Config title is on screen').toBeGreaterThanOrEqual(0);
-  const modal = await box(page.locator('#editor-config-modal .config-modal-box'));
+  const modal = await box(page.locator('#editor-config-modal'));
   expect(modal.bottom).toBeLessThanOrEqual(700);
 
   // The last control in the picker, scrolled to the way a person would, and
