@@ -12,6 +12,7 @@
 // unusable bugs past a render-only test, so interaction coverage is the
 // standard here now.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const ROSTER = [
   { user_id: 'u-admin', email: 'owner@example.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
@@ -81,7 +82,7 @@ test('changing a role calls the RPC with the right email and role', async ({ pag
 
   const row = page.locator('.personnel-row').filter({ hasText: 'reviewer@example.com' });
   // 'contributor' was retired in v0.11 - it gated nothing.
-  await row.locator('.personnel-role-select').selectOption('trusted_editor');
+  await pickOption(row.locator('.personnel-role-select'), 'trusted_editor');
   await row.locator('.personnel-apply-btn').click();
 
   // adminConfirm gates the write.
@@ -92,6 +93,21 @@ test('changing a role calls the RPC with the right email and role', async ({ pag
 
   const calls = await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'assign_role_by_email'));
   expect(calls[0].params).toEqual({ target_email: 'reviewer@example.com', assigned_role: 'trusted_editor' });
+});
+
+// Every dropdown on the People tools is named for a screen reader: the select it
+// stands for is hidden, and four of them have no label on screen.
+test('every dropdown in People has a name', async ({ page }) => {
+  await mockOwner(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+  await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
+  await expect(page.locator('.personnel-row').first()).toBeVisible();
+  const names = await page.evaluate(() => [...document.querySelectorAll('.owner-group[data-group="people"] .manga-select-trigger')]
+    .map(b => b.getAttribute('aria-label') || (b.getAttribute('aria-labelledby') || '').split(' ')
+      .map(id => (document.getElementById(id) || {}).textContent || '').join(' ').trim()));
+  expect(names.length).toBeGreaterThan(2);
+  expect(names.filter(n => !n)).toEqual([]);
+  expect(names).toContain('Role');
 });
 
 test('cancelling the confirm makes no change', async ({ page }) => {
@@ -128,6 +144,8 @@ test('the only owner cannot demote themselves out of the site', async ({ page })
   const adminRow = page.locator('.personnel-row').filter({ hasText: 'owner@example.com' });
   await expect(adminRow.locator('.personnel-apply-btn')).toBeDisabled();
   await expect(adminRow.locator('.personnel-role-select')).toBeDisabled();
+  // The dropdown a person sees is the site's, drawn beside the hidden select.
+  await expect(adminRow.locator('.manga-select-trigger')).toBeDisabled();
 
   // A second admin makes demotion safe again.
   await mockOwner(page, {
@@ -276,7 +294,7 @@ test('raising a page to admin-only writes required_role, not just the page id', 
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   const row = page.locator('#permissions-list .personnel-row').filter({ hasText: 'template' });
-  await row.locator('.personnel-role-select').selectOption('admin');
+  await pickOption(row.locator('.personnel-role-select'), 'admin');
   await row.locator('.permission-apply-btn').click();
   await page.locator('#btn-admin-confirm-ok').click();
   await expect.poll(() => page.evaluate(() => window.__writes.length)).toBe(1);

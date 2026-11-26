@@ -3,6 +3,35 @@
 // stands for is hidden, so Tab never reached a site dropdown anywhere: on the
 // roster, 80 presses of Tab went past the Archetype filter.
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
+
+// One dropdown on every page (v1.3): the owner tools, the post editor and Create
+// Tier List's maker opened the browser's own list until then.
+test('every select a page or script writes is drawn as the site dropdown', () => {
+  const ROOT = path.join(__dirname, '..');
+  const files = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) { if (e.name !== 'vendor') walk(p); }
+      else if (e.name.endsWith('.js')) files.push(p);
+    }
+  };
+  walk(path.join(ROOT, 'js'));
+  for (const f of fs.readdirSync(ROOT)) if (f.endsWith('.html')) files.push(path.join(ROOT, f));
+  // Given editor-select by tier-editor.js once its roster is in, so the list is drawn full.
+  const LATER = ['id="tier-copy-character"'];
+  const native = [];
+  for (const file of files) {
+    for (const [tag] of fs.readFileSync(file, 'utf8').matchAll(/<select\s[^>]*>/g)) {
+      if (/\beditor-select\b/.test(tag) || LATER.some(mark => tag.includes(mark))) continue;
+      native.push(`${path.relative(ROOT, file)}: ${tag.slice(0, 90)}`);
+    }
+  }
+  expect(files.length).toBeGreaterThan(50);
+  expect(native).toEqual([]);
+});
 
 const ROSTER_NAV = {
   Characters: [
@@ -237,6 +266,13 @@ test('options a page adds after the first draw show, and a disabled select\'s bu
   await button.click();
   await expect(listOf(button).locator('.manga-option')).toHaveText(['One', 'Two']);
   await page.keyboard.press('Escape');
+
+  // A value set from code fires no event, and the button follows it anyway.
+  await page.evaluate(() => { document.getElementById('test-dropdown').value = 'two'; });
+  await expect(button).toHaveText('Two');
+  await page.evaluate(() => { document.getElementById('test-dropdown').selectedIndex = 0; });
+  await expect(button).toHaveText('One');
+  expect(await page.evaluate(() => window.dropdownChanges)).toEqual([]);
 
   await page.evaluate(() => { document.getElementById('test-dropdown').disabled = true; });
   await expect(button).toBeDisabled();

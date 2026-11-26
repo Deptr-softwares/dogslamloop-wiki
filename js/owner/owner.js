@@ -49,10 +49,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     populateDirectoryOptions();
 
-    ['new-page-name', 'new-page-type', 'new-page-directory'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('input', updateNewPagePreview);
-    });
+    const nameEl = document.getElementById('new-page-name');
+    if (nameEl) nameEl.addEventListener('input', updateNewPagePreview);
+    // The site's dropdown dispatches change, never input. The type's own change
+    // listener below redraws the preview too.
+    const directoryEl = document.getElementById('new-page-directory');
+    if (directoryEl) directoryEl.addEventListener('change', updateNewPagePreview);
 
     const typeEl = document.getElementById('new-page-type');
     if (typeEl) {
@@ -203,7 +205,7 @@ function personnelRowHTML(person) {
                 <span class="personnel-email">${window.escapeHtml(person.email)}${isSelf ? ' <span class="personnel-self">(you)</span>' : ''}</span>
             </div>
             <div class="personnel-row-actions">
-                <select class="editor-input personnel-role-select" data-email="${window.escapeHtml(person.email)}" ${isLastAdmin ? 'disabled' : ''}>
+                <select class="editor-input personnel-role-select editor-select" aria-label="Role" data-email="${window.escapeHtml(person.email)}" ${isLastAdmin ? 'disabled' : ''}>
                     ${roleOptionsHTML(person.role)}
                 </select>
                 <button class="btn-sys btn-sys-regular personnel-apply-btn"
@@ -843,7 +845,7 @@ async function loadPagePermissions() {
                 <span class="personnel-email">${window.escapeHtml(row.page_id)}</span>
             </div>
             <div class="personnel-row-actions">
-                <select class="editor-input personnel-role-select" data-page="${window.escapeHtml(row.page_id)}">
+                <select class="editor-input personnel-role-select editor-select" aria-label="Required role" data-page="${window.escapeHtml(row.page_id)}">
                     ${Object.entries(PERMISSION_ROLE_LABELS).map(([value, label]) =>
                         `<option value="${window.escapeHtml(value)}" ${value === row.required_role ? 'selected' : ''}>${window.escapeHtml(label)}</option>`
                     ).join('')}

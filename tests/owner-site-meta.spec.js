@@ -14,6 +14,7 @@
 // dashboard's title turned up blank days later.
 
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const META_ROW = {
     id: true,
@@ -139,12 +140,12 @@ test('switching dashboards swaps the fields and keeps unsaved edits', async ({ p
     await openOwner(page);
 
     await page.fill('#meta-hub-title', 'Edited But Not Saved');
-    await page.selectOption('#meta-hub-select', 'character-hub');
+    await pickOption(page.locator('#meta-hub-select'), 'character-hub');
     await expect(page.locator('#meta-hub-title')).toHaveValue('Character Dashboard');
     await expect(page.locator('.meta-heading-input')).toHaveCount(1);
 
     // Back again: the pending edit must still be there.
-    await page.selectOption('#meta-hub-select', 'main-hub');
+    await pickOption(page.locator('#meta-hub-select'), 'main-hub');
     await expect(page.locator('#meta-hub-title')).toHaveValue('Edited But Not Saved');
 });
 
@@ -152,7 +153,7 @@ test('a dashboard with no headings says so instead of rendering nothing', async 
     await mockOwner(page);
     await openOwner(page);
 
-    await page.selectOption('#meta-hub-select', 'systems-hub');
+    await pickOption(page.locator('#meta-hub-select'), 'systems-hub');
     await expect(page.locator('#meta-hub-headings')).toContainText('no editable headings');
 });
 

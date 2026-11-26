@@ -541,8 +541,6 @@ window.setDropdownOpen = function (wrapper, open) {
  * and Tab close it.
  * @since v0.4, changed v1.3
  * @watch it dispatches change, never input
- * @watch the button's text follows a value set from code only when the code
- *   dispatches change; new options are seen at the next open
  */
 window.initializeMangaSelects = function() {
     document.querySelectorAll('select.editor-select:not(.manga-initialized)').forEach(select => {
@@ -597,8 +595,16 @@ window.initializeMangaSelects = function() {
         giveDropdownIds(wrapper);
         showDropdownValue(wrapper);
 
-        // Follows a value set from code with a change event, options a page fills in
+        // Follows a value set from code, which fires no event, options a page fills in
         // later, and the select being disabled.
+        for (const prop of ['value', 'selectedIndex']) {
+            const real = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, prop);
+            Object.defineProperty(select, prop, {
+                configurable: true,
+                get() { return real.get.call(this); },
+                set(v) { real.set.call(this, v); showDropdownValue(wrapper); },
+            });
+        }
         select.addEventListener('change', () => showDropdownValue(wrapper));
         new MutationObserver(() => showDropdownValue(wrapper))
             .observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });

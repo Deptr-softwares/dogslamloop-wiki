@@ -5,6 +5,7 @@
 // The fake row here keeps what each save writes, as the table does, which is the
 // only way a test can see one save undo another.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const ROW = {
     id: true,
@@ -84,7 +85,7 @@ async function addStep(page) {
 }
 
 async function retitleSideDashboard(page) {
-    await page.selectOption('#meta-hub-select', 'systems-hub');
+    await pickOption(page.locator('#meta-hub-select'), 'systems-hub');
     await page.fill('#meta-hub-title', 'Systems Hub');
     await page.click('#btn-save-site-meta');
     await expect(page.locator('#site-meta-results')).toContainText('Saved');

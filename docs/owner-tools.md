@@ -36,6 +36,7 @@ owner.html, the owner's own page: who holds which role and capability, the page 
 
 - The gate decides what to show. Every tool's RPC or RLS checks the caller itself, with `is_owner()` (`tests/owner-role.spec.js`). The gate is owner.js's own copy, not admin-core.js's.
 - A registry change, and a hub's title and description, reach the site at the next regeneration run; the rest of `site_meta` is read at runtime.
+- Every dropdown here is the site's, which dispatches `change` and never `input`, so a tool listens for `change`. A test picks an option with `pickOption` (`tests/helpers/site-dropdown.js`): Playwright's `selectOption` cannot reach the hidden select.
 - A character page's category is always "Characters": the roster, the systems directory and the sidebar's colours read that key by name (`tests/owner-character-category.spec.js`).
 - Garbage collection works by elimination, so a failed or short read looks like "nothing uses this file". Every read is checked and paged to the end, and scanning and deleting are separate clicks (`tests/media-gc-guard.spec.js`).
 - The broken-media report runs on demand and never in a test or CI: it reads owner content.
