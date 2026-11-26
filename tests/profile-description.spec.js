@@ -134,14 +134,17 @@ test('the profile card ends in the quote, Trivia and Character Navigation', asyn
   await expect(facts.nth(0)).toHaveText('First fact');
   await expect(facts.nth(0).locator('strong.sc-b'), 'format tags in a fact').toHaveText('fact');
   const term = facts.nth(1).locator('.profile-trivia-term');
-  const tip = term.locator('.profile-trivia-tip');
+  const tip = page.locator('#wiki-frame-tooltip');
   await expect(term).toBeVisible();
   await expect(tip).toBeHidden();
   expect(await term.evaluate(t => t.firstChild.textContent)).toBe('Crazy fact');
+  // Only the label shows in the line; the text waits for the tooltip.
+  await expect(term).toHaveText('Crazy fact', { useInnerText: true });
   const underline = await term.evaluate(t => getComputedStyle(t).textDecorationLine);
   expect(underline, 'the label is marked as having more').toContain('underline');
   await term.hover();
-  await expect(tip).toBeVisible();
+  // At once, as a fact is content rather than a hint.
+  await expect(tip).toBeVisible({ timeout: 300 });
   await expect(tip).toHaveText('Second detail');
   await expect(tip.locator('strong.sc-b'), 'format tags in the tooltip').toHaveText('detail');
 
@@ -228,7 +231,7 @@ test.describe('on a touch screen', () => {
     await expect(section(page)).toBeVisible({ timeout: 20000 });
 
     const term = section(page).locator('.profile-trivia-term');
-    const tip = term.locator('.profile-trivia-tip');
+    const tip = page.locator('#wiki-frame-tooltip');
     await expect(tip).toBeHidden();
     await term.tap();
     await expect(tip).toBeVisible();
@@ -245,7 +248,7 @@ test('the keyboard reaches a trivia tooltip as well', async ({ page }) => {
   await expect(section(page)).toBeVisible({ timeout: 20000 });
 
   const term = section(page).locator('.profile-trivia-term');
-  const tip = term.locator('.profile-trivia-tip');
+  const tip = page.locator('#wiki-frame-tooltip');
   // The pointer is nowhere near it, so only focus can open it.
   await page.mouse.move(0, 0);
   await term.focus();

@@ -215,34 +215,27 @@ window.initBlockedMediaGuard = async function() {
     return observer;
 };
 
-// The shared tooltip, for callouts (page_render.js) and Frame Track phases
-// (skill_card.js), so both look the same.
+// The shared tooltip: one element for every tooltip on the page (callouts, Frame
+// Track phases, accolades, tier list portraits, in-page links and every data-tip
+// hint), pinned above what it explains, or below it when there is no room above.
 let frameTooltip = null;
+let tooltipOwner = null;   // what it explains while it shows
+let describedByTip = null; // the element whose aria-describedby the tooltip set
+let tooltipTimer = null;   // a hint's wait, or the moment before it hides
 
 window.initTooltip = function() {
+    if (frameTooltip) return;
+    frameTooltip = document.getElementById('wiki-frame-tooltip');
     if (!frameTooltip) {
-        frameTooltip = document.getElementById('wiki-frame-tooltip');
-        if (!frameTooltip) {
-            frameTooltip = document.createElement('div');
-            frameTooltip.id = 'wiki-frame-tooltip';
-
-            frameTooltip.style.position = 'fixed';
-            frameTooltip.style.zIndex = '100000';
-            frameTooltip.style.pointerEvents = 'none'; // Prevents it from stealing the hover cursor
-            frameTooltip.style.background = 'var(--bg-main, #050505)';
-            frameTooltip.style.border = '2px solid var(--border-color, #333)';
-            frameTooltip.style.padding = '0.75rem 1rem';
-            frameTooltip.style.boxShadow = '6px 6px 0px var(--manga-shadow, #000)';
-            // min() with the viewport, so a long callout is never wider than a narrow phone.
-            frameTooltip.style.maxWidth = 'min(320px, calc(100vw - 2rem))';
-            frameTooltip.style.color = 'var(--text-white, #fff)';
-            frameTooltip.style.fontFamily = 'var(--text-mono)';
-            frameTooltip.style.fontSize = '0.75rem';
-            frameTooltip.style.display = 'none';
-
-            document.body.appendChild(frameTooltip);
-        }
+        frameTooltip = document.createElement('div');
+        frameTooltip.id = 'wiki-frame-tooltip';
+        document.body.appendChild(frameTooltip);
     }
+    frameTooltip.setAttribute('role', 'tooltip');
+    frameTooltip.hidden = true;
+    // The pointer can move onto it to read a long one.
+    frameTooltip.addEventListener('mouseenter', () => clearTimeout(tooltipTimer));
+    frameTooltip.addEventListener('mouseleave', hideTooltipSoon);
 };
 
 // Puts the tooltip in the open box that holds node, or on the page: a box is in the
@@ -252,103 +245,138 @@ function hostTooltipFor(node) {
     if (frameTooltip.parentNode !== host) host.appendChild(frameTooltip);
 }
 
-// Positions the shared tooltip near (x, y), flipping away from the right/bottom
-// viewport edges. Shared by the mouse and touch bindings below.
-function positionTooltip(x, y) {
+// Centred above the anchor, below it when there is no room above, and kept on
+// screen on a narrow phone.
+function placeTooltip(anchor) {
+    const gap = 8;
+    const edge = 8;
+    const a = anchor.getBoundingClientRect();
     const box = frameTooltip.getBoundingClientRect();
-    const margin = 8; // keeps it off the exact viewport edge
-
-    if (x + 15 + box.width > window.innerWidth) x -= box.width + 15; else x += 15;
-    if (y + 15 + box.height > window.innerHeight) y -= box.height + 15; else y += 15;
-
-    // The last resort on a narrow phone: pinned inside the viewport, however the flip
-    // landed.
-    x = Math.min(Math.max(x, margin), window.innerWidth - box.width - margin);
-    y = Math.min(Math.max(y, margin), window.innerHeight - box.height - margin);
-
+    let x = a.left + a.width / 2 - box.width / 2;
+    let y = a.top - box.height - gap;
+    if (y < edge) y = a.bottom + gap;
+    x = Math.min(Math.max(x, edge), window.innerWidth - box.width - edge);
+    y = Math.min(Math.max(y, edge), window.innerHeight - box.height - edge);
     frameTooltip.style.left = x + 'px';
     frameTooltip.style.top = y + 'px';
 }
 
-// Tapping outside whichever element currently owns the tooltip closes it.
-// Registered once (lazily, alongside the tooltip element itself) rather than
-// per-bindTooltip call, since bindTooltip runs once per phase/callout.
-let tooltipOwner = null;
-function closeTooltipIfOutside(target) {
-    if (frameTooltip && tooltipOwner && !tooltipOwner.contains(target)) {
-        frameTooltip.style.display = 'none';
-        tooltipOwner = null;
-    }
-}
-
 /**
- * Shows titleHtml in the shared tooltip on hover (desktop) or a tap (touch, which
- * fires no mouse events).
- * @watch titleHtml is HTML: escape what goes into it
+ * Shows the shared tooltip pinned to anchor: content is HTML, or with text, plain
+ * text. While it shows, the anchor is described by it for a screen reader.
+ * @since v1.3
+ * @watch HTML content is put in as it is: escape what goes into it
  */
-window.bindTooltip = function(element, titleHtml) {
-    element.addEventListener('mouseenter', () => {
-        window.initTooltip();
-        hostTooltipFor(element);
-        frameTooltip.innerHTML = titleHtml;
-        frameTooltip.style.display = 'block';
-    });
-
-    element.addEventListener('mousemove', (e) => {
-        if (frameTooltip) positionTooltip(e.clientX, e.clientY);
-    });
-
-    element.addEventListener('mouseleave', () => {
-        if (frameTooltip) frameTooltip.style.display = 'none';
-    });
-
-    element.addEventListener('touchend', (e) => {
-        // Prevents the browser's synthetic mouse/click compatibility events
-        // from double-firing this same toggle right after touchend.
-        e.preventDefault();
-        window.initTooltip();
-
-        if (!document._tooltipOutsideTapBound) {
-            document.addEventListener('touchstart', (ev) => closeTooltipIfOutside(ev.target));
-            document._tooltipOutsideTapBound = true;
-        }
-
-        if (tooltipOwner === element && frameTooltip.style.display === 'block') {
-            frameTooltip.style.display = 'none';
-            tooltipOwner = null;
-            return;
-        }
-
-        hostTooltipFor(element);
-        frameTooltip.innerHTML = titleHtml;
-        frameTooltip.style.display = 'block';
-        tooltipOwner = element;
-
-        const touch = e.changedTouches[0];
-        positionTooltip(touch.clientX, touch.clientY);
-    });
-};
-
-/**
- * The same tooltip for a delegated hover with no element bound: in-page links are
- * drawn again with the text around them, so a binding would be lost.
- */
-window.showTooltipAt = function(html, x, y) {
+window.showTooltipFor = function(anchor, content, { text = false } = {}) {
     window.initTooltip();
-    // What is under the pointer, past the tooltip, which lets the pointer through.
-    hostTooltipFor(document.elementFromPoint(x, y));
-    frameTooltip.innerHTML = html;
-    frameTooltip.style.display = 'block';
-    positionTooltip(x, y);
-};
-
-window.moveTooltipTo = function(x, y) {
-    if (frameTooltip && frameTooltip.style.display === 'block') positionTooltip(x, y);
+    clearTimeout(tooltipTimer);
+    if (describedByTip && describedByTip !== anchor) describedByTip.removeAttribute('aria-describedby');
+    hostTooltipFor(anchor);
+    if (text) frameTooltip.textContent = content;
+    else frameTooltip.innerHTML = content;
+    frameTooltip.hidden = false;
+    placeTooltip(anchor);
+    tooltipOwner = anchor;
+    if (!anchor.hasAttribute('aria-describedby')) {
+        anchor.setAttribute('aria-describedby', frameTooltip.id);
+        describedByTip = anchor;
+    }
 };
 
 window.hideTooltip = function() {
-    if (frameTooltip) frameTooltip.style.display = 'none';
+    clearTimeout(tooltipTimer);
+    if (frameTooltip) frameTooltip.hidden = true;
+    if (describedByTip) describedByTip.removeAttribute('aria-describedby');
+    describedByTip = null;
+    tooltipOwner = null;
 };
+
+// A moment's grace, so the pointer can cross the gap onto the tooltip.
+function hideTooltipSoon() {
+    clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(window.hideTooltip, 150);
+}
+
+/**
+ * Shows titleHtml in the shared tooltip on hover, on keyboard focus and on a tap.
+ * An element a keyboard cannot reach is given tabindex 0, since a tooltip that
+ * only shows on hover is invisible without a mouse.
+ * @watch titleHtml is HTML: escape what goes into it
+ */
+window.bindTooltip = function(element, titleHtml) {
+    if (element.tabIndex < 0 && !element.hasAttribute('tabindex')) element.tabIndex = 0;
+    element.addEventListener('mouseenter', () => window.showTooltipFor(element, titleHtml));
+    element.addEventListener('mouseleave', hideTooltipSoon);
+    element.addEventListener('focus', () => {
+        if (element.matches(':focus-visible')) window.showTooltipFor(element, titleHtml);
+    });
+    element.addEventListener('blur', () => { if (tooltipOwner === element) window.hideTooltip(); });
+    element.addEventListener('touchend', (e) => {
+        // The browser's mouse events after a touch would toggle it straight back.
+        e.preventDefault();
+        if (tooltipOwner === element && !frameTooltip.hidden) window.hideTooltip();
+        else window.showTooltipFor(element, titleHtml);
+    });
+};
+
+// Hints: an element with data-tip shows its text, or the HTML of its hidden
+// [data-tip-body] child as the page drew it, format tags and all. After half a
+// second's hover, or at once with data-tip-now; on keyboard focus; and on a tap when
+// it is not a control (a tap on a button presses it). Delegated, so an element
+// drawn again keeps its hint.
+const TIP_HOLDER = '[data-tip]';
+const tipHolder = (node) => (node && node.closest ? node.closest(TIP_HOLDER) : null);
+const CONTROL = 'a[href], button, input, select, textarea, summary, label';
+const tipBody = (el) => el.querySelector(':scope > [data-tip-body]');
+const hasHint = (el) => !!(el.dataset.tip || tipBody(el));
+const showHint = (el) => {
+    const body = tipBody(el);
+    if (body) window.showTooltipFor(el, body.innerHTML);
+    else window.showTooltipFor(el, el.dataset.tip, { text: true });
+};
+
+// Pointer events, not mouse events: a tap fires the mouse events too, and would
+// show a button's hint after it was pressed. A tap is the click listener's.
+document.addEventListener('pointerover', (e) => {
+    const el = tipHolder(e.target);
+    if (e.pointerType === 'touch' || !el || el === tipHolder(e.relatedTarget) || !hasHint(el)) return;
+    clearTimeout(tooltipTimer);
+    if (el.hasAttribute('data-tip-now')) showHint(el);
+    else tooltipTimer = setTimeout(() => showHint(el), 500);
+});
+document.addEventListener('pointerout', (e) => {
+    const el = tipHolder(e.target);
+    if (e.pointerType === 'touch' || !el || el === tipHolder(e.relatedTarget)) return;
+    if (tooltipOwner === el) hideTooltipSoon();
+    else clearTimeout(tooltipTimer);
+});
+document.addEventListener('focusin', (e) => {
+    const el = tipHolder(e.target);
+    if (el && el === e.target && hasHint(el) && el.matches(':focus-visible')) showHint(el);
+});
+document.addEventListener('focusout', (e) => {
+    if (tooltipOwner && tooltipOwner === tipHolder(e.target)) window.hideTooltip();
+});
+document.addEventListener('click', (e) => {
+    const el = tipHolder(e.target);
+    if (el && hasHint(el) && !el.matches(CONTROL) && tooltipOwner !== el) showHint(el);
+});
+
+// A press anywhere but on the tooltip or what it explains closes it, as a tap does
+// on a phone.
+document.addEventListener('pointerdown', (e) => {
+    if (!tooltipOwner || frameTooltip.contains(e.target) || tooltipOwner.contains(e.target)) return;
+    window.hideTooltip();
+}, true);
+
+// Escape closes the tooltip and only the tooltip, as it closes an open dropdown
+// before the box it is in.
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !frameTooltip || frameTooltip.hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.hideTooltip();
+}, true);
 
 // Math: KaTeX is fetched the first time a text node holds a $...$ pair, the only
 // text auto-render can turn into math, so a page without math never fetches it.

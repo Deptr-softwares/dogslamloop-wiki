@@ -1,5 +1,5 @@
-/* Modals: the site's dialog (every box), the sign-in and profile boxes' parts, and
-   badges.
+/* Modals: the site's dialog (every box), the tooltip, the sign-in and profile
+   boxes' parts, and badges.
    Since v0.4.
    Watch: every page loads this file.
    See: docs/looks.md */
@@ -107,6 +107,23 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
 @keyframes modal-fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* The site's tooltip (window.showTooltipFor, site_media.js): one element, pinned
+   above what it explains or below it, moved into an open box when what it explains
+   is in one.
+   Since v0.3, changed v1.3. */
+#wiki-frame-tooltip {
+    position: fixed;
+    z-index: 100000;
+    max-width: min(320px, calc(100vw - 2rem));
+    padding: 0.75rem 1rem;
+    background: var(--bg-main, #050505);
+    border: 2px solid var(--border-color, #333);
+    box-shadow: 6px 6px 0px var(--manga-shadow, #000);
+    color: var(--text-white, #fff);
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
 }
 
 /* Auth modal inline feedback (error/success message) */

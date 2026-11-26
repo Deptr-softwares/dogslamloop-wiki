@@ -1081,21 +1081,29 @@ function jumpLinkDestination(link) {
 
 const jumpLinkAt = (node) => (node && node.closest ? node.closest('a.wiki-link-jump') : null);
 
+function showJumpDestination(link) {
+    const where = jumpLinkDestination(link);
+    if (where && typeof window.showTooltipFor === 'function') window.showTooltipFor(link, where, { text: true });
+}
+
 document.addEventListener('mouseover', (e) => {
     const link = jumpLinkAt(e.target);
-    if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.showTooltipAt !== 'function') return;
-    const where = jumpLinkDestination(link);
-    if (where) window.showTooltipAt(window.escapeHtml(where), e.clientX, e.clientY);
-});
-
-document.addEventListener('mousemove', (e) => {
-    if (jumpLinkAt(e.target) && typeof window.moveTooltipTo === 'function') window.moveTooltipTo(e.clientX, e.clientY);
+    if (link && link !== jumpLinkAt(e.relatedTarget)) showJumpDestination(link);
 });
 
 document.addEventListener('mouseout', (e) => {
     const link = jumpLinkAt(e.target);
     if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.hideTooltip !== 'function') return;
     window.hideTooltip();
+});
+
+// The keyboard sees where a link goes too.
+document.addEventListener('focusin', (e) => {
+    const link = jumpLinkAt(e.target);
+    if (link && link.matches(':focus-visible')) showJumpDestination(link);
+});
+document.addEventListener('focusout', (e) => {
+    if (jumpLinkAt(e.target) && typeof window.hideTooltip === 'function') window.hideTooltip();
 });
 
 /** Adds an alert box (wip, ea and the like) to a container. */

@@ -1581,15 +1581,16 @@ function modeScopedTabIsDrawable(section, pageId) {
     return false;
 }
 
-// "Label | text": the label underlined, the text on hover or on a tap (focus). Only
-// the first "|" splits; a line empty on one side of it shows as written.
+// "Label | text": the label underlined, the text in the site's tooltip on hover, a
+// tap or focus. Only the first "|" splits; a line empty on one side of it shows as
+// written. The text sits hidden in the label, so the format tags reach it.
 function triviaItemHTML(line) {
     const at = line.indexOf('|');
     const label = at < 0 ? '' : line.slice(0, at).trim();
     const tip = at < 0 ? '' : line.slice(at + 1).trim();
     if (!label || !tip) return `<li>${window.escapeHtmlKeepBreaks(line)}</li>`;
-    return `<li><span class="profile-trivia-term" tabindex="0">${window.escapeHtmlKeepBreaks(label)}`
-        + `<span class="profile-trivia-tip" role="tooltip">${window.escapeHtmlKeepBreaks(tip)}</span></span></li>`;
+    return `<li><span class="profile-trivia-term" tabindex="0" data-tip data-tip-now>${window.escapeHtmlKeepBreaks(label)}`
+        + `<span class="profile-trivia-tip" data-tip-body hidden>${window.escapeHtmlKeepBreaks(tip)}</span></span></li>`;
 }
 
 /**

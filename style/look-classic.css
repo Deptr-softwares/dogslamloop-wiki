@@ -233,7 +233,7 @@ html.look-classic .sbox-tabs { border-bottom-width: 1px; }
 html.look-classic .sbox-tab { font-size: 0.8rem; letter-spacing: 0; }
 html.look-classic .sbox-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
 /* The hover tooltip draws its own border inline (site_media.js). */
-html.look-classic #wiki-frame-tooltip { border-width: 1px !important; }
+html.look-classic #wiki-frame-tooltip { border-width: 1px; }
 
 /* The site's dropdown: a plain box like a browser's own. */
 html.look-classic .manga-select-trigger { border-color: var(--border-color); background: var(--bg-secondary); box-shadow: none; }
