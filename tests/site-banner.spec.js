@@ -4,23 +4,18 @@
 // shadow), the rescued page's dashed line, the Playground's boxed line and the
 // Overseer's dashed batch line. Their own specs check the other three
 // (page-rescue, editor-playground, merged-ticket-diff); this one the page alerts.
-const fs = require('fs');
-const path = require('path');
 const { test, expect } = require('@playwright/test');
 
-// The first character in the live list, served with all three alert flags on, so
-// no test hangs on which page the owner has flagged.
-function flaggedNavigation() {
-  const nav = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
-  for (const items of Object.values(nav)) {
-    const entry = items.find(i => i.cms_config && i.cms_config.pageId && /^characters\//.test(i.url || '')
-      && fs.existsSync(path.join(__dirname, '..', i.url)));
-    if (entry) {
-      Object.assign(entry, { isWip: true, isEA: true, isMissingMedia: true });
-      return { nav, url: '/' + entry.url };
-    }
-  }
-  throw new Error('no character page in data/navigation.json');
+// The page's own list, with all three alert flags on every page as it arrives, so no
+// test hangs on which page the owner has flagged. Matched with or without the ?v=
+// stamp the page asks for it with.
+function flagEveryPage(page) {
+  return page.route(/\/data\/navigation\.json(\?|$)/, async (route) => {
+    const response = await route.fetch();
+    const nav = await response.json();
+    Object.values(nav).flat().forEach(entry => Object.assign(entry, { isWip: true, isEA: true, isMissingMedia: true }));
+    await route.fulfill({ response, json: nav });
+  });
 }
 
 // A colour as the browser computes it.
@@ -36,10 +31,8 @@ const resolve = (page, colour) => page.evaluate((c) => {
 test('the page alerts are the site banner: a coloured bar on the left, the title in its colour', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  const { nav, url } = flaggedNavigation();
-  // Matched with or without the ?v= stamp the page asks for it with.
-  await page.route(/\/data\/navigation\.json(\?|$)/, route => route.fulfill({ contentType: 'application/json', body: JSON.stringify(nav) }));
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await flagEveryPage(page);
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
 
   const banners = page.locator('#character-alerts-container .site-banner');
   await expect(banners).toHaveCount(3, { timeout: 30000 });
