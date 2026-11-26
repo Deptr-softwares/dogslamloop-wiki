@@ -104,6 +104,35 @@ test('a panel under a mouse still pops', async ({ browser }) => {
   await context.close();
 });
 
+// --- Stacked paddings on a phone ----------------------------------------------
+// One page of each kind that draws panels. The phone padding sat in Layout.css,
+// so on the kinds that load Cards.css after it, the desktop padding won.
+const PANEL_PAGES = [
+  '/index.html', '/characters/Boomcat/index.html', '/systems/fundamentals/index.html', '/others/emotes/index.html',
+  '/tools/create-tier-list/index.html', '/404.html', '/systems/index.html', '/systems/tierlist/index.html',
+  '/systems/updatelog/index.html', '/blog.html', '/forum.html', '/history.html', '/recent-changes.html',
+  '/search.html', '/privacy-policy.html', '/submissions.html',
+];
+const PANEL_PADDING = `
+  const panel = document.createElement('section');
+  panel.className = 'wiki-section';
+  host.appendChild(panel);
+  return getComputedStyle(panel).paddingLeft;`;
+
+test('on a phone a panel has 16px of padding on every kind of page, and 24px on a desktop', async ({ browser }) => {
+  const phone = {};
+  const desktop = {};
+  for (const url of PANEL_PAGES) {
+    for (const [device, out] of [[PHONE, phone], [DESKTOP, desktop]]) {
+      const { context, page } = await open(browser, device, url);
+      out[url] = await withMarkup(page, '', PANEL_PADDING);
+      await context.close();
+    }
+  }
+  expect(phone).toEqual(Object.fromEntries(PANEL_PAGES.map(url => [url, '16px'])));
+  expect(desktop).toEqual(Object.fromEntries(PANEL_PAGES.map(url => [url, '24px'])));
+});
+
 // --- "Tables should just be able to scroll horizontally within its own box" ---
 
 const SENTENCE = 'A long sentence about how this tech is done, when it works and what punishes it. '.repeat(4);

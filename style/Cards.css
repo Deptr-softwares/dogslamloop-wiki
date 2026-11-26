@@ -30,9 +30,12 @@
 
 /* Large content panels */
 .wiki-section {
-    padding: 1.5rem;
     margin-bottom: 1.5rem;
     box-shadow: 6px 6px 0px var(--manga-shadow);
+}
+/* A phone's panel padding is Layout.css's, which some pages load before this sheet. */
+@media not all and (max-width: 640px) {
+    .wiki-section { padding: 1.5rem; }
 }
 
 /* A quieter hover for the large sections. */
