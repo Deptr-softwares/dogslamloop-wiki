@@ -102,7 +102,7 @@ test('the frame data editor says Micro Variant everywhere it means one', async (
   await page.getByRole('button', { name: 'Create Sub-Micro Variants' }).click();
   await expect(page.locator('.daw-variant-wrapper .sub-tabs')).toHaveCount(2);
   expect(await wordsSaying(page, OLD_NAME), 'a new Sub-Micro Variant').toEqual([]);
-  await page.locator('.daw-variant-wrapper .sub-tabs').first().getByRole('button', { name: 'New Micro Variant' }).click();
+  await page.locator('.daw-variant-wrapper .sub-tabs').first().getByRole('tab', { name: 'New Micro Variant' }).click();
   await expect(page.locator('.daw-branch-title')).toHaveText('Micro Variant Branch');
   await expect(page.locator('.daw-branch-hint')).toHaveText('Select a Sub-Micro Variant from the tabs above to view or edit its timeline.');
   expect(await wordsSaying(page, OLD_NAME), 'a branch').toEqual([]);

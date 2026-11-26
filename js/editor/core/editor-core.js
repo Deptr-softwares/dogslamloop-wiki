@@ -937,7 +937,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let formHtml = '';
 
                 const tabsHtml = `
-                    <div class="sub-tabs qa-tabs-row">
+                    <div class="sub-tabs qa-tabs-row" role="tablist" aria-label="Form">
                         <button type="button" class="sub-tab qa-tab-btn${currentForm === 'short' ? ' is-active' : ''}" id="qa-tab-short">Short</button>
                         <button type="button" class="sub-tab qa-tab-btn${currentForm === 'long' ? ' is-active' : ''}" id="qa-tab-long">Long</button>
                         <button type="button" class="sub-tab qa-tab-btn${currentForm === 'technical' ? ' is-active' : ''}" id="qa-tab-technical">Technical</button>

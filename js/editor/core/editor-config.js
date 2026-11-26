@@ -843,7 +843,7 @@
         box.innerHTML = `
                 <div class="dialog-header"><h3 id="editor-config-title">CONFIG</h3></div>
                 <div class="dialog-body config-body">
-                    <div class="sub-tabs config-tabs" role="tablist">
+                    <div class="sub-tabs config-tabs" role="tablist" aria-label="Config">
                         <button type="button" class="sub-tab is-active" role="tab" aria-selected="true" data-config-tab="editor">Editor</button>
                         <button type="button" class="sub-tab" role="tab" aria-selected="false" data-config-tab="actions">Actions</button>
                         ${withPage ? '<button type="button" class="sub-tab" role="tab" aria-selected="false" data-config-tab="page">Page</button>' : ''}

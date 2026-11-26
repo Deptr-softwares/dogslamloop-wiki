@@ -162,7 +162,7 @@ ${withToc ? `
                     </button>
                 </div>
 
-                <nav class="character-nav">${navButtons}</nav>
+                <nav class="character-nav" role="tablist" aria-label="Page tabs">${navButtons}</nav>
             </header>
 
 ${tabDivs}

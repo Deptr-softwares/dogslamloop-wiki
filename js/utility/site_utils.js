@@ -2,8 +2,8 @@
  * What every other file leans on, loaded on every page right after the Supabase
  * library: the reader's Site Settings, paths and page addresses, the Supabase client
  * and its local-only override, the escapers, the role ladder, the system alert, the
- * dropdowns, the dialog engine, the toasts and the banner. site_data.js, site_media.js and site_account.js
- * follow it, in that order.
+ * dropdowns, the dialog engine, the toasts, the banner and the tab strips' roles and keys.
+ * site_data.js, site_media.js and site_account.js follow it, in that order.
  * @since v0.3
  * @touches localStorage (dsl_site_settings, dsl_supabase_override),
  *   data/navigation.json and data/archived-pages.json (page addresses)
@@ -1126,6 +1126,130 @@ window.siteBanner = function ({ tone = 'yellow', icon = '', title = '', text = '
     banner.appendChild(body);
     return banner;
 };
+
+// Tab strips, for the keyboard and the screen reader (W3C's tabs pattern): a
+// [role="tablist"] whose buttons are its tabs. Which tab is picked is its class,
+// .is-active (the site's tab strip) or .active (the page tabs and the mode chips),
+// whoever set it; aria-selected and the strip's one Tab stop follow it here.
+const TAB_PICKED = ['is-active', 'active'];
+const keyClicks = new WeakSet();
+
+const shown = (el) => el.getClientRects().length > 0;
+
+function tabsOf(list) {
+    return [...list.querySelectorAll('button')].filter(b =>
+        b.closest('[role="tablist"]') === list && !b.classList.contains('sub-tab-remove'));
+}
+
+function syncTabList(list) {
+    const tabs = tabsOf(list);
+    const picked = tabs.find(t => TAB_PICKED.some(c => t.classList.contains(c)));
+    const stop = picked && !picked.hidden ? picked : tabs.find(t => !t.hidden && !t.classList.contains('hidden'));
+    const set = (el, name, value) => { if (el.getAttribute(name) !== value) el.setAttribute(name, value); };
+    tabs.forEach(tab => {
+        set(tab, 'role', 'tab');
+        set(tab, 'aria-selected', String(tab === picked));
+        set(tab, 'tabindex', tab === stop ? '0' : '-1');
+        // Whatever holds a tab inside the strip is only layout to a screen reader.
+        for (let up = tab.parentElement; up && up !== list; up = up.parentElement) set(up, 'role', 'presentation');
+        // A tab's remove button is the mouse's: the keyboard removes the tab with Delete.
+        const remove = tab.closest('.sub-tab-item') && tab.closest('.sub-tab-item').querySelector('.sub-tab-remove');
+        if (remove) {
+            set(remove, 'aria-hidden', 'true');
+            set(remove, 'tabindex', '-1');
+            set(tab, 'aria-keyshortcuts', 'Delete');
+        }
+    });
+}
+
+const tabWatch = new MutationObserver((records) => {
+    const lists = new Set();
+    for (const record of records) {
+        const node = record.target;
+        if (record.type === 'attributes') {
+            const list = node.closest && node.closest('[role="tablist"]');
+            if (list) lists.add(list);
+            continue;
+        }
+        record.addedNodes.forEach(added => {
+            if (added.nodeType !== 1) return;
+            const own = added.closest('[role="tablist"]');
+            if (own) lists.add(own);
+            added.querySelectorAll('[role="tablist"]').forEach(l => lists.add(l));
+        });
+    }
+    lists.forEach(syncTabList);
+});
+tabWatch.observe(document.documentElement, {
+    subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden', 'role'],
+});
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[role="tablist"]').forEach(syncTabList);
+});
+
+/**
+ * Whether a click on a tab was the reader's own: a real click, or one the arrow keys
+ * made. Code that picks a tab for the reader (a section link's jump) is neither.
+ * @since v1.3
+ */
+window.clickedByReader = (event) => event.isTrusted || keyClicks.has(event);
+
+// A strip its own click draws again comes back as new buttons, and a removed tab is
+// gone: once focus has fallen to the page, the strip of the same name takes it. A box
+// the action asked in (are you sure?) is waited out; focus put anywhere else ends it.
+function refocusStrip(label, gone) {
+    const until = Date.now() + 10000;
+    const look = () => {
+        if (Date.now() > until) return;
+        const active = document.activeElement;
+        const lost = !active || active === document.body || active === gone;
+        if (!lost && !active.closest('dialog[open]')) return;
+        if (lost) {
+            const list = label && [...document.querySelectorAll('[role="tablist"]')]
+                .find(l => l.getAttribute('aria-label') === label && shown(l));
+            const stop = list && list.querySelector('[role="tab"][tabindex="0"]');
+            if (stop && stop !== gone) { stop.focus(); return; }
+        }
+        requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+}
+
+// The arrow keys move along a strip and open each tab they reach; Home and End go to
+// its ends; Delete removes a tab that has a remove button. Tab leaves the strip.
+document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    const tab = e.target instanceof Element ? e.target.closest('[role="tab"]') : null;
+    const list = tab && tab.closest('[role="tablist"]');
+    if (!list) return;
+    const label = list.getAttribute('aria-label');
+
+    if (e.key === 'Delete') {
+        const item = tab.closest('.sub-tab-item');
+        const remove = item && item.querySelector('.sub-tab-remove');
+        if (!remove) return;
+        e.preventDefault();
+        remove.click();
+        refocusStrip(label, tab);
+        return;
+    }
+
+    const tabs = tabsOf(list).filter(shown);
+    const at = tabs.indexOf(tab);
+    let next = null;
+    if (e.key === 'ArrowRight') next = tabs[(at + 1) % tabs.length];
+    else if (e.key === 'ArrowLeft') next = tabs[(at - 1 + tabs.length) % tabs.length];
+    else if (e.key === 'Home') next = tabs[0];
+    else if (e.key === 'End') next = tabs[tabs.length - 1];
+    if (!next || at < 0) return;
+    e.preventDefault();
+
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+    keyClicks.add(click);
+    next.dispatchEvent(click);
+    if (next.isConnected) next.focus();
+    else refocusStrip(label, next);
+});
 
 /**
  * The mobile preview switch on edit.html, overseer.html and post-editor.html: below

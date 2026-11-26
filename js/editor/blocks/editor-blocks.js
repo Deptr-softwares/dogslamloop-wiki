@@ -1898,7 +1898,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     window._blockSelectionKeyHandler = (e) => {
         if (window.editorBuilderMode === 'gallery') return;
-        if (e.key !== 'Delete' || e.ctrlKey || e.metaKey || e.altKey) return;
+        // A Delete a tab strip used (removing a tab) is not the Blocks'.
+        if (e.key !== 'Delete' || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
 
         const el = document.activeElement;
         if (el && (['INPUT', 'TEXTAREA'].includes(el.tagName) || el.isContentEditable)) return;
@@ -3770,9 +3771,11 @@ function renderBlockList() {
                 <div class="cardsec-strip">
                     <div class="cardsec-label">SECTIONS</div>
                     <div class="sub-tabs cardsec-tabs">
+                        <div class="sub-tabs-list" role="tablist" aria-label="Card sections">
                         ${sections.map((sec, i) =>
                             `<button class="sub-tab cardsec-tab${i === secIdx ? ' is-active' : ''}" data-cardsec="${i}">`
                             + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
+                        </div>
                         <button class="btn-sys btn-sys-green sub-tabs-action" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
                         ${sections.length > 1 ? `<button class="btn-sys btn-sys-red sub-tabs-action" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
                     </div>

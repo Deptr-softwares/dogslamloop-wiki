@@ -1432,7 +1432,7 @@ function theoryboxCardHTML(bData, contextClass) {
 // The tab row and panels, shared by the Section Box and a multi-section Combo Card:
 // the click listener and the repaint restore both key off `.sbox-tabbed`.
 function sboxTabRowHTML(labels) {
-    return '<div class="sub-tabs sbox-tabs">' + labels.map((label, i) =>
+    return '<div class="sub-tabs sbox-tabs" role="tablist" aria-label="Sections">' + labels.map((label, i) =>
         `<button type="button" class="sub-tab sbox-tab${i === 0 ? ' is-active' : ''}"`
         + ` data-sbox-tab="${i}">${window.escapeHtml(label)}</button>`
     ).join('') + '</div>';
@@ -1765,7 +1765,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             if (oldNav) oldNav.remove();
 
             const isEditor = !!document.getElementById('interactive-builder');
-            let navHTML = `<nav id="system-dynamic-nav" class="character-nav" style="display: ${isEditor ? 'none' : 'flex'}; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">`;
+            let navHTML = `<nav id="system-dynamic-nav" class="character-nav" role="tablist" aria-label="Page tabs" style="display: ${isEditor ? 'none' : 'flex'}; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">`;
             
             const tabIdsForPageBuilder = [];
 

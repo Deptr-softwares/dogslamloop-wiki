@@ -276,3 +276,139 @@ test('every strip\'s own class travels with the site\'s tab strip classes', () =
   expect(seen, 'found the strips').toBeGreaterThanOrEqual(12);
   expect(loose).toEqual([]);
 });
+
+// --- THE KEYS (W3C's tabs pattern) ---
+// No strip could be worked from the keyboard but by Tab through every tab, and none
+// told a screen reader it was tabs. Now each is a [role="tablist"] with one Tab stop,
+// its picked tab; the arrow keys move along it and open each tab they reach, Home
+// and End go to its ends, and Delete removes a tab that has a remove button.
+
+// The strip's tabs as a screen reader has them.
+const tabState = (list) => list.evaluate((el) => [...el.querySelectorAll('[role="tab"]')]
+  .filter(t => t.closest('[role="tablist"]') === el)
+  .map(t => ({ id: t.id || t.textContent.trim(), selected: t.getAttribute('aria-selected'), stop: t.getAttribute('tabindex'), shown: t.getClientRects().length > 0 })));
+
+test('a reader\'s page tabs: one Tab stop, the arrows open each tab, Home and End, and Tab leaves', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  // Arrived from a section link: the reader's own tab choice drops its #, as a click does.
+  await page.goto('/characters/Boomcat/index.html#from-a-link', { waitUntil: 'domcontentloaded' });
+  const list = page.locator('nav.character-nav[role="tablist"]');
+  await expect(list.locator('[role="tab"][aria-selected="true"]')).toHaveCount(1, { timeout: 30000 });
+
+  const before = await tabState(list);
+  const shown = before.filter(t => t.shown);
+  expect(shown.length).toBeGreaterThan(4);
+  expect(before.filter(t => t.stop === '0'), 'one Tab stop, the picked tab').toEqual([before.find(t => t.selected === 'true')]);
+
+  await list.locator('[role="tab"][aria-selected="true"]').focus();
+  await page.keyboard.press('ArrowRight');
+  const second = list.locator(`[id="${shown[1].id}"]`);
+  await expect(second).toBeFocused();
+  await expect(second).toHaveAttribute('aria-selected', 'true');
+  await expect(second).toHaveAttribute('tabindex', '0');
+  // Its panel is the one showing, and the address names it, as a click's does.
+  await expect(page.locator(`#tab-${shown[1].id.replace(/^nav-/, '')}`)).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('tab')).toBe(shown[1].id.replace(/^nav-/, ''));
+  expect(new URL(page.url()).hash, 'the section link\'s # goes, as with a click').toBe('');
+
+  // A tab the page hides (Techs, for most characters) is stepped over. Hidden here,
+  // so the test does not hang on which tabs a character has.
+  await list.locator(`[id="${shown[2].id}"]`).evaluate(el => el.classList.add('hidden'));
+  await page.keyboard.press('ArrowRight');
+  await expect(list.locator(`[id="${shown[3].id}"]`)).toBeFocused();
+  await list.locator(`[id="${shown[2].id}"]`).evaluate(el => el.classList.remove('hidden'));
+
+  await page.keyboard.press('End');
+  await expect(list.locator(`[id="${shown[shown.length - 1].id}"]`)).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(list.locator(`[id="${shown[0].id}"]`), 'past the end, round to the first').toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(list.locator(`[id="${shown[shown.length - 1].id}"]`)).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(list.locator(`[id="${shown[0].id}"]`)).toHaveAttribute('aria-selected', 'true');
+
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => !!document.activeElement.closest('nav.character-nav')), 'Tab leaves the strip').toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('a Section Box\'s tabs work by keyboard on a reader page', async ({ page }) => {
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof window.generateHTMLForBlocks === 'function', null, { timeout: 45000 });
+  await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.id = 'render-host';
+    host.innerHTML = window.generateHTMLForBlocks([{ type: 'sectionedbox', title: 'Neutral', sections: [
+      { title: 'Poking', content: [{ type: 'paragraph', content: 'poke content' }] },
+      { title: 'Whiff Punish', content: [{ type: 'paragraph', content: 'punish content' }] }] }], '');
+    document.querySelector('main').prepend(host);
+  });
+  const list = page.locator('#render-host [role="tablist"]');
+  await expect(list).toHaveAttribute('aria-label', 'Sections');
+  await list.getByRole('tab', { name: 'Poking' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(list.getByRole('tab', { name: 'Whiff Punish' })).toBeFocused();
+  await expect(list.getByRole('tab', { name: 'Whiff Punish' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#render-host')).toContainText('punish content');
+  await expect(page.locator('#render-host').getByText('poke content')).toBeHidden();
+});
+
+test('the editor\'s moves: arrows open the next move, Delete removes one after asking, and + ADD MOVE is next for Tab', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await mockTwoMoves(page);
+  await page.goto('/edit.html?char=boomcat&type=character&tab=skills', { waitUntil: 'domcontentloaded' });
+  const list = page.locator('#interactive-builder [role="tablist"][aria-label="Moves"]');
+  await expect(list.getByRole('tab')).toHaveCount(2, { timeout: 45000 });
+
+  // The remove button is the mouse's; the tab says Delete does it.
+  const first = page.locator('#move-nav-skill_1');
+  await expect(first).toHaveAttribute('aria-keyshortcuts', 'Delete');
+  await expect(page.locator('[data-move-remove="skill_1"]')).toHaveAttribute('aria-hidden', 'true');
+  await expect(page.locator('[data-move-remove="skill_1"]')).toHaveAttribute('tabindex', '-1');
+
+  await first.focus();
+  await page.keyboard.press('ArrowRight');
+  const second = page.locator('#move-nav-skill_2');
+  await expect(second).toBeFocused();
+  await expect(second).toHaveClass(/\bis-active\b/);
+  await expect(page.locator('#interactive-builder')).toContainText(/Skill Two/i);
+
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#interactive-builder .sub-tabs-action', { hasText: '+ ADD MOVE' })).toBeFocused();
+
+  await second.focus();
+  await page.keyboard.press('Delete');
+  await expect(page.locator('#editor-custom-modal')).toBeVisible();
+  await page.locator('#editor-modal-confirm').click();
+  await expect(list.getByRole('tab')).toHaveCount(1);
+  expect(await page.evaluate(() => window.currentEditorFrameData.skills.map(m => m.id))).toEqual(['skill_1']);
+  // Focus comes back to the strip, not the page.
+  await expect(page.locator('#move-nav-skill_1')).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test('the Overseer\'s queues work by keyboard', async ({ page }) => {
+  await asOwner(page);
+  await page.goto('/overseer.html', { waitUntil: 'domcontentloaded' });
+  const list = page.locator('#admin-queue-tabs');
+  await expect(list).toBeVisible({ timeout: 30000 });
+  await list.locator('[data-queue-tab="revisions"]').focus();
+  await page.keyboard.press('ArrowRight');
+  const media = list.locator('[data-queue-tab="media"]');
+  await expect(media).toBeFocused();
+  await expect(media).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-queue-panel="media"]')).toBeVisible();
+});
+
+test('a strip with a + ADD button is still a valid tab list to axe', async ({ page }) => {
+  const AxeBuilder = require('@axe-core/playwright').default;
+  await mockTwoMoves(page);
+  await page.goto('/edit.html?char=boomcat&type=character&tab=skills', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#interactive-builder [role="tablist"][aria-label="Moves"] [role="tab"]')).toHaveCount(2, { timeout: 45000 });
+  const { violations } = await new AxeBuilder({ page }).include('#interactive-builder')
+    .withRules(['aria-required-children', 'aria-required-parent', 'aria-allowed-attr', 'aria-allowed-role', 'aria-hidden-focus', 'nested-interactive', 'button-name'])
+    .analyze();
+  expect(violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(' ')).join(', ')}`)).toEqual([]);
+});

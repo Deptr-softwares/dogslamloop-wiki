@@ -164,6 +164,8 @@ window.loadTierList = async function() {
     });
 
     navHTML += `</div>`;
+    navContainer.setAttribute('role', 'tablist');
+    navContainer.setAttribute('aria-label', 'Tier list tabs');
     navContainer.innerHTML = navHTML;
 
     window.liveTierData = data;
@@ -255,6 +257,7 @@ window.renderTierEditorUI = function(container) {
     const activeTab = descData.tabs[activeIdx];
 
     let tabHTML = `<div class="sub-tabs sub-tabs-scroll tier-editor-tabs-row">`;
+    tabHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Tier list tabs">`;
     descData.tabs.forEach((tab, tIdx) => {
         const activeClass = tIdx === activeIdx ? ' is-active' : '';
 
@@ -263,6 +266,7 @@ window.renderTierEditorUI = function(container) {
         tabHTML += `<button class="sub-tab-remove" onclick="window.removeEditorTierTab(${tIdx})" data-tip="Delete Tab" aria-label="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
+    tabHTML += `</div>`;
     tabHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addEditorTierTab()">+ ADD TAB</button>`;
     tabHTML += `</div>`;
 

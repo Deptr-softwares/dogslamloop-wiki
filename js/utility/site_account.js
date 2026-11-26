@@ -23,7 +23,7 @@ window.injectAuthModal = function() {
                 <span id="auth-status-indicator" class="status-dot offline"></span>
             </div>
 
-            <div class="sub-tabs auth-tabs" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem 0;">
+            <div class="sub-tabs auth-tabs" role="tablist" aria-label="Sign in or register" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem 0;">
                 <button type="button" id="auth-tab-login" class="sub-tab is-active">LOGIN</button>
                 <button type="button" id="auth-tab-register" class="sub-tab">REGISTER</button>
             </div>

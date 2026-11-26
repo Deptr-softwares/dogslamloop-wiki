@@ -271,11 +271,12 @@
         const chips = modes.map(m => {
             const isActive = m.id === active;
             return `<button type="button" class="character-mode-chip${isActive ? ' active' : ''}"` +
-                ` aria-pressed="${isActive ? 'true' : 'false'}" data-mode-id="${window.escapeHtml(m.id)}">${window.escapeHtml(m.label)}</button>`;
+                ` data-mode-id="${window.escapeHtml(m.id)}">${window.escapeHtml(m.label)}</button>`;
         }).join('');
 
         // The add button carries no mode id, so the delegated handler tells it apart.
-        bar.innerHTML = `${chips}<button type="button" class="character-mode-chip editor-mode-add" data-mode-add="true">+ STATE</button>`;
+        bar.innerHTML = `<div class="sub-tabs-list" role="tablist" aria-label="Character state">${chips}</div>`
+            + `<button type="button" class="character-mode-chip editor-mode-add" data-mode-add="true">+ STATE</button>`;
 
         if (!controls) return;
 

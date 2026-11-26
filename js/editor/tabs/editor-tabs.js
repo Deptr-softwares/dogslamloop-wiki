@@ -267,6 +267,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (moves.length === 0) {
             navHTML += `<span class="daw-empty-state">No moves mapped in this category yet.</span>`;
         } else {
+            navHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Moves">`;
             moves.forEach((m, idx) => {
                 // A move's id and name are stored data: never inside an inline onclick, where
                 // the browser decodes &#39; back into a quote. Data attributes and listeners.
@@ -276,6 +277,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 navHTML += `<button class="sub-tab-remove" data-move-remove="${id}" data-tip="Remove Move" aria-label="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
+            navHTML += `</div>`;
             window.registerInserter(`frame.${tabId}`, () => window.addMove());
         }
 
@@ -305,6 +307,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
         let navHTML = window.reorderStripControls('desc.extras');
         navHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
+        navHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Overview sections">`;
         navHTML += `<button class="sub-tab" id="overview-nav-profile" onclick="loadOverviewSectionIntoEditor('profile')">Profile Card</button>`;
         navHTML += `<button class="sub-tab is-active" id="overview-nav-overview" onclick="loadOverviewSectionIntoEditor('overview')">Character Overview</button>`;
         navHTML += `<button class="sub-tab" id="overview-nav-playstyle" onclick="loadOverviewSectionIntoEditor('playstyle')">Playstyle</button>`;
@@ -318,6 +321,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             navHTML += `</div>`;
         });
         window.registerInserter('desc.extras', () => window.addExtraTab());
+        navHTML += `</div>`;
 
         navHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="addExtraTab()">+ ADD TAB</button>`;
         navHTML += `</div>`;
@@ -337,6 +341,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (window.currentEditorDescData.matchups.length === 0) {
              navHTML += `<span class="daw-empty-state">No matchups defined yet.</span>`;
         } else {
+            navHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Matchups">`;
             window.currentEditorDescData.matchups.forEach((mu, idx) => {
                 let muName = mu.opponent || `Matchup ${idx + 1}`;
                 navHTML += `<div class="sub-tab-item">`;
@@ -344,6 +349,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 navHTML += `<button class="sub-tab-remove" onclick="window.removeMatchup(${idx})" data-tip="Remove Matchup" aria-label="Remove Matchup">✖</button>`;
                 navHTML += `</div>`;
             });
+            navHTML += `</div>`;
         }
 
         window.registerInserter('desc.matchups', () => window.addMatchup());
@@ -375,7 +381,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
         let navHTML = window.reorderStripControls(`desc.${groups.field}`);
         navHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
-        // The tab id in the ids: loadDocumentSectionIntoEditor clears `active` by prefix.
+        // The tab id in the ids: loadDocumentSectionIntoEditor clears `is-active` by prefix.
+        navHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Sections">`;
         navHTML += `<button class="sub-tab is-active" id="${window.escapeHtml(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'intro')">${window.escapeHtml(intro.label)}</button>`;
         navHTML += `<button class="sub-tab" id="${window.escapeHtml(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'list')">${window.escapeHtml(list.label)}</button>`;
 
@@ -388,6 +395,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             navHTML += `</div>`;
         });
 
+        navHTML += `</div>`;
         window.registerInserter(`desc.${groups.field}`, () => window.addDocumentGroup(tabId));
         navHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addDocumentGroup('${window.escapeHtml(tabId)}')">+ GROUP</button>`;
         navHTML += `</div>`;
@@ -413,6 +421,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (entries.length === 0) {
             navHTML += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} entries defined yet.</span>`;
         } else {
+            navHTML += `<div class="sub-tabs-list" role="tablist" aria-label="${window.escapeHtml(noun)}">`;
             entries.forEach((entry, idx) => {
                 // Escaped: the name is contributor text. The index is a number this loop made,
                 // which is why it may sit in the inline handler and the name may not.
@@ -422,6 +431,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 navHTML += `<button class="sub-tab-remove" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" data-tip="Remove" aria-label="Remove">&#10006;</button>`;
                 navHTML += `</div>`;
             });
+            navHTML += `</div>`;
         }
 
         window.registerInserter(`desc.${section.field}`, () => window.addKeyedEntry(section.tab));
@@ -884,6 +894,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     if (cards.length === 0) {
         html += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} cards in this group yet.</span>`;
     } else {
+        html += `<div class="sub-tabs-list" role="tablist" aria-label="Cards">`;
         cards.forEach((card, i) => {
             // A card is known by its name, or its route; through comboCardLabel, since the
             // card's own title is unused in Multiple Sections.
@@ -893,6 +904,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
             html += `<button class="sub-tab-remove" data-remove-card="${i}" data-tip="Remove Card" aria-label="Remove Card">&#10006;</button>`;
             html += `</div>`;
         });
+        html += `</div>`;
     }
     html += `<button type="button" id="combo-card-add" class="btn-sys btn-sys-green sub-tabs-action">+ CARD</button>`;
     html += `</div><div id="combo-card-body"></div>`;
@@ -978,10 +990,12 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         <div class="cardsec-strip">
             <div class="cardsec-label">SECTIONS</div>
             <div class="sub-tabs cardsec-tabs">
+                <div class="sub-tabs-list" role="tablist" aria-label="Card sections">
                 ${sections.map((sec, i) =>
                     // The same classes as the Block form's strip (editor-blocks.js).
                     `<button type="button" class="sub-tab cardsec-tab${i === secIdx ? ' is-active' : ''}" data-cardsec="${i}">`
                     + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
+                </div>
                 <button type="button" class="btn-sys btn-sys-green sub-tabs-action" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
                 ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red sub-tabs-action" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
             </div>
@@ -1256,12 +1270,14 @@ window.renderDocumentListEditor = function (tabId) {
     if (tables.length === 0) {
         html += `<span class="daw-empty-state">No ${window.escapeHtml(nounPlural)} defined yet.</span>`;
     } else {
+        html += `<div class="sub-tabs-list" role="tablist" aria-label="${window.escapeHtml(nounPlural)}">`;
         tables.forEach((t, i) => {
             html += `<div class="sub-tab-item">`;
             html += `<button class="sub-tab sub-tab-removable${i === openTable ? ' is-active' : ''}" data-table="${i}">${window.escapeHtml(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
             html += `<button class="sub-tab-remove" data-remove-table="${i}" data-tip="Remove ${window.escapeHtml(noun)}" aria-label="Remove ${window.escapeHtml(noun)}">&#10006;</button>`;
             html += `</div>`;
         });
+        html += `</div>`;
     }
     html += `<button type="button" id="combo-table-add" class="btn-sys btn-sys-green sub-tabs-action">+ ${window.escapeHtml(noun.toUpperCase())}</button>`;
     html += `</div><div id="combo-table-body"></div>`;

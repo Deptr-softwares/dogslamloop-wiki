@@ -209,7 +209,9 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
    Since v1.3.
    Touches: --sub-tab-accent, the page's accent unless a strip sets its own.
    Watch: the picked tab is .is-active. A tab with a remove button sits in a
-   .sub-tab-item; a button in a strip that is not a tab (+ ADD) is .sub-tabs-action. */
+   .sub-tab-item; a button in a strip that is not a tab (+ ADD) is .sub-tabs-action,
+   and the tabs beside it sit in a .sub-tabs-list, since a [role="tablist"] holds tabs
+   only (site_utils.js keeps the roles and the keys). */
 .sub-tabs {
     --sub-tab-accent: var(--accent-blue);
     display: flex; flex-wrap: wrap; gap: 0.35rem;
@@ -232,6 +234,8 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     background: none; border: none; color: #ef4444; font-size: 10px; cursor: pointer;
 }
 .sub-tabs-action { align-self: center; font-size: 0.65rem; padding: 0.3rem 0.6rem; margin-left: 0.25rem; }
+/* The tabs of a strip that also holds an action button, laid out as the strip's own. */
+.sub-tabs-list { display: flex; flex-wrap: inherit; gap: inherit; }
 /* A strip that scrolls sideways rather than wrapping: the editor's rows. */
 .sub-tabs.sub-tabs-scroll { flex-wrap: nowrap; overflow-x: auto; }
 .sub-tabs-scroll > * { flex-shrink: 0; }

@@ -207,12 +207,15 @@
 
         nav.innerHTML = '';
         nav.style.display = 'flex';
+        nav.removeAttribute('role');
 
         if (!state.lists.length) {
             nav.appendChild(el('p', 'loading-msg', 'No tier lists have been published yet.'));
             return;
         }
 
+        nav.setAttribute('role', 'tablist');
+        nav.setAttribute('aria-label', 'Tier lists');
         state.lists.forEach(list => {
             const btn = el('button', 'btn-manga btn-manga-slanted ctl-author-btn');
             btn.type = 'button';

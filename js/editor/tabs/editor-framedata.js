@@ -190,6 +190,7 @@ function initDawEditor(containerId, moveData) {
 
             variantTabsHtml += `<div class="sub-tabs" style="margin-left: ${depth * 1}rem; padding-left: ${depth > 0 ? '0.5rem' : '0'}; border-left: ${depth > 0 ? '2px solid #333' : 'none'};">`;
 
+            if (keys.length) variantTabsHtml += `<div class="sub-tabs-list" role="tablist" aria-label="Micro Variants">`;
             keys.forEach(k => {
                 let v = walkNode.variants[k];
                 let isActive = (k === activeKey);
@@ -197,6 +198,7 @@ function initDawEditor(containerId, moveData) {
                 variantTabsHtml += `<button class="sub-tab${isActive ? ' is-active' : ''}" data-daw-path="${window.escapeHtml(pathStr)}">${window.escapeHtml(v.label || k)}</button>`;
             });
 
+            if (keys.length) variantTabsHtml += `</div>`;
             let parentPathStr = JSON.stringify(activePath.slice(0, depth));
             variantTabsHtml += `<button class="btn-sys btn-sys-green sub-tabs-action" data-daw-add-variant="${window.escapeHtml(parentPathStr)}">+ ADD MICRO VARIANT</button></div>`;
 

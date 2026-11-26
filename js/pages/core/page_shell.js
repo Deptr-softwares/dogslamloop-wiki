@@ -601,8 +601,9 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
         button.dataset.tabBound = groupKey;
 
         button.addEventListener('click', (event) => {
-            if (event.isTrusted) group.readerChoseTab = true;
-            if (group.address) writeTabToAddress(group, tabId, event.isTrusted);
+            const byReader = window.clickedByReader(event);
+            if (byReader) group.readerChoseTab = true;
+            if (group.address) writeTabToAddress(group, tabId, byReader);
             // Read from the group, not this call's tabIds: a later registration may have
             // added more.
             group.ids.forEach(id => {

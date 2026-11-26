@@ -112,7 +112,7 @@
                 <span class="editor-section-banner-text">PAGE TEXT</span>
             </div>
 
-            <div class="sub-tabs sub-tabs-scroll editor-nav-row" id="tool-section-tabs">${sectionTabs}</div>
+            <div class="sub-tabs sub-tabs-scroll editor-nav-row" id="tool-section-tabs" role="tablist" aria-label="Tool sections">${sectionTabs}</div>
             <p class="tool-editor-hint">${window.escapeHtml(active.hint)}</p>
             <div id="tool-block-target"></div>
         `;
