@@ -80,7 +80,8 @@ function renderGalleryBin() {
         const remove = document.createElement('button');
         remove.className = 'btn-sys btn-sys-red gallery-bin-remove';
         remove.textContent = '✖';
-        remove.title = 'Remove this item';
+        remove.dataset.tip = 'Remove this item';
+        remove.setAttribute('aria-label', 'Remove this item');
         remove.addEventListener('click', async () => {
             if (!(await window.confirmDelete(`Remove "${item.name || 'this item'}" from the gallery?`))) return;
             galleryEditorItems.splice(idx, 1);
@@ -398,7 +399,8 @@ function renderCharacterGalleryBin() {
         const remove = document.createElement('button');
         remove.className = 'btn-sys btn-sys-red gallery-bin-remove';
         remove.textContent = '✖';
-        remove.title = 'Remove this item';
+        remove.dataset.tip = 'Remove this item';
+        remove.setAttribute('aria-label', 'Remove this item');
         remove.addEventListener('click', async () => {
             if (!(await window.confirmDelete(`Remove "${item.name || 'this item'}" from this character's gallery?`))) return;
             characterGalleryItems().splice(idx, 1);
@@ -475,7 +477,7 @@ window.renderCharacterGalleryEditor = function(builder) {
     // A listener, never an inline onclick.
     const addBtn = document.getElementById('char-gallery-add');
     if (addBtn) {
-        addBtn.title = `Add a ${noun}`;
+        addBtn.dataset.tip = `Add a ${noun}`;
         addBtn.addEventListener('click', () => window.openCharacterGalleryItemModal());
     }
 

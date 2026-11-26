@@ -10,6 +10,7 @@
 // migration's half is covered in free-submit-tier-list.spec.js.
 
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const SETTINGS = {
     id: true,
@@ -94,7 +95,7 @@ test('the tie-break switch saves the chosen side', async ({ page }) => {
     await mockOwner(page);
     await openPanel(page);
 
-    await page.selectOption('#fs-setting-tie', 'higher');
+    await pickOption(page.locator('#fs-setting-tie'), 'higher');
     await page.click('#btn-save-free-submit');
 
     await expect(page.locator('#fs-setting-results')).toContainText('Saved');
@@ -121,7 +122,7 @@ test('closing voting writes false, not a truthy string', async ({ page }) => {
     await mockOwner(page);
     await openPanel(page);
 
-    await page.selectOption('#fs-setting-open', 'false');
+    await pickOption(page.locator('#fs-setting-open'), 'false');
     await page.click('#btn-save-free-submit');
 
     await expect(page.locator('#fs-setting-results')).toContainText('Saved');

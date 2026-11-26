@@ -251,7 +251,7 @@
     function entry(id) {
         const node = button('mk-entry');
         node.dataset.character = id;
-        node.title = state.roster.get(id).name;
+        node.dataset.tip = state.roster.get(id).name;
         node.setAttribute('aria-pressed', String(state.picked === id));
         node.appendChild(portrait(id));
         return node;
@@ -344,7 +344,7 @@
             const chip = button('mk-palette-swatch');
             chip.dataset.color = color;
             chip.style.backgroundColor = color;
-            chip.title = color;
+            chip.dataset.tip = color;
             chip.setAttribute('aria-label', color);
             palette.appendChild(chip);
         });
@@ -952,19 +952,19 @@
                 <div class="mk-options">
                     <label class="mk-option">
                         <span class="mk-option-label">Pictures</span>
-                        <select class="filter-select" data-mk-pictures>
+                        <select class="filter-select editor-select" data-mk-pictures>
                             ${PICTURES.map(p => `<option value="${p.value}">${p.label}</option>`).join('')}
                         </select>
                     </label>
                     <label class="mk-option">
                         <span class="mk-option-label">Branding</span>
-                        <select class="filter-select" data-mk-branding>
+                        <select class="filter-select editor-select" data-mk-branding>
                             ${BRANDINGS.map(b => `<option value="${b.value}">${b.label}</option>`).join('')}
                         </select>
                     </label>
                     <label class="mk-option">
                         <span class="mk-option-label">Quality</span>
-                        <select class="filter-select" data-mk-quality>
+                        <select class="filter-select editor-select" data-mk-quality>
                             ${QUALITIES.map(q => `<option value="${q.scale}">${q.label}</option>`).join('')}
                         </select>
                     </label>

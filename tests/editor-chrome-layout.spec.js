@@ -50,6 +50,8 @@ test('collapsing the header keeps HUB, beside Submit', async ({ page }) => {
   });
 
   expect(seen.collapsed, 'setup: the header really collapsed').toBe(true);
+  // Its glyph says nothing to a screen reader: its name says what a press does now.
+  await expect(page.locator('#btn-collapse-chrome')).toHaveAttribute('aria-label', 'Expand the editor header');
   expect(seen.submitVisible, 'Submit still survives the collapse').toBe(true);
   expect(seen.hubVisible, 'and so does HUB now').toBe(true);
   expect(seen.sameRow, 'they sit on the same line').toBe(true);

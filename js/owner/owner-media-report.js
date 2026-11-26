@@ -199,7 +199,7 @@
                     const abs = absolute(r.url);
                     const file = abs && /^https?:/i.test(abs) ? el('a', 'media-report-file') : el('span', 'media-report-file');
                     file.textContent = fileName(r.url);
-                    file.title = r.url;
+                    file.dataset.tip = r.url;
                     if (file.tagName === 'A') { file.href = abs; file.target = '_blank'; file.rel = 'noopener'; }
                     li.appendChild(file);
                     li.appendChild(el('span', `media-report-state is-${status.get(r.url)}`,

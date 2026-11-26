@@ -427,6 +427,8 @@
 
 .admin-input-full { width: 100%; margin: 0.75rem 0; font-size: 0.75rem; padding: 0.5rem; box-sizing: border-box; }
 .admin-input-full.select { margin-bottom: 0.75rem; margin-top: 0; }
+/* The site dropdown drawn for it keeps its room below. */
+.admin-input-full.select + .manga-select-wrapper { margin-bottom: 0.75rem; }
 .admin-tool-btn { font-size: 0.7rem; padding: 0.4rem; width: 100%; margin-top: 0.5rem; }
 .admin-tool-results { margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.7rem; color: #888; line-height: 1.4; }
 

@@ -62,7 +62,7 @@
         const wrap = el('a', 'tier-portrait');
         if (useIcon) wrap.classList.add('tier-portrait-icon');
         wrap.href = meta.url ? rootPath + meta.url : '#';
-        wrap.title = meta.name;
+        wrap.dataset.tip = meta.name;
         // So the changelog can find this portrait once it has loaded, by key, so each copy
         // carries its own last move.
         wrap.dataset.ctlChar = entry.key;
@@ -157,9 +157,9 @@
                 html += `<div class="ctl-tip-author">- ${window.escapeHtml(change.author_name)}</div>`;
             }
 
-            // The native tooltip would otherwise sit on top of this one. The
+            // Its name hint would otherwise replace this one after a moment. The
             // name is not lost: it is rendered under the portrait already.
-            portraitEl.removeAttribute('title');
+            portraitEl.removeAttribute('data-tip');
             window.bindTooltip(portraitEl, html);
         });
     }

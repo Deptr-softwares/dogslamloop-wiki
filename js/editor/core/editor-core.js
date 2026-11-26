@@ -50,7 +50,10 @@ window.setEditorChromeCollapsed = function (collapsed) {
     header.classList.toggle('is-collapsed', collapsed);
     toggle.textContent = collapsed ? '▸' : '▾';
     toggle.setAttribute('aria-expanded', String(!collapsed));
-    toggle.title = collapsed ? 'Expand the editor header' : 'Collapse the editor header';
+    // Its glyph says nothing to a screen reader, so the hint is its name too.
+    const tip = collapsed ? 'Expand the editor header' : 'Collapse the editor header';
+    toggle.dataset.tip = tip;
+    toggle.setAttribute('aria-label', tip);
     editorPrefWrite(EDITOR_CHROME_KEY, collapsed);
 };
 

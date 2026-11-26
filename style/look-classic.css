@@ -233,14 +233,14 @@ html.look-classic .sbox-tabs { border-bottom-width: 1px; }
 html.look-classic .sbox-tab { font-size: 0.8rem; letter-spacing: 0; }
 html.look-classic .sbox-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
 /* The hover tooltip draws its own border inline (site_media.js). */
-html.look-classic #wiki-frame-tooltip { border-width: 1px !important; }
+html.look-classic #wiki-frame-tooltip { border-width: 1px; }
 
 /* The site's dropdown: a plain box like a browser's own. */
 html.look-classic .manga-select-trigger { border-color: var(--border-color); background: var(--bg-secondary); box-shadow: none; }
 html.look-classic :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger) { transform: none; box-shadow: none; border-color: var(--text-muted); }
 html.look-classic .manga-select-wrapper .manga-select-options { border: 1px solid var(--border-color); box-shadow: none; animation: none; background: var(--bg-main); }
 html.look-classic .manga-option { border-bottom: 0; }
-html.look-classic .manga-option:hover { padding-left: 0.75rem; font-weight: normal; }
+html.look-classic :is(.manga-option:hover, .manga-option.is-active) { padding-left: 0.75rem; font-weight: normal; }
 html.look-classic .manga-option.selected { border-left: 0; font-weight: bold; }
 
 /* Words the default look writes in capitals read as written. */

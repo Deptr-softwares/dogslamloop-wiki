@@ -772,7 +772,7 @@ test('hovering a portrait shows that character last move', async ({ page }) => {
 
     // The browser's own tooltip is dropped, or it sits on top of this one.
     // The name is not lost - it renders under the portrait already.
-    const native = await page.getAttribute('[data-ctl-char="ten_shadows"]', 'title');
+    const native = await page.getAttribute('[data-ctl-char="ten_shadows"]', 'data-tip');
     expect(native).toBeNull();
     await expect(page.locator('[data-ctl-char="ten_shadows"] .tier-portrait-name')).toHaveText('Ten Shadows');
 });
@@ -808,7 +808,7 @@ test('a character with nothing recorded keeps its name tooltip', async ({ page }
 
     // puppet_master is on the board and absent from the changelog. Inventing a
     // tooltip for it would be claiming a history it does not have.
-    const native = await page.getAttribute('[data-ctl-char="puppet_master"]', 'title');
+    const native = await page.getAttribute('[data-ctl-char="puppet_master"]', 'data-tip');
     expect(native).toBe('Puppet Master');
 
     await page.hover('[data-ctl-char="puppet_master"]');

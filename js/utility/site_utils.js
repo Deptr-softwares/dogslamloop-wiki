@@ -439,9 +439,111 @@ window.showSystemAlert = function(message) {
     });
 };
 
+// The site's dropdown: a .manga-select-wrapper holding a button (role combobox) and
+// its list (.manga-select-options, role listbox) of .manga-option rows. Each
+// select.editor-select gets one; the Block folder picker draws its own rows on the
+// same parts and gets the same keys.
+const DROPDOWN_BUTTON = '.manga-select-wrapper > [role="combobox"]';
+const dropdownSelects = new WeakMap();
+let dropdownCount = 0;
+
+// The rows the keys can reach: a disabled option (a "Category" placeholder) is shown
+// and skipped.
+const dropdownRows = (wrapper) => [...wrapper.querySelectorAll('.manga-select-options .manga-option:not([aria-disabled="true"])')];
+
+// The ids aria-controls and aria-activedescendant point at, given on first use.
+function giveDropdownIds(wrapper) {
+    const button = wrapper.querySelector('[role="combobox"]');
+    const list = wrapper.querySelector('.manga-select-options');
+    if (!list.id) list.id = `site-dropdown-${++dropdownCount}`;
+    if (button) button.setAttribute('aria-controls', list.id);
+    dropdownRows(wrapper).forEach((row, i) => { if (!row.id) row.id = `${list.id}-${i}`; });
+}
+
+function markActiveRow(wrapper, row) {
+    const button = wrapper.querySelector('[role="combobox"]');
+    dropdownRows(wrapper).forEach(r => r.classList.toggle('is-active', r === row));
+    if (row) {
+        button.setAttribute('aria-activedescendant', row.id);
+        // Scrolled inside the list only: scrollIntoView would move the page too.
+        const list = row.closest('.manga-select-options');
+        if (row.offsetTop < list.scrollTop) list.scrollTop = row.offsetTop;
+        else if (row.offsetTop + row.offsetHeight > list.scrollTop + list.clientHeight) {
+            list.scrollTop = row.offsetTop + row.offsetHeight - list.clientHeight;
+        }
+    } else {
+        button.removeAttribute('aria-activedescendant');
+    }
+}
+
+// The rows, read from the <select> again each time it opens, so options a page
+// adds after the first draw show.
+function fillDropdown(wrapper) {
+    const select = dropdownSelects.get(wrapper);
+    if (!select) return;
+    const list = wrapper.querySelector('.manga-select-options');
+    list.replaceChildren(...Array.from(select.options).map((option, index) => {
+        const row = document.createElement('div');
+        row.className = 'manga-option';
+        row.setAttribute('role', 'option');
+        row.dataset.index = index;
+        const picked = index === select.selectedIndex;
+        row.classList.toggle('selected', picked);
+        row.setAttribute('aria-selected', picked ? 'true' : 'false');
+        // The resolved colour, not option.style.color: options are coloured by classes.
+        const color = getComputedStyle(option).color;
+        if (color) row.style.color = color;
+        row.textContent = option.textContent;
+        if (option.disabled) row.setAttribute('aria-disabled', 'true');
+        return row;
+    }));
+}
+
+function showDropdownValue(wrapper) {
+    const select = dropdownSelects.get(wrapper);
+    const button = wrapper.querySelector('.manga-select-trigger');
+    button.textContent = select.options[select.selectedIndex]?.textContent || 'Select...';
+    button.disabled = select.disabled;
+    wrapper.querySelectorAll('.manga-select-options .manga-option').forEach(row => {
+        const picked = Number(row.dataset.index) === select.selectedIndex;
+        row.classList.toggle('selected', picked);
+        row.setAttribute('aria-selected', picked ? 'true' : 'false');
+    });
+}
+
 /**
- * Draws every select.editor-select as the site's own dropdown over the real
- * <select>, which keeps the value and fires change.
+ * Opens or closes a site dropdown, and closes any other open one.
+ * @since v1.3
+ * @watch the Block folder picker opens and closes through this too, so
+ *   aria-expanded always says what is on screen
+ */
+window.setDropdownOpen = function (wrapper, open) {
+    const button = wrapper.querySelector('[role="combobox"]');
+    if (open) {
+        document.querySelectorAll('.manga-select-wrapper.open').forEach(w => {
+            if (w !== wrapper) window.setDropdownOpen(w, false);
+        });
+        fillDropdown(wrapper);
+        giveDropdownIds(wrapper);
+    }
+    wrapper.classList.toggle('open', open);
+    if (button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!open) dropdownTyped = '';
+    if (!open && button) markActiveRow(wrapper, null);
+    if (open && button) {
+        const rows = dropdownRows(wrapper);
+        markActiveRow(wrapper, rows.find(r => r.classList.contains('selected')) || rows[0] || null);
+    }
+};
+
+/**
+ * Draws every select.editor-select as the site's own dropdown, beside the real
+ * <select>, which stays hidden, keeps the value and fires change. The keys are the
+ * browser's own dropdown's: Tab reaches the button; Enter, Space or an arrow opens
+ * it; the arrows, Home, End and typed letters move; Enter or Space picks; Escape
+ * and Tab close it.
+ * @since v0.4, changed v1.3
+ * @watch it dispatches change, never input
  */
 window.initializeMangaSelects = function() {
     document.querySelectorAll('select.editor-select:not(.manga-initialized)').forEach(select => {
@@ -449,67 +551,142 @@ window.initializeMangaSelects = function() {
 
         const wrapper = document.createElement('div');
         wrapper.className = 'manga-select-wrapper';
+        dropdownSelects.set(wrapper, select);
 
-        const trigger = document.createElement('div');
-        trigger.className = 'manga-select-trigger';
-        trigger.textContent = select.options[select.selectedIndex]?.textContent || 'Select...';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'manga-select-trigger';
+        button.setAttribute('role', 'combobox');
+        button.setAttribute('aria-haspopup', 'listbox');
+        button.setAttribute('aria-expanded', 'false');
+        // The select's own label names the button, since the select is hidden. A
+        // <label> written just before it without `for` counts: the editor's forms
+        // are laid out that way.
+        const before = select.previousElementSibling;
+        const labels = select.labels && select.labels.length ? [...select.labels]
+            : (before && before.tagName === 'LABEL' && !before.htmlFor ? [before] : []);
+        if (labels.length) {
+            labels.forEach(label => { if (!label.id) label.id = `site-dropdown-label-${++dropdownCount}`; });
+            button.setAttribute('aria-labelledby', labels.map(l => l.id).join(' '));
+        } else if (select.getAttribute('aria-label')) {
+            button.setAttribute('aria-label', select.getAttribute('aria-label'));
+        }
 
-        const optionsContainer = document.createElement('div');
-        optionsContainer.className = 'manga-select-options';
+        const list = document.createElement('div');
+        list.className = 'manga-select-options';
+        list.setAttribute('role', 'listbox');
 
-        Array.from(select.options).forEach((option, index) => {
-            const optDiv = document.createElement('div');
-            optDiv.className = 'manga-option';
-            if (option.selected) optDiv.classList.add('selected');
-            // The resolved colour, not option.style.color: options are coloured by classes.
-            const optColor = getComputedStyle(option).color;
-            if (optColor) optDiv.style.color = optColor;
-            optDiv.textContent = option.textContent;
-
-            optDiv.addEventListener('click', (e) => {
-                e.stopPropagation();
-                select.selectedIndex = index;
-                trigger.textContent = option.textContent;
-
-                // The native change event, so the page's own listeners run.
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-
-                optionsContainer.querySelectorAll('.manga-option').forEach(el => el.classList.remove('selected'));
-                optDiv.classList.add('selected');
-                wrapper.classList.remove('open');
-            });
-            optionsContainer.appendChild(optDiv);
-        });
-
-        trigger.addEventListener('click', (e) => {
+        button.addEventListener('click', (e) => {
             e.stopPropagation();
-            document.querySelectorAll('.manga-select-wrapper.open').forEach(w => {
-                if (w !== wrapper) w.classList.remove('open');
-            });
-            wrapper.classList.toggle('open');
+            window.setDropdownOpen(wrapper, !wrapper.classList.contains('open'));
         });
 
-        wrapper.appendChild(trigger);
-        wrapper.appendChild(optionsContainer);
+        list.addEventListener('click', (e) => {
+            const row = e.target.closest('.manga-option');
+            // A click that picks nothing (a disabled row, which lets the pointer
+            // through to the list, or the list's edge) gives the focus back to the
+            // button, so the keys go on working.
+            if (!row) { button.focus({ preventScroll: true }); return; }
+            e.stopPropagation();
+            select.selectedIndex = Number(row.dataset.index);
+            window.setDropdownOpen(wrapper, false);
+            // The native change event, so the page's own listeners run.
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        wrapper.appendChild(button);
+        wrapper.appendChild(list);
         select.parentNode.insertBefore(wrapper, select.nextSibling);
+        fillDropdown(wrapper);
+        giveDropdownIds(wrapper);
+        showDropdownValue(wrapper);
 
-        // Follows a value set from code: the trigger's text and the highlighted option.
-        select.addEventListener('change', () => {
-            trigger.textContent = select.options[select.selectedIndex]?.textContent || 'Select...';
-            optionsContainer.querySelectorAll('.manga-option').forEach((el, i) =>
-                el.classList.toggle('selected', i === select.selectedIndex));
-        });
+        // Follows a value set from code, which fires no event, options a page fills in
+        // later, and the select being disabled.
+        for (const prop of ['value', 'selectedIndex']) {
+            const real = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, prop);
+            Object.defineProperty(select, prop, {
+                configurable: true,
+                get() { return real.get.call(this); },
+                set(v) { real.set.call(this, v); showDropdownValue(wrapper); },
+            });
+        }
+        select.addEventListener('change', () => showDropdownValue(wrapper));
+        new MutationObserver(() => showDropdownValue(wrapper))
+            .observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled'] });
     });
 };
 
-// Use Capture phase to close dropdowns before drag-and-drop eats the click
+// A press on a row keeps the focus on the dropdown's button. Rows only: the list's
+// scrollbar still drags.
+document.addEventListener('mousedown', (e) => {
+    if (e.target.closest && e.target.closest('.manga-select-options .manga-option')) e.preventDefault();
+});
+
+// Capture phase, to close dropdowns before drag-and-drop eats the click.
 document.addEventListener('mousedown', (e) => {
     if (!e.target.closest('.manga-select-wrapper')) {
-        document.querySelectorAll('.manga-select-wrapper.open').forEach(w => {
-            w.classList.remove('open');
-        });
+        document.querySelectorAll('.manga-select-wrapper.open').forEach(w => window.setDropdownOpen(w, false));
     }
 }, true);
+
+// The keys, for every dropdown on the page. Capture phase, and stopped there, so a
+// box's Enter or Escape never also answers for a key the dropdown used.
+let dropdownTyped = '';
+let dropdownTypedAt = 0;
+document.addEventListener('keydown', (e) => {
+    const button = e.target.closest && e.target.closest(DROPDOWN_BUTTON);
+    if (!button || button.disabled || e.ctrlKey || e.metaKey) return;
+    const wrapper = button.parentElement;
+    const open = wrapper.classList.contains('open');
+    const used = () => { e.preventDefault(); e.stopPropagation(); };
+    const letter = e.key.length === 1 && !e.altKey;
+    const typing = letter && (e.key !== ' ' || (dropdownTyped && Date.now() - dropdownTypedAt < 500));
+
+    if (!open) {
+        if (['ArrowDown', 'ArrowUp', 'Enter', ' ', 'Home', 'End'].includes(e.key) || typing) {
+            used();
+            window.setDropdownOpen(wrapper, true);
+            const rows = dropdownRows(wrapper);
+            if (e.key === 'Home') markActiveRow(wrapper, rows[0] || null);
+            if (e.key === 'End') markActiveRow(wrapper, rows[rows.length - 1] || null);
+            if (typing) typeToRow(wrapper, e.key);
+        }
+        return;
+    }
+
+    const rows = dropdownRows(wrapper);
+    const at = rows.findIndex(r => r.classList.contains('is-active'));
+    const moveTo = (i) => markActiveRow(wrapper, rows[Math.max(0, Math.min(rows.length - 1, i))] || null);
+    if (e.key === 'ArrowDown') { used(); moveTo(at + 1); }
+    else if (e.key === 'ArrowUp') { used(); moveTo(at - 1); }
+    else if (e.key === 'Home' || e.key === 'PageUp') { used(); moveTo(0); }
+    else if (e.key === 'End' || e.key === 'PageDown') { used(); moveTo(rows.length - 1); }
+    else if (typing) { used(); typeToRow(wrapper, e.key); }
+    else if (e.key === 'Enter' || e.key === ' ') {
+        used();
+        if (at >= 0) rows[at].click();
+        else window.setDropdownOpen(wrapper, false);
+    }
+    else if (e.key === 'Escape') { used(); window.setDropdownOpen(wrapper, false); }
+    else if (e.key === 'Tab') window.setDropdownOpen(wrapper, false);
+}, true);
+
+// Typed letters within half a second of each other spell one search: the first row
+// after the current one that starts with them, or with one letter typed again.
+function typeToRow(wrapper, key) {
+    const now = Date.now();
+    dropdownTyped = now - dropdownTypedAt < 500 ? dropdownTyped + key.toLowerCase() : key.toLowerCase();
+    dropdownTypedAt = now;
+    const rows = dropdownRows(wrapper);
+    const at = rows.findIndex(r => r.classList.contains('is-active'));
+    const same = dropdownTyped.split('').every(c => c === dropdownTyped[0]);
+    const search = same ? dropdownTyped[0] : dropdownTyped;
+    const start = same || dropdownTyped.length === 1 ? at + 1 : at;
+    const ordered = rows.slice(start).concat(rows.slice(0, start));
+    const hit = ordered.find(r => r.textContent.trim().toLowerCase().startsWith(search));
+    if (hit) markActiveRow(wrapper, hit);
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(window.initializeMangaSelects, 100);

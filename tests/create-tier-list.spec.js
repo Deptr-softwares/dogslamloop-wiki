@@ -15,6 +15,7 @@
 // through the route, so the hidden rule is tested whether or not the live
 // roster has a hidden character today.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const PAGE = '/tools/create-tier-list/index.html';
 const NAV = require('../data/navigation.json');
@@ -582,7 +583,7 @@ test('in the image, the first tier wraps around the branding and the next tier f
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.route('**/medias/portraits/**', route => route.fulfill({ status: 404, body: '' }));
     await boot(page);
-    await page.locator('[data-mk-quality]').selectOption('1');
+    await pickOption(page.locator('[data-mk-quality]'), '1');
     for (const c of VISIBLE.slice(0, 8)) await tapPlace(page, c.id, 0);
     for (const c of VISIBLE.slice(8, 16)) await tapPlace(page, c.id, 1);
     await page.locator('[data-mk-action="copy"]').click();
@@ -681,7 +682,7 @@ test('in the image too, characters sit 2 to 3px apart', async ({ page, context }
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.route('**/medias/portraits/**', route => route.fulfill({ status: 404, body: '' }));
     await boot(page);
-    await page.locator('[data-mk-quality]').selectOption('1');
+    await pickOption(page.locator('[data-mk-quality]'), '1');
     for (const c of VISIBLE.slice(0, 3)) await tapPlace(page, c.id, 0);
     await page.locator('[data-mk-action="copy"]').click();
     await expect(status(page)).toHaveText(copied, { timeout: 15000 });
@@ -723,7 +724,7 @@ test('the quality picked sets how sharp the image is, and is kept', async ({ pag
     });
 
     for (const [value, expected] of [['1', 1200], ['3', 3600]]) {
-        await quality.selectOption(value);
+        await pickOption(quality, value);
         await page.locator('[data-mk-action="copy"]').click();
         await expect(status(page)).toHaveText(copied, { timeout: 20000 });
         expect(await width()).toBe(expected);
@@ -791,7 +792,7 @@ test('Icons swaps the portraits for the roster icons, coloured on the border, an
     const src = (id) => entry(page, id).locator('img').getAttribute('src');
 
     await expect(page.locator('[data-mk-pictures]')).toHaveValue('portrait');
-    await page.locator('[data-mk-pictures]').selectOption('icon');
+    await pickOption(page.locator('[data-mk-pictures]'), 'icon');
 
     expect(await src(P1.id)).toContain(await iconOf(page, P1.id));
     await expect(face(P1.id)).toHaveClass(/tier-portrait-icon/);
@@ -808,7 +809,7 @@ test('Icons swaps the portraits for the roster icons, coloured on the border, an
     await expect.poll(() => src(P2.id)).toContain('medias/portraits/');
     await expect(face(P2.id)).not.toHaveClass(/tier-portrait-icon/);
 
-    await page.locator('[data-mk-pictures]').selectOption('portrait');
+    await pickOption(page.locator('[data-mk-pictures]'), 'portrait');
     expect(await src(P1.id)).toContain('medias/portraits/');
     expect(await background(face(P1.id))).toBe(await resolveColour(page, colour));
     expect(errors).toEqual([]);
@@ -824,8 +825,8 @@ test('in the image, Icons draws each icon fitted with the colour on its border, 
     await boot(page);
     const colour = await colourOf(page, P1.name);
     test.skip(!colour, 'the character has no colour');
-    await page.locator('[data-mk-quality]').selectOption('1');
-    await page.locator('[data-mk-pictures]').selectOption('icon');
+    await pickOption(page.locator('[data-mk-quality]'), '1');
+    await pickOption(page.locator('[data-mk-pictures]'), 'icon');
     await tapPlace(page, P1.id, 0);
     await tapPlace(page, P2.id, 0);
     await page.locator('[data-mk-action="copy"]').click();
@@ -870,7 +871,7 @@ test('on the board, Small branding is one faint box at the bottom right of the l
 
     await tapPlace(page, X.id, last);
     await expect(page.locator('[data-mk-branding]')).toHaveValue('big');
-    await page.locator('[data-mk-branding]').selectOption('small');
+    await pickOption(page.locator('[data-mk-branding]'), 'small');
 
     await expect(brandEl).toHaveCount(1);
     await expect(body(last).locator('.mk-brand')).toBeVisible();
@@ -912,8 +913,8 @@ test('in the image, Small branding sits after the last tier\'s characters at hal
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.route('**/medias/portraits/**', route => route.fulfill({ status: 404, body: '' }));
     await boot(page);
-    await page.locator('[data-mk-quality]').selectOption('1');
-    await page.locator('[data-mk-branding]').selectOption('small');
+    await pickOption(page.locator('[data-mk-quality]'), '1');
+    await pickOption(page.locator('[data-mk-branding]'), 'small');
     const last = (await page.locator('.mk-body').count()) - 1;
     for (const c of VISIBLE.slice(0, 8)) await tapPlace(page, c.id, last);
     await page.locator('[data-mk-action="copy"]').click();
@@ -960,8 +961,8 @@ test('in the image, Small branding sits after the last tier\'s characters at hal
 
 test('Pictures and Branding are kept on the device, and through RESET', async ({ page }) => {
     await boot(page);
-    await page.locator('[data-mk-pictures]').selectOption('icon');
-    await page.locator('[data-mk-branding]').selectOption('small');
+    await pickOption(page.locator('[data-mk-pictures]'), 'icon');
+    await pickOption(page.locator('[data-mk-branding]'), 'small');
 
     await page.locator('[data-mk-action="reset"]').click();
     await page.locator('#site-confirm-ok').click();

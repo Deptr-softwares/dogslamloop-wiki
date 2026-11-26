@@ -43,11 +43,11 @@
              + `<span class="daw-reorder-label">Selected</span>`
              + `<span class="daw-reorder-group" data-reorder-list="${spec}">`
              + `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}" data-reorder-dir="-1"
-                        title="Move the selected one left" aria-label="Move selected left">&#9664;</button>`
+                        data-tip="Move the selected one left" aria-label="Move selected left">&#9664;</button>`
              + `<button type="button" class="daw-tab-insert-btn" data-reorder-list="${spec}"
-                        title="Insert after the selected one" aria-label="Insert after selected">&#43;</button>`
+                        data-tip="Insert after the selected one" aria-label="Insert after selected">&#43;</button>`
              + `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}" data-reorder-dir="1"
-                        title="Move the selected one right" aria-label="Move selected right">&#9654;</button>`
+                        data-tip="Move the selected one right" aria-label="Move selected right">&#9654;</button>`
              + `</span></div>`;
     };
 

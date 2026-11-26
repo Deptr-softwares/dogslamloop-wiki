@@ -32,17 +32,11 @@
 .profile-quote figcaption { margin-top: 0.3rem; text-align: right; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
 .profile-quote figcaption p { margin: 0; }
 .profile-quote figcaption p::before { content: '- '; }
+/* A Trivia label whose text is in the site's tooltip (data-tip). */
 .profile-trivia-term {
-    position: relative; color: var(--text-white); cursor: help;
+    color: var(--text-white); cursor: help;
     text-decoration: underline dotted; text-underline-offset: 3px;
 }
-.profile-trivia-tip {
-    display: none; position: absolute; left: 0; top: calc(100% + 4px); z-index: 20;
-    width: max-content; max-width: min(16rem, 70vw);
-    background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 4px 4px 0 var(--manga-shadow);
-    padding: 0.5rem 0.75rem; font-size: 0.8rem; color: var(--text-primary); cursor: auto;
-}
-.profile-trivia-term:hover .profile-trivia-tip, .profile-trivia-term:focus .profile-trivia-tip { display: block; }
 .profile-trivia-title,
 .profile-pager-title {
     margin-top: 1rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border-color);

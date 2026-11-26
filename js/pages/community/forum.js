@@ -157,7 +157,7 @@
         title.setAttribute('aria-label', 'Title');
 
         const tag = document.createElement('select');
-        tag.className = 'editor-input forum-tag-select';
+        tag.className = 'editor-input forum-tag-select editor-select';
         tag.setAttribute('aria-label', 'Category');
         const none = el('option', null, 'Category');
         none.value = '';
@@ -293,7 +293,7 @@
         title.value = row.title;
         title.setAttribute('aria-label', 'Title');
         const tag = document.createElement('select');
-        tag.className = 'editor-input forum-tag-select';
+        tag.className = 'editor-input forum-tag-select editor-select';
         tag.setAttribute('aria-label', 'Category');
         FORUM_TAGS.forEach(t => {
             const o = el('option', null, t);
@@ -347,7 +347,7 @@
 
         const btn = el('button', 'discussion-edited discussion-edited-open', 'title edited');
         btn.type = 'button';
-        btn.title = 'Show what this post was called before (moderators only)';
+        btn.dataset.tip = 'Show what this post was called before (moderators only)';
         const box = el('div', 'discussion-edits');
         box.hidden = true;
         box.appendChild(el('p', 'discussion-edits-title', 'Earlier titles (moderators only)'));

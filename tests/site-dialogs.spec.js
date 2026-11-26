@@ -587,22 +587,39 @@ test('a tooltip shown from inside a box draws on top of it', async ({ page }) =>
     await expect(tip).toBeVisible();
     await expect(tip).toContainText('Neutral Game');
 
-    // The tooltip lets the pointer through, so it is hit-tested with that off.
+    // A text hint lets the pointer through, so it is hit-tested with that off.
     const onTop = await tip.evaluate(el => {
         el.style.pointerEvents = 'auto';
         const r = el.getBoundingClientRect();
         const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        el.style.pointerEvents = 'none';
+        el.style.pointerEvents = '';
         return el === hit || el.contains(hit);
     });
     expect(onTop, 'the tooltip is drawn over the box, not under it').toBe(true);
 
-    // And once the box is gone, the next tooltip draws on the page again.
+    // On the link that has focus, Escape closes the tooltip first, and the box only
+    // with the next one.
+    await page.keyboard.press('Shift');
+    await link.focus();
+    await expect(tip).toBeVisible();
     await page.keyboard.press('Escape');
+    await expect(tip).toBeHidden();
+    await expect(page.locator('#editor-house-style-modal')).toHaveCount(1);
+
+    // A tooltip the mouse opened while focus is elsewhere goes with the box, in one.
+    await page.locator('#editor-house-style-modal [data-house-style-ok]').focus();
+    await page.mouse.move(0, 0);
+    await link.hover();
+    await expect(tip).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(tip).toBeHidden();
     await expect(page.locator('#editor-house-style-modal')).toHaveCount(0);
-    await page.evaluate(() => window.showTooltipAt('On the page', 50, 50));
+
+    // And once the box is gone, the next tooltip draws on the page again.
+    await page.evaluate(() => window.showTooltipFor(document.getElementById('sec-dialog-tooltip'), 'On the page', { text: true }));
     await expect(tip).toBeVisible();
     await expect(tip).toHaveText('On the page');
+    expect(await tip.evaluate(el => el.parentElement === document.body)).toBe(true);
     expect(errors).toEqual([]);
 });
 
@@ -621,10 +638,8 @@ test('a bound tooltip (a callout, a Frame Track phase) inside a box draws on top
     const tip = page.locator('#wiki-frame-tooltip');
     await expect(tip).toHaveText('Frames before the hitbox comes out.');
     const onTop = await tip.evaluate(el => {
-        el.style.pointerEvents = 'auto';
         const r = el.getBoundingClientRect();
         const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        el.style.pointerEvents = 'none';
         return el === hit || el.contains(hit);
     });
     expect(onTop).toBe(true);

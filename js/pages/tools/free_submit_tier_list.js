@@ -59,7 +59,7 @@
         const meta = state.roster.get(pageId) || { name: String(pageId).replace(/_/g, ' ') };
 
         const wrap = el('span', 'tier-portrait');
-        wrap.title = meta.name;
+        wrap.dataset.tip = meta.name;
 
         if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name]) {
             wrap.style.backgroundColor = window.CHARACTER_COLORS[meta.name];
@@ -285,7 +285,8 @@
         clear.type = 'button';
         clear.dataset.vote = pageId;
         clear.dataset.tier = '';
-        clear.title = 'No opinion';
+        clear.dataset.tip = 'No opinion';
+        clear.setAttribute('aria-label', 'No opinion');
         if (!current) clear.classList.add('fs-choice-on');
         choices.appendChild(clear);
 

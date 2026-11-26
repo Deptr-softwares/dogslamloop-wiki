@@ -14,6 +14,7 @@
 // the controls call the right function with the right arguments, and a
 // contributor-supplied email never reaches an inline onclick.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const EXPERTS = [
     { user_id: 'u1', email: 'mango@example.com', page_id: 'boomcat', granted_at: '2026-09-01T00:00:00Z' },
@@ -161,7 +162,7 @@ test('REVOKE carries the email in a data attribute, not an onclick', async ({ pa
 test('granting sends the email and the page', async ({ page }) => {
     await open(page);
     await page.fill('#expert-email', 'newexpert@example.com');
-    await page.selectOption('#expert-page', 'sukuna');
+    await pickOption(page.locator('#expert-page'), 'sukuna');
     await page.click('#tool-page-experts button.admin-tool-btn');
 
     await expect.poll(async () => await page.evaluate(() =>

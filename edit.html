@@ -6,19 +6,19 @@
     <title>Wiki Contributor Editor</title>
     
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=98839c59">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=98839c59">
-    <link rel="stylesheet" href="style/Buttons.css?v=98839c59">
-    <link rel="stylesheet" href="style/Modals.css?v=98839c59">
-    <link rel="stylesheet" href="style/Forms.css?v=98839c59">
-    <link rel="stylesheet" href="style/Badges.css?v=98839c59">
-    <link rel="stylesheet" href="style/Alerts.css?v=98839c59">
-    <link rel="stylesheet" href="style/Cards.css?v=98839c59">
-    <link rel="stylesheet" href="style/FrameData.css?v=98839c59">
-    <link rel="stylesheet" href="style/Layout.css?v=98839c59">
-    <link rel="stylesheet" href="style/Blocks.css?v=98839c59">
-    <link rel="stylesheet" href="style/tierlist.css?v=98839c59">
-    <link rel="stylesheet" href="style/editor.css?v=98839c59">
+    <link rel="stylesheet" href="style/Common.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Buttons.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Modals.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Forms.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Badges.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Alerts.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Cards.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/FrameData.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Layout.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Blocks.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/tierlist.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/editor.css?v=c535b9ff">
     <!-- END GENERATED: styles -->
 </head>
 <body>
@@ -124,7 +124,7 @@
             <div class="dialog-body media-modal-body">
                 <div class="media-toolbar">
                     <input type="text" id="media-search-input" class="editor-input media-search-input" placeholder="Search by name, or @uploader" autocomplete="off" spellcheck="false">
-                    <select id="media-filter-select" class="editor-select media-filter-select">
+                    <select id="media-filter-select" class="editor-select media-filter-select" aria-label="Media type">
                         <option value="all">All Media</option>
                         <option value="image">Images (WEBP/PNG/JPG)</option>
                         <option value="video">Videos & GIFs</option>
@@ -194,7 +194,7 @@
                 <div class="editor-header-top">
                     <button type="button" id="btn-collapse-chrome" class="editor-chrome-toggle"
                             aria-expanded="true" aria-controls="editor-header"
-                            title="Collapse the editor header">▾</button>
+                            data-tip="Collapse the editor header" aria-label="Collapse the editor header">▾</button>
                     <div class="editor-header-titles">
                         <h2 class="editor-title" id="editor-title">Loading...</h2>
                         <span class="editor-subtitle" id="editor-subtitle">Connecting to database...</span>
@@ -210,8 +210,8 @@
                     <!-- v1.1: two buttons where Sync/Save was (owner, 2026-10-19).
                          Sync writes the Workspace into the page and redraws the
                          preview; Save keeps this version in Drafts. -->
-                    <button id="btn-sync" class="btn-sys btn-sys-yellow" title="Write the Workspace into the page and redraw the preview" onclick="window.syncWorkspace()">Sync</button>
-                    <button id="btn-save" class="btn-sys btn-sys-yellow" title="Keep this version of the page in Drafts" onclick="window.saveWorkspace()">Save</button>
+                    <button id="btn-sync" class="btn-sys btn-sys-yellow" data-tip="Write the Workspace into the page and redraw the preview" onclick="window.syncWorkspace()">Sync</button>
+                    <button id="btn-save" class="btn-sys btn-sys-yellow" data-tip="Keep this version of the page in Drafts" onclick="window.saveWorkspace()">Save</button>
                     <button id="btn-find-replace" class="btn-sys btn-sys-regular" onclick="window.openFindReplace()">Find &amp; Replace</button>
                     <button id="btn-toggle-diff" class="btn-sys btn-sys-purple" onclick="window.toggleDiffMode()">Diff View</button>
                     <!-- v0.19 F3. Red, and the owner asked for red: the other
@@ -219,17 +219,17 @@
                          this one only explains the rules. Red is the colour
                          nothing else in this row uses. -->
                     <button id="btn-style-manual" class="btn-sys btn-sys-red"
-                            title="Manual of Style" onclick="window.openStyleManual()">MoS</button>
+                            data-tip="Manual of Style" onclick="window.openStyleManual()">MoS</button>
                     <!-- v1.1: this page's own house style, written in Config >
                          Page. Red beside MoS, as the owner asked, and shown on
                          every page that has a Config > Page, written or not
                          (js/editor/core/editor-config.js). -->
                     <button id="btn-house-style" class="btn-sys btn-sys-red hidden"
-                            title="This page's house style" onclick="window.openHouseStyle()">House Style</button>
+                            data-tip="This page's house style" onclick="window.openHouseStyle()">House Style</button>
                     <!-- v1.1 Config panel: the editor's own settings, per device
                          (js/editor/core/editor-config.js). Gray, as the owner asked. -->
                     <button id="btn-editor-config" class="btn-sys btn-sys-regular"
-                            title="Editor settings" onclick="window.openEditorConfig()">Config</button>
+                            data-tip="Editor settings" onclick="window.openEditorConfig()">Config</button>
                     <button id="submit-payload-btn" class="btn-sys btn-sys-green">Submit</button>
                 </div>
             </div>
@@ -293,7 +293,7 @@
              sharing the screen at all. -->
         <div class="editor-splitter" id="editor-splitter" role="separator"
              aria-orientation="vertical" aria-label="Resize the editor and preview"
-             aria-valuemin="0" aria-valuemax="100" tabindex="0" title="Drag to resize; double-click to reset"></div>
+             aria-valuemin="0" aria-valuemax="100" tabindex="0" data-tip="Drag to resize; double-click to reset"></div>
 
         <div class="live-preview-pane">
             <button class="mobile-back-to-editor" onclick="window.toggleMobilePreview()">
@@ -323,45 +323,45 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=98839c59"></script>
-    <script src="js/utility/input_slots.js?v=98839c59"></script>
-    <script src="js/utility/site_utils.js?v=98839c59"></script>
-    <script src="js/utility/site_data.js?v=98839c59"></script>
-    <script src="js/utility/site_media.js?v=98839c59"></script>
-    <script src="js/utility/site_account.js?v=98839c59"></script>
-    <script src="js/utility/site_lookups.js?v=98839c59"></script>
-    <script src="js/utility/submission_delta.js?v=98839c59"></script>
-    <script src="js/pages/core/page_shell.js?v=98839c59"></script>
-    <script src="js/utility/search.js?v=98839c59"></script>
-    <script src="js/pages/core/skill_card.js?v=98839c59"></script>
-    <script src="js/pages/core/page_render.js?v=98839c59"></script>
-    <script src="js/pages/core/format_tags.js?v=98839c59"></script>
-    <script src="js/editor/tools/editor-playground.js?v=98839c59"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=98839c59"></script>
-    <script src="js/editor/core/editor-config.js?v=98839c59"></script>
-    <script src="js/editor/core/editor-modes.js?v=98839c59"></script>
-    <script src="js/editor/core/editor-core.js?v=98839c59"></script>
-    <script src="js/editor/tabs/editor-tabs.js?v=98839c59"></script>
-    <script src="js/editor/tabs/editor-framedata.js?v=98839c59"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=98839c59"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=98839c59"></script>
-    <script src="js/editor/tools/editor-previews.js?v=98839c59"></script>
-    <script src="js/utility/diff-markers.js?v=98839c59"></script>
-    <script src="js/utility/side-by-side.js?v=98839c59"></script>
-    <script src="js/editor/core/editor-sync.js?v=98839c59"></script>
-    <script src="js/editor/core/editor-drafts.js?v=98839c59"></script>
-    <script src="js/editor/tools/editor-media.js?v=98839c59"></script>
-    <script src="js/editor/tabs/editor-system.js?v=98839c59"></script>
-    <script src="js/pages/types/tool_page.js?v=98839c59"></script>
-    <script src="js/editor/tabs/editor-tool.js?v=98839c59"></script>
-    <script src="js/pages/types/gallery.js?v=98839c59"></script>
-    <script src="js/editor/tabs/editor-gallery.js?v=98839c59"></script>
-    <script src="js/pages/tier-lists/tierlist.js?v=98839c59"></script>
-    <script src="js/editor/blocks/editor-reorder.js?v=98839c59"></script>
-    <script src="js/editor/tools/editor-find-replace.js?v=98839c59"></script>
-    <script src="js/editor/tools/editor-writing-checks.js?v=98839c59"></script>
-    <script src="js/editor/tools/editor-notices.js?v=98839c59"></script>
-    <script src="js/editor/tools/editor-tutorial.js?v=98839c59"></script>
+    <script src="js/utility/character_tabs.js?v=c535b9ff"></script>
+    <script src="js/utility/input_slots.js?v=c535b9ff"></script>
+    <script src="js/utility/site_utils.js?v=c535b9ff"></script>
+    <script src="js/utility/site_data.js?v=c535b9ff"></script>
+    <script src="js/utility/site_media.js?v=c535b9ff"></script>
+    <script src="js/utility/site_account.js?v=c535b9ff"></script>
+    <script src="js/utility/site_lookups.js?v=c535b9ff"></script>
+    <script src="js/utility/submission_delta.js?v=c535b9ff"></script>
+    <script src="js/pages/core/page_shell.js?v=c535b9ff"></script>
+    <script src="js/utility/search.js?v=c535b9ff"></script>
+    <script src="js/pages/core/skill_card.js?v=c535b9ff"></script>
+    <script src="js/pages/core/page_render.js?v=c535b9ff"></script>
+    <script src="js/pages/core/format_tags.js?v=c535b9ff"></script>
+    <script src="js/editor/tools/editor-playground.js?v=c535b9ff"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=c535b9ff"></script>
+    <script src="js/editor/core/editor-config.js?v=c535b9ff"></script>
+    <script src="js/editor/core/editor-modes.js?v=c535b9ff"></script>
+    <script src="js/editor/core/editor-core.js?v=c535b9ff"></script>
+    <script src="js/editor/tabs/editor-tabs.js?v=c535b9ff"></script>
+    <script src="js/editor/tabs/editor-framedata.js?v=c535b9ff"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=c535b9ff"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=c535b9ff"></script>
+    <script src="js/editor/tools/editor-previews.js?v=c535b9ff"></script>
+    <script src="js/utility/diff-markers.js?v=c535b9ff"></script>
+    <script src="js/utility/side-by-side.js?v=c535b9ff"></script>
+    <script src="js/editor/core/editor-sync.js?v=c535b9ff"></script>
+    <script src="js/editor/core/editor-drafts.js?v=c535b9ff"></script>
+    <script src="js/editor/tools/editor-media.js?v=c535b9ff"></script>
+    <script src="js/editor/tabs/editor-system.js?v=c535b9ff"></script>
+    <script src="js/pages/types/tool_page.js?v=c535b9ff"></script>
+    <script src="js/editor/tabs/editor-tool.js?v=c535b9ff"></script>
+    <script src="js/pages/types/gallery.js?v=c535b9ff"></script>
+    <script src="js/editor/tabs/editor-gallery.js?v=c535b9ff"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=c535b9ff"></script>
+    <script src="js/editor/blocks/editor-reorder.js?v=c535b9ff"></script>
+    <script src="js/editor/tools/editor-find-replace.js?v=c535b9ff"></script>
+    <script src="js/editor/tools/editor-writing-checks.js?v=c535b9ff"></script>
+    <script src="js/editor/tools/editor-notices.js?v=c535b9ff"></script>
+    <script src="js/editor/tools/editor-tutorial.js?v=c535b9ff"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>

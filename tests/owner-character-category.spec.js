@@ -16,6 +16,7 @@
 // So the field offered a choice that had exactly one correct answer. It is
 // pinned now, in the form and again at submit.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 async function openOwner(page) {
     await page.addInitScript(() => {
@@ -77,7 +78,7 @@ test('switching to a system page hands the field back', async ({ page }) => {
     // The pin must not be one-way: leaving 'Characters' behind on a system page
     // would file a guide under the roster, which is the same bug mirrored.
     await openOwner(page);
-    await page.selectOption('#new-page-type', 'system');
+    await pickOption(page.locator('#new-page-type'), 'system');
 
     const field = page.locator('#new-page-category');
     await expect(field).not.toHaveAttribute('readonly', '');
@@ -88,13 +89,13 @@ test('a category typed for a system page survives a trip through character', asy
     // Picking the wrong type for a moment should not silently discard what was
     // typed - that is the kind of small loss that makes a tool feel unsafe.
     await openOwner(page);
-    await page.selectOption('#new-page-type', 'system');
+    await pickOption(page.locator('#new-page-type'), 'system');
     await page.fill('#new-page-category', 'Guides');
 
-    await page.selectOption('#new-page-type', 'character');
+    await pickOption(page.locator('#new-page-type'), 'character');
     await expect(page.locator('#new-page-category')).toHaveValue('Characters');
 
-    await page.selectOption('#new-page-type', 'system');
+    await pickOption(page.locator('#new-page-type'), 'system');
     await expect(page.locator('#new-page-category'), 'restored, not lost').toHaveValue('Guides');
 });
 
@@ -126,7 +127,7 @@ test('a system page still uses what was typed', async ({ page }) => {
     // The paired positive: the forcing must apply to character pages only, or
     // every page on the site lands in the roster.
     await openOwner(page);
-    await page.selectOption('#new-page-type', 'system');
+    await pickOption(page.locator('#new-page-type'), 'system');
     await page.fill('#new-page-name', 'Some Guide');
     await page.fill('#new-page-category', 'Guides');
 

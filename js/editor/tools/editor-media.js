@@ -446,7 +446,7 @@ window.initMediaLibrary = function() {
             const uploader = window.mediaUploaderNames[file.name];
             const selected = file.name === window.mediaSelectedName;
             const name = window.escapeHtml(file.name);
-            return `<button type="button" class="media-row${selected ? ' is-selected' : ''}" aria-pressed="${selected}" data-media-name="${name}" title="${name}">
+            return `<button type="button" class="media-row${selected ? ' is-selected' : ''}" aria-pressed="${selected}" data-media-name="${name}" data-tip="${name}">
                 <span class="media-row-name">${name}</span>
                 <span class="media-row-type">${mediaKind(file.name)}</span>
                 ${uploader ? `<span class="media-row-uploader">by ${window.escapeHtml(uploader)}</span>` : ''}

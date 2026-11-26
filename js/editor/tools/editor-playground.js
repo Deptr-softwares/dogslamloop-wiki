@@ -69,7 +69,7 @@
     const pullBtn = byId('submit-payload-btn');
     if (pullBtn) {
         pullBtn.textContent = 'Pull';
-        pullBtn.title = 'Copy any page into the Playground';
+        pullBtn.dataset.tip = 'Copy any page into the Playground';
         pullBtn.classList.remove('btn-sys-green');
         pullBtn.classList.add('btn-sys-blue');
         pullBtn.addEventListener('click', openPullPicker);
@@ -78,7 +78,7 @@
         newBtn.type = 'button';
         newBtn.id = 'btn-playground-new';
         newBtn.className = 'btn-sys btn-sys-red';
-        newBtn.title = 'Clear the Playground and start from a blank page';
+        newBtn.dataset.tip = 'Clear the Playground and start from a blank page';
         newBtn.textContent = 'New';
         newBtn.addEventListener('click', startNew);
         pullBtn.insertAdjacentElement('beforebegin', newBtn);

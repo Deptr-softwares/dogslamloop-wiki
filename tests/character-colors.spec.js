@@ -15,6 +15,7 @@
 // The generator tests below are node-only and run through the Playwright runner
 // like tests/generate-pages.spec.js.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 const fs = require('fs');
 const path = require('path');
 
@@ -280,7 +281,7 @@ async function openPageMeta(page) {
 
     await page.goto('/owner.html', { waitUntil: 'networkidle' });
     await page.click('.owner-nav-btn[data-group="pages"]');
-    await page.selectOption('#page-meta-select', 'vessel');
+    await pickOption(page.locator('#page-meta-select'), 'vessel');
 }
 
 test('a character page offers a colour, prefilled from the database', async ({ page }) => {
@@ -301,7 +302,7 @@ test('the swatch shows the colour rather than the string', async ({ page }) => {
 
 test('a system page is offered no colour at all', async ({ page }) => {
     await openPageMeta(page);
-    await page.selectOption('#page-meta-select', 'framedata');
+    await pickOption(page.locator('#page-meta-select'), 'framedata');
     await expect(page.locator('#page-meta-color')).toBeHidden();
 });
 

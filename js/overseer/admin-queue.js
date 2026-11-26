@@ -214,7 +214,7 @@ function renderQueue() {
             const sizeSource = rev.is_delta ? rev.delta_payload : { desc: rev.desc_data, frame: rev.frame_data };
             const sizeBytes = JSON.stringify(sizeSource || {}).length;
             const sizeTier = sizeBytes > 3000 ? 'l' : (sizeBytes > 500 ? 'm' : 's');
-            const sizeBadge = `<span class="update-badge badge-size-${sizeTier}" title="${sizeBytes} bytes of changed content">${sizeTier.toUpperCase()}</span>`;
+            const sizeBadge = `<span class="update-badge badge-size-${sizeTier}" data-tip="${sizeBytes} bytes of changed content">${sizeTier.toUpperCase()}</span>`;
 
             const card = document.createElement('div');
             card.className = 'update-log-item';
@@ -261,7 +261,7 @@ function confidenceBadge(rev) {
         ? QA_CONFIDENCE[level] : null;
     // Silent when absent: older revisions and tickets have no QA notes.
     if (!known) return '';
-    return `<span class="update-badge ${known.cls}" title="Data confidence, stated by the contributor">${known.label}</span>`;
+    return `<span class="update-badge ${known.cls}" data-tip="Data confidence, stated by the contributor">${known.label}</span>`;
 }
 
 function qaNote(rev) {
@@ -280,7 +280,7 @@ function qaNote(rev) {
     if (evidence) {
         // Not a link: one click from a staff page to a contributor's address is a
         // phishing step. The address is in the ticket.
-        html += `<p class="admin-queue-qa-evidence" title="${window.escapeHtml(evidence)}">Evidence cited</p>`;
+        html += `<p class="admin-queue-qa-evidence" data-tip="${window.escapeHtml(evidence)}">Evidence cited</p>`;
     }
     return html + '</div>';
 }

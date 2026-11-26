@@ -694,7 +694,7 @@
                         <button type="button" class="config-word-swatch" data-word-swatch aria-label="Color for this word" aria-expanded="false"></button>
                         <input type="text" class="editor-input config-word-text" data-word-text value="${window.escapeHtml(w.word)}"
                                placeholder="Word or phrase" aria-label="Word" spellcheck="false" autocomplete="off">
-                        <button type="button" class="btn-sys btn-sys-red config-word-remove" data-word-remove title="Delete this word">✖</button>
+                        <button type="button" class="btn-sys btn-sys-red config-word-remove" data-word-remove data-tip="Delete this word" aria-label="Delete this word">✖</button>
                     </div>
                     <span class="config-option-hint config-word-note" data-word-note></span>
                 </div>`).join('');

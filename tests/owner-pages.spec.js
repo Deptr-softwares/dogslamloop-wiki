@@ -5,6 +5,7 @@
 // site_pages replaces the first two - an insert here becomes a nav entry and
 // a stub on the next regeneration run.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 // sort_order mirrors the live seed's spacing of 10. The character list is
 // ordered by in-game release - full characters first, then base-only ones -
@@ -134,7 +135,7 @@ test('creating a page inserts a complete registry row', async ({ page }) => {
     await openPageGroups(page);
 
   await page.fill('#new-page-name', 'Crow Charmer');
-  await page.selectOption('#new-page-type', 'character');
+  await pickOption(page.locator('#new-page-type'), 'character');
   // The category field is pinned to 'Characters' for a character page as of
   // 2026-09-03 - the roster reads that name literally, so it was a choice with
   // exactly one correct answer. Filling it is neither needed nor possible now.
@@ -167,6 +168,29 @@ test('the create form previews the URL before you commit to it', async ({ page }
 
   await page.fill('#new-page-name', 'Crow Charmer');
   await expect(page.locator('#new-page-preview')).toContainText('characters/Crow_charmer/index.html');
+});
+
+// The Folder dropdown is the site's since v1.3, which dispatches change and never
+// input, and the preview listened for input: picking a folder left it stale.
+test('picking another folder in the Folder dropdown moves the previewed URL', async ({ page }) => {
+  await mockPages(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+  await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+
+  await page.fill('#new-page-name', 'Emote Wheel');
+  await pickOption(page.locator('#new-page-type'), 'system');
+  await expect(page.locator('#new-page-preview')).toContainText('systems/');
+
+  await pickOption(page.locator('#new-page-directory'), 'others');
+  await expect(page.locator('#new-page-directory + .manga-select-wrapper .manga-select-trigger')).toContainText('others/');
+  await expect(page.locator('#new-page-preview')).toContainText('others/');
+
+  // The dropdown keeps the hidden select's room below it, so the form's spacing holds.
+  const margins = await page.evaluate(() => {
+    const select = document.getElementById('new-page-directory');
+    return [getComputedStyle(select).marginBottom, getComputedStyle(select.nextElementSibling).marginBottom];
+  });
+  expect(margins[1]).toBe(margins[0]);
 });
 
 test('a duplicate page reports the collision in plain language', async ({ page }) => {
@@ -241,7 +265,7 @@ test('a new page can be inserted after a chosen sibling, not just appended', asy
   // The category field is pinned to 'Characters' for a character page as of
   // 2026-09-03 - the roster reads that name literally, so it was a choice with
   // exactly one correct answer. Filling it is neither needed nor possible now.
-  await page.selectOption('#new-page-position', 'vessel');
+  await pickOption(page.locator('#new-page-position'), 'vessel');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
   await expect.poll(() =>
@@ -263,7 +287,7 @@ test('the position dropdown lists only siblings in the chosen category', async (
     await openPageGroups(page);
   // A system page, because this test drives the category field directly and a
   // character page no longer owns it.
-  await page.selectOption('#new-page-type', 'system');
+  await pickOption(page.locator('#new-page-type'), 'system');
   await page.fill('#new-page-category', 'Characters');
 
   // The dropdown repopulates from the category; poll for the content rather
@@ -307,7 +331,7 @@ test('an exhausted gap renumbers the category instead of colliding', async ({ pa
   // The category field is pinned to 'Characters' for a character page as of
   // 2026-09-03 - the roster reads that name literally, so it was a choice with
   // exactly one correct answer. Filling it is neither needed nor possible now.
-  await page.selectOption('#new-page-position', 'a');
+  await pickOption(page.locator('#new-page-position'), 'a');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
   await expect.poll(() =>

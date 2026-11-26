@@ -430,7 +430,7 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         clashes.sort((x, y) => (y.gap - x.gap) || (x.order - y.order));
 
         const head = roster.map(c =>
-            '<th class="matchup-grid-col" scope="col" title="' + window.escapeHtml(c.name) + '">'
+            '<th class="matchup-grid-col" scope="col" data-tip="' + window.escapeHtml(c.name) + '">'
             + window.escapeHtml(abbrev(c.name)) + '</th>').join('');
 
         const body = roster.map(rowChar => {
@@ -441,7 +441,7 @@ window.buildMatchupTable = async function (sectionId, containerId) {
                 }
                 const raw = ratingOf(rowChar.name, colChar.name);
                 if (raw === undefined) {
-                    return '<td class="matchup-grid-cell is-blank" title="'
+                    return '<td class="matchup-grid-cell is-blank" data-tip="'
                         + window.escapeHtml(rowChar.name) + ' vs ' + window.escapeHtml(colChar.name) + ': not rated"></td>';
                 }
 
@@ -460,7 +460,7 @@ window.buildMatchupTable = async function (sectionId, containerId) {
                 return '<td class="matchup-grid-cell">'
                     + '<a class="matchup-grid-link' + (clash ? ' is-clash' : '') + '" href="' + window.escapeHtml(href) + '"'
                     + ' style="background:' + window.escapeHtml(tier.color) + '"'
-                    + ' title="' + label + (clash ? '&#10;' + clash : '') + '">'
+                    + ' data-tip="' + label + (clash ? '&#10;' + clash : '') + '">'
                     + '<span class="sr-only">' + label + (clash ? '. ' + clash : '') + '</span></a></td>';
             }).join('');
 

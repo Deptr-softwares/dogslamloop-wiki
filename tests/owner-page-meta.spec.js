@@ -15,6 +15,7 @@
 // these pin.
 
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const PAGES = [
     { page_id: 'boomcat', name: 'Boomcat', page_type: 'character', category: 'Characters', status: 'live',
@@ -140,7 +141,7 @@ test('character-only fields are hidden for a system page', async ({ page }) => {
     await openGroup(page, 'pages');
     await expect(page.locator('#page-meta-select')).toHaveValue('boomcat', { timeout: 5000 });
 
-    await page.selectOption('#page-meta-select', 'framedata');
+    await pickOption(page.locator('#page-meta-select'), 'framedata');
     await expect(page.locator('#page-meta-character-fields')).toBeHidden();
     // Flags still apply - a system page can be work-in-progress.
     const sysFlags = await page.locator('.page-meta-checkbox').evaluateAll(
@@ -243,7 +244,7 @@ test('a step with no link is allowed - it is an instruction, not a page', async 
     await openGroup(page, 'content');
     await expect(page.locator('.hub-step-title').first()).toHaveValue('Starter Guide', { timeout: 5000 });
 
-    await page.selectOption('#hub-list-select', 'contribute');
+    await pickOption(page.locator('#hub-list-select'), 'contribute');
     await expect(page.locator('.hub-step-url').first()).toHaveValue('');
 
     await page.click('#btn-save-hub-lists');

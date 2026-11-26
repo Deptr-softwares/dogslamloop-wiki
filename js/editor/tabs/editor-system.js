@@ -26,7 +26,7 @@ window.renderSystemEditor = function(container) {
         let active = tIdx === window.currentSystemTabIdx ? 'active' : '';
         tabHTML += `<div class="daw-tab-item">`;
         tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${active}" onclick="window.switchSystemTab(${tIdx})">${window.escapeHtml(tab.tabLabel)}</button>`;
-        tabHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemTab(${tIdx})" title="Delete Tab">✖</button>`;
+        tabHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemTab(${tIdx})" data-tip="Delete Tab" aria-label="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
     window.registerInserter('desc.tabs', () => window.addSystemTab());
@@ -44,7 +44,7 @@ window.renderSystemEditor = function(container) {
         secHTML += `<div class="daw-tab-item">`;
         secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${window.escapeHtml(sec.sectionTitle || 'Section ' + (sIdx+1))}</button>`;
         // A move ships as an order change, not as every section's content.
-        secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" title="Delete Section">✖</button>`;
+        secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" data-tip="Delete Section" aria-label="Delete Section">✖</button>`;
         secHTML += `</div>`;
     });
     window.registerInserter(`desc.tabs.${window.currentSystemTabIdx}.sections`, () => window.addSystemSection());

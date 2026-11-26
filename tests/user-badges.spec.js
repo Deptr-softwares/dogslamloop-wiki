@@ -202,9 +202,9 @@ test('shown badges sit after the flair as skill slots, named on hover, gold fram
     const img = gold.querySelector('img');
     return {
       afterFlair: !!(flair.compareDocumentPosition(gold) & Node.DOCUMENT_POSITION_FOLLOWING),
-      title: gold.title, alt: img.alt, src: img.getAttribute('src'),
+      title: gold.dataset.tip, alt: img.alt, src: img.getAttribute('src'),
       goldFrame: getComputedStyle(gold).borderTopColor, plainFrame: getComputedStyle(plain).borderTopColor,
-      plainTitle: plain.title,
+      plainTitle: plain.dataset.tip,
     };
   });
   expect(seen).toMatchObject({ afterFlair: true, title: 'DSL Halloween 2026 - Gold Ver', alt: 'DSL Halloween 2026 - Gold Ver', plainTitle: 'DSL Halloween 2026' });
@@ -225,7 +225,7 @@ test('a person with badges and no flair still shows them; one with none, or a si
   ], [post(), post({ id: 'p2', author_id: 'u-none', author_name: 'nobody' }), post({ id: 'p3', author_id: 'u-old', author_name: 'old' })]);
   const author = (id) => page.locator(`.discussion-author-link[data-profile-user="${id}"]`);
   await expect(author('u-other').locator('.user-badge')).toHaveCount(1);
-  await expect(author('u-other').locator('.user-badge')).toHaveAttribute('title', 'DSL Halloween 2026');
+  await expect(author('u-other').locator('.user-badge')).toHaveAttribute('data-tip', 'DSL Halloween 2026');
   await expect(author('u-other').locator('.discussion-flair')).toHaveCount(0);
   // Drawn by now: the badge above came from the same pass.
   await expect(author('u-none')).toHaveText('nobody');

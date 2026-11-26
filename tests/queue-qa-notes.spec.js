@@ -50,7 +50,7 @@ async function render(page, rows) {
             badges: [...c.querySelectorAll('[class*="badge-confidence"]')]
                 .map(b => ({ cls: b.className, text: b.textContent.trim() })),
             evidence: (c.querySelector('.admin-queue-qa-evidence') || {}).textContent || '',
-            evidenceTitle: (c.querySelector('.admin-queue-qa-evidence') || {}).title || '',
+            evidenceTitle: ((c.querySelector('.admin-queue-qa-evidence') || {}).dataset || {}).tip || '',
             links: c.querySelectorAll('.admin-queue-qa a').length,
         };
     }, rows);

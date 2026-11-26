@@ -69,7 +69,7 @@ const wordsSaying = (page, pattern) => page.evaluate((source) => {
   for (const el of root.querySelectorAll('*')) {
     if (el.closest('[data-field="variant"]')) continue;
     const own = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(' ');
-    for (const text of [own, el.getAttribute('placeholder') || '', el.getAttribute('title') || '']) {
+    for (const text of [own, el.getAttribute('placeholder') || '', el.getAttribute('data-tip') || '']) {
       if (text && re.test(text)) out.push(text);
     }
   }

@@ -144,7 +144,7 @@ test('callout blocks in a post get their tooltip bound', async ({ page }) => {
   await expect(btn).toBeAttached();
 
   // bindTooltip's mouseenter handler calls initTooltip(), which creates
-  // #wiki-frame-tooltip, then fills it and sets display:block. Asserting on
+  // #wiki-frame-tooltip, then fills it and shows it. Asserting on
   // that specific element is what makes this test real - an earlier version
   // counted tooltip-ish elements before/after and passed even with the
   // binding deleted.
@@ -156,7 +156,7 @@ test('callout blocks in a post get their tooltip bound', async ({ page }) => {
     return {
       existedBefore,
       appeared: !!tip,
-      visible: tip ? tip.style.display === 'block' : false,
+      visible: tip ? !tip.hidden : false,
       text: tip ? tip.textContent : '',
     };
   });

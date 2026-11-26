@@ -488,7 +488,7 @@ window.initAuthDock = async function() {
                 <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
                 <span class="btn-manga-text dock-action-text">${username === 'LOGIN' ? 'Login' : window.escapeHtml(username)}</span>
             </button>
-            <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" title="Site settings" aria-label="Site settings">
+            <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" data-tip="Site settings" aria-label="Site settings">
                 <span class="btn-manga-icon dock-action-icon">${svgSliders}</span>
             </button>
         </div>`;
@@ -1081,21 +1081,29 @@ function jumpLinkDestination(link) {
 
 const jumpLinkAt = (node) => (node && node.closest ? node.closest('a.wiki-link-jump') : null);
 
+function showJumpDestination(link) {
+    const where = jumpLinkDestination(link);
+    if (where && typeof window.showTooltipFor === 'function') window.showTooltipFor(link, where, { text: true });
+}
+
 document.addEventListener('mouseover', (e) => {
     const link = jumpLinkAt(e.target);
-    if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.showTooltipAt !== 'function') return;
-    const where = jumpLinkDestination(link);
-    if (where) window.showTooltipAt(window.escapeHtml(where), e.clientX, e.clientY);
-});
-
-document.addEventListener('mousemove', (e) => {
-    if (jumpLinkAt(e.target) && typeof window.moveTooltipTo === 'function') window.moveTooltipTo(e.clientX, e.clientY);
+    if (link && link !== jumpLinkAt(e.relatedTarget)) showJumpDestination(link);
 });
 
 document.addEventListener('mouseout', (e) => {
     const link = jumpLinkAt(e.target);
     if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.hideTooltip !== 'function') return;
     window.hideTooltip();
+});
+
+// The keyboard sees where a link goes too.
+document.addEventListener('focusin', (e) => {
+    const link = jumpLinkAt(e.target);
+    if (link && link.matches(':focus-visible')) showJumpDestination(link);
+});
+document.addEventListener('focusout', (e) => {
+    if (jumpLinkAt(e.target) && typeof window.hideTooltip === 'function') window.hideTooltip();
 });
 
 /** Adds an alert box (wip, ea and the like) to a container. */

@@ -6,17 +6,17 @@
     <title>Owner Tools | Dogslamloop</title>
 
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=98839c59">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=98839c59">
-    <link rel="stylesheet" href="style/Buttons.css?v=98839c59">
-    <link rel="stylesheet" href="style/Modals.css?v=98839c59">
-    <link rel="stylesheet" href="style/Forms.css?v=98839c59">
-    <link rel="stylesheet" href="style/Badges.css?v=98839c59">
-    <link rel="stylesheet" href="style/Alerts.css?v=98839c59">
-    <link rel="stylesheet" href="style/Cards.css?v=98839c59">
-    <link rel="stylesheet" href="style/Layout.css?v=98839c59">
-    <link rel="stylesheet" href="style/editor.css?v=98839c59">
-    <link rel="stylesheet" href="style/admin.css?v=98839c59">
+    <link rel="stylesheet" href="style/Common.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Buttons.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Modals.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Forms.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Badges.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Alerts.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Cards.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Layout.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/editor.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/admin.css?v=c535b9ff">
     <!-- END GENERATED: styles -->
 </head>
 <body class="admin-body">
@@ -98,7 +98,7 @@
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="target-email">GRANT ACCESS BY EMAIL</label>
                         <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
-                        <select id="target-role" class="editor-input admin-input-full select">
+                        <select id="target-role" aria-label="Role" class="editor-input admin-input-full select editor-select">
                             <option value="reviewer">Clearance: Reviewer</option>
                             <option value="admin">Clearance: Administrator</option>
                             <option value="trusted_editor">Clearance: Trusted Editor</option>
@@ -132,7 +132,7 @@
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="expert-email">GRANT EXPERTISE BY EMAIL</label>
                         <input type="email" id="expert-email" placeholder="user@email.com" class="editor-input admin-input-full">
-                        <select id="expert-page" class="editor-input admin-input-full select"></select>
+                        <select id="expert-page" aria-label="Page" class="editor-input admin-input-full select editor-select"></select>
                         <button onclick="grantPageExpert()" class="btn-sys btn-sys-purple admin-tool-btn personnel">MAKE EXPERT</button>
                     </div>
 
@@ -186,7 +186,7 @@
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="new-page-name">ADD A PAGE</label>
                         <input type="text" id="new-page-name" class="editor-input admin-input-full" placeholder="Display name, e.g. Crow Charmer">
-                        <select id="new-page-type" class="editor-input admin-input-full select">
+                        <select id="new-page-type" aria-label="Page type" class="editor-input admin-input-full select editor-select">
                             <option value="character">Character page</option>
                             <option value="system">System / guide page</option>
                             <option value="gallery">Gallery page (lots of media, searchable)</option>
@@ -196,7 +196,7 @@
                              from how it renders. Populated from
                              PAGE_DIRECTORIES in js/owner/owner.js. -->
                         <label class="block-field-label-sm" for="new-page-directory">FOLDER</label>
-                        <select id="new-page-directory" class="editor-input admin-input-full select"></select>
+                        <select id="new-page-directory" class="editor-input admin-input-full select editor-select"></select>
                         <!-- An input with a datalist, not a select: site_pages.category
                              is free-form text with no CHECK constraint, so the database
                              has always accepted new categories - the four hardcoded
@@ -210,7 +210,7 @@
                         <datalist id="page-category-options"></datalist>
                         <p id="new-page-category-note" class="admin-tool-hint"></p>
                         <label class="block-field-label-sm" for="new-page-position">POSITION</label>
-                        <select id="new-page-position" class="editor-input admin-input-full select">
+                        <select id="new-page-position" class="editor-input admin-input-full select editor-select">
                             <option value="">At the end of the category</option>
                         </select>
                         <p id="new-page-preview" class="admin-tool-hint"></p>
@@ -232,7 +232,7 @@
 
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="page-meta-select">PAGE</label>
-                        <select id="page-meta-select" class="editor-input admin-input-full select">
+                        <select id="page-meta-select" class="editor-input admin-input-full select editor-select">
                             <option value="">Loading...</option>
                         </select>
 
@@ -298,8 +298,8 @@
 
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="permission-page">RESTRICT A PAGE</label>
-                        <select id="permission-page" class="editor-input admin-input-full select"></select>
-                        <select id="permission-role" class="editor-input admin-input-full select">
+                        <select id="permission-page" class="editor-input admin-input-full select editor-select"></select>
+                        <select id="permission-role" aria-label="Required role" class="editor-input admin-input-full select editor-select">
                             <option value="trusted_editor">Requires: Trusted Editor</option>
                             <option value="admin">Requires: Administrator</option>
                         </select>
@@ -338,14 +338,14 @@
 
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="hub-text-select">DASHBOARD</label>
-                        <select id="hub-text-select" class="editor-input admin-input-full select">
+                        <select id="hub-text-select" class="editor-input admin-input-full select editor-select">
                             <option value="main-hub">Main Dashboard</option>
                             <option value="character-hub">Character Dashboard</option>
                             <option value="systems-hub">Side Dashboard</option>
                         </select>
 
                         <label class="block-field-label-sm" for="hub-slot-select">SECTION</label>
-                        <select id="hub-slot-select" class="editor-input admin-input-full select"></select>
+                        <select id="hub-slot-select" class="editor-input admin-input-full select editor-select"></select>
 
                         <label class="block-field-label-sm" for="hub-text-body">TEXT</label>
                         <textarea id="hub-text-body" class="editor-textarea admin-input-full" rows="6"></textarea>
@@ -368,7 +368,7 @@
 
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="hub-list-select">LIST</label>
-                        <select id="hub-list-select" class="editor-input admin-input-full select">
+                        <select id="hub-list-select" class="editor-input admin-input-full select editor-select">
                             <option value="startHere">Start Here</option>
                             <option value="contribute">How to Contribute</option>
                         </select>
@@ -401,7 +401,7 @@
 
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="meta-hub-select">DASHBOARD</label>
-                        <select id="meta-hub-select" class="editor-input admin-input-full select">
+                        <select id="meta-hub-select" class="editor-input admin-input-full select editor-select">
                             <option value="main-hub">Main Dashboard</option>
                             <option value="character-hub">Character Dashboard</option>
                             <option value="systems-hub">Side Dashboard</option>
@@ -515,7 +515,7 @@
 
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="fs-setting-open">VOTING</label>
-                        <select id="fs-setting-open" class="editor-input admin-input-full select">
+                        <select id="fs-setting-open" class="editor-input admin-input-full select editor-select">
                             <option value="true">Open</option>
                             <option value="false">Closed</option>
                         </select>
@@ -540,7 +540,7 @@
                         <!-- The only calculation choice offered, and both
                              answers still land on a tier somebody voted. -->
                         <label class="block-field-label-sm" for="fs-setting-tie">IF THE VOTES SPLIT DEAD EVEN BETWEEN TWO TIERS</label>
-                        <select id="fs-setting-tie" class="editor-input admin-input-full select">
+                        <select id="fs-setting-tie" class="editor-input admin-input-full select editor-select">
                             <option value="lower">Put them in the lower tier</option>
                             <option value="higher">Put them in the higher tier</option>
                         </select>
@@ -620,25 +620,25 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=98839c59"></script>
-    <script src="js/utility/input_slots.js?v=98839c59"></script>
-    <script src="js/utility/site_utils.js?v=98839c59"></script>
-    <script src="js/utility/site_data.js?v=98839c59"></script>
-    <script src="js/utility/site_media.js?v=98839c59"></script>
-    <script src="js/utility/site_account.js?v=98839c59"></script>
-    <script src="js/utility/site_lookups.js?v=98839c59"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=98839c59"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=98839c59"></script>
-    <script src="js/owner/owner.js?v=98839c59"></script>
-    <script src="js/owner/owner-site-meta.js?v=98839c59"></script>
-    <script src="js/owner/owner-hub-text.js?v=98839c59"></script>
-    <script src="js/owner/owner-hub-lists.js?v=98839c59"></script>
-    <script src="js/owner/owner-page-meta.js?v=98839c59"></script>
-    <script src="js/owner/owner-staff-perks.js?v=98839c59"></script>
-    <script src="js/owner/owner-page-experts.js?v=98839c59"></script>
-    <script src="js/owner/owner-tier-lists.js?v=98839c59"></script>
-    <script src="js/owner/owner-media-report.js?v=98839c59"></script>
-    <script src="js/owner/owner-nav.js?v=98839c59"></script>
+    <script src="js/utility/character_tabs.js?v=c535b9ff"></script>
+    <script src="js/utility/input_slots.js?v=c535b9ff"></script>
+    <script src="js/utility/site_utils.js?v=c535b9ff"></script>
+    <script src="js/utility/site_data.js?v=c535b9ff"></script>
+    <script src="js/utility/site_media.js?v=c535b9ff"></script>
+    <script src="js/utility/site_account.js?v=c535b9ff"></script>
+    <script src="js/utility/site_lookups.js?v=c535b9ff"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=c535b9ff"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=c535b9ff"></script>
+    <script src="js/owner/owner.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-site-meta.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-hub-text.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-hub-lists.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-page-meta.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-staff-perks.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-page-experts.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-tier-lists.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-media-report.js?v=c535b9ff"></script>
+    <script src="js/owner/owner-nav.js?v=c535b9ff"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>
