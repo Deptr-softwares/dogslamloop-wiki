@@ -317,18 +317,6 @@
     "h": 522,
     "etag": "\"a69bc43ca0f68816dd0c5fec763f7bf2\""
   },
-  "Blunt_Cut_1.webm": {
-    "still": "medias/stills/949ca62a95ba2d33.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"a06268159ad8202a93556094dcd2fd98\""
-  },
-  "Blunt_Cut_Ratio_1_1.webm": {
-    "still": "medias/stills/649f02745633dfc0.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"2dac67eae195466c92ac3200fd9ae7d5\""
-  },
   "BodyRepel-converted.webm": {
     "still": "medias/stills/588f89e5f8589e02.webp",
     "w": 760,
@@ -574,18 +562,6 @@
     "w": 508,
     "h": 528,
     "etag": "\"26ae4aaf2bf610565c16c1fb0006a036\""
-  },
-  "Cross_Cut_1.webm": {
-    "still": "medias/stills/1d24f29ec1ff328e.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"62db531df517a0b5f8be679cce42cef9\""
-  },
-  "Cross_Cut_Ratio_1_1.webm": {
-    "still": "medias/stills/bd07fc4d4b64d908.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"1d7f642f8f93ac539fd759958feeb31b\""
   },
   "CrushingBlow-converted.webm": {
     "still": "medias/stills/492e92a7087e40b1.webp",
@@ -1451,11 +1427,53 @@
     "h": 1000,
     "etag": "\"580786119ecca5eda77ef61989d3a31c\""
   },
+  "Nanami_Blunt_Cut_ONBLOCK_CHARGED_ntskellys.webm": {
+    "still": "medias/stills/397b474df7f0b933.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"ed481f43552b3ae33786d6fb38bee762\""
+  },
+  "Nanami_Blunt_Cut_ONBLOCK_UNCHARGED_ntskellys.webm": {
+    "still": "medias/stills/ee899c55e2a815a0.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"8bd074160214e389f883432a94705881\""
+  },
+  "Nanami_Blunt_Cut_ONHIT_CHARGED_ntskellys.webm": {
+    "still": "medias/stills/2e3031287ce4d84e.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"4824fd08acd0b08ed85f0052f2d32b77\""
+  },
+  "Nanami_Blunt_Cut_ONHIT_UNCHARGED_ntskellys.webm": {
+    "still": "medias/stills/b1177136ba48276c.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"ac500b6c9e57f0fdd20761d9449d7809\""
+  },
+  "Nanami_Blunt_Cut_ONWHIFF_CHARGED_ntskellys.webm": {
+    "still": "medias/stills/d926c64fb10e416c.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"2d00fa05bf6109ca85e6b0797c06b7c1\""
+  },
+  "Nanami_Blunt_Cut_ONWHIFF_UNCHARGED_ntskellys.webm": {
+    "still": "medias/stills/317bc958aea1fb0a.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"90bae9055fd9b1d6f5e531c24a61a6bf\""
+  },
   "Nanami_Blunt_Cut_Ratio_Point_FINISHER_ntskellys.webm": {
     "still": "medias/stills/e45a579e2f7c63ef.webp",
     "w": 1000,
     "h": 1000,
     "etag": "\"1ac6d03eb00e8ffa05bc03f95233b1ad\""
+  },
+  "Nanami_Blunt_Cut_Ratio_Point_ntskellys.webm": {
+    "still": "medias/stills/1fa2043235448293.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"e49613875b4ae4673c0639215d435281\""
   },
   "Nanami_Cleaving_Whirlwind_Example_1_ntskellys_1.webm": {
     "still": "medias/stills/4c47366e3c9e4a36.webp",
@@ -1486,6 +1504,30 @@
     "w": 1000,
     "h": 1000,
     "etag": "\"f6617320a71d857827fdf42305262d3d\""
+  },
+  "Nanami_Cleaving_Whirlwind_Ratio_Point_ntskellys.webm": {
+    "still": "medias/stills/4224890f8141c494.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"7567c0cf5197093723796272ec88fdd3\""
+  },
+  "Nanami_Cross_Cut_ONBLOCK_ntskellys.webm": {
+    "still": "medias/stills/4430ee315d6aaabf.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"bcad6db72a929c7598d6714a4c5f09e0\""
+  },
+  "Nanami_Cross_Cut_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/788906291fd8c7cc.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"68d3b0339ee429549cae24ce4c9e933e\""
+  },
+  "Nanami_Cross_Cut_ONWHIFF_ntskellys.webm": {
+    "still": "medias/stills/656889f01fc55494.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"3883e97aa2d990c8a1e9e7f07235f745\""
   },
   "Nanami_Cross_Cut_Ratio_Point_FINISHER_ntskellys.webm": {
     "still": "medias/stills/3102318d1adf6778.webp",
@@ -1751,12 +1793,6 @@
     "h": 528,
     "etag": "\"393f8a60b38be2dcf2d5e357fed9d3a8\""
   },
-  "Reverse_Kick_1.webm": {
-    "still": "medias/stills/b779abad897cd9df.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"a25d5289e4ba86393e64b975b1a5bc14\""
-  },
   "Rhytm-converted.webm": {
     "still": "medias/stills/2140149ce57ea9b4.webp",
     "w": 560,
@@ -1834,12 +1870,6 @@
     "w": 902,
     "h": 518,
     "etag": "\"cccb5653daff6fae6a982603613c8548\""
-  },
-  "Severance_Kick_1.webm": {
-    "still": "medias/stills/dadd8c978f3cc6de.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"1072369743074c4b7b5077776141cf9e\""
   },
   "Severance_Kick_Downslam.webm": {
     "still": "medias/stills/2f698b5ad25397c0.webp",
@@ -1930,12 +1960,6 @@
     "w": 514,
     "h": 534,
     "etag": "\"32f5fdac4ce9a08a37ec2117df8a161d\""
-  },
-  "Stabilize_Ratio_1.webm": {
-    "still": "medias/stills/e53b9f709f7ab4f3.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"02a15fa3ba23bfd38de0a2f3ac955f62\""
   },
   "SteamEmission-converted.webm": {
     "still": "medias/stills/953fe55f02a3e0b2.webp",
