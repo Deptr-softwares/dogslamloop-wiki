@@ -11,7 +11,7 @@
 // + ADD VARIANT stay in view. (Micro Variants since 2026-10-29: the longer
 // names are a harder case for the same rows.)
 //
-// Scoped to these rows: .daw-variant-tabs is also the move row, the system
+// Scoped to these rows: .sub-tabs is also the move row, the system
 // section row, the Config tabs and the tier editor's tabs, which scroll.
 const { test, expect } = require('@playwright/test');
 
@@ -95,7 +95,7 @@ test('new variants wrap onto new lines, and the workspace never scrolls sideways
   for (let i = 0; i < 6; i++) {
     await page.locator('[data-daw-add-variant]').first().click();
   }
-  await expect(page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'New Micro Variant' })).toHaveCount(6);
+  await expect(page.locator('.daw-variant-wrapper .sub-tab', { hasText: 'New Micro Variant' })).toHaveCount(6);
   await expect(page.locator('.daw-branch-actions-row button')).toHaveCount(3);
 
   const g = await geometry(page);
@@ -111,5 +111,5 @@ test('new variants wrap onto new lines, and the workspace never scrolls sideways
 
   // And + ADD MICRO VARIANT is still a button you can press.
   await page.locator('[data-daw-add-variant]').first().click();
-  await expect(page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'New Micro Variant' })).toHaveCount(7);
+  await expect(page.locator('.daw-variant-wrapper .sub-tab', { hasText: 'New Micro Variant' })).toHaveCount(7);
 });

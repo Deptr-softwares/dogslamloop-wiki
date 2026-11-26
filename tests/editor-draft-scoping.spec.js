@@ -24,10 +24,10 @@ test('real bug fix: saveLocalDraft no longer creates a new orphaned key every ti
     // move-id detection via a fake active nav button, same as the real UI).
     const btn1 = document.createElement('button');
     btn1.id = 'move-nav-m1';
-    btn1.className = 'daw-variant-tabs daw-tab-btn active';
+    btn1.className = 'sub-tab is-active';
     document.body.appendChild(btn1);
     const wrap1 = document.createElement('div');
-    wrap1.className = 'daw-variant-tabs';
+    wrap1.className = 'sub-tabs';
     wrap1.appendChild(btn1);
     document.body.appendChild(wrap1);
 

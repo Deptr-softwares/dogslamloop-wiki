@@ -1432,8 +1432,8 @@ function theoryboxCardHTML(bData, contextClass) {
 // The tab row and panels, shared by the Section Box and a multi-section Combo Card:
 // the click listener and the repaint restore both key off `.sbox-tabbed`.
 function sboxTabRowHTML(labels) {
-    return '<div class="sbox-tabs">' + labels.map((label, i) =>
-        `<button type="button" class="sbox-tab${i === 0 ? ' is-active' : ''}"`
+    return '<div class="sub-tabs sbox-tabs">' + labels.map((label, i) =>
+        `<button type="button" class="sub-tab sbox-tab${i === 0 ? ' is-active' : ''}"`
         + ` data-sbox-tab="${i}">${window.escapeHtml(label)}</button>`
     ).join('') + '</div>';
 }

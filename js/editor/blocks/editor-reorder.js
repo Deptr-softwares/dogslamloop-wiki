@@ -2,7 +2,7 @@
  * Reorder and insert in place for every list strip in the editor (moves, overview
  * extras, matchups, keyed sections, combo groups and tables, system tabs and
  * sections), through one delegated listener over the strips' shared shape
- * (.daw-tab-item, its .daw-tab-btn and remove button).
+ * (.sub-tab-item, its .sub-tab and remove button).
  * @since v0.15
  * @touches window.currentEditorDescData and the frame data (data-reorder-list
  *   paths), triggerManualSync (editor-sync.js), each strip's own add flow
@@ -54,18 +54,18 @@
     // The selected entry and its strip, read from the page.
     function activeIndexIn(row) {
         if (!row) return -1;
-        const items = [...row.querySelectorAll('.daw-tab-item')];
-        return items.findIndex(item => item.querySelector('.daw-tab-btn.active'));
+        const items = [...row.querySelectorAll('.sub-tab-item')];
+        return items.findIndex(item => item.querySelector('.sub-tab.is-active'));
     }
 
-    // The strip is the next .daw-variant-tabs after the bar: controls that moved with
+    // The strip is the next .sub-tabs after the bar: controls that moved with
     // the content had to be chased, so they sit still above it.
     function rowFor(el) {
         if (!el || !el.closest) return null;
         const bar = el.closest('.daw-reorder-bar');
-        if (!bar) return el.closest('.daw-variant-tabs');
+        if (!bar) return el.closest('.sub-tabs');
         let node = bar.nextElementSibling;
-        while (node && !node.classList.contains('daw-variant-tabs')) node = node.nextElementSibling;
+        while (node && !node.classList.contains('sub-tabs')) node = node.nextElementSibling;
         return node || null;
     }
 
@@ -75,8 +75,8 @@
         const group = document.querySelector(`.daw-reorder-group[data-reorder-list="${listSpec}"]`);
         const row = rowFor(group);
         if (!row) return;
-        const items = [...row.querySelectorAll('.daw-tab-item')];
-        const btn = items[index] && items[index].querySelector('.daw-tab-btn');
+        const items = [...row.querySelectorAll('.sub-tab-item')];
+        const btn = items[index] && items[index].querySelector('.sub-tab');
         if (btn) btn.click();
     }
 

@@ -7,24 +7,24 @@
 // an accent-blue uppercase label) was copy-pasted 10 times across this
 // section alone - now .editor-section-banner + .editor-section-banner-text.
 // The tab-with-a-remove-button pattern (moves/extras/matchups/counterplay)
-// was copy-pasted 4 times - now .daw-tab-item/.daw-tab-btn-removable/
-// .daw-tab-remove-btn. Both consolidations are exercised below.
+// was copy-pasted 4 times - now .sub-tab-item/.sub-tab-removable/
+// .sub-tab-remove, the site's tab strip. Both consolidations are exercised below.
 const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/edit.html?page=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
 });
 
-test('overview tab nav row: daw-editor-nav-row wins the specificity tie against .daw-variant-tabs base rule', async ({ page }) => {
-  const nav = page.locator('.daw-variant-tabs.daw-editor-nav-row').first();
+test('overview tab nav row: the site\'s tab strip, scrolling sideways, closer to what it opens', async ({ page }) => {
+  const nav = page.locator('.sub-tabs.editor-nav-row').first();
   await expect(nav).toBeVisible();
   const cs = await nav.evaluate(el => ({
     marginBottom: getComputedStyle(el).marginBottom,
     borderBottomColor: getComputedStyle(el).borderBottomColor,
     overflowX: getComputedStyle(el).overflowX,
   }));
-  expect(cs.marginBottom).toBe('8px'); // 0.5rem, not the base rule's 1rem
-  expect(cs.overflowX).toBe('auto'); // not set at all by the base rule
+  expect(cs.marginBottom).toBe('8px'); // 0.5rem, not the strip's own 0.75rem
+  expect(cs.overflowX).toBe('auto'); // the strip wraps elsewhere
 });
 
 test('overview section banners render via .editor-section-banner with no inline styles, across profile/overview/playstyle', async ({ page }) => {
@@ -55,20 +55,20 @@ test('extra tab section banner uses the inline-title variant (dynamic input, no 
   await expect(input).toHaveValue('Custom Notes');
 });
 
-test('daw-tab-item + remove button pattern renders identically for moves and extras', async ({ page }) => {
+test('sub-tab-item + remove button pattern renders identically for moves and extras', async ({ page }) => {
   // Extras (already on overview tab):
   await page.evaluate(() => {
     if (!window.currentEditorDescData.extras) window.currentEditorDescData.extras = [];
     window.currentEditorDescData.extras.push({ title: 'Lore', content: [] });
   });
   await page.evaluate(() => window.initFullTabEditor(window.currentEditorCharId, 'overview', window.currentEditorDescData, window.currentEditorFrameData));
-  const extraItem = page.locator('.daw-tab-item').first();
+  const extraItem = page.locator('.sub-tab-item').first();
   await expect(extraItem).toBeVisible();
-  const removeBtn = extraItem.locator('.daw-tab-remove-btn');
+  const removeBtn = extraItem.locator('.sub-tab-remove');
   await expect(removeBtn).toBeVisible();
   expect(await removeBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  const tabBtn = extraItem.locator('.daw-tab-btn-removable');
-  expect(await tabBtn.evaluate(el => getComputedStyle(el).paddingRight)).toBe('24px'); // 1.5rem
+  const tabBtn = extraItem.locator('.sub-tab-removable');
+  expect(await tabBtn.evaluate(el => getComputedStyle(el).paddingRight)).toBe('25.6px'); // 1.6rem, room for the remove button
 });
 
 test('promptForMoveId: the green site dialog with no inline styles, submit button wins the color/border specificity tie', async ({ page }) => {

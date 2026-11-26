@@ -414,21 +414,8 @@ input[type="checkbox"]:checked {
 
 /* The Frame Track (DAW in the code) */
 .daw-container { background: #050505; border: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 1rem; margin-top: 0; border-radius: 0; }
-.daw-variant-tabs { 
-    display: flex; 
-    gap: 0.25rem; 
-    margin-bottom: 1rem; 
-    border-bottom: 1px solid #222; 
-    padding-bottom: 0px; 
-    flex-shrink: 0;
-}
-/* The variant tabs wrap, so a new variant never pushes + ADD VARIANT out of the
-   Workspace. Only here: .daw-variant-tabs is also the move row, the system
-   section row, the Config tabs and the tier editor's tabs, which scroll. */
-.daw-variant-wrapper > .daw-variant-tabs { flex-wrap: wrap; }
-.daw-tab-btn { background: transparent; color: #666; border: 1px solid transparent; border-bottom: 2px solid transparent; padding: 0.3rem 0.6rem; border-radius: 0; cursor: pointer; font-family: var(--text-mono); font-weight: bold; font-size: 0.7rem; text-transform: uppercase; transition: all 0.1s; margin-bottom: -1px; }
-.daw-tab-btn.active { background: var(--accent-blue); color: #000; border-bottom-color: var(--accent-blue); }
-.daw-tab-btn:hover:not(.active) { background: #111; color: #fff; border-bottom-color: #555; }
+/* The variant tabs are the site's tab strip (.sub-tabs, Buttons.css), and wrap, so
+   a new variant never pushes + ADD MICRO VARIANT out of the Workspace. */
 .daw-timeline-wrapper { position: relative; background: #0a0a0a; border: 1px solid #222; border-radius: 0; padding: 1rem 0; overflow-x: auto; margin-bottom: 1rem; }
 .daw-track { position: relative; height: 30px; background: #000; border: 1px solid #222; margin-bottom: 0.5rem; display: flex; align-items: stretch; }
 .daw-phase-block { position: relative; height: 100%; box-sizing: border-box; border-right: 1px solid #000; cursor: pointer; transition: filter 0.1s; display: flex; align-items: center; justify-content: center; font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; color: rgba(255,255,255,0.8); overflow: hidden; white-space: nowrap; }
@@ -844,8 +831,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* The QA modal (openQAModal) */
 .editor-intercept-label { color: #a855f7; }
 .qa-form-container { display: flex; flex-direction: column; text-align: left; }
-.qa-tabs-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-.qa-tab-btn { flex: 1; font-size: 0.7rem; }
+.sub-tabs.qa-tabs-row { margin-bottom: 1rem; }
 .qa-field-label { font-family: var(--text-mono); font-size: 0.65rem; color: #888; }
 .qa-field-label-spaced { margin-top: 0.75rem; }
 .qa-field-row { display: flex; gap: 1rem; margin-bottom: 0.75rem; }
@@ -980,7 +966,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     padding-bottom: 0.35rem;
 }
 
-/* The major tab strip, above the .daw-variant-tabs sub-nav: two levels, like the
+/* The major tab strip, above the .editor-nav-row sub-nav: two levels, like the
    live page. Its own class, since .character-nav is scoped to the page's
    header; .btn-manga itself is shared and untouched. */
 .editor-tab-nav {
@@ -997,13 +983,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-tab-nav .btn-manga { padding: 0.3rem 0.7rem; }
 .editor-tab-nav .btn-manga-text { font-size: 0.7rem; }
 
-/* The editor's sub-nav rows. Compound: .daw-variant-tabs sets margin, border and
-   padding at the same specificity. */
-.daw-variant-tabs.daw-editor-nav-row { margin-bottom: 0.5rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center; }
-.daw-tab-item { display: inline-flex; align-items: center; position: relative; margin-bottom: -1px; }
-.daw-tab-btn.daw-tab-btn-removable { padding-right: 1.5rem; }
-.daw-tab-remove-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ef4444; font-size: 10px; cursor: pointer; }
-.daw-tab-btn.daw-add-btn { font-size: 0.65rem; }
+/* The editor's sub-nav rows: the site's tab strip, scrolling sideways. */
+.sub-tabs.editor-nav-row { margin-bottom: 0.5rem; }
 .daw-empty-state { color: var(--text-muted); font-size: 0.75rem; padding: 0.5rem; }
 .editor-empty-dashed { padding: 2rem; border: 1px dashed #333; background: transparent; text-align: center; }
 
@@ -1056,7 +1037,6 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .btn-sys.daw-stat-del-btn { padding: 0.3rem 0.5rem; }
 .btn-sys.daw-add-stat-btn { padding: 0.15rem 0.4rem; }
 .daw-variant-wrapper { margin-bottom: 1rem; }
-.daw-tab-btn.daw-tab-btn-add-variant { color: #34d399; font-size: 0.65rem; }
 .daw-phase-block-duration { pointer-events: none; }
 .daw-track-wrapper { margin-bottom: 1.5rem; }
 .daw-track-header-row { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.25rem; }
@@ -1848,7 +1828,7 @@ del.diff-del {
    the Overseer's tab strip uses. */
 .sbs .sbs-tab-changed { border-color: var(--accent-blue); }
 .sbs .btn-manga.sbs-tab-changed .btn-manga-text::after,
-.sbs .sbox-tab.sbs-tab-changed::after {
+.sbs .sub-tab.sbs-tab-changed::after {
     content: '';
     display: inline-block;
     width: 0.45rem;
@@ -1935,12 +1915,8 @@ del.diff-del {
 
 /* The system page editor (renderSystemEditor), on the tab strip's established
    classes. */
-/* Compound: .daw-variant-tabs sets border-bottom at the same specificity. */
-.daw-variant-tabs.system-section-tabs-row { overflow-x: auto; align-items: center; border-bottom: 1px solid #333; background: rgba(0,0,0,0.2); }
-/* Compound: .daw-tab-btn sets colour at the same specificity. */
-.daw-tab-btn.system-section-tab-btn { color: #a855f7; }
-/* Compound: .daw-tab-btn sets font-size at the same specificity. */
-.daw-tab-btn.system-tab-add-btn { font-size: 0.65rem; }
+/* A system page's sections, under its tabs: purple, like their + ADD SECTION. */
+.sub-tabs.system-section-tabs-row { --sub-tab-accent: #a855f7; background: rgba(0, 0, 0, 0.2); }
 .editor-row-divider { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; }
 .system-checkbox-row { display: flex; align-items: center; }
 .system-checkbox-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; cursor: pointer; }
@@ -2295,7 +2271,7 @@ del.diff-del {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
     letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
 }
-.cardsec-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
+.sub-tabs.cardsec-tabs { margin-bottom: 0.4rem; }
 
 /* Notation style fields (comboNotationFieldsHTML): the section strip's dashed box
    and blue label, since it is the same kind of optional structure. */
@@ -2491,7 +2467,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 .editor-mode-bar.cfg-stuck,
 .editor-mode-controls.cfg-stuck,
 .editor-tab-nav.cfg-stuck,
-.daw-editor-nav-row.cfg-stuck,
+.editor-nav-row.cfg-stuck,
 .strategy-toolbar-row.cfg-stuck { background: #050505; }
 
 /* The Editor Playground's banner takes the scope tip's place, and is loud where

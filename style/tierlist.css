@@ -147,13 +147,7 @@
 }
 
 /* The older tier list's editor (tierlist.js) */
-/* Compound: .daw-variant-tabs's own base rule sets border-bottom color/
-   padding-bottom at the same specificity. */
-.daw-variant-tabs.tier-editor-tabs-row { overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 1px solid #333; align-items: center; }
-/* Compound: .daw-tab-remove-btn's own base rule sets color: #ef4444 at the
-   same specificity - needed when its parent tab is the active one, whose
-   background is already light (var(--accent-blue)). */
-.daw-tab-remove-btn.on-active-tab { color: #000; }
+/* Its tabs are the site's tab strip (.sub-tabs, Buttons.css), scrolling sideways. */
 
 .tier-editor-row { margin-bottom: 1.5rem; padding-left: 0.5rem; }
 .tier-editor-row-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }

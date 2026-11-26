@@ -166,5 +166,4 @@
 
 /* One Block editor, two documents: the switch reads as "which am I writing", so
    the inactive one stays a tab. */
-.tier-doc-switch { display: flex; gap: 0.4rem; margin-bottom: 0.6rem; }
-.tier-doc-btn { flex: 1; font-size: 0.62rem; }
+.sub-tabs.tier-doc-switch { margin-bottom: 0.6rem; }

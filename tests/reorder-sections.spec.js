@@ -57,7 +57,7 @@ test('one fixed control group per strip, not one per item', async ({ page }) => 
   // Per-item controls moved with the entry being reordered, so a second nudge
   // meant chasing them along the row.
   expect(await page.locator('.daw-reorder-group').count()).toBe(1);
-  expect(await page.locator('.daw-tab-item .daw-tab-move-btn').count()).toBe(0);
+  expect(await page.locator('.sub-tab-item .daw-tab-move-btn').count()).toBe(0);
   expect(await page.locator('.daw-reorder-group .daw-tab-move-btn').count()).toBe(2);
 });
 
@@ -91,7 +91,7 @@ test('the selection rides along with the entry being moved', async ({ page }) =>
 
   const state = await page.evaluate(() => ({
     order: window.currentEditorDescData.matchups.map(m => m.opponent),
-    active: document.querySelector('.daw-editor-nav-row .daw-tab-btn.active')?.textContent.trim(),
+    active: document.querySelector('.editor-nav-row .sub-tab.is-active')?.textContent.trim(),
   }));
 
   // Two clicks in the same place carried it two positions - which only works
@@ -106,7 +106,7 @@ test('with nothing movable selected, the controls do nothing', async ({ page }) 
   await boot(page, '/edit.html?char=boomcat&type=character&tab=overview');
 
   // The Overview strip's first four entries are fixed sections with no
-  // .daw-tab-item wrapper, so opening one means nothing reorderable is active.
+  // .sub-tab-item wrapper, so opening one means nothing reorderable is active.
   await page.evaluate(() => {
     window.currentEditorDescData.extras = [
       { title: 'Zzq One', content: [] },
@@ -223,7 +223,7 @@ test('a reorder on a character page does not rebuild the system editor', async (
   const state = await page.evaluate(() => ({
     order: window.currentEditorDescData.matchups.map(m => m.opponent),
     // The system editor's own controls must be nowhere on this page.
-    systemAddTab: document.querySelectorAll('.system-tab-add-btn').length,
+    systemAddTab: document.querySelectorAll('button[onclick="window.addSystemTab()"]').length,
     matchupStrip: document.querySelectorAll('[id^="matchup-nav-"]').length,
   }));
 
@@ -309,7 +309,7 @@ test('the controls stay put on a long strip', async ({ page }) => {
 
   const geometry = await page.evaluate(() => {
     const bar = document.querySelector('.daw-reorder-bar');
-    const strip = document.querySelector('.daw-editor-nav-row');
+    const strip = document.querySelector('.editor-nav-row');
     return {
       barInsideStrip: !!strip && strip.contains(bar),
       barBottom: bar.getBoundingClientRect().bottom,

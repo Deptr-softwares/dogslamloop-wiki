@@ -264,7 +264,7 @@ window.showQueuePanel = function(name) {
 
     document.querySelectorAll('[data-queue-tab]').forEach(t => {
         const on = t === tab;
-        t.classList.toggle('active', on);
+        t.classList.toggle('is-active', on);
         t.setAttribute('aria-selected', String(on));
     });
     document.querySelectorAll('[data-queue-panel]').forEach(p => p.classList.toggle('hidden', p !== panel));

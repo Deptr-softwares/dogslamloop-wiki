@@ -338,7 +338,7 @@ test('a system page compares the tab on screen, and follows the Workspace to ano
         .toEqual(['The live page', 'Nov 10, 2026, Editor C (Basics)']);
 
     await bringWorkspaceBack(page);
-    await page.locator('.daw-editor-nav-row .daw-tab-btn', { hasText: 'Advanced' }).click();
+    await page.locator('.editor-nav-row .sub-tab', { hasText: 'Advanced' }).click();
     await expect(right(page)).toContainText('Spacing wins neutral.');
     await expect(right(page)).not.toContainText('Hold the');
     await expect(page.locator('#diff-view-container .sbs-note')).toHaveText('Nothing this tab shows has changed.');

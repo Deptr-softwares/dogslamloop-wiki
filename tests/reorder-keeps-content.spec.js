@@ -174,7 +174,7 @@ test('deleting a matchup before the open one leaves every other matchup its own 
   await page.locator('#matchup-nav-1').click();
   await page.waitForTimeout(400);
 
-  await deleteEntry(page, '#matchup-nav-0 + .daw-tab-remove-btn');
+  await deleteEntry(page, '#matchup-nav-0 + .sub-tab-remove');
 
   expect(await textByName(page, STRIPS[0])).toEqual({ Beta: 'Beta text', Gamma: 'Gamma text' });
   expect(errors).toEqual([]);
@@ -190,7 +190,7 @@ for (const [open_, removed, left] of [
     await page.locator(`#overview-nav-extra-${open_}`).click();
     await page.waitForTimeout(400);
 
-    await deleteEntry(page, `#overview-nav-extra-${removed} ~ .daw-tab-remove-btn`);
+    await deleteEntry(page, `#overview-nav-extra-${removed} ~ .sub-tab-remove`);
 
     expect(await textByName(page, STRIPS[2])).toEqual(left);
     expect(errors).toEqual([]);

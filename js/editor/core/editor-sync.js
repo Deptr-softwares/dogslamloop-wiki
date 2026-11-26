@@ -106,7 +106,7 @@ async function syncEditorBuffer() {
         let activeMoveId = new URLSearchParams(window.location.search).get('move'); 
         
         if (!activeMoveId) {
-            const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+            const activeBtn = document.querySelector('[id^="move-nav-"].is-active');
             if (activeBtn) activeMoveId = activeBtn.id.replace('move-nav-', '');
         }
         
@@ -283,7 +283,7 @@ function updateLivePreview(skipHistory = false) {
     if (frameTabs.includes(tabId)) {
         let activeMoveId = urlParams.get('move'); 
         if (!activeMoveId && window.currentEditorTabId) {
-            const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+            const activeBtn = document.querySelector('[id^="move-nav-"].is-active');
             if (activeBtn) activeMoveId = activeBtn.id.replace('move-nav-', '');
         }
         

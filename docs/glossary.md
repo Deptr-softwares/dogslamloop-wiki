@@ -37,5 +37,5 @@ Picked by the owner (2026-11-22, and the page shell's two names 2026-11-23), ren
 
 ## Kept
 
-- DAW stays until the notebook editor replaces the Frame Data editor (D-3), and goes with it (owner, 2026-11-22). `.daw-tab-btn`, which styles every editor sub-tab strip, gets its own name in C-2.
+- DAW stays until the notebook editor replaces the Frame Data editor (D-3), and goes with it (owner, 2026-11-22). The editor's sub-tab strips, `.daw-tab-btn` until v1.3, are the site's tab strip: `.sub-tabs` and `.sub-tab`.
 - Names stored in the data (`theorybox`, `specials`, `ultimateAtk`, `desc_data`, `frame_data`, the scope names, `bg-tick-*`) stay. Changing one means a migration and an upgrade for every saved draft. This table is how to read them.

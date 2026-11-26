@@ -509,7 +509,7 @@ async function openSection(page, tab, clicks) {
   await page.setViewportSize({ width: 1400, height: 900 });
   await mockOpenPage(page);
   await page.goto(`/edit.html?char=boomcat&type=character&tab=${tab}`, { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#interactive-builder .daw-tab-btn').first()).toBeVisible({ timeout: 45000 });
+  await expect(page.locator('#interactive-builder .sub-tab').first()).toBeVisible({ timeout: 45000 });
   for (const sel of clicks) {
     await page.locator(sel).click();
   }

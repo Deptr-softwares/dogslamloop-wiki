@@ -90,7 +90,7 @@ window.clearPositionalSelection = function () {
  */
 window.reopenEditorTab = function () {
     const tabId = window.currentEditorTabId;
-    const activeMove = () => document.querySelector('#interactive-builder [data-move-load].active');
+    const activeMove = () => document.querySelector('#interactive-builder [data-move-load].is-active');
     const place = {
         overview: window.currentOverviewSection,
         matchup: window.currentMatchupIndex,
@@ -263,7 +263,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         const moves = frameData ? (frameData[tabId] || []) : [];
 
         let navHTML = window.reorderStripControls(`frame.${tabId}`);
-        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        navHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
         if (moves.length === 0) {
             navHTML += `<span class="daw-empty-state">No moves mapped in this category yet.</span>`;
         } else {
@@ -271,15 +271,15 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 // A move's id and name are stored data: never inside an inline onclick, where
                 // the browser decodes &#39; back into a quote. Data attributes and listeners.
                 const id = window.escapeHtml(m.id);
-                navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${id}" data-move-load="${id}">${window.escapeHtml(m.name || m.id)}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" data-move-remove="${id}" data-tip="Remove Move" aria-label="Remove Move">✖</button>`;
+                navHTML += `<div class="sub-tab-item">`;
+                navHTML += `<button class="sub-tab sub-tab-removable${idx === 0 ? ' is-active' : ''}" id="move-nav-${id}" data-move-load="${id}">${window.escapeHtml(m.name || m.id)}</button>`;
+                navHTML += `<button class="sub-tab-remove" data-move-remove="${id}" data-tip="Remove Move" aria-label="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
             window.registerInserter(`frame.${tabId}`, () => window.addMove());
         }
 
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMove()">+ ADD MOVE</button>`;
+        navHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addMove()">+ ADD MOVE</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -304,22 +304,22 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData.extras) window.currentEditorDescData.extras = [];
 
         let navHTML = window.reorderStripControls('desc.extras');
-        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
-        navHTML += `<button class="daw-tab-btn" id="overview-nav-profile" onclick="loadOverviewSectionIntoEditor('profile')">Profile Card</button>`;
-        navHTML += `<button class="daw-tab-btn active" id="overview-nav-overview" onclick="loadOverviewSectionIntoEditor('overview')">Character Overview</button>`;
-        navHTML += `<button class="daw-tab-btn" id="overview-nav-playstyle" onclick="loadOverviewSectionIntoEditor('playstyle')">Playstyle</button>`;
-        navHTML += `<button class="daw-tab-btn" id="overview-nav-strategy" onclick="loadOverviewSectionIntoEditor('strategy')">General Strategy</button>`;
+        navHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
+        navHTML += `<button class="sub-tab" id="overview-nav-profile" onclick="loadOverviewSectionIntoEditor('profile')">Profile Card</button>`;
+        navHTML += `<button class="sub-tab is-active" id="overview-nav-overview" onclick="loadOverviewSectionIntoEditor('overview')">Character Overview</button>`;
+        navHTML += `<button class="sub-tab" id="overview-nav-playstyle" onclick="loadOverviewSectionIntoEditor('playstyle')">Playstyle</button>`;
+        navHTML += `<button class="sub-tab" id="overview-nav-strategy" onclick="loadOverviewSectionIntoEditor('strategy')">General Strategy</button>`;
 
         const extras = window.currentEditorDescData.extras;
         extras.forEach((ext, idx) => {
-            navHTML += `<div class="daw-tab-item">`;
-            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${window.escapeHtml(ext.title)}</button>`;
-            navHTML += `<button class="daw-tab-remove-btn" onclick="removeExtraTab(${idx})" data-tip="Remove Tab" aria-label="Remove Tab">✖</button>`;
+            navHTML += `<div class="sub-tab-item">`;
+            navHTML += `<button class="sub-tab sub-tab-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${window.escapeHtml(ext.title)}</button>`;
+            navHTML += `<button class="sub-tab-remove" onclick="removeExtraTab(${idx})" data-tip="Remove Tab" aria-label="Remove Tab">✖</button>`;
             navHTML += `</div>`;
         });
         window.registerInserter('desc.extras', () => window.addExtraTab());
 
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="addExtraTab()">+ ADD TAB</button>`;
+        navHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="addExtraTab()">+ ADD TAB</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -333,21 +333,21 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData.matchups) window.currentEditorDescData.matchups = [];
 
         let navHTML = window.reorderStripControls('desc.matchups');
-        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        navHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
         if (window.currentEditorDescData.matchups.length === 0) {
              navHTML += `<span class="daw-empty-state">No matchups defined yet.</span>`;
         } else {
             window.currentEditorDescData.matchups.forEach((mu, idx) => {
                 let muName = mu.opponent || `Matchup ${idx + 1}`;
-                navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})">vs. ${window.escapeHtml(muName)}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMatchup(${idx})" data-tip="Remove Matchup" aria-label="Remove Matchup">✖</button>`;
+                navHTML += `<div class="sub-tab-item">`;
+                navHTML += `<button class="sub-tab sub-tab-removable" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})">vs. ${window.escapeHtml(muName)}</button>`;
+                navHTML += `<button class="sub-tab-remove" onclick="window.removeMatchup(${idx})" data-tip="Remove Matchup" aria-label="Remove Matchup">✖</button>`;
                 navHTML += `</div>`;
             });
         }
 
         window.registerInserter('desc.matchups', () => window.addMatchup());
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
+        navHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -374,22 +374,22 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
 
         let navHTML = window.reorderStripControls(`desc.${groups.field}`);
-        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        navHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
         // The tab id in the ids: loadDocumentSectionIntoEditor clears `active` by prefix.
-        navHTML += `<button class="daw-tab-btn active" id="${window.escapeHtml(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'intro')">${window.escapeHtml(intro.label)}</button>`;
-        navHTML += `<button class="daw-tab-btn" id="${window.escapeHtml(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'list')">${window.escapeHtml(list.label)}</button>`;
+        navHTML += `<button class="sub-tab is-active" id="${window.escapeHtml(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'intro')">${window.escapeHtml(intro.label)}</button>`;
+        navHTML += `<button class="sub-tab" id="${window.escapeHtml(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'list')">${window.escapeHtml(list.label)}</button>`;
 
         window.currentEditorDescData[groups.field].forEach((group, idx) => {
             // Escaped: a group title is contributor text.
             const name = group[groups.keyField] || `Group ${idx + 1}`;
-            navHTML += `<div class="daw-tab-item">`;
-            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${window.escapeHtml(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'group-${idx}')">${window.escapeHtml(name)}</button>`;
-            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeDocumentGroup('${window.escapeHtml(tabId)}', ${idx})" data-tip="Remove Group" aria-label="Remove Group">&#10006;</button>`;
+            navHTML += `<div class="sub-tab-item">`;
+            navHTML += `<button class="sub-tab sub-tab-removable" id="${window.escapeHtml(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'group-${idx}')">${window.escapeHtml(name)}</button>`;
+            navHTML += `<button class="sub-tab-remove" onclick="window.removeDocumentGroup('${window.escapeHtml(tabId)}', ${idx})" data-tip="Remove Group" aria-label="Remove Group">&#10006;</button>`;
             navHTML += `</div>`;
         });
 
         window.registerInserter(`desc.${groups.field}`, () => window.addDocumentGroup(tabId));
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addDocumentGroup('${window.escapeHtml(tabId)}')">+ GROUP</button>`;
+        navHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addDocumentGroup('${window.escapeHtml(tabId)}')">+ GROUP</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -409,7 +409,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         const noun = section.entryLabel;
 
         let navHTML = window.reorderStripControls(`desc.${section.field}`);
-        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        navHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
         if (entries.length === 0) {
             navHTML += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} entries defined yet.</span>`;
         } else {
@@ -417,15 +417,15 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 // Escaped: the name is contributor text. The index is a number this loop made,
                 // which is why it may sit in the inline handler and the name may not.
                 const name = entry[section.keyField] || `${noun} ${idx + 1}`;
-                navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${window.escapeHtml(name)}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" data-tip="Remove" aria-label="Remove">&#10006;</button>`;
+                navHTML += `<div class="sub-tab-item">`;
+                navHTML += `<button class="sub-tab sub-tab-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${window.escapeHtml(name)}</button>`;
+                navHTML += `<button class="sub-tab-remove" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" data-tip="Remove" aria-label="Remove">&#10006;</button>`;
                 navHTML += `</div>`;
             });
         }
 
         window.registerInserter(`desc.${section.field}`, () => window.addKeyedEntry(section.tab));
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addKeyedEntry('${section.tab}')">+ ADD TOPIC</button>`;
+        navHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addKeyedEntry('${section.tab}')">+ ADD TOPIC</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -595,9 +595,9 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
         else if (oldSectionId.startsWith('extra-')) window.currentEditorDescData.extras[parseInt(oldSectionId.split('-')[1])].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
     }
 
-    document.querySelectorAll('[id^="overview-nav-"]').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('[id^="overview-nav-"]').forEach(btn => btn.classList.remove('is-active'));
     const activeBtn = document.getElementById(`overview-nav-${sectionId}`);
-    if(activeBtn) activeBtn.classList.add('active');
+    if(activeBtn) activeBtn.classList.add('is-active');
 
     window.currentOverviewSection = sectionId;
     const descData = window.currentEditorDescData || {};
@@ -805,9 +805,9 @@ window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
     // Flush the section being left: the buffer reaches the data only on sync.
     flushDocumentSection();
 
-    document.querySelectorAll(`[id^="${tabId}-nav-"]`).forEach(b => b.classList.remove('active'));
+    document.querySelectorAll(`[id^="${tabId}-nav-"]`).forEach(b => b.classList.remove('is-active'));
     const activeBtn = document.getElementById(`${tabId}-nav-${sectionId}`);
-    if (activeBtn) activeBtn.classList.add('active');
+    if (activeBtn) activeBtn.classList.add('is-active');
     window.currentDocSection = sectionId;
 
     if (sectionId === 'list') {
@@ -880,7 +880,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     const cards = group.content;
     const open = window.currentDocCardIndex;
 
-    let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    let html = `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
     if (cards.length === 0) {
         html += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} cards in this group yet.</span>`;
     } else {
@@ -888,13 +888,13 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
             // A card is known by its name, or its route; through comboCardLabel, since the
             // card's own title is unused in Multiple Sections.
             const label = window.comboCardLabel(card, i);
-            html += `<div class="daw-tab-item">`;
-            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${window.escapeHtml(label)}</button>`;
-            html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" data-tip="Remove Card" aria-label="Remove Card">&#10006;</button>`;
+            html += `<div class="sub-tab-item">`;
+            html += `<button class="sub-tab sub-tab-removable${i === open ? ' is-active' : ''}" data-card="${i}">${window.escapeHtml(label)}</button>`;
+            html += `<button class="sub-tab-remove" data-remove-card="${i}" data-tip="Remove Card" aria-label="Remove Card">&#10006;</button>`;
             html += `</div>`;
         });
     }
-    html += `<button type="button" id="combo-card-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ CARD</button>`;
+    html += `<button type="button" id="combo-card-add" class="btn-sys btn-sys-green sub-tabs-action">+ CARD</button>`;
     html += `</div><div id="combo-card-body"></div>`;
 
     host.innerHTML = html;
@@ -977,14 +977,13 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
     const stripHTML = (multi && sections.length) ? `
         <div class="cardsec-strip">
             <div class="cardsec-label">SECTIONS</div>
-            <div class="cardsec-tabs">
+            <div class="sub-tabs cardsec-tabs">
                 ${sections.map((sec, i) =>
-                    // `cardsec-tab` too: the Block form's strip carries it, and the CSS is written
-                    // against it.
-                    `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
+                    // The same classes as the Block form's strip (editor-blocks.js).
+                    `<button type="button" class="sub-tab cardsec-tab${i === secIdx ? ' is-active' : ''}" data-cardsec="${i}">`
                     + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
-                <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
-                ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
+                <button type="button" class="btn-sys btn-sys-green sub-tabs-action" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
+                ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red sub-tabs-action" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
             </div>
             <label class="editor-field-label-sm">Tab label</label>
             <input type="text" class="editor-input" data-cardsec-label="${secIdx}" value="${window.escapeHtml(target.label || '')}" placeholder="e.g. In Corner 6H">
@@ -1253,18 +1252,18 @@ window.renderDocumentListEditor = function (tabId) {
     // The lists can be reordered like the groups. `section.field`, not a literal, so
     // Techs gets it from the same line.
     let html = window.reorderStripControls(`desc.${section.field}`);
-    html += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    html += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
     if (tables.length === 0) {
         html += `<span class="daw-empty-state">No ${window.escapeHtml(nounPlural)} defined yet.</span>`;
     } else {
         tables.forEach((t, i) => {
-            html += `<div class="daw-tab-item">`;
-            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${window.escapeHtml(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
-            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" data-tip="Remove ${window.escapeHtml(noun)}" aria-label="Remove ${window.escapeHtml(noun)}">&#10006;</button>`;
+            html += `<div class="sub-tab-item">`;
+            html += `<button class="sub-tab sub-tab-removable${i === openTable ? ' is-active' : ''}" data-table="${i}">${window.escapeHtml(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
+            html += `<button class="sub-tab-remove" data-remove-table="${i}" data-tip="Remove ${window.escapeHtml(noun)}" aria-label="Remove ${window.escapeHtml(noun)}">&#10006;</button>`;
             html += `</div>`;
         });
     }
-    html += `<button type="button" id="combo-table-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ ${window.escapeHtml(noun.toUpperCase())}</button>`;
+    html += `<button type="button" id="combo-table-add" class="btn-sys btn-sys-green sub-tabs-action">+ ${window.escapeHtml(noun.toUpperCase())}</button>`;
     html += `</div><div id="combo-table-body"></div>`;
 
     host.innerHTML = html;
@@ -1509,9 +1508,9 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
         list[open].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
     }
 
-    document.querySelectorAll(`[id^="${section.tab}-nav-"]`).forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll(`[id^="${section.tab}-nav-"]`).forEach(btn => btn.classList.remove('is-active'));
     const activeBtn = document.getElementById(`${section.tab}-nav-${idx}`);
-    if (activeBtn) activeBtn.classList.add('active');
+    if (activeBtn) activeBtn.classList.add('is-active');
 
     window.currentKeyedIndex[tabId] = idx;
     const entry = list[idx];
@@ -1572,9 +1571,9 @@ window.loadMatchupIntoEditor = function(idx) {
         window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
     }
 
-    document.querySelectorAll('[id^="matchup-nav-"]').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('[id^="matchup-nav-"]').forEach(btn => btn.classList.remove('is-active'));
     const activeBtn = document.getElementById(`matchup-nav-${idx}`);
-    if(activeBtn) activeBtn.classList.add('active');
+    if(activeBtn) activeBtn.classList.add('is-active');
 
     window.currentMatchupIndex = idx;
     const matchup = window.currentEditorDescData.matchups[idx];
@@ -1664,7 +1663,7 @@ function bindStatsSectionFold(root) {
 }
 
 window.loadMoveIntoEditor = async function(moveId) {
-    const oldActiveBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+    const oldActiveBtn = document.querySelector('[id^="move-nav-"].is-active');
     if (oldActiveBtn && window.currentEditorDescData) {
         const oldMoveId = oldActiveBtn.id.replace('move-nav-', '');
 
@@ -1674,9 +1673,9 @@ window.loadMoveIntoEditor = async function(moveId) {
         }
     }
 
-    document.querySelectorAll('[id^="move-nav-"]').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('[id^="move-nav-"]').forEach(btn => btn.classList.remove('is-active'));
     const activeBtn = document.getElementById(`move-nav-${moveId}`);
-    if(activeBtn) activeBtn.classList.add('active');
+    if(activeBtn) activeBtn.classList.add('is-active');
 
     const frameData = window.currentEditorFrameData || {};
     const descData = window.currentEditorDescData || {};

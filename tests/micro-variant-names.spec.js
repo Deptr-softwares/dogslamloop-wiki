@@ -92,7 +92,7 @@ test('the frame data editor says Micro Variant everywhere it means one', async (
 
   // A new, empty one.
   await page.locator('[data-daw-add-variant]').first().click();
-  await expect(page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'New Micro Variant' })).toHaveCount(1);
+  await expect(page.locator('.daw-variant-wrapper .sub-tab', { hasText: 'New Micro Variant' })).toHaveCount(1);
   await expect(page.locator('.daw-branch-hint')).toHaveText('This Micro Variant is currently empty.');
   await expect(page.locator('.daw-branch-actions-row button')).toHaveText(['Initialize Timeline', 'Create Sub-Micro Variants', 'Delete Micro Variant']);
   expect(await wordsSaying(page, OLD_NAME), 'an empty one').toEqual([]);
@@ -100,9 +100,9 @@ test('the frame data editor says Micro Variant everywhere it means one', async (
   // Turned into a branch holding Sub-Micro Variants. Creating one opens it, so
   // the branch's own panel is one click back up.
   await page.getByRole('button', { name: 'Create Sub-Micro Variants' }).click();
-  await expect(page.locator('.daw-variant-wrapper .daw-variant-tabs')).toHaveCount(2);
+  await expect(page.locator('.daw-variant-wrapper .sub-tabs')).toHaveCount(2);
   expect(await wordsSaying(page, OLD_NAME), 'a new Sub-Micro Variant').toEqual([]);
-  await page.locator('.daw-variant-wrapper .daw-variant-tabs').first().getByRole('button', { name: 'New Micro Variant' }).click();
+  await page.locator('.daw-variant-wrapper .sub-tabs').first().getByRole('button', { name: 'New Micro Variant' }).click();
   await expect(page.locator('.daw-branch-title')).toHaveText('Micro Variant Branch');
   await expect(page.locator('.daw-branch-hint')).toHaveText('Select a Sub-Micro Variant from the tabs above to view or edit its timeline.');
   expect(await wordsSaying(page, OLD_NAME), 'a branch').toEqual([]);

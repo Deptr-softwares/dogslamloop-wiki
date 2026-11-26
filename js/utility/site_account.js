@@ -23,9 +23,9 @@ window.injectAuthModal = function() {
                 <span id="auth-status-indicator" class="status-dot offline"></span>
             </div>
 
-            <div class="auth-tabs" style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem; padding: 0 1.5rem;">
-                <button id="auth-tab-login" class="btn-ghost active" style="flex: 1; border-bottom: none; opacity: 1; border-radius: 0; padding: 1rem 0;">LOGIN</button>
-                <button id="auth-tab-register" class="btn-ghost" style="flex: 1; border-bottom: none; opacity: 0.5; border-radius: 0; padding: 1rem 0;">REGISTER</button>
+            <div class="sub-tabs auth-tabs" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem 0;">
+                <button type="button" id="auth-tab-login" class="sub-tab is-active">LOGIN</button>
+                <button type="button" id="auth-tab-register" class="sub-tab">REGISTER</button>
             </div>
 
             <div class="dialog-body" style="padding-top: 0;">
@@ -102,15 +102,15 @@ window.injectAuthModal = function() {
     const feedbackMsg = document.getElementById('auth-feedback-message');
 
     tabLogin.onclick = () => {
-        tabLogin.classList.add('active'); tabLogin.style.opacity = '1';
-        tabRegister.classList.remove('active'); tabRegister.style.opacity = '0.5';
+        tabLogin.classList.add('is-active');
+        tabRegister.classList.remove('is-active');
         viewLogin.classList.remove('hidden'); viewRegister.classList.add('hidden');
         feedbackMsg.classList.add('hidden');
     };
 
     tabRegister.onclick = () => {
-        tabRegister.classList.add('active'); tabRegister.style.opacity = '1';
-        tabLogin.classList.remove('active'); tabLogin.style.opacity = '0.5';
+        tabRegister.classList.add('is-active');
+        tabLogin.classList.remove('is-active');
         viewRegister.classList.remove('hidden'); viewLogin.classList.add('hidden');
         feedbackMsg.classList.add('hidden');
     };

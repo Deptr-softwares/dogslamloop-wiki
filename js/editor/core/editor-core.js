@@ -937,10 +937,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let formHtml = '';
 
                 const tabsHtml = `
-                    <div class="qa-tabs-row">
-                        <button class="btn-sys ${currentForm === 'short' ? 'btn-sys-blue' : 'btn-sys-regular'} qa-tab-btn" id="qa-tab-short">Short</button>
-                        <button class="btn-sys ${currentForm === 'long' ? 'btn-sys-blue' : 'btn-sys-regular'} qa-tab-btn" id="qa-tab-long">Long</button>
-                        <button class="btn-sys ${currentForm === 'technical' ? 'btn-sys-blue' : 'btn-sys-regular'} qa-tab-btn" id="qa-tab-technical">Technical</button>
+                    <div class="sub-tabs qa-tabs-row">
+                        <button type="button" class="sub-tab qa-tab-btn${currentForm === 'short' ? ' is-active' : ''}" id="qa-tab-short">Short</button>
+                        <button type="button" class="sub-tab qa-tab-btn${currentForm === 'long' ? ' is-active' : ''}" id="qa-tab-long">Long</button>
+                        <button type="button" class="sub-tab qa-tab-btn${currentForm === 'technical' ? ' is-active' : ''}" id="qa-tab-technical">Technical</button>
                     </div>
                 `;
 
@@ -1142,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId)) {
                         let moveId = new URLSearchParams(window.location.search).get('move');
                         if (!moveId) {
-                            const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+                            const activeBtn = document.querySelector('[id^="move-nav-"].is-active');
                             if (activeBtn) moveId = activeBtn.id.replace('move-nav-', '');
                         }
                         if (moveId) {

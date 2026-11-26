@@ -937,9 +937,7 @@
 
         document.querySelectorAll('.tier-doc-btn').forEach(btn => {
             const on = btn.dataset.doc === doc;
-            btn.classList.toggle('active', on);
-            btn.classList.toggle('btn-sys-blue', on);
-            btn.classList.toggle('btn-sys-regular', !on);
+            btn.classList.toggle('is-active', on);
         });
 
         const hint = document.getElementById('tier-doc-hint');

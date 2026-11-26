@@ -3769,12 +3769,12 @@ function renderBlockList() {
             const strip = (multi && sections.length) ? `
                 <div class="cardsec-strip">
                     <div class="cardsec-label">SECTIONS</div>
-                    <div class="cardsec-tabs">
+                    <div class="sub-tabs cardsec-tabs">
                         ${sections.map((sec, i) =>
-                            `<button class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
+                            `<button class="sub-tab cardsec-tab${i === secIdx ? ' is-active' : ''}" data-cardsec="${i}">`
                             + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
-                        <button class="btn-sys btn-sys-green" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
-                        ${sections.length > 1 ? `<button class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
+                        <button class="btn-sys btn-sys-green sub-tabs-action" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
+                        ${sections.length > 1 ? `<button class="btn-sys btn-sys-red sub-tabs-action" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
                     </div>
                     <input type="text" class="editor-input" data-cardsec-label="${secIdx}"
                            value="${window.escapeHtml(card.label || '')}" placeholder="Tab label (e.g. In Corner 6H)">

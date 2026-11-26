@@ -85,7 +85,7 @@
     const STICKY_GROUPS = [
         { key: 'stickHeader', find: () => ['editor-header', 'editor-scope-tip'].map(id => document.getElementById(id)) },
         { key: 'stickPageNav', find: () => ['editor-mode-bar', 'editor-mode-controls', 'editor-tab-nav'].map(id => document.getElementById(id)) },
-        { key: 'stickSectionNav', find: () => Array.from(document.querySelectorAll('#interactive-builder > .daw-editor-nav-row')) },
+        { key: 'stickSectionNav', find: () => Array.from(document.querySelectorAll('#interactive-builder > .editor-nav-row')) },
         { key: 'stickActions', find: () => {
             const undo = document.getElementById('btn-undo');
             return [undo && undo.closest('.strategy-toolbar-row')];
@@ -843,10 +843,10 @@
         box.innerHTML = `
                 <div class="dialog-header"><h3 id="editor-config-title">CONFIG</h3></div>
                 <div class="dialog-body config-body">
-                    <div class="daw-variant-tabs config-tabs" role="tablist">
-                        <button type="button" class="daw-tab-btn active" role="tab" aria-selected="true" data-config-tab="editor">Editor</button>
-                        <button type="button" class="daw-tab-btn" role="tab" aria-selected="false" data-config-tab="actions">Actions</button>
-                        ${withPage ? '<button type="button" class="daw-tab-btn" role="tab" aria-selected="false" data-config-tab="page">Page</button>' : ''}
+                    <div class="sub-tabs config-tabs" role="tablist">
+                        <button type="button" class="sub-tab is-active" role="tab" aria-selected="true" data-config-tab="editor">Editor</button>
+                        <button type="button" class="sub-tab" role="tab" aria-selected="false" data-config-tab="actions">Actions</button>
+                        ${withPage ? '<button type="button" class="sub-tab" role="tab" aria-selected="false" data-config-tab="page">Page</button>' : ''}
                     </div>
 
                     <div class="config-panel" data-config-panel="editor">
@@ -923,7 +923,7 @@
                 const name = tab.getAttribute('data-config-tab');
                 box.querySelectorAll('[data-config-tab]').forEach(t => {
                     const on = t === tab;
-                    t.classList.toggle('active', on);
+                    t.classList.toggle('is-active', on);
                     t.setAttribute('aria-selected', String(on));
                 });
                 box.querySelectorAll('[data-config-panel]').forEach(p =>

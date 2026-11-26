@@ -201,6 +201,41 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     transform: translateX(3px);
 }
 
+/* The tab strip for what sits inside a page: folder tabs, the picked one in the
+   strip's accent colour. Section Box and Combo Card tabs, the editor's sub-tabs,
+   the Overseer's queues, the owner tools' groups, the QA box's form, the Sign In
+   box and the tier editor's two documents. The page tabs are .btn-manga-slanted and
+   the mode chips .character-mode-chip.
+   Since v1.3.
+   Touches: --sub-tab-accent, the page's accent unless a strip sets its own.
+   Watch: the picked tab is .is-active. A tab with a remove button sits in a
+   .sub-tab-item; a button in a strip that is not a tab (+ ADD) is .sub-tabs-action. */
+.sub-tabs {
+    --sub-tab-accent: var(--accent-blue);
+    display: flex; flex-wrap: wrap; gap: 0.35rem;
+    border-bottom: 2px solid var(--border-color); margin-bottom: 0.75rem;
+}
+.sub-tabs[hidden] { display: none; }
+.sub-tab {
+    background: none; border: 1px solid var(--border-color); border-bottom: none;
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.65rem;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0.35rem 0.7rem; cursor: pointer;
+}
+.sub-tab:hover { color: var(--text-white); }
+.sub-tab.is-active { background: var(--bg-main); color: var(--sub-tab-accent); border-color: var(--sub-tab-accent); }
+.sub-tab[hidden] { display: none; }
+.sub-tab-item { display: inline-flex; position: relative; }
+.sub-tab.sub-tab-removable { padding-right: 1.6rem; }
+.sub-tab-remove {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #ef4444; font-size: 10px; cursor: pointer;
+}
+.sub-tabs-action { align-self: center; font-size: 0.65rem; padding: 0.3rem 0.6rem; margin-left: 0.25rem; }
+/* A strip that scrolls sideways rather than wrapping: the editor's rows. */
+.sub-tabs.sub-tabs-scroll { flex-wrap: nowrap; overflow-x: auto; }
+.sub-tabs-scroll > * { flex-shrink: 0; }
+
 /* Below 1024px (where the sidebar becomes a drawer), tappable buttons grow toward
    44px, without changing their desktop size. */
 @media (max-width: 1023px) {

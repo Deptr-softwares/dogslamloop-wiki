@@ -118,37 +118,12 @@
 
 /* The owner tool groups, all scoped to .owner-tool-area: the cards, inputs and
    buttons are shared with overseer.html. */
-.owner-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--border-color);
-}
-
-.owner-nav-btn {
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.6rem 1.1rem;
-    min-height: 44px;                    /* the phone's touch-target floor */
-    color: var(--text-muted);
-    background: var(--bg-main);
-    border: 2px solid var(--border-color);
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-}
-.owner-nav-btn:hover { color: var(--text-white); border-color: var(--accent-blue); }
-.owner-nav-btn.active {
-    color: var(--text-white);
-    border-color: var(--accent-blue);
-    box-shadow: 3px 3px 0px var(--manga-shadow);
-}
+/* The groups are the site's tab strip (.sub-tabs, Buttons.css), at the phone's
+   touch-target floor. */
+.sub-tabs.owner-nav { margin-bottom: 1.5rem; }
+.sub-tab.owner-nav-btn { font-size: 0.75rem; padding: 0.6rem 1.1rem; min-height: 44px; }
 /* A destructive tool does not look like an editing tool, even in the nav. */
-.owner-nav-btn-danger.active { border-color: #ef4444; }
-.owner-nav-btn-danger:hover { border-color: #ef4444; }
+.sub-tab.owner-nav-btn-danger { --sub-tab-accent: #ef4444; }
 
 .owner-group {
     display: grid;
@@ -435,16 +410,7 @@
 /* The media queue */
 /* Text first: a file is not in the page until a reviewer presses VIEW. */
 /* The queue tabs wrap rather than scroll, so every name stays in view. */
-.admin-queue-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
-.admin-queue-tab {
-    flex: 1 1 auto; padding: 0.45rem 0.6rem; cursor: pointer;
-    background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333);
-    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem;
-    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
-}
-.admin-queue-tab:hover { color: var(--text-white); border-color: var(--accent-blue); }
-.admin-queue-tab.active { color: var(--text-white); border-color: var(--accent-blue); background: hsla(217, 91%, 60%, 0.12); }
-.admin-queue-tab[hidden] { display: none; }
+.sub-tabs.admin-queue-tabs { margin-bottom: 1rem; }
 /* How many are waiting, once that queue has loaded. */
 .admin-queue-count:not(:empty) { margin-left: 0.4rem; color: var(--accent-blue); font-weight: bold; }
 .media-queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }

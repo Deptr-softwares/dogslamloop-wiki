@@ -203,7 +203,7 @@ test('the frame data editor shows crafted values as text, and its tabs still wor
   // one must still switch the timeline to it.
   const second = page.locator('[data-daw-path]').nth(1);
   await second.click();
-  await expect(page.locator('[data-daw-path].active')).toContainText(ATTR);
+  await expect(page.locator('[data-daw-path].is-active')).toContainText(ATTR);
 
   // Select a phase so the inspector renders its label field too.
   await page.locator('[data-daw-path]').first().click();
@@ -302,7 +302,7 @@ test('the system page editor shows crafted tab and section names as text', async
   });
   await page.goto('/edit.html?char=boomcat&type=system', { waitUntil: 'domcontentloaded' });
 
-  await expect(page.locator('.daw-tab-btn').filter({ hasText: 'Tab <img' }).first()).toBeVisible({ timeout: 45000 });
+  await expect(page.locator('.sub-tab').filter({ hasText: 'Tab <img' }).first()).toBeVisible({ timeout: 45000 });
   await expect(page.locator('.system-section-tab-btn').first()).toContainText(ATTR);
 
   const result = await nothingRan(page);
