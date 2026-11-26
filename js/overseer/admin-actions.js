@@ -125,7 +125,7 @@ async function approveCurrentPreview() {
         link: pageUrl
     }]);
 
-    window.adminAlert("Revision approved and merged to live database!");
+    window.showToast("Revision approved and merged to live database!");
     resetPreviewState(); loadQueue();
 }
 
@@ -170,7 +170,7 @@ async function rejectCurrentPreview() {
         link: pageUrl
     }]);
 
-    window.adminAlert("Revision declined and author notified.");
+    window.showToast("Revision declined and author notified.");
     resetPreviewState();
     loadQueue();
 }

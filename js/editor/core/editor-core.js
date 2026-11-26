@@ -1321,7 +1321,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     submitBtn.style.color = "";
 
                     if (wasUpdate) {
-                        window.editorAlert(isSelfEdit
+                        window.showToast(isSelfEdit
                             ? "Your submission is updated."
                             : "Ticket successfully updated! You can now close this tab and return to the Admin Panel.");
                     }

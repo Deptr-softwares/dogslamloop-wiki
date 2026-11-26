@@ -294,12 +294,9 @@ test('the panel can undo its own replace', async ({ page }) => {
   await expect(confirmBtn).toBeVisible();
   await confirmBtn.click();
 
-  // Then it reports the count, and that alert sits over the panel until it is
-  // acknowledged - which is the point of an alert, so the test dismisses it
-  // rather than the alert being made dismissable on its own.
-  const ack = page.locator('#editor-alert-modal button');
-  await expect(ack).toBeVisible();
-  await ack.click();
+  // Then it reports the count in a toast, which needs nothing pressed.
+  await expect(page.locator('.site-toast-msg')).toHaveText(/^Replaced \d+ occurrence\(s\)\.$/);
+  await expect(page.locator('#editor-alert-modal')).toBeHidden();
   await page.waitForTimeout(700);
 
   const replaced = await page.evaluate(() => ({
@@ -529,7 +526,9 @@ async function replaceAllFromPanel(page, find, replacement) {
   await page.locator('.find-replace-row').first().waitFor({ timeout: 5000 });
   await page.locator('#find-replace-all').click();
   await page.locator('#editor-modal-confirm').click();
-  await page.locator('#editor-alert-modal button').click();
+  // Said in a toast: no box to close.
+  await expect(page.locator('.site-toast-msg')).toHaveText(/^Replaced \d+ occurrence\(s\)\.$/);
+  await expect(page.locator('#editor-alert-modal')).toBeHidden();
 }
 
 // Each place: the tab, the clicks that open it, the button that says it is

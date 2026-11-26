@@ -149,7 +149,8 @@ test('approval writes the page kind onto the live row', async ({ page }) => {
 
     const approve = (revId) => page.evaluate(async (revId) => {
         window.adminPrompt = async () => 'checked';
-        window.adminAlert = () => {};
+        window.__alerts = window.__alerts || [];
+        window.adminAlert = (m) => window.__alerts.push(m);
         window.activePreviewRevId = revId;
         await approveCurrentPreview();
         const writes = (table, op) => window.__writes.filter(w => w.table === table && w.op === op).map(w => w.payload[0]);
@@ -164,6 +165,9 @@ test('approval writes the page kind onto the live row', async ({ page }) => {
     expect(both.kinds).toEqual(['character', 'system']);
     // The author's notification links each page by the same kind.
     expect(both.links).toEqual(['characters/Boomcat/index.html', 'systems/unlisted/index.html']);
+    // Said in a toast each time, never a box.
+    await expect(page.locator('.site-toast-msg')).toHaveText(Array(2).fill('Revision approved and merged to live database!'));
+    expect(await page.evaluate(() => window.__alerts)).toEqual([]);
 });
 
 test("a decline's notification links the page by the list, not the kind it names", async ({ page }) => {
@@ -171,13 +175,16 @@ test("a decline's notification links the page by the list, not the kind it names
 
     const links = await page.evaluate(async () => {
         window.adminPrompt = async () => 'not this time';
-        window.adminAlert = () => {};
+        window.__alerts = [];
+        window.adminAlert = (m) => window.__alerts.push(m);
         window.activePreviewRevId = '00000000-0000-4000-8000-0000000000c3';
         await rejectCurrentPreview();
         return window.__writes.filter(w => w.table === 'user_notifications' && w.op === 'insert').map(w => w.payload[0].link);
     });
     // Not on the list, so the default folder, not the one the kind it names would pick.
     expect(links).toEqual(['characters/Unlisted/index.html']);
+    await expect(page.locator('.site-toast-msg')).toHaveText('Revision declined and author notified.');
+    expect(await page.evaluate(() => window.__alerts)).toEqual([]);
 });
 
 test('restoring an old version writes the page kind, not the one the version carries', async ({ page }) => {
@@ -185,7 +192,8 @@ test('restoring an old version writes the page kind, not the one the version car
 
     const kinds = await page.evaluate(async () => {
         window.adminConfirm = async () => true;
-        window.adminAlert = () => {};
+        window.__alerts = [];
+        window.adminAlert = (m) => window.__alerts.push(m);
         await window.restorePageHistoryVersion({
             page_id: 'boomcat', page_type: 'tierlist', desc_data: {}, frame_data: {},
             version_timestamp: '2026-08-01T00:00:00Z',
@@ -193,6 +201,8 @@ test('restoring an old version writes the page kind, not the one the version car
         return window.__writes.filter(w => w.table === 'page_data' && w.op === 'upsert').map(w => w.payload[0].page_type);
     });
     expect(kinds).toEqual(['character']);
+    await expect(page.locator('.site-toast-msg')).toHaveText('Version restored - the page is now live with this content.');
+    expect(await page.evaluate(() => window.__alerts)).toEqual([]);
 });
 
 test('Recent Changes links each page by the list, not the kind its revision names', async ({ page }) => {

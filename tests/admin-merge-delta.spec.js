@@ -112,6 +112,8 @@ test('a merged ticket is a multi-scope delta, not a full overwrite', async ({ pa
   const captured = await compileMerge(page);
 
   expect(captured.update, 'the compiler should have written a merged ticket').toBeTruthy();
+  // Said in a toast, not a box.
+  await expect(page.locator('.site-toast-msg')).toHaveText(/^Successfully merged \d+ tickets!$/);
   expect(captured.update.is_delta, 'a merged ticket must apply as a patch, not a snapshot').toBe(true);
   expect(captured.update.target_scope).toBe('multi');
   expect(Array.isArray(captured.update.delta_payload)).toBe(true);

@@ -2,7 +2,7 @@
  * What every other file leans on, loaded on every page right after the Supabase
  * library: the reader's Site Settings, paths and page addresses, the Supabase client
  * and its local-only override, the escapers, the role ladder, the system alert, the
- * dropdowns and the dialog engine. site_data.js, site_media.js and site_account.js
+ * dropdowns, the dialog engine and the toasts. site_data.js, site_media.js and site_account.js
  * follow it, in that order.
  * @since v0.3
  * @touches localStorage (dsl_site_settings, dsl_supabase_override),
@@ -808,11 +808,21 @@ window.openDialog = function (dialog, { light = false } = {}) {
     dialog.addEventListener('close', () => {
         dialog.removeEventListener('pointerdown', onDown);
         dialog.removeEventListener('click', onClick);
+        const at = openBoxes.indexOf(dialog);
+        if (at >= 0) openBoxes.splice(at, 1);
+        placeToasts();
     }, { once: true });
 
     dialog.showModal();
+    openBoxes.push(dialog);
+    placeToasts();
     return true;
 };
+
+// The open boxes, the last opened last. A toast lives in the top one: everything
+// outside a modal box is inert, even a popover drawn over it, so a toast left on
+// the page could be seen there and not clicked.
+const openBoxes = [];
 
 // Any button marked data-dialog-close closes the box it is in.
 document.addEventListener('click', (e) => {
@@ -958,6 +968,131 @@ window.sitePrompt = function (message, opts = {}) {
         cancel: null, enter: typed, keyTarget: input, focus: input,
         onClose: () => input.remove(),
     });
+};
+
+// The toasts' shelf, a popover made on first use, and the line inside it that a
+// screen reader announces.
+let toastShelf = null;
+let toastSay = null;
+const MOST_TOASTS = 3;
+
+function toastHome() {
+    for (let i = openBoxes.length - 1; i >= 0; i--) {
+        if (openBoxes[i].open) return openBoxes[i];
+    }
+    return document.body;
+}
+
+// Moving a popover hides it, and showing it again puts it on top of the box that
+// just opened.
+function placeToasts() {
+    if (!toastShelf) return;
+    const home = toastHome();
+    if (toastShelf.parentNode !== home) home.appendChild(toastShelf);
+    if (typeof toastShelf.showPopover !== 'function') return;
+    const holds = !!toastShelf.querySelector('.site-toast');
+    const showing = toastShelf.matches(':popover-open');
+    if (holds && !showing) toastShelf.showPopover();
+    else if (!holds && showing) toastShelf.hidePopover();
+}
+
+/**
+ * A short message in the top right corner that goes by itself: hovering it or
+ * focusing in it keeps it, and its close button takes it away. Newest on top, three
+ * at most. Over an open box it shows inside the box, so it can still be clicked.
+ *   head      the small line above the message ('DONE')
+ *   tone      'done' (green), 'badge' or 'gold'
+ *   lead      a node drawn before the words (a badge)
+ *   note      a muted line under the message
+ *   action    { label, onClick }: a button that closes the toast, then runs onClick
+ *   duration  milliseconds before it goes (5000)
+ *   className more classes on the toast
+ * @since v1.3
+ * @watch errors and warnings stay boxes (showSystemAlert, editorAlert, adminAlert):
+ *   a toast is for a message that only says something worked
+ */
+window.showToast = function (message, opts = {}) {
+    const { head = 'DONE', tone = 'done', lead = null, note = '', action = null, duration = 5000, className = '' } = opts;
+    if (!document.body) return null;
+    if (!toastShelf) {
+        toastShelf = document.createElement('div');
+        toastShelf.className = 'site-toasts';
+        toastShelf.setAttribute('popover', 'manual');
+        toastSay = document.createElement('div');
+        toastSay.className = 'sr-only';
+        toastSay.setAttribute('role', 'status');
+        toastShelf.appendChild(toastSay);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `site-toast toast-${tone} is-new ${className}`.trim();
+    toast.addEventListener('animationend', () => toast.classList.remove('is-new'), { once: true });
+    if (lead) toast.appendChild(lead);
+
+    const words = document.createElement('div');
+    words.className = 'site-toast-text';
+    const headEl = document.createElement('span');
+    headEl.className = 'site-toast-head';
+    headEl.textContent = head;
+    const msgEl = document.createElement('span');
+    msgEl.className = 'site-toast-msg';
+    msgEl.textContent = message;
+    words.append(headEl, msgEl);
+    if (note) {
+        const noteEl = document.createElement('span');
+        noteEl.className = 'site-toast-note';
+        noteEl.textContent = note;
+        words.appendChild(noteEl);
+    }
+    toast.appendChild(words);
+
+    let timer = null;
+    let hovered = false;
+    let focused = false;
+    const dismiss = () => {
+        clearTimeout(timer);
+        if (!toast.isConnected) return;
+        toast.remove();
+        placeToasts();
+    };
+    const arm = () => {
+        clearTimeout(timer);
+        if (!hovered && !focused) timer = setTimeout(dismiss, duration);
+    };
+    toast.addEventListener('pointerenter', () => { hovered = true; clearTimeout(timer); });
+    toast.addEventListener('pointerleave', () => { hovered = false; arm(); });
+    toast.addEventListener('focusin', () => { focused = true; clearTimeout(timer); });
+    toast.addEventListener('focusout', (e) => {
+        if (toast.contains(e.relatedTarget)) return;
+        focused = false;
+        arm();
+    });
+
+    if (action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn-sys btn-sys-regular site-toast-action';
+        button.textContent = action.label;
+        button.addEventListener('click', () => { dismiss(); action.onClick(); });
+        toast.appendChild(button);
+    }
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'site-toast-close';
+    close.setAttribute('aria-label', 'Close');
+    close.textContent = '✖';
+    close.addEventListener('click', dismiss);
+    toast.appendChild(close);
+
+    toastSay.after(toast);
+    toastShelf.querySelectorAll('.site-toast').forEach((old, i) => { if (i >= MOST_TOASTS) old.remove(); });
+    placeToasts();
+    // Said a moment after the shelf shows: a live region's words are announced when
+    // they change while it is on the page.
+    toastSay.textContent = '';
+    setTimeout(() => { toastSay.textContent = `${head}: ${message}`; }, 100);
+    arm();
+    return toast;
 };
 
 /**
