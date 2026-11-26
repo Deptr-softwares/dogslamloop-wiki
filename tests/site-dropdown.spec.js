@@ -6,8 +6,10 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-// One dropdown on every page (v1.3): the owner tools, the post editor and Create
-// Tier List's maker opened the browser's own list until then.
+// One dropdown on every page (v1.3): the owner tools, the post editor, Create Tier
+// List's maker, the report box and the forum's category opened the browser's own
+// list until then. The last three are built by script, which the first version of
+// this test did not read.
 test('every select a page or script writes is drawn as the site dropdown', () => {
   const ROOT = path.join(__dirname, '..');
   const files = [];
@@ -24,9 +26,15 @@ test('every select a page or script writes is drawn as the site dropdown', () =>
   const LATER = ['id="tier-copy-character"'];
   const native = [];
   for (const file of files) {
-    for (const [tag] of fs.readFileSync(file, 'utf8').matchAll(/<select\s[^>]*>/g)) {
+    const text = fs.readFileSync(file, 'utf8');
+    for (const [tag] of text.matchAll(/<select\s[^>]*>/g)) {
       if (/\beditor-select\b/.test(tag) || LATER.some(mark => tag.includes(mark))) continue;
       native.push(`${path.relative(ROOT, file)}: ${tag.slice(0, 90)}`);
+    }
+    // Built by script: its class is set in the lines right after.
+    for (const m of text.matchAll(/createElement\(\s*['"]select['"]\s*\)/g)) {
+      const next = text.slice(m.index, m.index + 200);
+      if (!/\beditor-select\b/.test(next)) native.push(`${path.relative(ROOT, file)}: ${next.split('\n').slice(0, 2).join(' ').slice(0, 90)}`);
     }
   }
   expect(files.length).toBeGreaterThan(50);
@@ -276,6 +284,27 @@ test('options a page adds after the first draw show, and a disabled select\'s bu
 
   await page.evaluate(() => { document.getElementById('test-dropdown').disabled = true; });
   await expect(button).toBeDisabled();
+});
+
+test('a disabled option, such as a placeholder, is shown but never picked', async ({ page }) => {
+  await openRoster(page);
+  const button = await addDropdown(page, { options: ['Category', 'Guide', 'News'] });
+  await page.evaluate(() => {
+    const select = document.getElementById('test-dropdown');
+    select.options[0].disabled = true;
+  });
+  await button.click();
+  const placeholder = listOf(button).locator('.manga-option', { hasText: 'Category' });
+  await expect(placeholder).toHaveAttribute('aria-disabled', 'true');
+  // The arrows go past it, and a click on it picks nothing.
+  await expect(activeRow(button)).toHaveText('Guide');
+  await page.keyboard.press('ArrowUp');
+  await expect(activeRow(button)).toHaveText('Guide');
+  await placeholder.click({ force: true });
+  expect(await page.evaluate(() => window.dropdownChanges)).toEqual([]);
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(button).toHaveText('News');
 });
 
 test('the Block folder picker takes the same keys: End reaches Create new folder and Enter makes it', async ({ page }) => {

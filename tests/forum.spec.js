@@ -11,6 +11,7 @@
 // moderate_forum_thread's guard. 20261004000002_forum.sql is probed on the
 // preview branch; tests/discord-relay-*.spec.js cover the Discord side.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const ME = '11111111-1111-4111-8111-111111111111';
 const SESSION = { user: { id: ME, email: 'me@site.test' }, access_token: 't' };
@@ -247,7 +248,7 @@ test('a new post sends its title, category and opening message, then opens the p
     await expect(panel.locator('.discussion-composer-status')).toHaveText('Pick a category.');
     expect(await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'create_forum_post').length)).toBe(0);
 
-    await panel.locator('.forum-tag-select').selectOption('Guide');
+    await pickOption(panel.locator('.forum-tag-select'), 'Guide');
     await panel.locator('.discussion-submit').click();
     // Made, so the browser goes to the new post. What was sent is the next
     // test's: this page's record of it went with the navigation.
@@ -260,7 +261,7 @@ test('what a new post sends to create_forum_post', async ({ page }) => {
     await page.locator('.forum-new-btn').click();
     const panel = page.locator('.forum-new-panel');
     await panel.locator('.forum-title-input').fill('  Brand new  ');
-    await panel.locator('.forum-tag-select').selectOption('Game Update');
+    await pickOption(panel.locator('.forum-tag-select'), 'Game Update');
     await panel.locator('.discussion-textarea').fill('first words');
     await panel.locator('.discussion-submit').click();
 
@@ -406,7 +407,7 @@ test('the person who started a post can rename it and change its category', asyn
     await expect(form.locator('.forum-tag-select')).toHaveValue('Question');
 
     await form.locator('.forum-title-input').fill('Best Boomcat route?');
-    await form.locator('.forum-tag-select').selectOption('Guide');
+    await pickOption(form.locator('.forum-tag-select'), 'Guide');
     await form.locator('button[type="submit"]').click();
     await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem('__rpcCalls') || '[]')
         .find(c => c.name === 'edit_my_forum_post'))).toEqual({

@@ -447,7 +447,9 @@ const DROPDOWN_BUTTON = '.manga-select-wrapper > [role="combobox"]';
 const dropdownSelects = new WeakMap();
 let dropdownCount = 0;
 
-const dropdownRows = (wrapper) => [...wrapper.querySelectorAll('.manga-select-options .manga-option')];
+// The rows the keys can reach: a disabled option (a "Category" placeholder) is shown
+// and skipped.
+const dropdownRows = (wrapper) => [...wrapper.querySelectorAll('.manga-select-options .manga-option:not([aria-disabled="true"])')];
 
 // The ids aria-controls and aria-activedescendant point at, given on first use.
 function giveDropdownIds(wrapper) {
@@ -492,6 +494,7 @@ function fillDropdown(wrapper) {
         const color = getComputedStyle(option).color;
         if (color) row.style.color = color;
         row.textContent = option.textContent;
+        if (option.disabled) row.setAttribute('aria-disabled', 'true');
         return row;
     }));
 }
@@ -501,8 +504,8 @@ function showDropdownValue(wrapper) {
     const button = wrapper.querySelector('.manga-select-trigger');
     button.textContent = select.options[select.selectedIndex]?.textContent || 'Select...';
     button.disabled = select.disabled;
-    dropdownRows(wrapper).forEach((row, i) => {
-        const picked = i === select.selectedIndex;
+    wrapper.querySelectorAll('.manga-select-options .manga-option').forEach(row => {
+        const picked = Number(row.dataset.index) === select.selectedIndex;
         row.classList.toggle('selected', picked);
         row.setAttribute('aria-selected', picked ? 'true' : 'false');
     });
@@ -580,7 +583,10 @@ window.initializeMangaSelects = function() {
 
         list.addEventListener('click', (e) => {
             const row = e.target.closest('.manga-option');
-            if (!row) return;
+            // A click that picks nothing (a disabled row, which lets the pointer
+            // through to the list, or the list's edge) gives the focus back to the
+            // button, so the keys go on working.
+            if (!row) { button.focus({ preventScroll: true }); return; }
             e.stopPropagation();
             select.selectedIndex = Number(row.dataset.index);
             window.setDropdownOpen(wrapper, false);

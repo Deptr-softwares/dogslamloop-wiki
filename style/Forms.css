@@ -154,6 +154,9 @@ select.editor-select.manga-initialized {
     transition: all 0.15s ease;
 }
 
+/* A disabled option, such as a placeholder: shown, never picked. */
+.manga-option[aria-disabled="true"] { opacity: 0.5; cursor: default; pointer-events: none; }
+
 .manga-option:last-child {
     border-bottom: none;
 }

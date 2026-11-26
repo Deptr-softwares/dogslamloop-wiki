@@ -157,7 +157,7 @@
         title.setAttribute('aria-label', 'Title');
 
         const tag = document.createElement('select');
-        tag.className = 'editor-input forum-tag-select';
+        tag.className = 'editor-input forum-tag-select editor-select';
         tag.setAttribute('aria-label', 'Category');
         const none = el('option', null, 'Category');
         none.value = '';
@@ -293,7 +293,7 @@
         title.value = row.title;
         title.setAttribute('aria-label', 'Title');
         const tag = document.createElement('select');
-        tag.className = 'editor-input forum-tag-select';
+        tag.className = 'editor-input forum-tag-select editor-select';
         tag.setAttribute('aria-label', 'Category');
         FORUM_TAGS.forEach(t => {
             const o = el('option', null, t);

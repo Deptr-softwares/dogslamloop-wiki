@@ -821,7 +821,7 @@
         form.appendChild(el('div', 'discussion-mod-heading', 'Report this post'));
 
         const select = document.createElement('select');
-        select.className = 'discussion-report-reason';
+        select.className = 'discussion-report-reason editor-select';
         select.setAttribute('aria-label', 'Reason');
         REPORT_REASONS.forEach(r => {
             const opt = document.createElement('option');

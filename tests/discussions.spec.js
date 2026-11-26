@@ -17,6 +17,7 @@
 // courtesy that stops someone typing a post they cannot send. The policy in
 // the migration is the thing that actually stops them.
 const { test, expect } = require('@playwright/test');
+const { pickOption } = require('./helpers/site-dropdown');
 
 const PAGE = '/characters/Honored_one/index.html';
 
@@ -715,7 +716,7 @@ test('a report sends the reason and note, then confirms', async ({ page }) => {
     await open(page);
 
     await page.click('#post-p1 [data-report-post]');
-    await page.selectOption('.discussion-report-reason', 'harassment');
+    await pickOption(page.locator('.discussion-report-reason'), 'harassment');
     await page.fill('.discussion-report-note', 'targeting a specific person');
     await page.click('.discussion-report-confirm');
 
