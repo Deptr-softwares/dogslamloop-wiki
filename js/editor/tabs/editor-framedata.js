@@ -273,7 +273,7 @@ function initDawEditor(containerId, moveData) {
 
                             <div class="daw-track-input-row">
                                 <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="footerInfo" value="${window.escapeHtml(bar.footerInfo || '')}" placeholder="Footer Title (Bottom)">
-                                <select class="editor-select daw-track-color daw-track-color-select ${window.escapeHtml(bar.headerClass || '')}" data-bidx="${bIdx}">
+                                <select aria-label="Header color" class="editor-select daw-track-color daw-track-color-select ${window.escapeHtml(bar.headerClass || '')}" data-bidx="${bIdx}">
                                     <option value="" class="daw-option-default" ${!bar.headerClass ? 'selected' : ''}>Default</option>
                                     <option value="text-red-400" class="daw-option-red-400" ${bar.headerClass === 'text-red-400' ? 'selected' : ''}>Red (L)</option>
                                     <option value="text-red-600" class="daw-option-red-600" ${bar.headerClass === 'text-red-600' ? 'selected' : ''}>Red (D)</option>

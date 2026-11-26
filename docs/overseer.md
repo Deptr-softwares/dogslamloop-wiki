@@ -39,7 +39,7 @@ overseer.html, the staff page: the revision queue, the media queue, the report q
 - The trusted editor discount is written twice and the two must agree: `updateActionButtons` (admin-queue.js) decides whether MERGE shows, and `renderTicketWorkspace` (admin-tickets.js) prints what it needs.
 - A merge ships scoped deltas, never a snapshot (`tests/admin-merge-delta.spec.js`).
 - A queue a person is not here for is hidden, never removed: code writing into its panel must still find it.
-- The site's custom dropdown copies a select's options once and dispatches only `change`: a select filled later is rebuilt, and listens for `change` (`tests/queue-filter.spec.js`).
+- The site's dropdown dispatches only `change`, so a page listens for `change` (`tests/queue-filter.spec.js`). It reads a select's options again each time it opens.
 
 ## Decisions
 

@@ -240,7 +240,7 @@ html.look-classic .manga-select-trigger { border-color: var(--border-color); bac
 html.look-classic :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger) { transform: none; box-shadow: none; border-color: var(--text-muted); }
 html.look-classic .manga-select-wrapper .manga-select-options { border: 1px solid var(--border-color); box-shadow: none; animation: none; background: var(--bg-main); }
 html.look-classic .manga-option { border-bottom: 0; }
-html.look-classic .manga-option:hover { padding-left: 0.75rem; font-weight: normal; }
+html.look-classic :is(.manga-option:hover, .manga-option.is-active) { padding-left: 0.75rem; font-weight: normal; }
 html.look-classic .manga-option.selected { border-left: 0; font-weight: bold; }
 
 /* Words the default look writes in capitals read as written. */

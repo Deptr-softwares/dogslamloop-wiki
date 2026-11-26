@@ -57,10 +57,18 @@ select.editor-select.manga-initialized {
     min-width: 0; 
 }
 
-/* The visible button */
+/* The visible button, a <button>: the first seven lines undo the browser's own
+   button styles. */
 .manga-select-trigger {
     position: relative;
-    display: block; 
+    display: block;
+    width: 100%;
+    margin: 0;
+    appearance: none;
+    text-align: inherit;
+    unicode-bidi: isolate;
+    line-height: inherit;
+    letter-spacing: inherit;
     background: #050505;
     border: 1px solid #333; 
     padding: 0.3rem 1.5rem 0.3rem 0.4rem; 
@@ -78,7 +86,9 @@ select.editor-select.manga-initialized {
     text-overflow: ellipsis;
 }
 
-.manga-select-trigger:hover, 
+.manga-select-trigger:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.manga-select-trigger:hover:not(:disabled),
 .manga-select-wrapper.open .manga-select-trigger {
     border-color: var(--accent-blue);
     transform: translate(-2px, -2px);
@@ -148,8 +158,9 @@ select.editor-select.manga-initialized {
     border-bottom: none;
 }
 
-/* Slide-right hover effect */
-.manga-option:hover {
+/* Slide-right hover effect, and the row the arrow keys are on */
+.manga-option:hover,
+.manga-option.is-active {
     background: var(--accent-blue);
     color: #000 !important; 
     font-weight: bold;

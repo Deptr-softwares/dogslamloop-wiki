@@ -38,7 +38,7 @@ window.initRosterFilters = async function() {
              without it - so it alone still summoned the operating system's
              own dropdown over the wiki's palette. Paired with a layout class
              the same way #media-filter-select already is. -->
-        <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select editor-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
+        <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select editor-select" aria-label="Archetype">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
         <div class="filter-group filter-group-right">
             <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
             <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>

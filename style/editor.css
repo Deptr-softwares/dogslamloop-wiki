@@ -1322,7 +1322,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .folder-option-none { font-style: italic; color: #6b7280 !important; }
 .folder-option-none::before { content: '\2014\00a0'; }
 .folder-option-new { color: #22c55e !important; border-top: 1px solid #222; }
-.folder-option-new:hover { background: #22c55e !important; color: #000 !important; }
+.folder-option-new:hover,
+.folder-option-new.is-active { background: #22c55e !important; color: #000 !important; }
 
 /* A group label, never a choice. */
 .folder-option-sep {

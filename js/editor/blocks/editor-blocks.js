@@ -2762,10 +2762,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const trigger = e.target.closest('.block-folder-trigger');
         if (trigger) {
             const wrapper = trigger.closest('.block-folder-picker');
-            const wasOpen = wrapper.classList.contains('open');
-            blockList.querySelectorAll('.block-folder-picker.open')
-                .forEach(w => w.classList.remove('open'));
-            wrapper.classList.toggle('open', !wasOpen);
+            window.setDropdownOpen(wrapper, !wrapper.classList.contains('open'));
             return;
         }
 
@@ -2794,7 +2791,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.block-folder-picker')) {
             document.querySelectorAll('.block-folder-picker.open')
-                .forEach(w => w.classList.remove('open'));
+                .forEach(w => window.setDropdownOpen(w, false));
         }
     });
 
@@ -3521,22 +3518,26 @@ function renderBlockList() {
         const choices = [...new Set(folderNames.concat(pendingFolders.map(p => p.name)))];
 
         let rows = `<button type="button" class="manga-option folder-option folder-option-none${own ? '' : ' selected'}"
+                            role="option" aria-selected="${own ? 'false' : 'true'}" tabindex="-1"
                             data-folder-action="none">No folder</button>`;
         if (choices.length) {
-            rows += `<div class="folder-option-sep">Folders</div>`;
+            rows += `<div class="folder-option-sep" aria-hidden="true">Folders</div>`;
             rows += choices.map(n =>
                 `<button type="button" class="manga-option folder-option folder-option-item${n === own ? ' selected' : ''}"
+                         role="option" aria-selected="${n === own ? 'true' : 'false'}" tabindex="-1"
                          data-folder-action="pick" data-folder-name="${window.escapeHtml(n)}">${window.escapeHtml(n)}</button>`
             ).join('');
         }
         rows += `<button type="button" class="manga-option folder-option folder-option-new"
+                         role="option" aria-selected="false" tabindex="-1"
                          data-folder-action="new">&#65291; Create new folder</button>`;
 
         return `
             <div class="manga-select-wrapper block-folder-picker">
                 <button type="button" class="block-folder-trigger${own ? ' has-folder' : ''}"
+                        role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-label="Folder"
                         title="Put this block in a folder">${own ? window.escapeHtml(own) : 'No folder'}</button>
-                <div class="manga-select-options">${rows}</div>
+                <div class="manga-select-options" role="listbox">${rows}</div>
             </div>
         `;
     };
@@ -3558,7 +3559,7 @@ function renderBlockList() {
                 <div class="block-header">
                     <div class="block-type-row">
                         <span class="drag-handle" title="Drag to reorder">⠿</span>
-                        <select class="editor-select block-type-selector">
+                        <select class="editor-select block-type-selector" aria-label="Block type">
                             ${typeOptions}
                         </select>
                         <span class="block-type-badge block-type-label">${window.escapeHtml(window.blockTypeLabel(block.type))}</span>
@@ -3581,7 +3582,7 @@ function renderBlockList() {
                 <input type="text" class="editor-input block-heading-input" data-field="content" value="${window.escapeHtml(block.content)}" placeholder="Heading Text">
                 <div class="editor-row">
                     <div>
-                        <select class="editor-select" data-field="size">
+                        <select class="editor-select" data-field="size" aria-label="Heading size">
                             <option value="h2" ${block.size === 'h2' ? 'selected' : ''}>Main Section (H2)</option>
                             <option value="h3" ${(!block.size || block.size === 'h3') ? 'selected' : ''}>Subsection (H3)</option>
                             <option value="h4" ${block.size === 'h4' ? 'selected' : ''}>Minor (H4)</option>
@@ -3795,7 +3796,7 @@ function renderBlockList() {
                 ${window.comboNotationFieldsHTML(card, { lines: true })}
                 <div class="editor-row editor-row-spaced-md">
                     <div><input type="text" class="editor-input" data-field="damage" value="${window.escapeHtml(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
-                    <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
+                    <div><select class="editor-select" data-field="difficulty" aria-label="Difficulty">${difficulties}</select></div>
                     <div><input type="text" class="editor-input" data-field="practicality" value="${window.escapeHtml(card.practicality || '')}" placeholder="Practicality (anything)"></div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
@@ -3814,7 +3815,7 @@ function renderBlockList() {
             html += `
                 <div class="editor-row">
                     <div>
-                        <select class="editor-select" data-field="intent">
+                        <select class="editor-select" data-field="intent" aria-label="Callout type">
                             <option value="info" ${block.intent === 'info' ? 'selected' : ''}>Info (Cyan)</option>
                             <option value="tip" ${block.intent === 'tip' ? 'selected' : ''}>Tip (Yellow)</option>
                             <option value="warning" ${block.intent === 'warning' ? 'selected' : ''}>Warning (Orange)</option>

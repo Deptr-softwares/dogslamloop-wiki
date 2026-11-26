@@ -231,7 +231,7 @@ window.openMergeCompiler = async function(pageId) {
     let html = `<p class="compiler-instructions">Select the version to keep for each modified section. The compiler will merge your selections into a single unified ticket.</p>`;
 
     conflicts.forEach(c => {
-        let selectHtml = `<select id="compiler-sel-${c.sectionId}" class="editor-select compiler-select">`;
+        let selectHtml = `<select id="compiler-sel-${c.sectionId}" class="editor-select compiler-select" aria-label="${window.escapeHtml(c.sectionName)}">`;
         selectHtml += `<option value="live" class="compiler-discard-option">[DISCARD] Keep current live data</option>`;
 
         c.options.forEach((opt, idx) => {
