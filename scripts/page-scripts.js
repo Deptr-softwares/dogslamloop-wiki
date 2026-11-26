@@ -290,7 +290,7 @@ const PAGE_STYLES = {
     'update-log': [...readerStyles(BLOCKS, POSTS), CLASSIC],
     blog: [...readerStyles(BLOCKS, POSTS), 'FrameData.css', CLASSIC],
     forum: [...readerStyles(BLOCKS), 'FrameData.css', 'discussions.css', 'forum.css', CLASSIC],
-    history: ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', ...layout(BLOCKS, TIERLIST), 'Cards.css', 'FrameData.css', CLASSIC],
+    history: ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', 'Alerts.css', ...layout(BLOCKS, TIERLIST), 'Cards.css', 'FrameData.css', CLASSIC],
     'recent-changes': ['Common.css', 'Buttons.css', 'Badges.css', ...layout(), 'Cards.css', 'Modals.css', 'Forms.css', 'RecentChanges.css', CLASSIC],
     search: ['Common.css', 'Buttons.css', 'Badges.css', ...layout('search-page.css'), 'Cards.css', 'Modals.css', 'Forms.css', CLASSIC],
     policy: [...readerStyles(), CLASSIC],

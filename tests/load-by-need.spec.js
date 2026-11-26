@@ -127,6 +127,17 @@ test('each sheet split from Layout.css loads right after it, on exactly the kind
     expect(wrong).toEqual([]);
 });
 
+// A page that draws Blocks can draw a callout Block, which Alerts.css styles. History
+// draws a revision's Blocks and did not load it: its callouts were plain buttons.
+test('every kind that draws Blocks loads Alerts.css, which styles the callout', () => {
+    const missing = Object.entries(PAGE_STYLES)
+        .filter(([kind]) => (PAGE_SCRIPTS[kind] || []).map(e => (typeof e === 'string' ? e : e.src)).includes('pages/core/page_render.js'))
+        .filter(([, sheets]) => !sheets.includes('Alerts.css'))
+        .map(([kind]) => kind);
+    expect(read('style/Alerts.css')).toMatch(/\.inline-callout-btn\s*\{/);
+    expect(missing).toEqual([]);
+});
+
 // The classes a stylesheet's selectors name, comments left out. Each sheet read once.
 const sheetClasses = new Map();
 const classesIn = file => {
