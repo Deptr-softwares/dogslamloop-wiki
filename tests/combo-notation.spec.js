@@ -134,13 +134,13 @@ test('clicking the route moves to the next style, and wraps back to the first', 
 
     await route.click();
     expect(await visibleRoute(page)).toEqual(['LMB', 'Space', '2']);
-    await expect(route).toHaveAttribute('title', 'Notation 2 of 3: Keyboard. Click the route to switch.');
+    await expect(route).toHaveAttribute('data-tip', 'Notation 2 of 3: Keyboard. Click the route to switch.');
     await route.click();
     expect(await visibleRoute(page)).toEqual(['M1', 'Up', 'S2']);
     await route.click();
     expect(await visibleRoute(page)).toEqual(['M1', 'Uppercut', 'Murmurate']);
     // The first style has no label of its own.
-    await expect(route).toHaveAttribute('title', 'Notation 1 of 3. Click the route to switch.');
+    await expect(route).toHaveAttribute('data-tip', 'Notation 1 of 3. Click the route to switch.');
 });
 
 test('the choice applies to every combo with that label, ignoring case and spaces', async ({ page }) => {
@@ -228,7 +228,7 @@ test('a hostile label or step is escaped', async ({ page }) => {
     expect(await page.locator('#render-host img').count()).toBe(0);
     // The positive form: the text survived, escaped, as the step and the name.
     expect(await visibleRoute(page)).toEqual([hostile]);
-    await expect(route).toHaveAttribute('title', `Notation 2 of 2: ${hostile}. Click the route to switch.`);
+    await expect(route).toHaveAttribute('data-tip', `Notation 2 of 2: ${hostile}. Click the route to switch.`);
 });
 
 test('dragging across the route to copy it does not switch it', async ({ page }) => {
@@ -331,7 +331,7 @@ test('a changed style is marked in the diff, and its markers never land in an at
             styles: host.querySelectorAll('.combo-notation').length,
             stepAdded: [...host.querySelectorAll('.combo-notation ins.diff-add')].map(n => n.textContent).join(''),
             nameMarked: !!host.querySelector('.combo-notation-name ins, .combo-notation-name del'),
-            attrs: [route.getAttribute('title'), route.getAttribute('aria-label'),
+            attrs: [route.getAttribute('data-tip'), route.getAttribute('aria-label'),
                 ...[...host.querySelectorAll('.combo-notation')].map(s => s.getAttribute('data-notation-label'))],
         };
     });

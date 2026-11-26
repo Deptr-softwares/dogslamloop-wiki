@@ -88,7 +88,7 @@ function gradientPresetsHTML() {
                             ${usable.map(g => `<button class="gradient-preset-btn"
                                 data-gradient="${window.escapeHtml(`${g.from},${g.to}`)}"
                                 style="background: linear-gradient(90deg, ${g.from}, ${g.to});"
-                                title="${window.escapeHtml(`${g.label} gradient`)}"></button>`).join('')}
+                                data-tip="${window.escapeHtml(`${g.label} gradient`)}" aria-label="${window.escapeHtml(`${g.label} gradient`)}"></button>`).join('')}
                         </div>`;
 }
 
@@ -149,7 +149,7 @@ function wireGradientBuilder(container, onUse) {
                             aria-label="Remove gradient color ${i + 1}">✕</button>` : ''}
                 </span>`).join('')
             + (stops.length < GRADIENT_MAX_STOPS
-                ? '<button type="button" class="cp-gradient-add" data-stop-add aria-label="Add a color" title="Add a color">＋</button>'
+                ? '<button type="button" class="cp-gradient-add" data-stop-add aria-label="Add a color" data-tip="Add a color">＋</button>'
                 : '');
         box.querySelectorAll('[data-stop]').forEach((chip, i) => { chip.style.background = stops[i]; });
         paintStrip();
@@ -349,7 +349,7 @@ function colorPresetsHTML(afterFirst = '') {
     return colorPresetGroups().map((group, i) => `
                         <div class="format-color-popup-label">${window.escapeHtml(group.label)}</div>
                         <div class="format-color-presets-row">
-                            ${group.swatches.map(swatch => `<button class="color-preset-btn" data-color="${window.escapeHtml(swatch.color)}" style="background: ${swatch.color};" title="${window.escapeHtml(swatch.label)}"></button>`).join('')}
+                            ${group.swatches.map(swatch => `<button class="color-preset-btn" data-color="${window.escapeHtml(swatch.color)}" style="background: ${swatch.color};" data-tip="${window.escapeHtml(swatch.label)}" aria-label="${window.escapeHtml(swatch.label)}"></button>`).join('')}
                         </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
@@ -425,8 +425,8 @@ function recentColorsHTML(withGradients) {
                         <div class="format-color-popup-label">Recent</div>
                         <div class="format-color-presets-row" data-recent-colors>
                             ${entries.map(entry => (entry.length === 1
-                                ? `<button type="button" class="color-preset-btn" data-color="${entry[0]}" style="background: ${entry[0]};" title="${entry[0]}"></button>`
-                                : `<button type="button" class="gradient-preset-btn" data-gradient="${entry.join(',')}" style="background: linear-gradient(90deg, ${entry.join(', ')});" title="Gradient ${entry.join(', ')}"></button>`)).join('')}
+                                ? `<button type="button" class="color-preset-btn" data-color="${entry[0]}" style="background: ${entry[0]};" data-tip="${entry[0]}" aria-label="${entry[0]}"></button>`
+                                : `<button type="button" class="gradient-preset-btn" data-gradient="${entry.join(',')}" style="background: linear-gradient(90deg, ${entry.join(', ')});" data-tip="Gradient ${entry.join(', ')}" aria-label="Gradient ${entry.join(', ')}"></button>`)).join('')}
                         </div>`;
 }
 
@@ -842,7 +842,7 @@ window.comboNotationFieldsHTML = function (item, opts) {
                     <input type="text" class="editor-input" data-nstyle-label="${i}" value="${window.escapeHtml((n && n.label) || '')}"
                            placeholder="Style name (e.g. Keyboard)">
                     <button type="button" class="btn-sys btn-sys-red" data-nstyle-remove="${i}"
-                            title="Remove this notation style" aria-label="Remove this notation style">&#10006;</button>
+                            data-tip="Remove this notation style" aria-label="Remove this notation style">&#10006;</button>
                 </div>
                 ${route}
             </div>`;
@@ -1299,25 +1299,25 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
              own MEDIA LIBRARY because it has no footer to move it to. -->
         <div class="strategy-toolbar-row strategy-toolbar-row-end">
             <div class="strategy-toolbar-actions">
-                <button class="btn-sys btn-sys-regular" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
-                <button class="btn-sys btn-sys-regular" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
-                <button class="btn-sys btn-sys-red" id="btn-clear-all" title="Clear All Blocks">✖ CLEAR ALL</button>
+                <button class="btn-sys btn-sys-regular" id="btn-undo" data-tip="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
+                <button class="btn-sys btn-sys-regular" id="btn-redo" data-tip="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
+                <button class="btn-sys btn-sys-red" id="btn-clear-all" data-tip="Clear All Blocks">✖ CLEAR ALL</button>
                 <!-- v1.1: the only way to make a first folder used to be a
                      block's folder dropdown, which the Config panel can hide. -->
-                <button class="btn-sys btn-sys-regular" id="btn-create-folder" title="Create an empty folder at the end of the list">&#65291; CREATE FOLDER</button>
+                <button class="btn-sys btn-sys-regular" id="btn-create-folder" data-tip="Create an empty folder at the end of the list">&#65291; CREATE FOLDER</button>
             </div>
         </div>
 
         <div id="block-list" class="block-editor-container block-editor-container-blocklist"></div>
 
         <div class="add-block-toolbar">
-            <div class="format-toolbar" title="Highlight text in a block, then click to apply styling">
-                <button class="format-btn" data-tag="b" title="Bold">B</button>
-                <button class="format-btn format-btn-italic" data-tag="i" title="Italic">I</button>
-                <button class="format-btn format-btn-underline" data-tag="u" title="Underline">U</button>
-                <button class="format-btn format-btn-strikethrough" data-tag="s" title="Strikethrough">S</button>
-                <button class="format-btn format-btn-code" data-tag="code" title="Inline Code">&lt;&gt;</button>
-                <button class="format-btn" data-tag="url" title="Turn text into a link">🔗</button>
+            <div class="format-toolbar" data-tip="Highlight text in a block, then click to apply styling">
+                <button class="format-btn" data-tag="b" data-tip="Bold">B</button>
+                <button class="format-btn format-btn-italic" data-tag="i" data-tip="Italic">I</button>
+                <button class="format-btn format-btn-underline" data-tag="u" data-tip="Underline">U</button>
+                <button class="format-btn format-btn-strikethrough" data-tag="s" data-tip="Strikethrough">S</button>
+                <button class="format-btn format-btn-code" data-tag="code" data-tip="Inline Code" aria-label="Inline Code">&lt;&gt;</button>
+                <button class="format-btn" data-tag="url" data-tip="Turn text into a link" aria-label="Turn text into a link">🔗</button>
                 <!-- A link to another section of THIS page. Separate from the
                      link button because the thing being chosen is different: a
                      URL is typed, a section is picked from what exists. Typing
@@ -1325,7 +1325,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                      contributor should have to. -->
                 <div class="format-jump-wrapper">
                     <button class="format-btn format-btn-jump" id="btn-format-jump"
-                            title="Link to a section on this page">⚓</button>
+                            data-tip="Link to a section on this page" aria-label="Link to a section on this page">⚓</button>
                     <div id="format-jump-popup" class="format-jump-popup hidden">
                         <div class="format-jump-label">Link to a section</div>
                         <input type="text" id="format-jump-search" class="format-jump-search"
@@ -1338,7 +1338,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                      typed as [icon=...]. -->
                 <div class="format-jump-wrapper">
                     <button class="format-btn format-btn-icon" id="btn-format-icon"
-                            title="Put an icon in the text">🖼</button>
+                            data-tip="Put an icon in the text" aria-label="Put an icon in the text">🖼</button>
                     <div id="format-icon-popup" class="format-jump-popup format-icon-popup hidden">
                         <div class="format-jump-label">Put an icon in the text</div>
                         <input type="text" id="format-icon-search" class="format-jump-search"
@@ -1350,12 +1350,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                      They rendered on the page from the day they shipped and
                      had no way to be typed except by hand, which is the same
                      as not existing for most contributors. -->
-                <button class="format-btn format-btn-kbd" data-tag="kbd" title="Key or input, e.g. M1">⌨</button>
-                <button class="format-btn format-btn-noauto" data-tag="noauto" title="Stop automatic colouring here, for when a character name is just a word">🚫</button>
-                <button class="format-btn format-btn-outline" data-tag="outline" title="White outline around the text"><span class="sc-outline">A</span></button>
+                <button class="format-btn format-btn-kbd" data-tag="kbd" data-tip="Key or input, e.g. M1" aria-label="Key or input, e.g. M1">⌨</button>
+                <button class="format-btn format-btn-noauto" data-tag="noauto" data-tip="Stop automatic colouring here, for when a character name is just a word" aria-label="Stop automatic colouring here, for when a character name is just a word">🚫</button>
+                <button class="format-btn format-btn-outline" data-tag="outline" data-tip="White outline around the text"><span class="sc-outline">A</span></button>
 
                 <div class="format-color-wrapper">
-                    <button class="format-btn format-btn-color-trigger" id="btn-format-color" title="Apply Color to Highlighted Text">
+                    <button class="format-btn format-btn-color-trigger" id="btn-format-color" data-tip="Apply Color to Highlighted Text" aria-label="Apply Color to Highlighted Text">
                         <div class="format-color-swatch-icon"></div> 🎨
                     </button>
                     <div id="format-color-popup" class="format-color-popup hidden">
@@ -1420,7 +1420,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     <span class="add-block-icon">⨁</span> ADD BLOCK
                 </button>
             </div>
-            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
+            <button class="btn-sys btn-sys-blue" id="btn-media-library" data-tip="Open Media Manager">📁 MEDIA LIBRARY</button>
             </div>
         </div>
     `;
@@ -1437,7 +1437,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const addBlockBtn = container.querySelector('#btn-toggle-add-menu');
         if (addBlockBtn) {
             addBlockBtn.disabled = true;
-            addBlockBtn.title = 'A gallery holds media items, not blocks.';
+            addBlockBtn.dataset.tip = 'A gallery holds media items, not blocks.';
         }
     }
 
@@ -3278,7 +3278,7 @@ function paintTablePick(card, block) {
         const button = card.querySelector(selector);
         if (!button) return;
         button.textContent = look.label;
-        button.title = look.title;
+        button.dataset.tip = look.title;
     });
 }
 
@@ -3315,17 +3315,17 @@ function folderShellHTML(run, isCollapsed, isEmpty, color) {
     // An empty folder has no Blocks to carry a colour.
     const colorSwatch = isEmpty ? '' : `
             <button type="button" class="block-folder-color${color ? '' : ' is-none'}" data-folder-color
-                    title="Folder color" aria-label="Folder color" aria-expanded="false"${color ? ` style="background: ${color};"` : ''}></button>`;
+                    data-tip="Folder color" aria-label="Folder color" aria-expanded="false"${color ? ` style="background: ${color};"` : ''}></button>`;
 
     // An empty folder is not in the data, so removing it is a discard, not an
     // UNGROUP. Side buttons are glyphs, with title and aria-label so each has a
     // name; + FOLDER says what it makes, since a bare + was taken for the dropdown.
     const removeBtn = isEmpty
         ? `<button class="btn-sys btn-sys-regular block-folder-discard"
-                   title="Discard this empty folder"
+                   data-tip="Discard this empty folder"
                    aria-label="Discard this empty folder">&#10007;</button>`
         : `<button class="btn-sys btn-sys-regular block-folder-ungroup"
-                   title="Remove the folder and keep every block in it"
+                   data-tip="Remove the folder and keep every block in it"
                    aria-label="Ungroup this folder, keeping its blocks">&#9003;</button>`;
 
     const body = isEmpty
@@ -3334,19 +3334,19 @@ function folderShellHTML(run, isCollapsed, isEmpty, color) {
 
     // Moves the whole folder. An empty one has nothing to move.
     const handle = isEmpty ? '' : `
-            <span class="drag-handle block-folder-handle" title="Drag to move this folder">⠿</span>`;
+            <span class="drag-handle block-folder-handle" data-tip="Drag to move this folder">⠿</span>`;
 
     return `
         <div class="block-folder-head">${handle}
             <button class="btn-sys btn-sys-regular block-folder-toggle"
-                    title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
+                    data-tip="${isCollapsed ? 'Expand' : 'Collapse'} this folder" aria-label="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
                     aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
             <input type="text" class="block-folder-name-input" value="${window.escapeHtml(run.name)}"
                    data-folder="${window.escapeHtml(run.name)}" maxlength="60"
-                   aria-label="Folder name" title="Rename this folder">${colorSwatch}
+                   aria-label="Folder name" data-tip="Rename this folder">${colorSwatch}
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
-                    title="Create another folder after this one"
+                    data-tip="Create another folder after this one"
                     aria-label="Create another folder after this one">&#65291; FOLDER</button>
             ${removeBtn}
         </div>
@@ -3380,11 +3380,11 @@ function renderBlockSelectionBar() {
     bar.innerHTML = `
         <span class="block-selection-count">${picked.length} SELECTED</span>
         <div class="block-selection-actions">
-            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="up" title="Move the selection up">▲</button>
-            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="down" title="Move the selection down">▼</button>
-            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="copy" title="Copy the selection">COPY</button>
-            <button type="button" class="btn-sys btn-sys-red" data-selection-action="delete" title="Delete the selection">DELETE</button>
-            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="clear" title="Clear the selection">CLEAR</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="up" data-tip="Move the selection up" aria-label="Move the selection up">▲</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="down" data-tip="Move the selection down" aria-label="Move the selection down">▼</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="copy" data-tip="Copy the selection">COPY</button>
+            <button type="button" class="btn-sys btn-sys-red" data-selection-action="delete" data-tip="Delete the selection">DELETE</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="clear" data-tip="Clear the selection">CLEAR</button>
         </div>
     `;
     // Always the first row, also after a re-render.
@@ -3407,13 +3407,13 @@ function renderBlockList() {
         const align = alignVal || defaultAlign;
         return `
             <div class="align-group">
-                <button class="align-btn ${align === 'left' ? 'active' : ''}" data-val="left" title="Align/Float Left">
+                <button class="align-btn ${align === 'left' ? 'active' : ''}" data-val="left" data-tip="Align/Float Left" aria-label="Align/Float Left">
                     ${window.uiIconHTML('align-left')}
                 </button>
-                <button class="align-btn ${align === 'center' ? 'active' : ''}" data-val="center" title="Align/Float Center">
+                <button class="align-btn ${align === 'center' ? 'active' : ''}" data-val="center" data-tip="Align/Float Center" aria-label="Align/Float Center">
                     ${window.uiIconHTML('align-center')}
                 </button>
-                <button class="align-btn ${align === 'right' ? 'active' : ''}" data-val="right" title="Align/Float Right">
+                <button class="align-btn ${align === 'right' ? 'active' : ''}" data-val="right" data-tip="Align/Float Right" aria-label="Align/Float Right">
                     ${window.uiIconHTML('align-right')}
                 </button>
             </div>
@@ -3536,7 +3536,7 @@ function renderBlockList() {
             <div class="manga-select-wrapper block-folder-picker">
                 <button type="button" class="block-folder-trigger${own ? ' has-folder' : ''}"
                         role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-label="Folder"
-                        title="Put this block in a folder">${own ? window.escapeHtml(own) : 'No folder'}</button>
+                        data-tip="Put this block in a folder">${own ? window.escapeHtml(own) : 'No folder'}</button>
                 <div class="manga-select-options" role="listbox">${rows}</div>
             </div>
         `;
@@ -3558,20 +3558,20 @@ function renderBlockList() {
             let html = `
                 <div class="block-header">
                     <div class="block-type-row">
-                        <span class="drag-handle" title="Drag to reorder">⠿</span>
+                        <span class="drag-handle" data-tip="Drag to reorder">⠿</span>
                         <select class="editor-select block-type-selector" aria-label="Block type">
                             ${typeOptions}
                         </select>
                         <span class="block-type-badge block-type-label">${window.escapeHtml(window.blockTypeLabel(block.type))}</span>
                         ${folderPickerHTML(block)}
                     </div>
-                <span class="block-card-summary" title="${window.escapeHtml(blockSummary(block))}">${window.escapeHtml(blockSummary(block))}</span>
+                <span class="block-card-summary" data-tip="${window.escapeHtml(blockSummary(block))}">${window.escapeHtml(blockSummary(block))}</span>
                 <div class="block-actions">
-                    <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
-                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">${isOpen ? '-' : '□'}</button>
-                    <button class="btn-sys btn-sys-regular btn-up" title="Move Up">▲</button>
-                    <button class="btn-sys btn-sys-regular btn-down" title="Move Down">▼</button>
-                    <button class="btn-sys btn-sys-red btn-delete" title="Delete">✖</button>
+                    <button class="btn-sys btn-sys-green btn-insert-below" data-tip="Insert Paragraph Below" aria-label="Insert Paragraph Below">⨁</button>
+                    <button class="btn-sys btn-sys-regular btn-collapse" data-tip="Minimize/Expand" aria-label="Minimize/Expand">${isOpen ? '-' : '□'}</button>
+                    <button class="btn-sys btn-sys-regular btn-up" data-tip="Move Up" aria-label="Move Up">▲</button>
+                    <button class="btn-sys btn-sys-regular btn-down" data-tip="Move Down" aria-label="Move Down">▼</button>
+                    <button class="btn-sys btn-sys-red btn-delete" data-tip="Delete" aria-label="Delete">✖</button>
                 </div>
             </div>
             <div class="block-body${isOpen ? '' : ' minimized'}">
@@ -3693,10 +3693,10 @@ function renderBlockList() {
             html += `
                 ${tableHTML}
                 <div class="block-table-actions-row">
-                    <button class="btn-sys btn-sys-regular btn-table-add-row" title="Add Row Below">⊞ +Row</button>
-                    <button class="btn-sys btn-sys-regular btn-table-add-col" title="Add Column Right">⊞ +Col</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-row" title="${del.row.title}">${del.row.label}</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-col" title="${del.col.title}">${del.col.label}</button>
+                    <button class="btn-sys btn-sys-regular btn-table-add-row" data-tip="Add Row Below">⊞ +Row</button>
+                    <button class="btn-sys btn-sys-regular btn-table-add-col" data-tip="Add Column Right">⊞ +Col</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-row" data-tip="${del.row.title}">${del.row.label}</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-col" data-tip="${del.col.title}">${del.col.label}</button>
                 </div>
                 <input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)">
             `;
@@ -3730,7 +3730,7 @@ function renderBlockList() {
                     <button class="btn-sys btn-sys-purple" data-sbox-edit="${sIdx}">
                         ⮑ CONTENTS (${Array.isArray(section.content) ? section.content.length : 0})
                     </button>
-                    <button class="btn-sys btn-sys-red" data-sbox-remove="${sIdx}" title="Remove this section">✖</button>
+                    <button class="btn-sys btn-sys-red" data-sbox-remove="${sIdx}" data-tip="Remove this section" aria-label="Remove this section">✖</button>
                 </div>
             `).join('');
 
@@ -3773,8 +3773,8 @@ function renderBlockList() {
                         ${sections.map((sec, i) =>
                             `<button class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
                             + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
-                        <button class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
-                        ${sections.length > 1 ? `<button class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
+                        <button class="btn-sys btn-sys-green" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
+                        ${sections.length > 1 ? `<button class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
                     </div>
                     <input type="text" class="editor-input" data-cardsec-label="${secIdx}"
                            value="${window.escapeHtml(card.label || '')}" placeholder="Tab label (e.g. In Corner 6H)">

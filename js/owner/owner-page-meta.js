@@ -122,7 +122,7 @@ function syncColorPreview() {
 
     swatch.style.background = valid ? value : 'transparent';
     swatch.classList.toggle('page-meta-color-swatch-empty', !valid);
-    swatch.title = value === '' ? 'No colour set' : (valid ? value : `${value} is not a colour`);
+    swatch.dataset.tip = value === '' ? 'No colour set' : (valid ? value : `${value} is not a colour`);
 
     // The native picker speaks only #rrggbb, so it follows the text when it can, and
     // an hsl() value stays as typed.

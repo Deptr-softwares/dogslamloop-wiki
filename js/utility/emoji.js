@@ -74,7 +74,7 @@
         let src;
         if (name) {
             img.alt = `:${name}:`;
-            img.title = `:${name}:`;
+            img.dataset.tip = `:${name}:`;
             img.addEventListener('error', () => img.replaceWith(document.createTextNode(`:${name}:`)), { once: true });
             src = window.getRootPath() + BY_NAME.get(name).file;
         } else {
@@ -134,7 +134,7 @@
         btn.type = 'button';
         btn.className = 'emoji-cell';
         btn.dataset.emojiInsert = insert;
-        btn.title = label;
+        btn.dataset.tip = label;
         btn.setAttribute('aria-label', label);
         btn.appendChild(pictureNode);
         return btn;
@@ -244,7 +244,7 @@
             const tab = document.createElement('button');
             tab.type = 'button';
             tab.className = 'emoji-tab';
-            tab.title = title;
+            tab.dataset.tip = title;
             tab.setAttribute('aria-label', title);
             tab.appendChild(icon);
             // .emoji-scroll is positioned, so offsetTop is measured from it.

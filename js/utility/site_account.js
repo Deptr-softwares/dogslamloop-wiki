@@ -295,7 +295,7 @@ window.badgeSlot = function (id, { size = 'small', named = false } = {}) {
     img.src = getRootPath() + def.icon;
     img.alt = named ? def.name : '';
     slot.appendChild(img);
-    if (named) slot.title = def.name;
+    if (named) slot.dataset.tip = def.name;
     return slot;
 };
 

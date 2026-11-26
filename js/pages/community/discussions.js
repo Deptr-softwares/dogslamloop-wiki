@@ -579,7 +579,7 @@
             const btn = el('button', 'gif-cell');
             btn.type = 'button';
             btn.dataset.gifIndex = String(list.gifs.length);
-            btn.title = title;
+            btn.dataset.tip = title;
             btn.setAttribute('aria-label', title);
             const img = document.createElement('img');
             img.alt = '';
@@ -1078,7 +1078,7 @@
         if (state.canModerate) {
             const btn = el('button', 'discussion-edited discussion-edited-open', label);
             btn.type = 'button';
-            btn.title = 'Show what this said before (moderators only)';
+            btn.dataset.tip = 'Show what this said before (moderators only)';
             btn.dataset.showEdits = entry.id;
             return btn;
         }
@@ -1161,7 +1161,7 @@
             const item = el('div', 'discussion-post-item');
             item.id = `post-${post.id}`;
             const when = el('span', 'discussion-item-time', timeAgo(post.created_at));
-            when.title = new Date(post.created_at).toLocaleString();
+            when.dataset.tip = new Date(post.created_at).toLocaleString();
             item.appendChild(when);
             item.appendChild(itemRow(post));
             appendMedia(item, post);
@@ -1347,7 +1347,7 @@
             const attach = el('button', 'btn-sys btn-sys-regular discussion-attach', 'IMAGE');
             attach.type = 'button';
             attach.dataset.attachImage = 'true';
-            attach.title = `Attach up to ${MAX_IMAGES} images. You can also paste one into the box.`;
+            attach.dataset.tip = `Attach up to ${MAX_IMAGES} images. You can also paste one into the box.`;
             row.appendChild(attach);
         }
 
@@ -1355,7 +1355,7 @@
         gif.type = 'button';
         gif.dataset.gifToggle = 'true';
         gif.setAttribute('aria-expanded', 'false');
-        gif.title = `Add a GIF from KLIPY, up to ${MAX_GIFS} a post`;
+        gif.dataset.tip = `Add a GIF from KLIPY, up to ${MAX_GIFS} a post`;
         row.appendChild(gif);
 
         const emoji = emojiButton();
@@ -1391,7 +1391,7 @@
         btn.type = 'button';
         btn.dataset.emojiToggle = 'true';
         btn.setAttribute('aria-expanded', 'false');
-        btn.title = 'Add an emoji';
+        btn.dataset.tip = 'Add an emoji';
         return btn;
     }
 

@@ -42,7 +42,7 @@ window.initRosterFilters = async function() {
         <div class="filter-group filter-group-right">
             <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
             <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>
-            <button id="filter-hidden" class="filter-toggle btn-manga btn-manga-slanted" title="Characters playable only in a Private Server"><div class="btn-manga-content"><span class="btn-manga-text">Show Hidden</span></div></button>
+            <button id="filter-hidden" class="filter-toggle btn-manga btn-manga-slanted" data-tip="Characters playable only in a Private Server"><div class="btn-manga-content"><span class="btn-manga-text">Show Hidden</span></div></button>
         </div>
     `;
 
@@ -269,8 +269,8 @@ window.renderFilteredRoster = function() {
         // fill, and an inline background-color would beat every rule that changes one.
         html += `
             <a href="${window.escapeHtml(rootPath + char.url)}" class="roster-card" data-page-id="${window.escapeHtml((char.cms_config || {}).pageId || '')}" style="--char-color: ${charColor};">
-                ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
-                ${char.isWip ? `<span class="roster-wip-indicator" title="Work In Progress" aria-label="Work In Progress">🚧</span>` : ''}
+                ${char.isEA ? `<span class="ea-star-indicator" data-tip="Early Access" style="color: ${textColor};">★</span>` : ''}
+                ${char.isWip ? `<span class="roster-wip-indicator" data-tip="Work In Progress" aria-label="Work In Progress">🚧</span>` : ''}
                 ${char.image ? `<img src="${window.escapeHtml(char.image)}" alt="${window.escapeHtml(char.name)}" class="roster-card-bg-image">` : ''}
                 ${iconSrc ? `<img src="${window.escapeHtml(rootPath + iconSrc)}" alt="" aria-hidden="true" class="roster-card-icon" loading="lazy">` : ''}
                 <div class="roster-card-text" style="color: ${textColor};">${window.escapeHtml(char.name)}</div>

@@ -274,6 +274,7 @@ window.showTooltipFor = function(anchor, content, { text = false } = {}) {
     hostTooltipFor(anchor);
     if (text) frameTooltip.textContent = content;
     else frameTooltip.innerHTML = content;
+    frameTooltip.classList.toggle('is-text', text);
     frameTooltip.hidden = false;
     placeTooltip(anchor);
     tooltipOwner = anchor;
@@ -339,7 +340,20 @@ const showHint = (el) => {
 // show a button's hint after it was pressed. A tap is the click listener's.
 document.addEventListener('pointerover', (e) => {
     const el = tipHolder(e.target);
-    if (e.pointerType === 'touch' || !el || el === tipHolder(e.relatedTarget) || !hasHint(el)) return;
+    if (e.pointerType === 'touch' || !el || !hasHint(el)) return;
+    // A hint on something that holds controls is for its gaps: over a control inside
+    // it (the buttons and fields of a popup in a toolbar), only that control's own
+    // hint shows.
+    const control = e.target.closest(CONTROL);
+    if (control && control !== el && el.contains(control)) {
+        clearTimeout(tooltipTimer);
+        if (tooltipOwner === el) window.hideTooltip();
+        return;
+    }
+    if (el === tipHolder(e.relatedTarget)) return;
+    // A tooltip open for what holds this one stays: a callout's own over an icon in
+    // it, a button's hint over its icon's name.
+    if (tooltipOwner && tooltipOwner !== el && tooltipOwner.contains(el)) return;
     clearTimeout(tooltipTimer);
     if (el.hasAttribute('data-tip-now')) showHint(el);
     else tooltipTimer = setTimeout(() => showHint(el), 500);
@@ -369,13 +383,17 @@ document.addEventListener('pointerdown', (e) => {
     window.hideTooltip();
 }, true);
 
-// Escape closes the tooltip and only the tooltip, as it closes an open dropdown
-// before the box it is in.
+// Escape closes the tooltip. When the tooltip explains what has focus, that is all
+// it does, as it closes an open dropdown before the box it is in; a tooltip the mouse
+// opened elsewhere lets the Escape go on to the field or box being typed in.
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !frameTooltip || frameTooltip.hidden) return;
-    e.preventDefault();
-    e.stopPropagation();
+    const forFocus = !!tooltipOwner && tooltipOwner.contains(document.activeElement);
     window.hideTooltip();
+    if (forFocus) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
 }, true);
 
 // Math: KaTeX is fetched the first time a text node holds a $...$ pair, the only

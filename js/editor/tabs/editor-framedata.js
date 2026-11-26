@@ -44,7 +44,7 @@ function closestEstimate(frames) {
 // colour when the move has it, as its badge is on the page.
 function accoladeChipsHTML(ids) {
     const has = new Set(Array.isArray(ids) ? ids : []);
-    return (window.ACCOLADES || []).map(a => `<button type="button" class="accolade-chip" data-accolade="${window.escapeHtml(a.id)}" aria-pressed="${has.has(a.id)}" title="${window.escapeHtml(a.description)}" style="--accolade-color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}${window.escapeHtml(a.name)}</button>`).join('');
+    return (window.ACCOLADES || []).map(a => `<button type="button" class="accolade-chip" data-accolade="${window.escapeHtml(a.id)}" aria-pressed="${has.has(a.id)}" data-tip="${window.escapeHtml(a.description)}" style="--accolade-color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}${window.escapeHtml(a.name)}</button>`).join('');
 }
 
 // Ticking one of a group that cannot all be true of one move unticks the rest.
@@ -162,7 +162,7 @@ function initDawEditor(containerId, moveData) {
                     <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="value" value="${window.escapeHtml(stat.value)}" placeholder="Stat Value"></div>
                     <div class="daw-stat-actions">
                         <label class="editor-checkbox-label"><input type="checkbox" class="stat-highlight" data-idx="${idx}" ${stat.isHighlighted ? 'checked' : ''}> Highlight</label>
-                        <button class="btn-sys btn-sys-red btn-del-stat daw-stat-del-btn" data-idx="${idx}" title="Remove Stat">✖</button>
+                        <button class="btn-sys btn-sys-red btn-del-stat daw-stat-del-btn" data-idx="${idx}" data-tip="Remove Stat" aria-label="Remove Stat">✖</button>
                     </div>
                 </div>
             `;
@@ -267,8 +267,8 @@ function initDawEditor(containerId, moveData) {
 
                             <div class="daw-track-input-row">
                                 <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="headerInfo" value="${window.escapeHtml(bar.headerInfo || '')}" placeholder="Header Title (Top)">
-                                <button onclick="window.addDawPhase(${bIdx})" class="btn-sys btn-sys-green" title="Add Phase">+</button>
-                                <button onclick="window.deleteDawTrack(${bIdx})" class="btn-sys btn-sys-red" title="Delete Track">✖</button>
+                                <button onclick="window.addDawPhase(${bIdx})" class="btn-sys btn-sys-green" data-tip="Add Phase" aria-label="Add Phase">+</button>
+                                <button onclick="window.deleteDawTrack(${bIdx})" class="btn-sys btn-sys-red" data-tip="Delete Track" aria-label="Delete Track">✖</button>
                             </div>
 
                             <div class="daw-track-input-row">
@@ -415,7 +415,7 @@ function initDawEditor(containerId, moveData) {
                             <input type="number" class="editor-input daw-variant-scale-inp" placeholder="Scale" id="daw-variant-scale" value="${window.escapeHtml(totalScale)}">
                         </div>
                         <div class="daw-container-header-actions">
-                            <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red" title="Delete this Micro Variant completely">✖ DELETE</button>
+                            <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red" data-tip="Delete this Micro Variant completely">✖ DELETE</button>
                             <button onclick="window.addDawTrack()" class="btn-sys btn-sys-blue">+ Add Track</button>
                         </div>
                     </div>

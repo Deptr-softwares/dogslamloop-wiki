@@ -111,7 +111,7 @@ test('a field that does not redraw the editor is saved as it is typed', async ({
 test('a phase added with + is saved too', async ({ page }) => {
   await openMove(page);
 
-  await page.locator('button[title="Add Phase"]').first().click();
+  await page.locator('button[data-tip="Add Phase"]').first().click();
   await expect(page.locator('.daw-phase-block')).toHaveCount(3);
   await expect.poll(() => savedPhases(page), 'the draft holds the new phase').toEqual([10, 20, 10]);
 });

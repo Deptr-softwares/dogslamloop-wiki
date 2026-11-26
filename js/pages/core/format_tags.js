@@ -848,10 +848,10 @@ async function loadCharacterPageUrls() {
 // mentions get linked, icons get named.
 function nameCharacterIcons() {
     if (!characterNamesById || !characterNamesById.size) return;
-    document.querySelectorAll('img.text-icon-character:not([title])').forEach(img => {
+    document.querySelectorAll('img.text-icon-character:not([data-tip])').forEach(img => {
         const name = characterNamesById.get(img.dataset.characterId);
         if (!name) return;
-        img.title = name;
+        img.dataset.tip = name;
         img.alt = name;
     });
 }
@@ -877,7 +877,7 @@ function linkCharacterMentions() {
         const link = document.createElement('a');
         link.className = 'sc-char-link';
         link.href = url;
-        link.title = span.dataset.character;
+        link.dataset.tip = span.dataset.character;
 
         span.parentNode.insertBefore(link, span);
         link.appendChild(span);

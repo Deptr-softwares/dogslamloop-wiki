@@ -273,7 +273,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 const id = window.escapeHtml(m.id);
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${id}" data-move-load="${id}">${window.escapeHtml(m.name || m.id)}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" data-move-remove="${id}" title="Remove Move">✖</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" data-move-remove="${id}" data-tip="Remove Move" aria-label="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
             window.registerInserter(`frame.${tabId}`, () => window.addMove());
@@ -314,7 +314,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         extras.forEach((ext, idx) => {
             navHTML += `<div class="daw-tab-item">`;
             navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${window.escapeHtml(ext.title)}</button>`;
-            navHTML += `<button class="daw-tab-remove-btn" onclick="removeExtraTab(${idx})" title="Remove Tab">✖</button>`;
+            navHTML += `<button class="daw-tab-remove-btn" onclick="removeExtraTab(${idx})" data-tip="Remove Tab" aria-label="Remove Tab">✖</button>`;
             navHTML += `</div>`;
         });
         window.registerInserter('desc.extras', () => window.addExtraTab());
@@ -341,7 +341,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 let muName = mu.opponent || `Matchup ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})">vs. ${window.escapeHtml(muName)}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMatchup(${idx})" title="Remove Matchup">✖</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMatchup(${idx})" data-tip="Remove Matchup" aria-label="Remove Matchup">✖</button>`;
                 navHTML += `</div>`;
             });
         }
@@ -384,7 +384,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             const name = group[groups.keyField] || `Group ${idx + 1}`;
             navHTML += `<div class="daw-tab-item">`;
             navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${window.escapeHtml(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'group-${idx}')">${window.escapeHtml(name)}</button>`;
-            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeDocumentGroup('${window.escapeHtml(tabId)}', ${idx})" title="Remove Group">&#10006;</button>`;
+            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeDocumentGroup('${window.escapeHtml(tabId)}', ${idx})" data-tip="Remove Group" aria-label="Remove Group">&#10006;</button>`;
             navHTML += `</div>`;
         });
 
@@ -419,7 +419,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 const name = entry[section.keyField] || `${noun} ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${window.escapeHtml(name)}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" title="Remove">&#10006;</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" data-tip="Remove" aria-label="Remove">&#10006;</button>`;
                 navHTML += `</div>`;
             });
         }
@@ -890,7 +890,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
             const label = window.comboCardLabel(card, i);
             html += `<div class="daw-tab-item">`;
             html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${window.escapeHtml(label)}</button>`;
-            html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" title="Remove Card">&#10006;</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" data-tip="Remove Card" aria-label="Remove Card">&#10006;</button>`;
             html += `</div>`;
         });
     }
@@ -983,8 +983,8 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                     // against it.
                     `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
                     + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
-                <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
-                ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
+                <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" data-tip="Add a section" aria-label="Add a section">+</button>
+                ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" data-tip="Remove this section" aria-label="Remove this section">&#10006;</button>` : ''}
             </div>
             <label class="editor-field-label-sm">Tab label</label>
             <input type="text" class="editor-input" data-cardsec-label="${secIdx}" value="${window.escapeHtml(target.label || '')}" placeholder="e.g. In Corner 6H">
@@ -1260,7 +1260,7 @@ window.renderDocumentListEditor = function (tabId) {
         tables.forEach((t, i) => {
             html += `<div class="daw-tab-item">`;
             html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${window.escapeHtml(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
-            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" title="Remove ${window.escapeHtml(noun)}">&#10006;</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" data-tip="Remove ${window.escapeHtml(noun)}" aria-label="Remove ${window.escapeHtml(noun)}">&#10006;</button>`;
             html += `</div>`;
         });
     }
@@ -1333,11 +1333,11 @@ function renderDocumentListRows(tabId, section, tables) {
         table.rows.forEach((row, i) => {
             html += `<div class="combo-row-item">
                 <span class="combo-row-move">
-                    <button type="button" class="combo-row-up btn-sys btn-sys-regular" data-row="${i}"${i === 0 ? ' disabled' : ''} title="Move up" aria-label="Move this entry up">&#9650;</button>
-                    <button type="button" class="combo-row-down btn-sys btn-sys-regular" data-row="${i}"${i === lastRow ? ' disabled' : ''} title="Move down" aria-label="Move this entry down">&#9660;</button>
+                    <button type="button" class="combo-row-up btn-sys btn-sys-regular" data-row="${i}"${i === 0 ? ' disabled' : ''} data-tip="Move up" aria-label="Move this entry up">&#9650;</button>
+                    <button type="button" class="combo-row-down btn-sys btn-sys-regular" data-row="${i}"${i === lastRow ? ' disabled' : ''} data-tip="Move down" aria-label="Move this entry down">&#9660;</button>
                 </span>
                 <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${window.escapeHtml(comboRowSummary(row || {}))}</button>
-                <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this entry">&#10006;</button>
+                <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" data-tip="Remove this entry" aria-label="Remove this entry">&#10006;</button>
             </div>`;
         });
     }
@@ -1735,11 +1735,11 @@ function structuredFormToolbar() {
     return `
         <div class="strategy-toolbar-row">
             <div>
-                <button class="btn-sys btn-sys-blue" data-form-media title="Open Media Manager">📁 MEDIA LIBRARY</button>
+                <button class="btn-sys btn-sys-blue" data-form-media data-tip="Open Media Manager">📁 MEDIA LIBRARY</button>
             </div>
             <div class="strategy-toolbar-actions">
-                <button class="btn-sys btn-sys-regular" data-form-undo title="Undo" disabled>⮌ UNDO</button>
-                <button class="btn-sys btn-sys-regular" data-form-redo title="Redo" disabled>⮎ REDO</button>
+                <button class="btn-sys btn-sys-regular" data-form-undo data-tip="Undo" disabled>⮌ UNDO</button>
+                <button class="btn-sys btn-sys-regular" data-form-redo data-tip="Redo" disabled>⮎ REDO</button>
             </div>
         </div>
     `;
@@ -1835,7 +1835,7 @@ function initProfileEditor(containerId, profileData) {
                 <div class="editor-row editor-row-spaced-sm">
                     <div><input type="text" class="editor-input stat-label" data-idx="${idx}" value="${window.escapeHtml(stat.label)}" placeholder="Label (e.g. Archetype)"></div>
                     <div><input type="text" class="editor-input stat-val" data-idx="${idx}" value="${window.escapeHtml(stat.value)}" placeholder="Value (e.g. M1 Merchant)"></div>
-                    <button class="btn-sys btn-sys-red btn-del-stat" data-idx="${idx}" title="Remove Stat">✖</button>
+                    <button class="btn-sys btn-sys-red btn-del-stat" data-idx="${idx}" data-tip="Remove Stat" aria-label="Remove Stat">✖</button>
                 </div>
             `;
         });
@@ -1859,7 +1859,7 @@ function initProfileEditor(containerId, profileData) {
                             <div class="portrait-focus-grid" id="portrait-focus-grid">
                                 ${window.PORTRAIT_FOCUS_VALUES.map(value => `
                                     <button type="button" class="portrait-focus-dot${(profileData.imageFocus || 'center center') === value ? ' active' : ''}"
-                                            data-focus="${value}" title="${value}" aria-label="Focus ${value}"></button>`).join('')}
+                                            data-focus="${value}" data-tip="${value}" aria-label="Focus ${value}"></button>`).join('')}
                             </div>
                         </div>
                         <div class="portrait-focus-preview">

@@ -168,6 +168,156 @@ test('focus on an in-page link shows where it goes', async ({ page }) => {
   await expect(tip(page)).toBeHidden();
 });
 
+// --- The hints: every title the site wrote is the site's tooltip since v1.3 ---
+
+test('no page or script writes a title hint: they are data-tip, and only an iframe keeps its title', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  const files = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) { if (e.name !== 'vendor') walk(p); }
+      else if (e.name.endsWith('.js')) files.push(p);
+    }
+  };
+  walk(path.join(ROOT, 'js'));
+  for (const f of fs.readdirSync(ROOT)) if (f.endsWith('.html')) files.push(path.join(ROOT, f));
+  const found = [];
+  for (const file of files) {
+    const text = fs.readFileSync(file, 'utf8');
+    for (const m of text.matchAll(/\stitle=\\?["']/g)) {
+      const tag = text.slice(text.lastIndexOf('<', m.index), m.index);
+      if (!/^<iframe\b/i.test(tag)) found.push(`${path.relative(ROOT, file)}: ${tag.slice(0, 60)}`);
+    }
+    for (const m of text.matchAll(/setAttribute\(\s*['"]title['"]/g)) found.push(`${path.relative(ROOT, file)}: ${m[0]}`);
+  }
+  expect(files.length).toBeGreaterThan(50);
+  expect(found).toEqual([]);
+});
+
+async function openBlockEditor(page) {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof window.initStrategyBlockBuilder === 'function', { timeout: 15000 });
+  await page.evaluate(() => {
+    document.body.innerHTML = '<div id="block-host" style="padding: 2rem 1.5rem"></div>';
+    window.initStrategyBlockBuilder('block-host', [{ type: 'paragraph', content: 'one' }, { type: 'paragraph', content: 'two' }]);
+  });
+  return errors;
+}
+
+test('a Block\'s delete button shows its hint in the site tooltip after a moment, and is named for a screen reader', async ({ page }) => {
+  const errors = await openBlockEditor(page);
+  const del = page.locator('#block-list .block-card[data-index="1"] .btn-delete');
+  await expect(del).toHaveAttribute('aria-label', 'Delete');
+  await expect(del).not.toHaveAttribute('title', /./);
+
+  await del.hover();
+  await page.waitForTimeout(250);
+  await expect(tip(page)).toBeHidden();
+  await expect(tip(page)).toHaveText('Delete', { timeout: 1500 });
+  const b = await page.evaluate(() => {
+    const d = document.querySelector('#block-list .block-card[data-index="1"] .btn-delete').getBoundingClientRect();
+    const t = document.getElementById('wiki-frame-tooltip').getBoundingClientRect();
+    // Centred on it, unless held on screen at either edge.
+    const held = t.left <= 8.5 || t.right >= window.innerWidth - 8.5;
+    return { above: t.bottom <= d.top, centred: Math.abs((t.left + t.width / 2) - (d.left + d.width / 2)) < 1 || held };
+  });
+  expect(b).toEqual({ above: true, centred: true });
+  expect(errors).toEqual([]);
+});
+
+test('Tab onto a hinted button shows its hint at once', async ({ page }) => {
+  await openBlockEditor(page);
+  const up = page.locator('#block-list .block-card[data-index="1"] .btn-up');
+  await page.keyboard.press('Shift');
+  await up.focus();
+  await expect(tip(page)).toHaveText('Move Up', { timeout: 300 });
+  await expect(up).toHaveAttribute('aria-describedby', 'wiki-frame-tooltip');
+});
+
+test('a hint inside something whose tooltip is open leaves that tooltip alone', async ({ page }) => {
+  await openPage(page);
+  await page.evaluate(() => {
+    const callout = document.createElement('span');
+    callout.id = 'callout';
+    callout.style.cssText = 'position: fixed; top: 300px; left: 300px; padding: 10px 40px; background: #222; z-index: 50;';
+    callout.innerHTML = 'Read <span id="inner-icon" data-tip="An icon">*</span> this';
+    document.body.appendChild(callout);
+    window.bindTooltip(callout, 'The callout says this.');
+  });
+  await page.locator('#callout').hover({ position: { x: 5, y: 5 } });
+  await expect(tip(page)).toHaveText('The callout says this.');
+  await page.locator('#inner-icon').hover();
+  await page.waitForTimeout(800);
+  await expect(tip(page)).toHaveText('The callout says this.');
+});
+
+test('a hint lets a click through to what it covers', async ({ page }) => {
+  await openPage(page);
+  const spot = await addSpot(page, { hint: 'A hint long enough to cover the button above it', now: true });
+  await page.evaluate(() => {
+    const b = document.getElementById('spot').getBoundingClientRect();
+    const btn = document.createElement('button');
+    btn.id = 'under';
+    btn.textContent = 'x';
+    btn.style.cssText = `position: fixed; left: ${b.left + 40}px; top: ${b.top - 30}px; width: 40px; height: 20px; z-index: 40;`;
+    document.body.appendChild(btn);
+  });
+  await spot.hover();
+  await expect(tip(page)).toBeVisible();
+  const hit = await page.evaluate(() => {
+    const t = document.getElementById('wiki-frame-tooltip').getBoundingClientRect();
+    const u = document.getElementById('under').getBoundingClientRect();
+    const covered = u.left < t.right && u.right > t.left && u.top < t.bottom && u.bottom > t.top;
+    const at = document.elementFromPoint(u.left + u.width / 2, u.top + u.height / 2);
+    return { covered, reaches: at && at.id };
+  });
+  expect(hit).toEqual({ covered: true, reaches: 'under' });
+});
+
+test('over a control inside a hinted container, only that control\'s own hint shows', async ({ page }) => {
+  await openPage(page);
+  await page.evaluate(() => {
+    const bar = document.createElement('div');
+    bar.id = 'bar';
+    bar.dataset.tip = 'Highlight text, then pick a style';
+    bar.style.cssText = 'position: fixed; top: 300px; left: 200px; width: 400px; height: 60px; background: #222; z-index: 50;';
+    bar.innerHTML = '<input id="field" style="position: absolute; left: 10px; top: 10px; width: 120px;">'
+      + '<button id="own" data-tip="Bold" style="position: absolute; left: 200px; top: 10px;">B</button>';
+    document.body.appendChild(bar);
+  });
+  await page.locator('#field').hover();
+  await page.waitForTimeout(800);
+  await expect(tip(page)).toBeHidden();
+
+  await page.locator('#own').hover();
+  await expect(tip(page)).toHaveText('Bold', { timeout: 1500 });
+
+  // A gap in the bar is the bar's.
+  await page.mouse.move(580, 350);
+  await expect(tip(page)).toHaveText('Highlight text, then pick a style', { timeout: 1500 });
+});
+
+test('a text hint keeps its line breaks, and a disabled button still shows its hint', async ({ page }) => {
+  await openPage(page);
+  await page.evaluate(() => {
+    const btn = document.createElement('button');
+    btn.id = 'off';
+    btn.disabled = true;
+    btn.textContent = 'APPLY';
+    btn.dataset.tip = 'First line\nSecond line';
+    btn.style.cssText = 'position: fixed; top: 300px; left: 300px; z-index: 50;';
+    document.body.appendChild(btn);
+  });
+  await page.locator('#off').hover({ force: true });
+  await expect(tip(page)).toBeVisible({ timeout: 1500 });
+  expect(await tip(page).evaluate(el => el.innerText)).toBe('First line\nSecond line');
+});
+
 test.describe('on a touch screen', () => {
   test.use({ hasTouch: true });
 

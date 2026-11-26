@@ -47,7 +47,7 @@ test('a failed image and a failed video become the notice; a working image stays
     const notices = page.locator('#mm-host .media-missing-notice');
     await expect(notices).toHaveCount(3);
     await expect(notices.first()).toHaveText('[ Missing Media ]');
-    expect(await notices.evaluateAll(n => n.map(x => x.title).sort()))
+    expect(await notices.evaluateAll(n => n.map(x => x.dataset.tip).sort()))
         .toEqual(['__missing-media-probe__.webm', '__missing-media-probe__.webp', '__missing-media-probe__.webp']);
 
     // Painted as the notice: dashed, visible, not a zero-height leftover.

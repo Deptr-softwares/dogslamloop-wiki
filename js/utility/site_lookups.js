@@ -132,7 +132,7 @@ window.accoladeIconHTML = function (accolade, { inText = false } = {}) {
     if (!inText) return `<span class="px-icon" aria-hidden="true" style="${file}"></span>`;
     const name = window.escapeHtml(accolade.name);
     const color = /^#[0-9a-f]{6}$/i.test(accolade.color || '') ? `; color: ${accolade.color}` : '';
-    return `<span class="px-icon text-icon" role="img" aria-label="${name}" title="${name}" style="${file}${color}"></span>`;
+    return `<span class="px-icon text-icon" role="img" aria-label="${name}" data-tip="${name}" style="${file}${color}"></span>`;
 };
 
 /**
@@ -179,7 +179,7 @@ window.uiIconHTML = function (id, { className = '', inText = false } = {}) {
     const file = `--px-icon: url('/medias/icons/${icon.id}.png')`;
     if (!inText) return `<span class="${cls}" aria-hidden="true" style="${file}"></span>`;
     const name = window.escapeHtml(icon.name);
-    return `<span class="${cls}" role="img" aria-label="${name}" title="${name}" style="${file}"></span>`;
+    return `<span class="${cls}" role="img" aria-label="${name}" data-tip="${name}" style="${file}"></span>`;
 };
 
 /**

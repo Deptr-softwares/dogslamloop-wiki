@@ -125,6 +125,9 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     font-family: var(--text-mono);
     font-size: 0.75rem;
 }
+/* A one-line hint lets clicks through to whatever it covers; HTML content (a
+   callout, a phase, a Trivia fact) takes the pointer, so a long one can be read. */
+#wiki-frame-tooltip.is-text { white-space: pre-line; pointer-events: none; }
 
 /* Auth modal inline feedback (error/success message) */
 #auth-feedback-message { display: block; }

@@ -187,7 +187,7 @@ test('a colour or gradient a preset already has stays out, and only an exact mat
   // The builder's two starting colours are the Cursed preset.
   await useCustomGradient(page, null);
   await openToolbar(page);
-  await page.locator('#format-color-popup .color-preset-btn[title="Vessel"]').click();
+  await page.locator('#format-color-popup .color-preset-btn[data-tip="Vessel"]').click();
   await expect(toolbarPopup(page)).toBeHidden();
   await openToolbar(page);
   await page.locator('#format-color-popup .gradient-preset-btn').first().click();

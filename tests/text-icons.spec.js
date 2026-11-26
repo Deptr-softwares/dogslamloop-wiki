@@ -34,7 +34,7 @@ test('an accolade icon and a character icon draw inside page text, each named', 
   const accolade = text.locator('.text-icon.px-icon');
   await expect(accolade).toHaveCount(1);
   await expect(accolade).toHaveAttribute('aria-label', 'Blockbreak');
-  await expect(accolade).toHaveAttribute('title', 'Blockbreak');
+  await expect(accolade).toHaveAttribute('data-tip', 'Blockbreak');
   const drawn = await accolade.evaluate(el => ({
     color: getComputedStyle(el).color,
     want: window.ACCOLADES.find(a => a.id === 'blockbreak').color,
@@ -54,7 +54,7 @@ test('an accolade icon and a character icon draw inside page text, each named', 
   expect(size.height).toBeGreaterThanOrEqual(size.font);
   expect(size.height).toBeLessThanOrEqual(size.font * 1.5);
   const name = await page.evaluate(async () => (await window.loadCharacterRoster()).get('boomcat').name);
-  await expect(character).toHaveAttribute('title', name);
+  await expect(character).toHaveAttribute('data-tip', name);
   await expect(character).toHaveAttribute('alt', name);
   await expect(text.locator('.sc-char')).toHaveText(name);
 });
@@ -75,7 +75,7 @@ test("the owner's site icons draw in text too, in the color of the words around 
 
   const edit = text.locator('.text-icon[aria-label="Edit"]');
   await expect(edit).toHaveCount(1);
-  await expect(edit).toHaveAttribute('title', 'Edit');
+  await expect(edit).toHaveAttribute('data-tip', 'Edit');
   const e = await drawn(edit);
   expect(e.file).toContain('/medias/icons/edit.png');
   expect(e).toMatchObject({ size: '16x16', color: e.around });

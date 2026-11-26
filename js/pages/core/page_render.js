@@ -117,7 +117,7 @@ window.wikiClipHTML = function (url, opts) {
         + `<video data-lazy-src="${safe}" class="${window.escapeHtml(o.className || 'wiki-video-native')}"${label}`
         + ` autoplay loop muted playsinline preload="none"></video>`
         + `<button type="button" class="wiki-clip-open" data-wiki-video="${safe}"`
-        + ` aria-label="Open in player" title="Open in player">`
+        + ` aria-label="Open in player" data-tip="Open in player">`
         + `<span class="wiki-clip-open-glyph" aria-hidden="true"></span></button>`
         + `</div>`;
 };
@@ -903,7 +903,7 @@ window.comboRouteHTML = function (item, opts) {
         + comboStepsHTML(s.sequence) + '</span>').join('');
 
     return `<div class="${cls} combo-has-notations"${styleAttr} role="button" tabindex="0"`
-        + ` data-notation-active="${active}" title="${title}" aria-label="${title}">`
+        + ` data-notation-active="${active}" data-tip="${title}" aria-label="${title}">`
         + mark + routes + trailing + '</div>';
 };
 
@@ -916,7 +916,7 @@ function showComboNotation(container, index) {
         .forEach((m, i) => m.classList.toggle('is-on', i === at));
     container.setAttribute('data-notation-active', String(at));
     const text = comboNotationTitle(routes[at].getAttribute('data-notation-label') || '', at, routes.length);
-    container.title = text;
+    container.dataset.tip = text;
     container.setAttribute('aria-label', text);
 }
 
@@ -2383,7 +2383,7 @@ function showMissingMedia(el) {
     notice.setAttribute('aria-label', 'Missing media');
     // The file's name on hover, so whoever fixes the page knows which one.
     // A property, never markup: the address came from page content.
-    try { notice.title = decodeURIComponent(src.split(/[?#]/)[0].split('/').pop() || ''); } catch (e) { notice.title = ''; }
+    try { notice.dataset.tip = decodeURIComponent(src.split(/[?#]/)[0].split('/').pop() || ''); } catch (e) { notice.dataset.tip = ''; }
 
     // An image block's own alignment and width carry over, so the box sits
     // where the image would have.

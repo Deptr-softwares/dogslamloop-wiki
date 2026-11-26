@@ -83,7 +83,7 @@ function getCharPortraitHTML(charId, isDraggable = false) {
     return `
         <div class="tier-portrait ${isDraggable ? 'draggable-portrait' : ''}"
              data-char-id="${window.escapeHtml(charId)}"
-             title="${window.escapeHtml(charMeta.name)}"
+             data-tip="${window.escapeHtml(charMeta.name)}"
              style="background-color: ${charColor};"
              ${!isDraggable && charMeta.url ? `onclick="window.location.href='${rootPath}${charMeta.url}'"` : ''}>
             <span class="tier-portrait-name">
@@ -261,7 +261,7 @@ window.renderTierEditorUI = function(container) {
 
         tabHTML += `<div class="daw-tab-item">`;
         tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${activeClass}" onclick="window.switchEditorTierTab(${tIdx})">${window.escapeHtml(String(tab.label || "").toUpperCase())}</button>`;
-        tabHTML += `<button class="daw-tab-remove-btn ${removeBtnClass}" onclick="window.removeEditorTierTab(${tIdx})" title="Delete Tab">✖</button>`;
+        tabHTML += `<button class="daw-tab-remove-btn ${removeBtnClass}" onclick="window.removeEditorTierTab(${tIdx})" data-tip="Delete Tab" aria-label="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
     tabHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addEditorTierTab()">+ ADD TAB</button>`;

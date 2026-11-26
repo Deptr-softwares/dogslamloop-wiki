@@ -251,7 +251,7 @@
     function entry(id) {
         const node = button('mk-entry');
         node.dataset.character = id;
-        node.title = state.roster.get(id).name;
+        node.dataset.tip = state.roster.get(id).name;
         node.setAttribute('aria-pressed', String(state.picked === id));
         node.appendChild(portrait(id));
         return node;
@@ -344,7 +344,7 @@
             const chip = button('mk-palette-swatch');
             chip.dataset.color = color;
             chip.style.backgroundColor = color;
-            chip.title = color;
+            chip.dataset.tip = color;
             chip.setAttribute('aria-label', color);
             palette.appendChild(chip);
         });

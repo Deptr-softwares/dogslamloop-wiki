@@ -180,7 +180,7 @@
         // The board shows what the reader will see.
         if (useIcon) node.classList.add('tier-portrait-icon');
         node.dataset.charId = entry.key;
-        node.title = meta.name;
+        node.dataset.tip = meta.name;
         // Icon mode moves the colour to the border, as the reader page does.
         const charColor = window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name];
         if (charColor) {
@@ -392,7 +392,8 @@
 
             const remove = el('button', 'btn-sys btn-sys-red tier-control-btn', '✖');
             remove.type = 'button';
-            remove.title = 'Remove this tier';
+            remove.dataset.tip = 'Remove this tier';
+            remove.setAttribute('aria-label', 'Remove this tier');
             remove.addEventListener('click', () => {
                 // Its occupants go to Unranked, and each is a move that needs a note.
                 state.tiers.splice(index, 1);
@@ -516,7 +517,8 @@
         if (isCopy) {
             const del = el('button', 'btn-sys btn-sys-red tier-control-btn', '✖');
             del.type = 'button';
-            del.title = 'Delete this copy';
+            del.dataset.tip = 'Delete this copy';
+            del.setAttribute('aria-label', 'Delete this copy');
             del.dataset.copyDelete = '';
             del.disabled = !state.canEdit;
             del.addEventListener('click', () => deleteCopy(key));

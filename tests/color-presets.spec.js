@@ -78,7 +78,7 @@ test('every character colour is offered, and named', async ({ page }) => {
     const expected = await page.evaluate(() => Object.keys(window.CHARACTER_COLORS));
     expect(expected.length).toBeGreaterThan(20);
 
-    const titles = await swatches(page).evaluateAll(nodes => nodes.map(n => n.title));
+    const titles = await swatches(page).evaluateAll(nodes => nodes.map(n => n.dataset.tip));
     for (const name of expected) {
         expect(titles, `${name} has no swatch`).toContain(name);
     }
@@ -87,7 +87,7 @@ test('every character colour is offered, and named', async ({ page }) => {
 test('frame and window colours are offered under the legend names', async ({ page }) => {
     await openPicker(page);
 
-    const titles = await swatches(page).evaluateAll(nodes => nodes.map(n => n.title));
+    const titles = await swatches(page).evaluateAll(nodes => nodes.map(n => n.dataset.tip));
     // The wording contributors actually use, taken from the frame-data legend
     // rather than invented for the picker.
     for (const label of ['Startup', 'Active', 'Recovery', 'InSkill Stun', 'Block Endlag', 'Melee I-Frames']) {
@@ -104,7 +104,7 @@ test('the frame colours are real values, not empty strings', async ({ page }) =>
     await openPicker(page);
 
     const values = await swatches(page).evaluateAll(nodes =>
-        nodes.map(n => ({ title: n.title, color: n.dataset.color })));
+        nodes.map(n => ({ title: n.dataset.tip, color: n.dataset.color })));
 
     const frameSwatch = values.find(v => v.title === 'Startup');
     expect(frameSwatch, 'no Startup swatch at all').toBeTruthy();
@@ -125,8 +125,8 @@ test('every swatch carries a usable colour and a name', async ({ page }) => {
     expect(total).toBeGreaterThanOrEqual(40);
 
     const bad = await swatches(page).evaluateAll(nodes => nodes
-        .filter(n => !n.title || !/^(#[0-9a-f]{3,8}|(hsla?|rgba?)\()/i.test(n.dataset.color || ''))
-        .map(n => n.title || '(untitled)'));
+        .filter(n => !n.dataset.tip || !/^(#[0-9a-f]{3,8}|(hsla?|rgba?)\()/i.test(n.dataset.color || ''))
+        .map(n => n.dataset.tip || '(untitled)'));
     expect(bad).toEqual([]);
 });
 
@@ -148,7 +148,7 @@ test('clicking a character swatch wraps the selected text in that colour', async
 
     // Selected by name, not position - a swatch chosen by index silently
     // starts testing a different colour the moment the roster changes.
-    const swatch = page.locator('#format-color-popup .color-preset-btn[title="Vessel"]');
+    const swatch = page.locator('#format-color-popup .color-preset-btn[data-tip="Vessel"]');
     await expect(swatch).toHaveCount(1);
     const chosen = await swatch.getAttribute('data-color');
 

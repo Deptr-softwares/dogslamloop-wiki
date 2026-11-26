@@ -488,7 +488,7 @@ window.initAuthDock = async function() {
                 <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
                 <span class="btn-manga-text dock-action-text">${username === 'LOGIN' ? 'Login' : window.escapeHtml(username)}</span>
             </button>
-            <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" title="Site settings" aria-label="Site settings">
+            <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" data-tip="Site settings" aria-label="Site settings">
                 <span class="btn-manga-icon dock-action-icon">${svgSliders}</span>
             </button>
         </div>`;

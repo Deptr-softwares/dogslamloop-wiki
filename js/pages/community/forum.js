@@ -347,7 +347,7 @@
 
         const btn = el('button', 'discussion-edited discussion-edited-open', 'title edited');
         btn.type = 'button';
-        btn.title = 'Show what this post was called before (moderators only)';
+        btn.dataset.tip = 'Show what this post was called before (moderators only)';
         const box = el('div', 'discussion-edits');
         box.hidden = true;
         box.appendChild(el('p', 'discussion-edits-title', 'Earlier titles (moderators only)'));

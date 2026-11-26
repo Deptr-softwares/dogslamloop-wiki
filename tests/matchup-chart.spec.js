@@ -158,9 +158,9 @@ test('an unrecognised tier still renders, keeping its own wording', async ({ pag
     await mockHub(page);
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
 
-    const odd = page.locator('.matchup-grid-link[title*="Aerial Circling tier"]');
+    const odd = page.locator('.matchup-grid-link[data-tip*="Aerial Circling tier"]');
     await expect(odd).toHaveCount(1);
-    await expect(odd).toHaveAttribute('title', 'Boomcat vs Honored One: Aerial Circling tier');
+    await expect(odd).toHaveAttribute('data-tip', 'Boomcat vs Honored One: Aerial Circling tier');
 });
 
 test('the chart is not symmetrical, because the two pages disagree', async ({ page }) => {
@@ -172,8 +172,8 @@ test('the chart is not symmetrical, because the two pages disagree', async ({ pa
 
     // A prefix match: the two disagree, so both cells are also Clashes and
     // their titles carry a second line naming the other side.
-    await expect(page.locator('.matchup-grid-link[title^="Boomcat vs Vessel: Advantage"]')).toHaveCount(1);
-    await expect(page.locator('.matchup-grid-link[title^="Vessel vs Boomcat: Dominating"]')).toHaveCount(1);
+    await expect(page.locator('.matchup-grid-link[data-tip^="Boomcat vs Vessel: Advantage"]')).toHaveCount(1);
+    await expect(page.locator('.matchup-grid-link[data-tip^="Vessel vs Boomcat: Dominating"]')).toHaveCount(1);
 });
 
 test('a cell links to the matchup section, not the top of the page', async ({ page }) => {
@@ -183,7 +183,7 @@ test('a cell links to the matchup section, not the top of the page', async ({ pa
     await mockHub(page);
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
 
-    const href = await page.locator('.matchup-grid-link[title^="Boomcat vs Vessel: Advantage"]')
+    const href = await page.locator('.matchup-grid-link[data-tip^="Boomcat vs Vessel: Advantage"]')
         .getAttribute('href');
     expect(href).toContain('characters/Boomcat/index.html');
     expect(href).toContain('?tab=matchups');
@@ -359,12 +359,12 @@ test('a hidden character is left out as row, column and Clash', async ({ page })
     // about the filter and not about a chart that failed to render.
     await expect(grid(page).locator('tbody tr')).toHaveCount(3);
     await expect(grid(page).locator('thead .matchup-grid-col')).toHaveCount(3);
-    await expect(page.locator('.matchup-grid-link[title^="Boomcat vs Vessel:"]')).toHaveCount(1);
+    await expect(page.locator('.matchup-grid-link[data-tip^="Boomcat vs Vessel:"]')).toHaveCount(1);
 
     await expect(grid(page).locator('.matchup-grid-row', { hasText: 'Strongest of History' })).toHaveCount(0);
-    await expect(grid(page).locator('.matchup-grid-col[title="Strongest of History"]')).toHaveCount(0);
-    await expect(page.locator('.matchup-grid-cell[title*="Strongest of History"]')).toHaveCount(0);
-    await expect(page.locator('.matchup-grid-link[title*="Strongest of History"]')).toHaveCount(0);
+    await expect(grid(page).locator('.matchup-grid-col[data-tip="Strongest of History"]')).toHaveCount(0);
+    await expect(page.locator('.matchup-grid-cell[data-tip*="Strongest of History"]')).toHaveCount(0);
+    await expect(page.locator('.matchup-grid-link[data-tip*="Strongest of History"]')).toHaveCount(0);
     // Boomcat vs Vessel is the one Clash left.
     await expect(page.locator('.matchup-clashes li')).toHaveCount(1);
     await expect(page.locator('.matchup-clashes')).not.toContainText('Strongest of History');
@@ -392,7 +392,7 @@ test('an opponent name that matches no character is dropped, never guessed at', 
     const row = grid(page).locator('tbody tr')
         .filter({ has: page.locator('.matchup-grid-row', { hasText: 'Boomcat' }) });
     await expect(row.locator('.matchup-grid-link')).toHaveCount(1);
-    await expect(row.locator('.matchup-grid-link')).toHaveAttribute('title', 'Boomcat vs Vessel: Equal');
+    await expect(row.locator('.matchup-grid-link')).toHaveAttribute('data-tip', 'Boomcat vs Vessel: Equal');
 });
 
 // ---------------------------------------------------------------------------
@@ -456,7 +456,7 @@ const mockClashes = page => mockHub(page, { roster: CLASH_ROSTER, matchups: CLAS
 // Asserts the cell exists before asserting its class, so a title that stopped
 // matching fails here rather than passing a negative check on nothing.
 async function expectClash(page, titleStart, isClash) {
-    const cell = page.locator(`.matchup-grid-link[title^="${titleStart}"]`);
+    const cell = page.locator(`.matchup-grid-link[data-tip^="${titleStart}"]`);
     await expect(cell).toHaveCount(1);
     if (isClash) await expect(cell).toHaveClass(/\bis-clash\b/);
     else await expect(cell).not.toHaveClass(/\bis-clash\b/);
@@ -479,11 +479,11 @@ test('a Clash is marked on BOTH cells of the pair, and the mark is painted', asy
         const s = getComputedStyle(el, '::after');
         return { content: s.content, colour: s.borderRightColor, width: parseFloat(s.borderRightWidth) };
     };
-    const marked = await page.locator('.matchup-grid-link[title^="Vessel vs Honored One:"]').evaluate(corner);
+    const marked = await page.locator('.matchup-grid-link[data-tip^="Vessel vs Honored One:"]').evaluate(corner);
     expect(marked.content).not.toBe('none');
     expect(marked.colour).not.toBe('rgba(0, 0, 0, 0)');
     expect(marked.width).toBeGreaterThan(0);
-    const plain = await page.locator('.matchup-grid-link[title^="Boomcat vs Honored One:"]').evaluate(corner);
+    const plain = await page.locator('.matchup-grid-link[data-tip^="Boomcat vs Honored One:"]').evaluate(corner);
     expect(plain.content).toBe('none');
 
     expect(errors).toEqual([]);
@@ -493,8 +493,8 @@ test('a clashing cell names the other page\'s rating too', async ({ page }) => {
     await mockClashes(page);
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
 
-    const cell = page.locator('.matchup-grid-link[title^="Vessel vs Honored One:"]');
-    await expect(cell).toHaveAttribute('title',
+    const cell = page.locator('.matchup-grid-link[data-tip^="Vessel vs Honored One:"]');
+    await expect(cell).toHaveAttribute('data-tip',
         'Vessel vs Honored One: Equal\nClash: Honored One vs Vessel is Hopeless');
     // A screen reader gets the same two facts, as a sentence.
     await expect(cell.locator('.sr-only')).toHaveText(

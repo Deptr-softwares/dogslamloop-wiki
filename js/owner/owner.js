@@ -210,7 +210,7 @@ function personnelRowHTML(person) {
                 </select>
                 <button class="btn-sys btn-sys-regular personnel-apply-btn"
                         data-email="${window.escapeHtml(person.email)}"
-                        ${isLastAdmin ? 'disabled title="You are the only admin - promote someone else first."' : ''}>APPLY</button>
+                        ${isLastAdmin ? 'disabled data-tip="You are the only admin - promote someone else first."' : ''}>APPLY</button>
             </div>
             <!--
                 Capabilities are extras on top of a role, never a second role:
@@ -218,7 +218,7 @@ function personnelRowHTML(person) {
                 broke get_my_role() for that user everywhere. A checkbox here
                 writes a column, so that constraint is untouched.
             -->
-            <label class="personnel-capability" title="Skips the 3-minute wait between submissions for this person only.">
+            <label class="personnel-capability" data-tip="Skips the 3-minute wait between submissions for this person only.">
                 <input type="checkbox" class="personnel-capability-box"
                        data-email="${window.escapeHtml(person.email)}"
                        data-capability="bypass_cooldown"
@@ -232,7 +232,7 @@ function personnelRowHTML(person) {
                 (20261116000000): moderating threads and reviewing revisions
                 are handed out separately, in both directions.
             -->
-            <label class="personnel-capability" title="Lets this person hide or remove discussion posts and handle reports. Admins can already do this.">
+            <label class="personnel-capability" data-tip="Lets this person hide or remove discussion posts and handle reports. Admins can already do this.">
                 <input type="checkbox" class="personnel-capability-box"
                        data-email="${window.escapeHtml(person.email)}"
                        data-capability="can_moderate"
@@ -246,7 +246,7 @@ function personnelRowHTML(person) {
                 from storage - so it is granted one person at a time rather
                 than arriving with a role.
             -->
-            <label class="personnel-capability" title="Lets this person permanently delete files from the media bucket. Not implied by any role except admin.">
+            <label class="personnel-capability" data-tip="Lets this person permanently delete files from the media bucket. Not implied by any role except admin.">
                 <input type="checkbox" class="personnel-capability-box"
                        data-email="${window.escapeHtml(person.email)}"
                        data-capability="can_delete_media"
@@ -259,7 +259,7 @@ function personnelRowHTML(person) {
                 Media Library, and images in discussion posts. Trusted Editors
                 and up have it by role; this box is how anybody else gets it.
             -->
-            <label class="personnel-capability" title="Lets this person upload to the Media Library and attach images to discussion posts. Trusted Editors and up already can.">
+            <label class="personnel-capability" data-tip="Lets this person upload to the Media Library and attach images to discussion posts. Trusted Editors and up already can.">
                 <input type="checkbox" class="personnel-capability-box"
                        data-email="${window.escapeHtml(person.email)}"
                        data-capability="can_upload_media"
@@ -495,8 +495,8 @@ async function loadSitePages() {
                         <span class="page-row-path">${window.escapeHtml(page.url)}</span>
                     </div>
                     <div class="personnel-row-actions">
-                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${window.escapeHtml(page.page_id)}" data-dir="up" title="Move up">▲</button>
-                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${window.escapeHtml(page.page_id)}" data-dir="down" title="Move down">▼</button>
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${window.escapeHtml(page.page_id)}" data-dir="up" data-tip="Move up" aria-label="Move up">▲</button>
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${window.escapeHtml(page.page_id)}" data-dir="down" data-tip="Move down" aria-label="Move down">▼</button>
                         ${page.status === 'archived'
                             ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${window.escapeHtml(page.page_id)}">RESTORE</button>`
                             : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${window.escapeHtml(page.page_id)}">ARCHIVE</button>`}

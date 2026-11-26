@@ -87,7 +87,7 @@ window.buildPageSkeleton = function (route, rootPath) {
                 </div>
             </div>
 
-            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar" aria-label="Collapse sidebar">☰</button>
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" data-tip="Collapse Sidebar" aria-label="Collapse sidebar">☰</button>
 
             <div class="sidebar-master-title">Navigation</div>
 
