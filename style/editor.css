@@ -2496,17 +2496,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 
 /* The Editor Playground's banner takes the scope tip's place, and is loud where
    the tip is quiet: it says this editor sends nothing. */
-.playground-banner {
-    margin: 0 0 0.75rem;
-    padding: 0.55rem 0.8rem;
-    background: var(--bg-secondary);
-    border: 2px solid var(--accent-yellow);
-    color: var(--text-white);
-    font-family: var(--text-mono);
-    font-size: 0.72rem;
-    line-height: 1.5;
-}
-.playground-banner strong { color: var(--accent-yellow); }
+.playground-banner { margin: 0 0 0.75rem; }
 
 .playground-pull-box { display: flex; flex-direction: column; gap: 0.75rem; }
 .playground-pull-hint {

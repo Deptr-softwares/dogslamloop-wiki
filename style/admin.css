@@ -701,7 +701,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     padding: 0.6rem 0.75rem;
     margin-bottom: 0.75rem;
 }
-.diff-batch-banner { font-family: var(--text-mono); font-size: 0.85rem; color: #22c55e; margin-bottom: 1rem; border: 1px dashed #22c55e; padding: 0.75rem; text-align: center; }
+.diff-batch-banner { margin-bottom: 1rem; }
 .diff-no-changes { color: var(--text-muted); font-style: italic; }
 .diff-inline-target { width: 100%; }
 .diff-stacked-pre { font-family: var(--text-mono); font-size: 0.65rem; margin: 0; }

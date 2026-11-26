@@ -2,7 +2,7 @@
  * What every other file leans on, loaded on every page right after the Supabase
  * library: the reader's Site Settings, paths and page addresses, the Supabase client
  * and its local-only override, the escapers, the role ladder, the system alert, the
- * dropdowns, the dialog engine and the toasts. site_data.js, site_media.js and site_account.js
+ * dropdowns, the dialog engine, the toasts and the banner. site_data.js, site_media.js and site_account.js
  * follow it, in that order.
  * @since v0.3
  * @touches localStorage (dsl_site_settings, dsl_supabase_override),
@@ -1093,6 +1093,38 @@ window.showToast = function (message, opts = {}) {
     setTimeout(() => { toastSay.textContent = `${head}: ${message}`; }, 100);
     arm();
     return toast;
+};
+
+/**
+ * A notice that stays on the page: a coloured bar on its left, an icon if it has
+ * one, a title and a line of text. Returns the element for the caller to place.
+ *   tone       yellow, orange, red, magenta, cyan, grey or green (style/Alerts.css)
+ *   small      the editor's and the Overseer's narrow columns
+ *   className  more classes, for the caller's spacing and its tests
+ * @since v1.3
+ */
+window.siteBanner = function ({ tone = 'yellow', icon = '', title = '', text = '', small = false, className = '' } = {}) {
+    const banner = document.createElement('div');
+    banner.className = `site-banner banner-${tone}${small ? ' site-banner-small' : ''} ${className}`.trim();
+    banner.setAttribute('role', 'note');
+    if (icon) {
+        const iconEl = document.createElement('span');
+        iconEl.className = 'site-banner-icon';
+        iconEl.setAttribute('aria-hidden', 'true');
+        iconEl.textContent = icon;
+        banner.appendChild(iconEl);
+    }
+    const body = document.createElement('div');
+    body.className = 'site-banner-body';
+    const titleEl = document.createElement('strong');
+    titleEl.className = 'site-banner-title';
+    titleEl.textContent = title;
+    const textEl = document.createElement('p');
+    textEl.className = 'site-banner-text';
+    textEl.textContent = text;
+    body.append(titleEl, textEl);
+    banner.appendChild(body);
+    return banner;
 };
 
 /**

@@ -119,7 +119,7 @@
   },
   "js/overseer/admin-preview.js": {
     "no-unsanitized/property": {
-      "count": 7
+      "count": 6
     }
   },
   "js/overseer/admin-queue.js": {
@@ -227,7 +227,7 @@
   },
   "js/pages/core/page_shell.js": {
     "no-unsanitized/property": {
-      "count": 8
+      "count": 7
     }
   },
   "js/pages/records/history.js": {

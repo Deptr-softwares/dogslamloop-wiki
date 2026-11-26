@@ -1106,31 +1106,26 @@ document.addEventListener('focusout', (e) => {
     if (jumpLinkAt(e.target) && typeof window.hideTooltip === 'function') window.hideTooltip();
 });
 
-/** Adds an alert box (wip, ea and the like) to a container. */
+/** Adds a page alert (wip, ea and the like), the site's banner, to a container. */
 window.showWikiAlert = function(containerId, type, message) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    
+
     const alertMap = {
-        'wip': { icon: '🚧', class: 'alert-wip', title: 'Work In Progress' },
-        'medialess': { icon: '🎥', class: 'alert-medialess', title: 'Media Missing' },
-        'ea': { icon: '⭐', class: 'alert-ea', title: 'Early Access Content' },
-        'unverified': { icon: '⚠️', class: 'alert-unverified', title: 'Unverified Data' },
-        'subjective': { icon: '👁️', class: 'alert-subjective', title: 'Subjective Strategy' },
-        'outdated': { icon: '🕒', class: 'alert-outdated', title: 'Outdated Patch' }
+        'wip': { icon: '🚧', tone: 'yellow', title: 'Work In Progress' },
+        'medialess': { icon: '🎥', tone: 'red', title: 'Media Missing' },
+        'ea': { icon: '⭐', tone: 'orange', title: 'Early Access Content' },
+        'unverified': { icon: '⚠️', tone: 'magenta', title: 'Unverified Data' },
+        'subjective': { icon: '👁️', tone: 'cyan', title: 'Subjective Strategy' },
+        'outdated': { icon: '🕒', tone: 'grey', title: 'Outdated Patch' }
     };
+    const kind = alertMap[type] ? type : 'wip';
+    const config = alertMap[kind];
 
-    const config = alertMap[type] || alertMap['wip'];
-
-    container.innerHTML += `
-        <div class="wiki-alert ${config.class}">
-            <div class="wiki-alert-icon">${config.icon}</div>
-            <div class="wiki-alert-content">
-                <h4>${config.title}</h4>
-                <p>${message}</p>
-            </div>
-        </div>
-    `;
+    container.appendChild(window.siteBanner({
+        tone: config.tone, icon: config.icon, title: config.title, text: message,
+        className: `wiki-alert alert-${kind}`,
+    }));
 };
 
 /** The page's alerts from its navigation.json flags (WIP, Early Access, missing media). */

@@ -152,6 +152,9 @@ test('the rescued page says it is not published yet', async ({ page }) => {
   await expect(banner).toBeVisible();
   await expect(banner).toContainText('Not published yet');
   await expect(banner).toContainText('regeneration');
+  // The site's banner: a yellow bar on its left.
+  await expect(banner).toHaveCSS('border-left-width', '5px');
+  await expect(banner).toHaveCSS('border-left-color', 'rgb(231, 176, 8)');
 });
 
 test('a genuinely wrong URL still gets the ordinary 404', async ({ page }) => {

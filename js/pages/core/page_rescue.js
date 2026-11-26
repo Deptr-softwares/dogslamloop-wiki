@@ -53,18 +53,14 @@
     }
 
     function unpublishedBanner() {
-        const banner = document.createElement('div');
-        banner.className = 'rescue-banner';
+        const banner = window.siteBanner({
+            tone: 'yellow',
+            title: 'Not published yet',
+            text: 'This page exists and is editable, but its file has not been generated, '
+                + 'so search engines and Discord previews cannot see it. It will publish itself on the next regeneration run.',
+            className: 'rescue-banner',
+        });
         banner.id = 'rescue-banner';
-
-        const strong = document.createElement('strong');
-        strong.textContent = 'Not published yet.';
-
-        const text = document.createElement('span');
-        text.textContent = ` This page exists and is editable, but its file has not been generated, `
-            + `so search engines and Discord previews cannot see it. It will publish itself on the next regeneration run.`;
-
-        banner.append(strong, text);
         return banner;
     }
 
