@@ -67,7 +67,9 @@ test('Escape always closes it with cancel; a click outside only when the box ask
     await expect(box, 'no backdrop asked for: still open').toBeVisible();
     await page.keyboard.press('Escape');
     await expect(box).toBeHidden();
-    expect(await page.evaluate(() => window.__answers)).toEqual([false]);
+    // Escape and a click outside answer on the box's close event, which comes a task
+    // after the box hides: waited for, not read at once.
+    await expect.poll(() => page.evaluate(() => window.__answers)).toEqual([false]);
 
     // Listening for Enter does not take Escape away.
     await page.evaluate(() => { window.__ask({ enter: true }); });
@@ -77,7 +79,7 @@ test('Escape always closes it with cancel; a click outside only when the box ask
     await page.evaluate(() => { window.__ask({ backdrop: true }); });
     await clickOutside();
     await expect(box).toBeHidden();
-    expect(await page.evaluate(() => window.__answers)).toEqual([false, false, false]);
+    await expect.poll(() => page.evaluate(() => window.__answers)).toEqual([false, false, false]);
 
     // A click inside the box, on no button, is not outside.
     await page.evaluate(() => { window.__ask({ backdrop: true }); });
