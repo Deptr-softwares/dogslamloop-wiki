@@ -164,6 +164,8 @@ window.loadTierList = async function() {
     });
 
     navHTML += `</div>`;
+    navContainer.setAttribute('role', 'tablist');
+    navContainer.setAttribute('aria-label', 'Tier list tabs');
     navContainer.innerHTML = navHTML;
 
     window.liveTierData = data;
@@ -254,17 +256,18 @@ window.renderTierEditorUI = function(container) {
     const activeIdx = window.currentSystemTabIdx;
     const activeTab = descData.tabs[activeIdx];
 
-    let tabHTML = `<div class="daw-variant-tabs tier-editor-tabs-row">`;
+    let tabHTML = `<div class="sub-tabs sub-tabs-scroll tier-editor-tabs-row">`;
+    tabHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Tier list tabs">`;
     descData.tabs.forEach((tab, tIdx) => {
-        let activeClass = tIdx === activeIdx ? 'active' : '';
-        let removeBtnClass = tIdx === activeIdx ? 'on-active-tab' : '';
+        const activeClass = tIdx === activeIdx ? ' is-active' : '';
 
-        tabHTML += `<div class="daw-tab-item">`;
-        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${activeClass}" onclick="window.switchEditorTierTab(${tIdx})">${window.escapeHtml(String(tab.label || "").toUpperCase())}</button>`;
-        tabHTML += `<button class="daw-tab-remove-btn ${removeBtnClass}" onclick="window.removeEditorTierTab(${tIdx})" data-tip="Delete Tab" aria-label="Delete Tab">✖</button>`;
+        tabHTML += `<div class="sub-tab-item">`;
+        tabHTML += `<button class="sub-tab sub-tab-removable${activeClass}" onclick="window.switchEditorTierTab(${tIdx})">${window.escapeHtml(String(tab.label || "").toUpperCase())}</button>`;
+        tabHTML += `<button class="sub-tab-remove" onclick="window.removeEditorTierTab(${tIdx})" data-tip="Delete Tab" aria-label="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
-    tabHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addEditorTierTab()">+ ADD TAB</button>`;
+    tabHTML += `</div>`;
+    tabHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addEditorTierTab()">+ ADD TAB</button>`;
     tabHTML += `</div>`;
 
     if (!activeTab) {
@@ -564,7 +567,7 @@ window.updateTierTabLabel = function(val) {
     tab.id = val.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     
     // Prevents re-rendering the whole UI and stealing focus
-    const activeTabBtn = document.querySelector('.daw-tab-btn.active');
+    const activeTabBtn = document.querySelector('.tier-editor-tabs-row .sub-tab.is-active');
     if (activeTabBtn) activeTabBtn.textContent = val.toUpperCase();
 
     clearTimeout(window.typingTimer);

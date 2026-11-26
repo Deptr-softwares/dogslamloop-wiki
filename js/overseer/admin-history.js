@@ -249,7 +249,7 @@ async function restorePageHistoryVersion(row, pageId) {
     window.currentLiveDescData = freshLive ? freshLive.desc_data : {};
     window.currentLiveFrameData = freshLive ? freshLive.frame_data : {};
 
-    window.adminAlert('Version restored - the page is now live with this content.');
+    window.showToast('Version restored - the page is now live with this content.');
 
     const container = document.getElementById('page-history-container');
     if (container) await loadPageHistoryList(pageId, container);

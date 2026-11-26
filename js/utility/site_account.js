@@ -23,9 +23,9 @@ window.injectAuthModal = function() {
                 <span id="auth-status-indicator" class="status-dot offline"></span>
             </div>
 
-            <div class="auth-tabs" style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 1.5rem; padding: 0 1.5rem;">
-                <button id="auth-tab-login" class="btn-ghost active" style="flex: 1; border-bottom: none; opacity: 1; border-radius: 0; padding: 1rem 0;">LOGIN</button>
-                <button id="auth-tab-register" class="btn-ghost" style="flex: 1; border-bottom: none; opacity: 0.5; border-radius: 0; padding: 1rem 0;">REGISTER</button>
+            <div class="sub-tabs auth-tabs" role="tablist" aria-label="Sign in or register" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem 0;">
+                <button type="button" id="auth-tab-login" class="sub-tab is-active">LOGIN</button>
+                <button type="button" id="auth-tab-register" class="sub-tab">REGISTER</button>
             </div>
 
             <div class="dialog-body" style="padding-top: 0;">
@@ -102,15 +102,15 @@ window.injectAuthModal = function() {
     const feedbackMsg = document.getElementById('auth-feedback-message');
 
     tabLogin.onclick = () => {
-        tabLogin.classList.add('active'); tabLogin.style.opacity = '1';
-        tabRegister.classList.remove('active'); tabRegister.style.opacity = '0.5';
+        tabLogin.classList.add('is-active');
+        tabRegister.classList.remove('is-active');
         viewLogin.classList.remove('hidden'); viewRegister.classList.add('hidden');
         feedbackMsg.classList.add('hidden');
     };
 
     tabRegister.onclick = () => {
-        tabRegister.classList.add('active'); tabRegister.style.opacity = '1';
-        tabLogin.classList.remove('active'); tabLogin.style.opacity = '0.5';
+        tabRegister.classList.add('is-active');
+        tabLogin.classList.remove('is-active');
         viewRegister.classList.remove('hidden'); viewLogin.classList.add('hidden');
         feedbackMsg.classList.add('hidden');
     };
@@ -136,7 +136,7 @@ window.injectAuthModal = function() {
             document.getElementById('auth-modal-overlay').close();
             document.getElementById('auth-password-login').value = ''; 
             window.checkActiveSession(); 
-            window.showSystemAlert("Authentication successful! You are now securely connected.");
+            window.showToast("Authentication successful! You are now securely connected.");
         }
     });
 
@@ -331,53 +331,20 @@ function writePendingBadges(ids) {
     }
 }
 
-// "BADGE EARNED" in the corner: kept, or how to keep it.
+// "BADGE EARNED" as a toast: kept, or how to keep it.
 function showBadgeToast(id, kept) {
     const def = window.SITE_BADGES[id];
-    if (!def || !document.body) return;
-    document.querySelectorAll('.badge-toast').forEach(t => t.remove());
-
-    const toast = document.createElement('div');
-    toast.className = `badge-toast badge-toast-${def.tier}`;
-    toast.setAttribute('role', 'status');
-    toast.appendChild(window.badgeSlot(id, { size: 'medium' }));
-
-    const text = document.createElement('div');
-    text.className = 'badge-toast-text';
-    const head = document.createElement('span');
-    head.className = 'badge-toast-head';
-    head.textContent = 'BADGE EARNED';
-    const name = document.createElement('strong');
-    name.textContent = def.name;
-    const note = document.createElement('span');
-    note.className = 'badge-toast-note';
-    note.textContent = kept ? 'On your profile now.' : `Sign in by ${def.keepBy} to keep it.`;
-    text.append(head, name, note);
-    toast.appendChild(text);
-
-    if (!kept) {
-        const login = document.createElement('button');
-        login.type = 'button';
-        login.className = 'btn-sys btn-sys-regular badge-toast-login';
-        login.textContent = 'LOGIN';
-        login.addEventListener('click', () => {
-            toast.remove();
-            window.openAuthModal();
-        });
-        toast.appendChild(login);
-    }
-
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'badge-toast-close';
-    close.setAttribute('aria-label', 'Close');
-    close.textContent = '✖';
-    close.addEventListener('click', () => toast.remove());
-    toast.appendChild(close);
-
-    document.body.appendChild(toast);
-    // Longer when there is something to do about it.
-    setTimeout(() => toast.remove(), kept ? 8000 : 20000);
+    if (!def) return;
+    window.showToast(def.name, {
+        head: 'BADGE EARNED',
+        tone: def.tier === 'gold' ? 'gold' : 'badge',
+        lead: window.badgeSlot(id, { size: 'medium' }),
+        note: kept ? 'On your profile now.' : `Sign in by ${def.keepBy} to keep it.`,
+        action: kept ? null : { label: 'LOGIN', onClick: () => window.openAuthModal() },
+        // Longer when there is something to do about it.
+        duration: kept ? 8000 : 20000,
+        className: 'badge-toast',
+    });
 }
 
 // Saves every badge waiting on this device to the signed-in account, with a

@@ -21,34 +21,38 @@ window.renderSystemEditor = function(container) {
     }
 
     let tabHTML = window.reorderStripControls('desc.tabs');
-    tabHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    tabHTML += `<div class="sub-tabs sub-tabs-scroll editor-nav-row">`;
+    tabHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Page tabs">`;
     descData.tabs.forEach((tab, tIdx) => {
-        let active = tIdx === window.currentSystemTabIdx ? 'active' : '';
-        tabHTML += `<div class="daw-tab-item">`;
-        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${active}" onclick="window.switchSystemTab(${tIdx})">${window.escapeHtml(tab.tabLabel)}</button>`;
-        tabHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemTab(${tIdx})" data-tip="Delete Tab" aria-label="Delete Tab">✖</button>`;
+        const active = tIdx === window.currentSystemTabIdx ? ' is-active' : '';
+        tabHTML += `<div class="sub-tab-item">`;
+        tabHTML += `<button class="sub-tab sub-tab-removable${active}" onclick="window.switchSystemTab(${tIdx})">${window.escapeHtml(tab.tabLabel)}</button>`;
+        tabHTML += `<button class="sub-tab-remove" onclick="window.removeSystemTab(${tIdx})" data-tip="Delete Tab" aria-label="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
+    tabHTML += `</div>`;
     window.registerInserter('desc.tabs', () => window.addSystemTab());
-    tabHTML += `<button class="daw-tab-btn btn-sys btn-sys-green system-tab-add-btn" onclick="window.addSystemTab()">+ ADD TAB</button>`;
+    tabHTML += `<button class="btn-sys btn-sys-green sub-tabs-action" onclick="window.addSystemTab()">+ ADD TAB</button>`;
     tabHTML += `</div>`;
 
     let activeTab = descData.tabs[window.currentSystemTabIdx];
     if (!activeTab) { container.innerHTML = tabHTML; return; }
 
     let secHTML = window.reorderStripControls(`desc.tabs.${window.currentSystemTabIdx}.sections`);
-    secHTML += `<div class="daw-variant-tabs system-section-tabs-row">`;
+    secHTML += `<div class="sub-tabs sub-tabs-scroll system-section-tabs-row">`;
     if (!activeTab.sections) activeTab.sections = [];
+    if (activeTab.sections.length) secHTML += `<div class="sub-tabs-list" role="tablist" aria-label="Sections">`;
     activeTab.sections.forEach((sec, sIdx) => {
-        let active = sIdx === window.currentSystemSecIdx ? 'active' : '';
-        secHTML += `<div class="daw-tab-item">`;
-        secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${window.escapeHtml(sec.sectionTitle || 'Section ' + (sIdx+1))}</button>`;
+        const active = sIdx === window.currentSystemSecIdx ? ' is-active' : '';
+        secHTML += `<div class="sub-tab-item">`;
+        secHTML += `<button class="sub-tab sub-tab-removable system-section-tab-btn${active}" onclick="window.switchSystemSection(${sIdx})">${window.escapeHtml(sec.sectionTitle || 'Section ' + (sIdx+1))}</button>`;
         // A move ships as an order change, not as every section's content.
-        secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" data-tip="Delete Section" aria-label="Delete Section">✖</button>`;
+        secHTML += `<button class="sub-tab-remove" onclick="window.removeSystemSection(${sIdx})" data-tip="Delete Section" aria-label="Delete Section">✖</button>`;
         secHTML += `</div>`;
     });
+    if (activeTab.sections.length) secHTML += `</div>`;
     window.registerInserter(`desc.tabs.${window.currentSystemTabIdx}.sections`, () => window.addSystemSection());
-    secHTML += `<button class="daw-tab-btn btn-sys btn-sys-purple system-tab-add-btn" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
+    secHTML += `<button class="btn-sys btn-sys-purple sub-tabs-action" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
     secHTML += `</div>`;
 
     let activeSec = activeTab.sections[window.currentSystemSecIdx];

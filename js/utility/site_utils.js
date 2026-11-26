@@ -2,8 +2,8 @@
  * What every other file leans on, loaded on every page right after the Supabase
  * library: the reader's Site Settings, paths and page addresses, the Supabase client
  * and its local-only override, the escapers, the role ladder, the system alert, the
- * dropdowns and the dialog engine. site_data.js, site_media.js and site_account.js
- * follow it, in that order.
+ * dropdowns, the dialog engine, the toasts, the banner and the tab strips' roles and keys.
+ * site_data.js, site_media.js and site_account.js follow it, in that order.
  * @since v0.3
  * @touches localStorage (dsl_site_settings, dsl_supabase_override),
  *   data/navigation.json and data/archived-pages.json (page addresses)
@@ -808,11 +808,21 @@ window.openDialog = function (dialog, { light = false } = {}) {
     dialog.addEventListener('close', () => {
         dialog.removeEventListener('pointerdown', onDown);
         dialog.removeEventListener('click', onClick);
+        const at = openBoxes.indexOf(dialog);
+        if (at >= 0) openBoxes.splice(at, 1);
+        placeToasts();
     }, { once: true });
 
     dialog.showModal();
+    openBoxes.push(dialog);
+    placeToasts();
     return true;
 };
+
+// The open boxes, the last opened last. A toast lives in the top one: everything
+// outside a modal box is inert, even a popover drawn over it, so a toast left on
+// the page could be seen there and not clicked.
+const openBoxes = [];
 
 // Any button marked data-dialog-close closes the box it is in.
 document.addEventListener('click', (e) => {
@@ -959,6 +969,287 @@ window.sitePrompt = function (message, opts = {}) {
         onClose: () => input.remove(),
     });
 };
+
+// The toasts' shelf, a popover made on first use, and the line inside it that a
+// screen reader announces.
+let toastShelf = null;
+let toastSay = null;
+const MOST_TOASTS = 3;
+
+function toastHome() {
+    for (let i = openBoxes.length - 1; i >= 0; i--) {
+        if (openBoxes[i].open) return openBoxes[i];
+    }
+    return document.body;
+}
+
+// Moving a popover hides it, and showing it again puts it on top of the box that
+// just opened.
+function placeToasts() {
+    if (!toastShelf) return;
+    const home = toastHome();
+    if (toastShelf.parentNode !== home) home.appendChild(toastShelf);
+    if (typeof toastShelf.showPopover !== 'function') return;
+    const holds = !!toastShelf.querySelector('.site-toast');
+    const showing = toastShelf.matches(':popover-open');
+    if (holds && !showing) toastShelf.showPopover();
+    else if (!holds && showing) toastShelf.hidePopover();
+}
+
+/**
+ * A short message in the top right corner that goes by itself: hovering it or
+ * focusing in it keeps it, and its close button takes it away. Newest on top, three
+ * at most. Over an open box it shows inside the box, so it can still be clicked.
+ *   head      the small line above the message ('DONE')
+ *   tone      'done' (green), 'badge' or 'gold'
+ *   lead      a node drawn before the words (a badge)
+ *   note      a muted line under the message
+ *   action    { label, onClick }: a button that closes the toast, then runs onClick
+ *   duration  milliseconds before it goes (5000)
+ *   className more classes on the toast
+ * @since v1.3
+ * @watch errors and warnings stay boxes (showSystemAlert, editorAlert, adminAlert):
+ *   a toast is for a message that only says something worked
+ */
+window.showToast = function (message, opts = {}) {
+    const { head = 'DONE', tone = 'done', lead = null, note = '', action = null, duration = 5000, className = '' } = opts;
+    if (!document.body) return null;
+    if (!toastShelf) {
+        toastShelf = document.createElement('div');
+        toastShelf.className = 'site-toasts';
+        toastShelf.setAttribute('popover', 'manual');
+        toastSay = document.createElement('div');
+        toastSay.className = 'sr-only';
+        toastSay.setAttribute('role', 'status');
+        toastShelf.appendChild(toastSay);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `site-toast toast-${tone} is-new ${className}`.trim();
+    toast.addEventListener('animationend', () => toast.classList.remove('is-new'), { once: true });
+    if (lead) toast.appendChild(lead);
+
+    const words = document.createElement('div');
+    words.className = 'site-toast-text';
+    const headEl = document.createElement('span');
+    headEl.className = 'site-toast-head';
+    headEl.textContent = head;
+    const msgEl = document.createElement('span');
+    msgEl.className = 'site-toast-msg';
+    msgEl.textContent = message;
+    words.append(headEl, msgEl);
+    if (note) {
+        const noteEl = document.createElement('span');
+        noteEl.className = 'site-toast-note';
+        noteEl.textContent = note;
+        words.appendChild(noteEl);
+    }
+    toast.appendChild(words);
+
+    let timer = null;
+    let hovered = false;
+    let focused = false;
+    const dismiss = () => {
+        clearTimeout(timer);
+        if (!toast.isConnected) return;
+        toast.remove();
+        placeToasts();
+    };
+    const arm = () => {
+        clearTimeout(timer);
+        if (!hovered && !focused) timer = setTimeout(dismiss, duration);
+    };
+    toast.addEventListener('pointerenter', () => { hovered = true; clearTimeout(timer); });
+    toast.addEventListener('pointerleave', () => { hovered = false; arm(); });
+    toast.addEventListener('focusin', () => { focused = true; clearTimeout(timer); });
+    toast.addEventListener('focusout', (e) => {
+        if (toast.contains(e.relatedTarget)) return;
+        focused = false;
+        arm();
+    });
+
+    if (action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn-sys btn-sys-regular site-toast-action';
+        button.textContent = action.label;
+        button.addEventListener('click', () => { dismiss(); action.onClick(); });
+        toast.appendChild(button);
+    }
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'site-toast-close';
+    close.setAttribute('aria-label', 'Close');
+    close.textContent = '✖';
+    close.addEventListener('click', dismiss);
+    toast.appendChild(close);
+
+    toastSay.after(toast);
+    toastShelf.querySelectorAll('.site-toast').forEach((old, i) => { if (i >= MOST_TOASTS) old.remove(); });
+    placeToasts();
+    // Said a moment after the shelf shows: a live region's words are announced when
+    // they change while it is on the page.
+    toastSay.textContent = '';
+    setTimeout(() => { toastSay.textContent = `${head}: ${message}`; }, 100);
+    arm();
+    return toast;
+};
+
+/**
+ * A notice that stays on the page: a coloured bar on its left, an icon if it has
+ * one, a title and a line of text. Returns the element for the caller to place.
+ *   tone       yellow, orange, red, magenta, cyan, grey or green (style/Alerts.css)
+ *   small      the editor's and the Overseer's narrow columns
+ *   className  more classes, for the caller's spacing and its tests
+ * @since v1.3
+ */
+window.siteBanner = function ({ tone = 'yellow', icon = '', title = '', text = '', small = false, className = '' } = {}) {
+    const banner = document.createElement('div');
+    banner.className = `site-banner banner-${tone}${small ? ' site-banner-small' : ''} ${className}`.trim();
+    banner.setAttribute('role', 'note');
+    if (icon) {
+        const iconEl = document.createElement('span');
+        iconEl.className = 'site-banner-icon';
+        iconEl.setAttribute('aria-hidden', 'true');
+        iconEl.textContent = icon;
+        banner.appendChild(iconEl);
+    }
+    const body = document.createElement('div');
+    body.className = 'site-banner-body';
+    const titleEl = document.createElement('strong');
+    titleEl.className = 'site-banner-title';
+    titleEl.textContent = title;
+    const textEl = document.createElement('p');
+    textEl.className = 'site-banner-text';
+    textEl.textContent = text;
+    body.append(titleEl, textEl);
+    banner.appendChild(body);
+    return banner;
+};
+
+// Tab strips, for the keyboard and the screen reader (W3C's tabs pattern): a
+// [role="tablist"] whose buttons are its tabs. Which tab is picked is its class,
+// .is-active (the site's tab strip) or .active (the page tabs and the mode chips),
+// whoever set it; aria-selected and the strip's one Tab stop follow it here.
+const TAB_PICKED = ['is-active', 'active'];
+const keyClicks = new WeakSet();
+
+const shown = (el) => el.getClientRects().length > 0;
+
+function tabsOf(list) {
+    return [...list.querySelectorAll('button')].filter(b =>
+        b.closest('[role="tablist"]') === list && !b.classList.contains('sub-tab-remove'));
+}
+
+function syncTabList(list) {
+    const tabs = tabsOf(list);
+    const picked = tabs.find(t => TAB_PICKED.some(c => t.classList.contains(c)));
+    const stop = picked && !picked.hidden ? picked : tabs.find(t => !t.hidden && !t.classList.contains('hidden'));
+    const set = (el, name, value) => { if (el.getAttribute(name) !== value) el.setAttribute(name, value); };
+    tabs.forEach(tab => {
+        set(tab, 'role', 'tab');
+        set(tab, 'aria-selected', String(tab === picked));
+        set(tab, 'tabindex', tab === stop ? '0' : '-1');
+        // Whatever holds a tab inside the strip is only layout to a screen reader.
+        for (let up = tab.parentElement; up && up !== list; up = up.parentElement) set(up, 'role', 'presentation');
+        // A tab's remove button is the mouse's: the keyboard removes the tab with Delete.
+        const remove = tab.closest('.sub-tab-item') && tab.closest('.sub-tab-item').querySelector('.sub-tab-remove');
+        if (remove) {
+            set(remove, 'aria-hidden', 'true');
+            set(remove, 'tabindex', '-1');
+            set(tab, 'aria-keyshortcuts', 'Delete');
+        }
+    });
+}
+
+const tabWatch = new MutationObserver((records) => {
+    const lists = new Set();
+    for (const record of records) {
+        const node = record.target;
+        if (record.type === 'attributes') {
+            const list = node.closest && node.closest('[role="tablist"]');
+            if (list) lists.add(list);
+            continue;
+        }
+        record.addedNodes.forEach(added => {
+            if (added.nodeType !== 1) return;
+            const own = added.closest('[role="tablist"]');
+            if (own) lists.add(own);
+            added.querySelectorAll('[role="tablist"]').forEach(l => lists.add(l));
+        });
+    }
+    lists.forEach(syncTabList);
+});
+tabWatch.observe(document.documentElement, {
+    subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden', 'role'],
+});
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[role="tablist"]').forEach(syncTabList);
+});
+
+/**
+ * Whether a click on a tab was the reader's own: a real click, or one the arrow keys
+ * made. Code that picks a tab for the reader (a section link's jump) is neither.
+ * @since v1.3
+ */
+window.clickedByReader = (event) => event.isTrusted || keyClicks.has(event);
+
+// A strip its own click draws again comes back as new buttons, and a removed tab is
+// gone: once focus has fallen to the page, the strip of the same name takes it. A box
+// the action asked in (are you sure?) is waited out; focus put anywhere else ends it.
+function refocusStrip(label, gone) {
+    const until = Date.now() + 10000;
+    const look = () => {
+        if (Date.now() > until) return;
+        const active = document.activeElement;
+        const lost = !active || active === document.body || active === gone;
+        if (!lost && !active.closest('dialog[open]')) return;
+        if (lost) {
+            const list = label && [...document.querySelectorAll('[role="tablist"]')]
+                .find(l => l.getAttribute('aria-label') === label && shown(l));
+            const stop = list && list.querySelector('[role="tab"][tabindex="0"]');
+            if (stop && stop !== gone) { stop.focus(); return; }
+        }
+        requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+}
+
+// The arrow keys move along a strip and open each tab they reach; Home and End go to
+// its ends; Delete removes a tab that has a remove button. Tab leaves the strip.
+document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    const tab = e.target instanceof Element ? e.target.closest('[role="tab"]') : null;
+    const list = tab && tab.closest('[role="tablist"]');
+    if (!list) return;
+    const label = list.getAttribute('aria-label');
+
+    if (e.key === 'Delete') {
+        const item = tab.closest('.sub-tab-item');
+        const remove = item && item.querySelector('.sub-tab-remove');
+        if (!remove) return;
+        e.preventDefault();
+        remove.click();
+        refocusStrip(label, tab);
+        return;
+    }
+
+    const tabs = tabsOf(list).filter(shown);
+    const at = tabs.indexOf(tab);
+    let next = null;
+    if (e.key === 'ArrowRight') next = tabs[(at + 1) % tabs.length];
+    else if (e.key === 'ArrowLeft') next = tabs[(at - 1 + tabs.length) % tabs.length];
+    else if (e.key === 'Home') next = tabs[0];
+    else if (e.key === 'End') next = tabs[tabs.length - 1];
+    if (!next || at < 0) return;
+    e.preventDefault();
+
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+    keyClicks.add(click);
+    next.dispatchEvent(click);
+    if (next.isConnected) next.focus();
+    else refocusStrip(label, next);
+});
 
 /**
  * The mobile preview switch on edit.html, overseer.html and post-editor.html: below

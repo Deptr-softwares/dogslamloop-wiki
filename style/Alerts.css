@@ -1,45 +1,50 @@
-/* Alerts and callouts: a page's banner alerts (WIP, Early Access, missing media),
-   the inline callout buttons Blocks draw, and the banner on a page 404.html rescues.
+/* Alerts and callouts: the site's banner (a page's alerts, the line on a page
+   404.html rescues, the Playground's and the Overseer's lines) and the inline
+   callout buttons Blocks draw.
    Since v0.4.
-   Touches: --callout-color, set per callout by page_render.js.
+   Touches: --callout-color, set per callout by page_render.js; --banner-color.
    See: docs/looks.md */
 
-/* Banner alerts */
+/* The site's banner (window.siteBanner, site_utils.js): a notice that stays on the
+   page, with a coloured bar on its left. The page alerts, the rescued page's line,
+   the Editor Playground's line and the Overseer's batch line.
+   Since v1.3.
+   Touches: --banner-color, set by a .banner-<colour> class. */
 .character-alerts-container {
     display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;
 }
 
-.wiki-alert {
+.site-banner {
+    --banner-color: var(--accent-yellow);
     display: flex; align-items: flex-start; gap: 1rem;
     padding: 1rem 1.25rem;
-    border: 2px solid var(--border-color);
-    background-color: var(--bg-secondary);
-    box-shadow: 4px 4px 0px var(--manga-shadow);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--banner-color);
+    color: var(--text-primary);
 }
-
-.wiki-alert-icon { font-size: 1.5rem; line-height: 1; }
-
-.wiki-alert-content h4 {
-    margin: 0 0 0.25rem 0;
+.site-banner-icon { font-size: 1.5rem; line-height: 1; }
+.site-banner-body { min-width: 0; }
+.site-banner-title {
+    display: block;
+    margin: 0 0 0.25rem;
     font-family: var(--font-label), sans-serif;
     font-size: 0.9rem;
-    color: var(--text-white);
-    text-shadow: 1px 1px 0px var(--manga-shadow);
+    color: var(--banner-color);
 }
+.site-banner-text { margin: 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-primary); }
+/* The editor's and the Overseer's narrow columns. */
+.site-banner-small { gap: 0.6rem; padding: 0.55rem 0.8rem; }
+.site-banner-small .site-banner-title { font-size: 0.8rem; margin-bottom: 0.15rem; }
+.site-banner-small .site-banner-text { font-size: 0.75rem; }
 
-.wiki-alert-content p {
-    margin: 0; font-size: 0.85rem; color: var(--text-primary); line-height: 1.5;
-}
-
-.wiki-alert-content a { color: var(--accent-blue); text-decoration: underline; font-weight: bold; }
-
-/* Severity Modifiers */
-.alert-wip { border-color: var(--accent-yellow); }
-.alert-medialess { border-color: hsl(3, 93%, 63%); } 
-.alert-ea { border-color: hsl(28, 99%, 53%); } 
-.alert-unverified { border-color: hsl(295, 89.76%, 50.2%); } 
-.alert-subjective { border-color: hsl(180, 100%, 40%); } 
-.alert-outdated { border-color: hsl(215, 8%, 47%); } 
+.banner-yellow { --banner-color: var(--accent-yellow); }
+.banner-orange { --banner-color: hsl(28, 99%, 53%); }
+.banner-red { --banner-color: hsl(3, 93%, 63%); }
+.banner-magenta { --banner-color: hsl(295, 89.76%, 50.2%); }
+.banner-cyan { --banner-color: hsl(180, 100%, 40%); }
+.banner-grey { --banner-color: hsl(215, 8%, 47%); }
+.banner-green { --banner-color: #22c55e; }
 
 /* Inline callouts */
 
@@ -78,14 +83,4 @@
 }
 /* The rescue banner (page_rescue.js): the page is still an HTTP 404, so nothing
    indexes it until its stub is generated. */
-.rescue-banner {
-    padding: 0.75rem 1rem;
-    margin-bottom: 1.5rem;
-    background: var(--bg-secondary);
-    border: 2px dashed var(--accent-yellow);
-    color: var(--text-primary);
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    line-height: 1.6;
-}
-.rescue-banner strong { color: var(--accent-yellow); }
+.rescue-banner { margin-bottom: 1.5rem; }

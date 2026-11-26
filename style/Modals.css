@@ -440,31 +440,54 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
 .pubprofile-badges-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
 .pubprofile-badge { display: flex; align-items: center; gap: 0.6rem; }
 
-/* "BADGE EARNED", in the corner after a win. */
-.badge-toast {
+/* The toasts (window.showToast, site_utils.js): short messages in the top right
+   corner that go by themselves, newest on top. The shelf is a popover, in the top
+   layer, and inside the top open box while one is open.
+   Since v1.3.
+   Watch: a popover's own [popover] rule hides it while closed, and display: flex
+   here would beat that rule, so the closed state is restated. */
+.site-toasts {
     position: fixed;
-    right: 1rem;
-    bottom: 1rem;
-    z-index: 9000;
+    inset: 1rem 1rem auto auto;
+    z-index: 100001;
+    width: max-content;
+    max-width: min(380px, calc(100vw - 2rem));
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.6rem;
+}
+.site-toasts:not(:popover-open) { display: none; }
+.site-toast {
+    --toast-tone: #22c55e;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     box-sizing: border-box;
-    max-width: calc(100vw - 2rem);
+    max-width: 100%;
     padding: 0.75rem 0.9rem;
     background: var(--bg-secondary);
-    border: 2px solid #ff8c2e;
+    border: 2px solid var(--toast-tone);
     box-shadow: 4px 4px 0 var(--manga-shadow);
     font-family: var(--text-mono);
+    text-align: left;
 }
-.badge-toast-gold { border-color: #f2c94c; }
-.badge-toast-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-.badge-toast-head { font-size: 0.6rem; font-weight: bold; letter-spacing: 0.08em; color: #ff8c2e; }
-.badge-toast-gold .badge-toast-head { color: #f2c94c; }
-.badge-toast-text strong { font-size: 0.75rem; color: var(--text-white); overflow-wrap: anywhere; }
-.badge-toast-note { font-size: 0.65rem; color: var(--text-muted); }
-.badge-toast-login { flex: 0 0 auto; }
-.badge-toast-close {
+.site-toast.is-new { animation: modal-fade-in 0.15s ease-out; }
+html.reduce-motion .site-toast.is-new { animation: none; }
+.toast-badge { --toast-tone: #ff8c2e; }
+.toast-gold { --toast-tone: #f2c94c; }
+.site-toast-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.site-toast-head { font-size: 0.6rem; font-weight: bold; letter-spacing: 0.08em; color: var(--toast-tone); }
+.site-toast-msg { font-size: 0.75rem; font-weight: bold; line-height: 1.4; color: var(--text-white); overflow-wrap: anywhere; }
+.site-toast-note { font-size: 0.65rem; color: var(--text-muted); }
+.site-toast-action { flex: 0 0 auto; }
+.site-toast-close {
     align-self: flex-start;
     flex: 0 0 auto;
     padding: 0 0.2rem;
@@ -474,4 +497,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     color: var(--text-muted);
     cursor: pointer;
 }
-.badge-toast-close:hover, .badge-toast-close:focus-visible { color: var(--text-white); }
+.site-toast-close:hover, .site-toast-close:focus-visible { color: var(--text-white); }
+/* A phone: across the top of the screen. */
+@media (max-width: 640px) {
+    .site-toasts { inset: 0.75rem 0.75rem auto 0.75rem; width: auto; max-width: none; align-items: stretch; }
+}

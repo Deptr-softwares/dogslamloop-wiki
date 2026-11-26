@@ -14,7 +14,7 @@ function editorDraftPayload() {
     const tabId = window.currentEditorTabId || 'overview';
     let moveId = '';
 
-    const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+    const activeBtn = document.querySelector('[id^="move-nav-"].is-active');
     if (activeBtn && activeBtn.id.startsWith('move-nav-')) {
         moveId = activeBtn.id.replace('move-nav-', '');
     } else if (new URLSearchParams(window.location.search).get('move')) {
@@ -204,7 +204,7 @@ window.openDraftManager = function() {
             const currentTab = window.currentEditorTabId || 'overview';
             let currentMove = new URLSearchParams(window.location.search).get('move') || '';
             if (!currentMove) {
-                const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+                const activeBtn = document.querySelector('[id^="move-nav-"].is-active');
                 if (activeBtn && activeBtn.id.startsWith('move-nav-')) currentMove = activeBtn.id.replace('move-nav-', '');
             }
 

@@ -66,11 +66,7 @@ const BASELINE = {
     ],
     '/edit.html?page=crow_charmer': [
         'color-contrast #editor-subtitle',
-        'color-contrast #overview-nav-extra-0',
         'color-contrast #overview-nav-overview',
-        'color-contrast #overview-nav-playstyle',
-        'color-contrast #overview-nav-profile',
-        'color-contrast #overview-nav-strategy',
         'color-contrast .editor-section-banner-text',
         'target-size .daw-tab-insert-btn',
         'target-size button',

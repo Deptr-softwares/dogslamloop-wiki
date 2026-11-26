@@ -90,6 +90,12 @@ async function renderDiff(page, ticket) {
         return {
             html: container ? container.innerHTML : '',
             text: container ? container.innerText : '',
+            batch: (() => {
+                const b = container && container.querySelector('.diff-batch-banner');
+                if (!b) return null;
+                const s = getComputedStyle(b);
+                return { title: b.querySelector('.site-banner-title').textContent, bar: s.borderLeftColor, width: s.borderLeftWidth };
+            })(),
             locations: container
                 ? [...container.querySelectorAll('.diff-location-label')].map(n => n.innerText.trim())
                 : [],
@@ -103,7 +109,9 @@ test('every edit in a merged ticket is rendered, null keys included', async ({ p
 
     // The banner counts delta_payload.length, so it was always honest. The
     // render is what lied - assert the render, not the count.
-    expect(out.text).toContain('5 EDITS');
+    expect(out.text).toContain('5 edits in this submission.');
+    // The site's banner: a green bar on its left.
+    expect(out.batch).toEqual({ title: 'Batched submission', bar: 'rgb(34, 197, 94)', width: '5px' });
 
     // One location label per edit. Two was the bug.
     expect(out.locations.length,
@@ -145,7 +153,7 @@ test('one unrenderable edit cannot hide the rest', async ({ page }) => {
 
     const out = await renderDiff(page, poisoned);
 
-    expect(out.text).toContain('6 EDITS');
+    expect(out.text).toContain('6 edits in this submission.');
     expect(out.locations.length + (out.html.match(/could not be displayed/g) || []).length,
         'every edit must produce either a diff or an explicit failure row').toBeGreaterThanOrEqual(6);
 

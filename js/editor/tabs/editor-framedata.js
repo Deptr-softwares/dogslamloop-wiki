@@ -188,17 +188,19 @@ function initDawEditor(containerId, moveData) {
             let keys = Object.keys(walkNode.variants);
             let activeKey = activePath[depth];
 
-            variantTabsHtml += `<div class="daw-variant-tabs" style="margin-left: ${depth * 1}rem; padding-left: ${depth > 0 ? '0.5rem' : '0'}; border-left: ${depth > 0 ? '2px solid #333' : 'none'}; border-bottom: ${depth === activePath.length ? '1px solid #222' : 'none'};">`;
+            variantTabsHtml += `<div class="sub-tabs" style="margin-left: ${depth * 1}rem; padding-left: ${depth > 0 ? '0.5rem' : '0'}; border-left: ${depth > 0 ? '2px solid #333' : 'none'};">`;
 
+            if (keys.length) variantTabsHtml += `<div class="sub-tabs-list" role="tablist" aria-label="Micro Variants">`;
             keys.forEach(k => {
                 let v = walkNode.variants[k];
                 let isActive = (k === activeKey);
                 let pathStr = JSON.stringify(activePath.slice(0, depth).concat(k));
-                variantTabsHtml += `<button class="daw-tab-btn ${isActive ? 'active' : ''}" data-daw-path="${window.escapeHtml(pathStr)}">${window.escapeHtml(v.label || k)}</button>`;
+                variantTabsHtml += `<button class="sub-tab${isActive ? ' is-active' : ''}" data-daw-path="${window.escapeHtml(pathStr)}">${window.escapeHtml(v.label || k)}</button>`;
             });
 
+            if (keys.length) variantTabsHtml += `</div>`;
             let parentPathStr = JSON.stringify(activePath.slice(0, depth));
-            variantTabsHtml += `<button class="daw-tab-btn daw-tab-btn-add-variant" data-daw-add-variant="${window.escapeHtml(parentPathStr)}">+ ADD MICRO VARIANT</button></div>`;
+            variantTabsHtml += `<button class="btn-sys btn-sys-green sub-tabs-action" data-daw-add-variant="${window.escapeHtml(parentPathStr)}">+ ADD MICRO VARIANT</button></div>`;
 
             if (activeKey && walkNode.variants[activeKey]) {
                 walkNode = walkNode.variants[activeKey];
@@ -557,7 +559,7 @@ function initDawEditor(containerId, moveData) {
         const varLabel = container.querySelector('#daw-variant-label');
         if (varLabel) varLabel.addEventListener('input', (e) => {
             currentObj.label = e.target.value;
-            const activeBtns = container.querySelectorAll('.daw-variant-tabs .active');
+            const activeBtns = container.querySelectorAll('.sub-tabs .sub-tab.is-active');
             if(activeBtns.length > 0) activeBtns[activeBtns.length - 1].textContent = e.target.value;
         });
 

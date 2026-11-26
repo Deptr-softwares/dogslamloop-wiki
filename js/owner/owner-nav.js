@@ -20,7 +20,7 @@ function showOwnerGroup(name) {
     const target = known ? name : groups[0].dataset.group;
 
     groups.forEach(g => { g.hidden = g.dataset.group !== target; });
-    buttons.forEach(b => b.classList.toggle('active', b.dataset.group === target));
+    buttons.forEach(b => b.classList.toggle('is-active', b.dataset.group === target));
 
     try {
         localStorage.setItem(OWNER_GROUP_KEY, target);

@@ -59,10 +59,13 @@
 
     const header = byId('editor-header');
     if (header) {
-        const banner = document.createElement('p');
-        banner.className = 'playground-banner';
-        banner.setAttribute('role', 'note');
-        banner.innerHTML = '<strong>PLAYGROUND.</strong> Nothing you do here is sent anywhere or seen by anyone. It stays in this browser until you press NEW.';
+        const banner = window.siteBanner({
+            tone: 'yellow',
+            title: 'Playground',
+            text: 'Nothing you do here is sent anywhere or seen by anyone. It stays in this browser until you press NEW.',
+            small: true,
+            className: 'playground-banner',
+        });
         header.insertAdjacentElement('afterend', banner);
     }
 

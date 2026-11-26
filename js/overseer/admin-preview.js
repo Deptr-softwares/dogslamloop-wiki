@@ -586,7 +586,14 @@ async function switchVersionView(mode) {
             };
 
             if (rev.target_scope === 'multi') {
-                diffContainer.innerHTML += `<div class="diff-batch-banner">BATCHED MULTI-PAYLOAD DETECTED (${rev.delta_payload.length} EDITS)</div>`;
+                const edits = rev.delta_payload.length;
+                diffContainer.appendChild(window.siteBanner({
+                    tone: 'green',
+                    title: 'Batched submission',
+                    text: `${edits} ${edits === 1 ? 'edit' : 'edits'} in this submission.`,
+                    small: true,
+                    className: 'diff-batch-banner',
+                }));
 
                 // One entry that throws must not hide the rest of the ticket.
                 rev.delta_payload.forEach((edit, i) => {

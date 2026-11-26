@@ -97,6 +97,6 @@ test('a different variant is a different timeline, and starts at its beginning',
   await page.locator('.daw-timeline-wrapper').evaluate(el => { el.scrollLeft = 900; });
 
   await page.locator('[data-daw-path]').filter({ hasText: 'Other' }).click();
-  await expect(page.locator('[data-daw-path].active')).toContainText('Other');
+  await expect(page.locator('[data-daw-path].is-active')).toContainText('Other');
   expect(await scrollOf(page)).toBe(0);
 });

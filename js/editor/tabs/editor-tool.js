@@ -54,7 +54,7 @@
         const hasOwnRenderer = !!(window.WIKI_TOOLS && window.WIKI_TOOLS[window.currentEditorCharId]);
 
         const sectionTabs = SECTIONS.map(s => `
-            <button class="daw-tab-btn${s.id === active.id ? ' active' : ''}" data-tool-section="${s.id}">${window.escapeHtml(s.label)}</button>
+            <button class="sub-tab${s.id === active.id ? ' is-active' : ''}" data-tool-section="${s.id}">${window.escapeHtml(s.label)}</button>
         `).join('');
 
         builder.innerHTML = `
@@ -112,7 +112,7 @@
                 <span class="editor-section-banner-text">PAGE TEXT</span>
             </div>
 
-            <div class="daw-variant-tabs daw-editor-nav-row" id="tool-section-tabs">${sectionTabs}</div>
+            <div class="sub-tabs sub-tabs-scroll editor-nav-row" id="tool-section-tabs" role="tablist" aria-label="Tool sections">${sectionTabs}</div>
             <p class="tool-editor-hint">${window.escapeHtml(active.hint)}</p>
             <div id="tool-block-target"></div>
         `;

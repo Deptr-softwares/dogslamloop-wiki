@@ -229,9 +229,9 @@ html.look-classic .wiki-accordion-summary { color: var(--text-primary); font-siz
 html.look-classic .wiki-accordion-body { background: none; border-top-style: solid; }
 html.look-classic .sbox-boxed,
 html.look-classic .wiki-block-list-boxed { border-width: 1px; box-shadow: none; }
-html.look-classic .sbox-tabs { border-bottom-width: 1px; }
-html.look-classic .sbox-tab { font-size: 0.8rem; letter-spacing: 0; }
-html.look-classic .sbox-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
+html.look-classic .sub-tabs { border-bottom-width: 1px; }
+html.look-classic .sub-tab { font-size: 0.8rem; letter-spacing: 0; }
+html.look-classic .sub-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
 /* The hover tooltip draws its own border inline (site_media.js). */
 html.look-classic #wiki-frame-tooltip { border-width: 1px; }
 
@@ -244,7 +244,7 @@ html.look-classic :is(.manga-option:hover, .manga-option.is-active) { padding-le
 html.look-classic .manga-option.selected { border-left: 0; font-weight: bold; }
 
 /* Words the default look writes in capitals read as written. */
-html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sbox-tab, .manga-select-trigger, .manga-option) {
+html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option) {
     text-transform: none;
     font-family: Arial, Helvetica, sans-serif;
 }

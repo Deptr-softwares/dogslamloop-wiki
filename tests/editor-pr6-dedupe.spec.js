@@ -2,8 +2,8 @@
 // editor (renderSystemEditor, switchSystemTab/Section, addSystemTab/
 // Section, updateSystemMeta). Every occurrence in this range turned out to
 // exactly match a class already established in PR2 (initFullTabEditor's
-// tab-with-a-remove-button pattern: .daw-tab-item/.daw-tab-btn-removable/
-// .daw-tab-remove-btn, .daw-editor-nav-row) or PR3/PR4
+// tab-with-a-remove-button pattern, now the site's tab strip: .sub-tab-item/
+// .sub-tab-removable/.sub-tab-remove, .editor-nav-row) or PR3/PR4
 // (.block-editor-container-tight, .block-field-label-sm) - reused directly
 // rather than creating near-duplicate copies, plus 6 new classes for the
 // section-tabs row/button color, the add-tab/add-section button font-size,
@@ -33,26 +33,26 @@ test.beforeEach(async ({ page }) => {
   }, SAMPLE_DESC);
 });
 
-test('main tabs row reuses .daw-editor-nav-row and the tab-with-remove-button pattern, no inline styles', async ({ page }) => {
-  const row = page.locator('#system-editor-test .daw-variant-tabs.daw-editor-nav-row');
+test('main tabs row reuses .editor-nav-row and the tab-with-remove-button pattern, no inline styles', async ({ page }) => {
+  const row = page.locator('#system-editor-test .sub-tabs.editor-nav-row');
   await expect(row).toBeVisible();
   expect(await row.evaluate(el => el.hasAttribute('style'))).toBe(false);
   expect(await row.evaluate(el => getComputedStyle(el).marginBottom)).toBe('8px'); // 0.5rem, not the base rule's 1rem
 
-  const items = row.locator('.daw-tab-item');
+  const items = row.locator('.sub-tab-item');
   await expect(items).toHaveCount(2);
   expect(await items.first().evaluate(el => el.hasAttribute('style'))).toBe(false);
 
-  const tabBtn = items.first().locator('.daw-tab-btn-removable');
+  const tabBtn = items.first().locator('.sub-tab-removable');
   expect(await tabBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  expect(await tabBtn.evaluate(el => getComputedStyle(el).paddingRight)).toBe('24px'); // 1.5rem
+  expect(await tabBtn.evaluate(el => getComputedStyle(el).paddingRight)).toBe('25.6px'); // 1.6rem
 
-  const removeBtn = items.first().locator('.daw-tab-remove-btn');
+  const removeBtn = items.first().locator('.sub-tab-remove');
   expect(await removeBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
 });
 
-test('real bug fix check: section-tabs row wins its border-bottom tie while still inheriting the base rule\'s own margin-bottom', async ({ page }) => {
-  const row = page.locator('#system-editor-test .daw-variant-tabs.system-section-tabs-row');
+test('the section-tabs row is the site\'s tab strip on its own darker band', async ({ page }) => {
+  const row = page.locator('#system-editor-test .sub-tabs.system-section-tabs-row');
   await expect(row).toBeVisible();
   expect(await row.evaluate(el => el.hasAttribute('style'))).toBe(false);
   const cs = await row.evaluate(el => ({
@@ -60,26 +60,28 @@ test('real bug fix check: section-tabs row wins its border-bottom tie while stil
     borderBottomColor: getComputedStyle(el).borderBottomColor,
     background: getComputedStyle(el).backgroundColor,
   }));
-  expect(cs.marginBottom).toBe('16px'); // 1rem - the base .daw-variant-tabs rule's own value, not daw-editor-nav-row's 0.5rem
-  expect(cs.borderBottomColor).toBe('rgb(51, 51, 51)'); // #333, not the base rule's #222
+  expect(cs.marginBottom).toBe('12px'); // 0.75rem, the strip's own, not .editor-nav-row's 0.5rem
+  expect(cs.borderBottomColor).toBe(await row.evaluate(() => { const p = document.createElement('i'); p.style.color = 'var(--border-color)'; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }));
   expect(cs.background).toBe('rgba(0, 0, 0, 0.2)');
 });
 
-test('real bug fix check: section tab button wins its color tie against .daw-tab-btn base rule', async ({ page }) => {
+test('the open section\'s tab is purple, like its + ADD SECTION, and keeps the remove button\'s room', async ({ page }) => {
   const sectionBtn = page.locator('#system-editor-test .system-section-tab-btn').first();
   await expect(sectionBtn).toBeVisible();
   expect(await sectionBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  expect(await sectionBtn.evaluate(el => getComputedStyle(el).color)).toBe('rgb(168, 85, 247)'); // #a855f7, not .daw-tab-btn's own #666
-  expect(await sectionBtn.evaluate(el => getComputedStyle(el).paddingRight)).toBe('24px'); // still gets daw-tab-btn-removable's padding
+  await expect(sectionBtn).toHaveClass(/\bis-active\b/);
+  expect(await sectionBtn.evaluate(el => getComputedStyle(el).color)).toBe('rgb(168, 85, 247)'); // #a855f7
+  expect(await sectionBtn.evaluate(el => getComputedStyle(el).borderTopColor)).toBe('rgb(168, 85, 247)');
+  expect(await sectionBtn.evaluate(el => getComputedStyle(el).paddingRight)).toBe('25.6px'); // .sub-tab-removable's room
 });
 
-test('real bug fix check: +ADD TAB / +ADD SECTION buttons win their font-size tie against .daw-tab-btn base rule', async ({ page }) => {
-  const addTabBtn = page.locator('#system-editor-test .system-tab-add-btn').filter({ hasText: 'ADD TAB' });
+test('+ADD TAB / +ADD SECTION are the strip\'s action buttons, at its type size', async ({ page }) => {
+  const addTabBtn = page.locator('#system-editor-test .sub-tabs-action').filter({ hasText: 'ADD TAB' });
   await expect(addTabBtn).toBeVisible();
   expect(await addTabBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  expect(await addTabBtn.evaluate(el => getComputedStyle(el).fontSize)).toBe('10.4px'); // 0.65rem, not .daw-tab-btn's own 0.7rem
+  expect(await addTabBtn.evaluate(el => getComputedStyle(el).fontSize)).toBe('10.4px'); // 0.65rem
 
-  const addSecBtn = page.locator('#system-editor-test .system-tab-add-btn').filter({ hasText: 'ADD SECTION' });
+  const addSecBtn = page.locator('#system-editor-test .sub-tabs-action').filter({ hasText: 'ADD SECTION' });
   expect(await addSecBtn.evaluate(el => getComputedStyle(el).fontSize)).toBe('10.4px');
 });
 
@@ -126,10 +128,10 @@ test('switchSystemTab/addSystemSection still work end-to-end after the markup ch
     window.renderSystemEditor(document.getElementById('interactive-builder'));
   }, SAMPLE_DESC);
 
-  await page.locator('#interactive-builder .daw-tab-item').nth(1).locator('.daw-tab-btn-removable').click();
+  await page.locator('#interactive-builder .sub-tab-item').nth(1).locator('.sub-tab-removable').click();
   await expect(page.locator('#interactive-builder .system-section-tab-btn').filter({ hasText: 'Details' })).toBeVisible();
 
-  await page.locator('#interactive-builder .system-tab-add-btn').filter({ hasText: 'ADD SECTION' }).click();
-  const sectionItems = page.locator('#interactive-builder .system-section-tabs-row .daw-tab-item');
+  await page.locator('#interactive-builder .sub-tabs-action').filter({ hasText: 'ADD SECTION' }).click();
+  const sectionItems = page.locator('#interactive-builder .system-section-tabs-row .sub-tab-item');
   await expect(sectionItems).toHaveCount(2);
 });

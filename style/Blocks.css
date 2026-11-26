@@ -422,19 +422,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 .sbox-title { font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); margin: 0 0 0.5rem; }
 .sbox-intro { margin-bottom: 0.75rem; }
 
-.sbox-tabs {
-    display: flex; flex-wrap: wrap; gap: 0.35rem;
-    border-bottom: 2px solid var(--border-color); margin-bottom: 0.75rem;
-}
-.sbox-tab {
-    background: none; border: 1px solid var(--border-color); border-bottom: none;
-    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.65rem;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    padding: 0.35rem 0.7rem; cursor: pointer;
-}
-.sbox-tab:hover { color: var(--text-white); }
-.sbox-tab.is-active { background: var(--bg-main); color: var(--accent-blue); border-color: var(--accent-blue); }
-
+/* The tabs are the site's tab strip, .sub-tabs (Buttons.css). */
 /* Not flex, for the reason on .wiki-accordion-body: a panel holds floated media. */
 .sbox-panel { display: none; }
 .sbox-panel.is-active { display: block; }

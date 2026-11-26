@@ -599,6 +599,8 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
 
                     const tabBar = document.createElement('div');
                     tabBar.className = 'skill-tab-bar';
+                    tabBar.setAttribute('role', 'tablist');
+                    tabBar.setAttribute('aria-label', 'Variants');
                     
                     if (prefixId !== move.id) {
                         tabBar.classList.add('skill-tab-bar-nested');

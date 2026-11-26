@@ -6,20 +6,20 @@
     <title>Staff Overseer | Revision Queue</title>
     
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Buttons.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Modals.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Forms.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Badges.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Alerts.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Cards.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/FrameData.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Layout.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Blocks.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/tierlist.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/editor.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/admin.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Common.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Buttons.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Modals.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Forms.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Badges.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Alerts.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Cards.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/FrameData.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Layout.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Blocks.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/tierlist.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/editor.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/admin.css?v=fc51ef07">
     <!-- END GENERATED: styles -->
     
 </head>
@@ -68,11 +68,11 @@
                     js/overseer/admin-core.js shows the tabs a person is here for and
                     opens the first of them.
                 -->
-                <div id="admin-queue-tabs" class="admin-queue-tabs" role="tablist" aria-label="Queues">
-                    <button type="button" role="tab" class="admin-queue-tab active" data-queue-tab="revisions" aria-selected="true">Pending Queue<span class="admin-queue-count" data-queue-count="revisions"></span></button>
-                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="media" aria-selected="false">Media Queue<span class="admin-queue-count" data-queue-count="media"></span></button>
-                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="reports" aria-selected="false">Reports<span class="admin-queue-count" data-queue-count="reports"></span></button>
-                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="history" aria-selected="false">Page History</button>
+                <div id="admin-queue-tabs" class="sub-tabs admin-queue-tabs" role="tablist" aria-label="Queues">
+                    <button type="button" role="tab" class="sub-tab admin-queue-tab is-active" data-queue-tab="revisions" aria-selected="true">Pending Queue<span class="admin-queue-count" data-queue-count="revisions"></span></button>
+                    <button type="button" role="tab" class="sub-tab admin-queue-tab" data-queue-tab="media" aria-selected="false">Media Queue<span class="admin-queue-count" data-queue-count="media"></span></button>
+                    <button type="button" role="tab" class="sub-tab admin-queue-tab" data-queue-tab="reports" aria-selected="false">Reports<span class="admin-queue-count" data-queue-count="reports"></span></button>
+                    <button type="button" role="tab" class="sub-tab admin-queue-tab" data-queue-tab="history" aria-selected="false">Page History</button>
                 </div>
 
                 <section class="admin-queue-panel" data-queue-panel="revisions">
@@ -278,7 +278,7 @@
                          js/overseer/admin-modes.js and hidden for every page that
                          declares no states, which is most of them. -->
                     <div id="preview-mode-bar" class="character-mode-bar admin-preview-mode-bar hidden" role="tablist" aria-label="Character state"></div>
-                    <nav id="preview-tab-nav" class="admin-preview-tab-nav hidden" aria-label="Revision sections">
+                    <nav id="preview-tab-nav" class="admin-preview-tab-nav hidden" role="tablist" aria-label="Revision sections">
                         <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview &amp; Strategy</span></div></button>
                         <button id="nav-m1s" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
                         <button id="nav-skills" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Skills</span></div></button>
@@ -357,33 +357,33 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=c535b9ff"></script>
-    <script src="js/utility/input_slots.js?v=c535b9ff"></script>
-    <script src="js/utility/site_utils.js?v=c535b9ff"></script>
-    <script src="js/utility/site_data.js?v=c535b9ff"></script>
-    <script src="js/utility/site_media.js?v=c535b9ff"></script>
-    <script src="js/utility/site_account.js?v=c535b9ff"></script>
-    <script src="js/utility/site_lookups.js?v=c535b9ff"></script>
-    <script src="js/utility/submission_delta.js?v=c535b9ff"></script>
-    <script src="js/pages/core/page_shell.js?v=c535b9ff"></script>
-    <script src="js/utility/search.js?v=c535b9ff"></script>
-    <script src="js/pages/core/skill_card.js?v=c535b9ff"></script>
-    <script src="js/pages/core/page_render.js?v=c535b9ff"></script>
-    <script src="js/pages/core/format_tags.js?v=c535b9ff"></script>
-    <script src="js/pages/tier-lists/tierlist.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-core.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-queue.js?v=c535b9ff"></script>
-    <script src="js/utility/diff-markers.js?v=c535b9ff"></script>
-    <script src="js/utility/side-by-side.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-diff.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-modes.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-preview.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-tickets.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-actions.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-merge-compiler.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-history.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-media-queue.js?v=c535b9ff"></script>
-    <script src="js/overseer/admin-reports.js?v=c535b9ff"></script>
+    <script src="js/utility/character_tabs.js?v=fc51ef07"></script>
+    <script src="js/utility/input_slots.js?v=fc51ef07"></script>
+    <script src="js/utility/site_utils.js?v=fc51ef07"></script>
+    <script src="js/utility/site_data.js?v=fc51ef07"></script>
+    <script src="js/utility/site_media.js?v=fc51ef07"></script>
+    <script src="js/utility/site_account.js?v=fc51ef07"></script>
+    <script src="js/utility/site_lookups.js?v=fc51ef07"></script>
+    <script src="js/utility/submission_delta.js?v=fc51ef07"></script>
+    <script src="js/pages/core/page_shell.js?v=fc51ef07"></script>
+    <script src="js/utility/search.js?v=fc51ef07"></script>
+    <script src="js/pages/core/skill_card.js?v=fc51ef07"></script>
+    <script src="js/pages/core/page_render.js?v=fc51ef07"></script>
+    <script src="js/pages/core/format_tags.js?v=fc51ef07"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-core.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-queue.js?v=fc51ef07"></script>
+    <script src="js/utility/diff-markers.js?v=fc51ef07"></script>
+    <script src="js/utility/side-by-side.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-diff.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-modes.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-preview.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-tickets.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-actions.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-merge-compiler.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-history.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-media-queue.js?v=fc51ef07"></script>
+    <script src="js/overseer/admin-reports.js?v=fc51ef07"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>

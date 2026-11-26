@@ -115,7 +115,7 @@ test('a Combo List cannot be moved off either end', async ({ page }) => {
 // --- v0.18 F4: THE ROWS INSIDE ONE COMBO LIST ---
 //
 // A different mechanism from everything above, and the file says so rather than
-// leaving the next reader to wonder why. Rows are not `.daw-tab-item` entries
+// leaving the next reader to wonder why. Rows are not `.sub-tab-item` entries
 // and have no selected state - opening one opens a modal - so the fixed
 // reorder bar, which acts on "the selected entry", has nothing to act on. The
 // controls are per row, and vertical, because the list is.

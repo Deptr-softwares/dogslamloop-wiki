@@ -179,9 +179,9 @@ test('a timeline takes its own media in the editor, and gives it up when the fie
   await expect.poll(async () => (await storedMove(page)).variants.hit.media.width, { timeout: 10000 }).toBeGreaterThan(0);
 
   // Each timeline shows its own fields.
-  await page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'On Whiff' }).click();
+  await page.locator('.daw-variant-wrapper .sub-tab', { hasText: 'On Whiff' }).click();
   await expect(page.getByPlaceholder('Micro Variant Media Src')).toHaveValue('');
-  await page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'On Hit' }).click();
+  await page.locator('.daw-variant-wrapper .sub-tab', { hasText: 'On Hit' }).click();
   await expect(page.getByPlaceholder('Micro Variant Media Src')).toHaveValue(HIT_MEDIA);
 
   // Emptied: gone, so a timeline nobody gave media to and one that had it

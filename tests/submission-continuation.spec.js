@@ -138,6 +138,9 @@ test('pressing the button again updates the submission it just made', async ({ p
     window.currentEditorDescData.matchups[0].tier = 'Advantage';
   });
   await submit(page);
+  // Said in a toast once the button has shown UPDATED!, not in a box.
+  await expect(page.locator('.site-toast-msg')).toHaveText('Your submission is updated.', { timeout: 8000 });
+  expect(await page.evaluate(() => window.__alerts)).toEqual([]);
 
   const out = await page.evaluate(() => ({ inserted: window.__inserted.length, updated: window.__updated }));
   expect(out.inserted, 'no second submission').toBe(1);

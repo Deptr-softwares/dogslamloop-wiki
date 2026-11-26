@@ -127,6 +127,10 @@ test('opens as a blank character page for anyone, with the banner, and Pull wher
     await expect(page.locator('#editor-subtitle')).toHaveText('A blank character page.');
     await expect(page.locator('.playground-banner')).toBeVisible();
     await expect(page.locator('.playground-banner')).toContainText('Nothing you do here is sent anywhere or seen by anyone.');
+    // The site's banner: a yellow bar on its left.
+    await expect(page.locator('.playground-banner .site-banner-title')).toHaveText('Playground');
+    await expect(page.locator('.playground-banner')).toHaveCSS('border-left-width', '5px');
+    await expect(page.locator('.playground-banner')).toHaveCSS('border-left-color', 'rgb(231, 176, 8)');
     await expect(page.locator('#submit-payload-btn')).toHaveText('Pull');
     await expect(page.locator('#btn-playground-new')).toBeVisible();
     await expect(page.locator('#btn-drafts')).toBeHidden();

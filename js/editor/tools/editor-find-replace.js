@@ -401,7 +401,7 @@
                     return window.replaceAllMatches(searchRoot(), needle, replacement, currentOptions());
                 });
                 renderResults();
-                if (typeof window.editorAlert === 'function') window.editorAlert(`Replaced ${count} occurrence(s).`);
+                window.showToast(`Replaced ${count} occurrence(s).`);
             });
         }
     });

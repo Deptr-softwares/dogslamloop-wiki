@@ -450,7 +450,7 @@ window.openMergeCompiler = async function(pageId) {
         }
 
         modal.close();
-        window.adminAlert(`Successfully merged ${selectedTicketIds.size} tickets!`);
+        window.showToast(`Successfully merged ${selectedTicketIds.size} tickets!`);
 
         resetPreviewState();
         loadQueue();

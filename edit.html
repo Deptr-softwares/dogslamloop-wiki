@@ -6,19 +6,19 @@
     <title>Wiki Contributor Editor</title>
     
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Buttons.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Modals.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Forms.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Badges.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Alerts.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Cards.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/FrameData.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Layout.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/Blocks.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/tierlist.css?v=c535b9ff">
-    <link rel="stylesheet" href="style/editor.css?v=c535b9ff">
+    <link rel="stylesheet" href="style/Common.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Buttons.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Modals.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Forms.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Badges.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Alerts.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Cards.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/FrameData.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Layout.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/Blocks.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/tierlist.css?v=fc51ef07">
+    <link rel="stylesheet" href="style/editor.css?v=fc51ef07">
     <!-- END GENERATED: styles -->
 </head>
 <body>
@@ -261,7 +261,7 @@
             <div id="editor-mode-bar" class="character-mode-bar editor-mode-bar hidden" aria-label="Character state"></div>
             <div id="editor-mode-controls" class="editor-mode-controls hidden"></div>
 
-            <nav id="editor-tab-nav" class="editor-tab-nav hidden" aria-label="Character sections">
+            <nav id="editor-tab-nav" class="editor-tab-nav hidden" role="tablist" aria-label="Character sections">
                 <button id="edit-nav-overview" class="btn-manga btn-manga-slanted active" onclick="window.switchEditorTab('overview')"><div class="btn-manga-content"><span class="btn-manga-text">Overview</span></div></button>
                 <button id="edit-nav-m1s" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('m1s')"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
                 <button id="edit-nav-skills" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('skills')"><div class="btn-manga-content"><span class="btn-manga-text">Skills</span></div></button>
@@ -323,45 +323,45 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=c535b9ff"></script>
-    <script src="js/utility/input_slots.js?v=c535b9ff"></script>
-    <script src="js/utility/site_utils.js?v=c535b9ff"></script>
-    <script src="js/utility/site_data.js?v=c535b9ff"></script>
-    <script src="js/utility/site_media.js?v=c535b9ff"></script>
-    <script src="js/utility/site_account.js?v=c535b9ff"></script>
-    <script src="js/utility/site_lookups.js?v=c535b9ff"></script>
-    <script src="js/utility/submission_delta.js?v=c535b9ff"></script>
-    <script src="js/pages/core/page_shell.js?v=c535b9ff"></script>
-    <script src="js/utility/search.js?v=c535b9ff"></script>
-    <script src="js/pages/core/skill_card.js?v=c535b9ff"></script>
-    <script src="js/pages/core/page_render.js?v=c535b9ff"></script>
-    <script src="js/pages/core/format_tags.js?v=c535b9ff"></script>
-    <script src="js/editor/tools/editor-playground.js?v=c535b9ff"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=c535b9ff"></script>
-    <script src="js/editor/core/editor-config.js?v=c535b9ff"></script>
-    <script src="js/editor/core/editor-modes.js?v=c535b9ff"></script>
-    <script src="js/editor/core/editor-core.js?v=c535b9ff"></script>
-    <script src="js/editor/tabs/editor-tabs.js?v=c535b9ff"></script>
-    <script src="js/editor/tabs/editor-framedata.js?v=c535b9ff"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=c535b9ff"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=c535b9ff"></script>
-    <script src="js/editor/tools/editor-previews.js?v=c535b9ff"></script>
-    <script src="js/utility/diff-markers.js?v=c535b9ff"></script>
-    <script src="js/utility/side-by-side.js?v=c535b9ff"></script>
-    <script src="js/editor/core/editor-sync.js?v=c535b9ff"></script>
-    <script src="js/editor/core/editor-drafts.js?v=c535b9ff"></script>
-    <script src="js/editor/tools/editor-media.js?v=c535b9ff"></script>
-    <script src="js/editor/tabs/editor-system.js?v=c535b9ff"></script>
-    <script src="js/pages/types/tool_page.js?v=c535b9ff"></script>
-    <script src="js/editor/tabs/editor-tool.js?v=c535b9ff"></script>
-    <script src="js/pages/types/gallery.js?v=c535b9ff"></script>
-    <script src="js/editor/tabs/editor-gallery.js?v=c535b9ff"></script>
-    <script src="js/pages/tier-lists/tierlist.js?v=c535b9ff"></script>
-    <script src="js/editor/blocks/editor-reorder.js?v=c535b9ff"></script>
-    <script src="js/editor/tools/editor-find-replace.js?v=c535b9ff"></script>
-    <script src="js/editor/tools/editor-writing-checks.js?v=c535b9ff"></script>
-    <script src="js/editor/tools/editor-notices.js?v=c535b9ff"></script>
-    <script src="js/editor/tools/editor-tutorial.js?v=c535b9ff"></script>
+    <script src="js/utility/character_tabs.js?v=fc51ef07"></script>
+    <script src="js/utility/input_slots.js?v=fc51ef07"></script>
+    <script src="js/utility/site_utils.js?v=fc51ef07"></script>
+    <script src="js/utility/site_data.js?v=fc51ef07"></script>
+    <script src="js/utility/site_media.js?v=fc51ef07"></script>
+    <script src="js/utility/site_account.js?v=fc51ef07"></script>
+    <script src="js/utility/site_lookups.js?v=fc51ef07"></script>
+    <script src="js/utility/submission_delta.js?v=fc51ef07"></script>
+    <script src="js/pages/core/page_shell.js?v=fc51ef07"></script>
+    <script src="js/utility/search.js?v=fc51ef07"></script>
+    <script src="js/pages/core/skill_card.js?v=fc51ef07"></script>
+    <script src="js/pages/core/page_render.js?v=fc51ef07"></script>
+    <script src="js/pages/core/format_tags.js?v=fc51ef07"></script>
+    <script src="js/editor/tools/editor-playground.js?v=fc51ef07"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=fc51ef07"></script>
+    <script src="js/editor/core/editor-config.js?v=fc51ef07"></script>
+    <script src="js/editor/core/editor-modes.js?v=fc51ef07"></script>
+    <script src="js/editor/core/editor-core.js?v=fc51ef07"></script>
+    <script src="js/editor/tabs/editor-tabs.js?v=fc51ef07"></script>
+    <script src="js/editor/tabs/editor-framedata.js?v=fc51ef07"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=fc51ef07"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=fc51ef07"></script>
+    <script src="js/editor/tools/editor-previews.js?v=fc51ef07"></script>
+    <script src="js/utility/diff-markers.js?v=fc51ef07"></script>
+    <script src="js/utility/side-by-side.js?v=fc51ef07"></script>
+    <script src="js/editor/core/editor-sync.js?v=fc51ef07"></script>
+    <script src="js/editor/core/editor-drafts.js?v=fc51ef07"></script>
+    <script src="js/editor/tools/editor-media.js?v=fc51ef07"></script>
+    <script src="js/editor/tabs/editor-system.js?v=fc51ef07"></script>
+    <script src="js/pages/types/tool_page.js?v=fc51ef07"></script>
+    <script src="js/editor/tabs/editor-tool.js?v=fc51ef07"></script>
+    <script src="js/pages/types/gallery.js?v=fc51ef07"></script>
+    <script src="js/editor/tabs/editor-gallery.js?v=fc51ef07"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=fc51ef07"></script>
+    <script src="js/editor/blocks/editor-reorder.js?v=fc51ef07"></script>
+    <script src="js/editor/tools/editor-find-replace.js?v=fc51ef07"></script>
+    <script src="js/editor/tools/editor-writing-checks.js?v=fc51ef07"></script>
+    <script src="js/editor/tools/editor-notices.js?v=fc51ef07"></script>
+    <script src="js/editor/tools/editor-tutorial.js?v=fc51ef07"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>
