@@ -8,6 +8,8 @@
    restyling it would make it a second design.
    See: docs/tier-lists.md */
 
+@layer site {
+
 /* The workspace scrolls: .editor-workspace hides overflow for an inner scroll
    region, and this page does not load admin.css, whose classes it carries. */
 .editor-workspace .admin-sidebar-content {
@@ -167,3 +169,4 @@
 /* One Block editor, two documents: the switch reads as "which am I writing", so
    the inactive one stays a tab. */
 .sub-tabs.tier-doc-switch { margin-bottom: 0.6rem; }
+}

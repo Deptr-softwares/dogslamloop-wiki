@@ -11,6 +11,8 @@
    so a rule here loses a tie to one of theirs.
    See: docs/looks.md */
 
+@layer site {
+
 /* Scaffolding */
 .site-layout {
     display: flex;
@@ -722,3 +724,4 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-family: var(--text-mono); font-size: 0.6rem;
 }
 .site-search-more:hover { background: var(--accent-blue); color: #000; }
+}

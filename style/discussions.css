@@ -6,6 +6,8 @@
    Watch: the only shared classes here are .btn-sys and .btn-manga, used as they are.
    See: docs/discussions.md */
 
+@layer site {
+
 /* The header row: the state chips and the jump button side by side. The button is a
    sibling of #character-mode-bar, which hides itself for a character with fewer than
    two states. The row's top margin replaces the bar's, so the spacing under the
@@ -959,4 +961,5 @@ button.discussion-author-link:focus-visible {
     font-size: 0.8rem;
     color: var(--text-white);
     overflow-wrap: anywhere;
+}
 }

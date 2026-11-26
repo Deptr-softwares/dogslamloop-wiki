@@ -8,6 +8,8 @@
    board and tray load this sheet too, for .tier-badge.
    See: docs/tier-lists.md */
 
+@layer site {
+
 /* Bigger icons, less space between them, on this page only. */
 #tier-list-ui .tier-portrait {
     width: 78px;
@@ -293,4 +295,5 @@
     min-width: 0;
     /* The label may wrap rather than force the row wider than the sidebar. */
     white-space: normal;
+}
 }

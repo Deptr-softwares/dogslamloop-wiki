@@ -3,6 +3,8 @@
    Touches: post-editor.html, js/owner/post-editor.js.
    See: docs/owner-tools.md */
 
+@layer site {
+
 /* Post editor (post-editor.html) */
 .post-editor-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 .post-editor-status { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); margin: 0.75rem 0 0 0; min-height: 1em; }
@@ -12,3 +14,4 @@
 .post-admin-row-main { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .post-admin-row-title { color: var(--text-white); }
 .post-admin-row-actions { display: flex; gap: 0.4rem; }
+}

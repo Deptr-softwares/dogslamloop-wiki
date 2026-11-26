@@ -3,6 +3,8 @@
    Since v1.0.
    See: docs/discussions.md */
 
+@layer site {
+
 .forum-header {
     display: flex;
     align-items: center;
@@ -214,4 +216,5 @@
 .forum-edit-btn[hidden],
 .forum-edit-form[hidden] {
     display: none;
+}
 }

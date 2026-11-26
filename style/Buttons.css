@@ -6,6 +6,8 @@
    and it is on every page with a button: check each page a change reaches.
    See: docs/looks.md */
 
+@layer site {
+
 /* Global reset */
 button {
     border: none;
@@ -246,4 +248,5 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     .btn-sys, .btn-manga, .filter-toggle {
         min-height: 44px;
     }
+}
 }

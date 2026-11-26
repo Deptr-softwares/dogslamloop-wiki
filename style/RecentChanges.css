@@ -3,6 +3,8 @@
    Touches: recent-changes.html.
    See: docs/records.md */
 
+@layer site {
+
 .recent-changes-pagination {
     display: flex; justify-content: space-between; align-items: center;
     background: var(--bg-main); padding: 0.5rem 1rem;
@@ -24,3 +26,4 @@
 .change-card-meta .reviewer { color: #34d399; }
 .change-card-changelog { font-size: 0.85rem; color: #d1d5db; line-height: 1.6; font-family: var(--text-mono); }
 .change-card-history-link { font-size: 0.75rem; margin-top: 0.75rem; display: inline-block; }
+}

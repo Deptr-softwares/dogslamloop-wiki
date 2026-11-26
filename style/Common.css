@@ -5,6 +5,11 @@
    Touches: --accent-blue and --character-ink, re-pointed per character page by
    site_lookups.js.
    See: docs/looks.md */
+
+/* The cascade layers, lowest first: a rule in a later layer wins over any rule in an earlier one. */
+@layer site;
+
+@layer site {
 /* WOFF2 first, about half the TTF's bytes; a browser without WOFF2 takes the TTF. */
 @font-face {
     font-family: 'Finger-Paint';
@@ -291,3 +296,4 @@ body {
 /* html.reduce-motion: an outline, held, instead of the wipe. */
 html.reduce-motion .anchor-flash::before { content: none; }
 html.reduce-motion .anchor-flash { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+}

@@ -11,6 +11,8 @@
    where its base rule comes later in this file, so specificity decides, not order.
    See: docs/overseer.md, docs/owner-tools.md */
 
+@layer site {
+
 /* The revision's tab strip: the same top strip as the page it will become. Its
    own class, since .character-nav is scoped to .character-header in Layout.css. */
 .admin-preview-tab-nav {
@@ -1027,4 +1029,5 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     opacity: 0.75;
     cursor: not-allowed;
     background: var(--bg-main);
+}
 }

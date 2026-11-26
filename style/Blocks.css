@@ -9,6 +9,8 @@
    on others: qualify a rule that could tie with a .btn-* rule.
    See: docs/character-page.md */
 
+@layer site {
+
 .update-table { width: 100%; font-size: 0.875rem; text-align: left; color: var(--text-primary); border-collapse: collapse; }
 .update-table th { padding: 0.5rem 0.75rem; font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--text-white); background-color: var(--bg-main); border-bottom: 2px solid var(--accent-blue); }
 .update-table td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); }
@@ -732,4 +734,5 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     border: 2px solid var(--border-color);
     background: var(--bg-secondary);
     padding: 0.85rem 1rem 0.85rem 2.1rem;
+}
 }

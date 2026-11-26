@@ -9,6 +9,8 @@
    size is scoped to .fs-entry.
    See: docs/tier-lists.md */
 
+@layer site {
+
 .fs-tool {
     display: flex;
     flex-direction: column;
@@ -317,4 +319,5 @@
     .fs-ballot-row { flex-direction: column; align-items: flex-start; }
     .fs-ballot-choices { width: 100%; }
     .fs-choice { flex: 1; min-width: 2.4rem; padding: 0.45rem 0.3rem; }
+}
 }

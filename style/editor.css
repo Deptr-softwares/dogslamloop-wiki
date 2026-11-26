@@ -11,6 +11,8 @@
    file order.
    See: docs/editor.md */
 
+@layer site {
+
 body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 
 .editor-layout {
@@ -2496,4 +2498,5 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
     font-size: 0.8rem;
     color: var(--accent-blue);
     text-transform: uppercase;
+}
 }

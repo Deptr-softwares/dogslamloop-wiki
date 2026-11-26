@@ -3,6 +3,8 @@
    Since v0.4.
    See: docs/looks.md */
 
+@layer site {
+
 /* Update and tag badges */
 .update-badge { 
     padding: 0.25rem 0.4rem 0.15rem 0.4rem; 
@@ -97,4 +99,5 @@
     border: 2px solid #050505;
     transform: skewX(10deg);
     box-shadow: 2px 2px 0px #000;
+}
 }

@@ -5,6 +5,8 @@
    Touches: --char-color, set per roster card by hub_roster.js.
    See: docs/looks.md */
 
+@layer site {
+
 /* The shared surface */
 .wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details {
     background-color: var(--bg-secondary);
@@ -253,3 +255,4 @@
     color: var(--text-white); text-shadow: 2px 2px 0 var(--manga-shadow);
 }
 .roster-banner-overview { margin: 0; color: var(--text-primary); font-size: 0.8rem; line-height: 1.45; }
+}

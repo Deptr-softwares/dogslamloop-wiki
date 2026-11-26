@@ -7,6 +7,8 @@
    with one there.
    See: docs/home.md */
 
+@layer site {
+
 /* Two columns, for the dashboard widgets; stacks below 900px like the 3-column grid. */
 .grid-layout-2col { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
 @media (min-width: 900px) {
@@ -318,3 +320,4 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .matchup-clashes a { color: var(--text-white); text-decoration: none; }
 .matchup-clashes a:hover { text-decoration: underline; }
 .matchup-clash-tier { font-weight: bold; }
+}

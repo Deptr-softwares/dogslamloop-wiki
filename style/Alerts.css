@@ -5,6 +5,8 @@
    Touches: --callout-color, set per callout by page_render.js; --banner-color.
    See: docs/looks.md */
 
+@layer site {
+
 /* The site's banner (window.siteBanner, site_utils.js): a notice that stays on the
    page, with a coloured bar on its left. The page alerts, the rescued page's line,
    the Editor Playground's line and the Overseer's batch line.
@@ -84,3 +86,4 @@
 /* The rescue banner (page_rescue.js): the page is still an HTTP 404, so nothing
    indexes it until its stub is generated. */
 .rescue-banner { margin-bottom: 1.5rem; }
+}
