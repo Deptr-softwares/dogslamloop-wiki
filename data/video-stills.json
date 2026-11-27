@@ -1427,6 +1427,12 @@
     "h": 1000,
     "etag": "\"580786119ecca5eda77ef61989d3a31c\""
   },
+  "NanamI_M1_1_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/4a119bb98afa0900.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"d0cf14b81b8316db01d312ecfaab5e8d\""
+  },
   "Nanami_Blunt_Cut_ONBLOCK_CHARGED_ntskellys.webm": {
     "still": "medias/stills/397b474df7f0b933.webp",
     "w": 1000,
@@ -1529,11 +1535,77 @@
     "h": 1000,
     "etag": "\"3883e97aa2d990c8a1e9e7f07235f745\""
   },
+  "Nanami_Cross_Cut_Ratio_Point_1_ntskellys.webm": {
+    "still": "medias/stills/9765ff8d2f7e74f9.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"a07bfaabe8373423bede2e5e3067745a\""
+  },
+  "Nanami_Cross_Cut_Ratio_Point_2_ntskellys.webm": {
+    "still": "medias/stills/b141f656a93e236f.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"be12bc2253e29b62d504a0a6845355ad\""
+  },
   "Nanami_Cross_Cut_Ratio_Point_FINISHER_ntskellys.webm": {
     "still": "medias/stills/3102318d1adf6778.webp",
     "w": 1000,
     "h": 1000,
     "etag": "\"0bf89750625c8253446a319122e4bad9\""
+  },
+  "Nanami_Downslam_ntskellys.webm": {
+    "still": "medias/stills/daea373880baed83.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"f334a9b3785bc35e31fc92488c93ba8a\""
+  },
+  "Nanami_M1_1_ONBLOCK_ntskellys.webm": {
+    "still": "medias/stills/fa1119b802b15b83.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"e81a17c01499dabd8e6800d0e493626e\""
+  },
+  "Nanami_M1_2_ONBLOCK_ntskellys.webm": {
+    "still": "medias/stills/676b52309c1c0aa8.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"60d1873eaffeae3121d6bb1a0f1229eb\""
+  },
+  "Nanami_M1_2_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/263eab4399c21c4f.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"eeb4d23df8c1b3c8bad1036c5dd71c50\""
+  },
+  "Nanami_M1_3_ONBLOCK_ntskellys.webm": {
+    "still": "medias/stills/2439c0aa6056b989.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"7decb3dd3e7370aa6a1949cdbf5ba853\""
+  },
+  "Nanami_M1_3_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/f18308c1ebbe693a.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"3b6ca333598a8550927a96664065050e\""
+  },
+  "Nanami_M1_4_ONBLOCK_ntskellys.webm": {
+    "still": "medias/stills/1f884b4df44dffd4.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"96877c7b85a67d7146815bd318d24120\""
+  },
+  "Nanami_M1_4_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/05ca82e6cdacf1b9.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"95616a37be16679daca1330ed8d39f57\""
+  },
+  "Nanami_M1_4_Ratio_Point_ntskellys.webm": {
+    "still": "medias/stills/ac506b4afabd4d93.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"2a1e05956b5f839de01d76cf6f7a41f3\""
   },
   "Nanami_Reverse_Kick_FINISHER_ntskellys.webm": {
     "still": "medias/stills/250fd15a08271c02.webp",
@@ -1541,11 +1613,59 @@
     "h": 1000,
     "etag": "\"a5d9ed4ae78333cba0d2905c8ad901b2\""
   },
+  "Nanami_Reverse_Kick_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/55087a2545379c80.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"048c4433258f71d731a0504d4924c8ce\""
+  },
+  "Nanami_Reverse_Kick_ONINTERRUPT_ntskellys.webm": {
+    "still": "medias/stills/52af56cdf5236d32.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"1bdbbc6c04d20e075814c5db421a8226\""
+  },
+  "Nanami_Reverse_Kick_ONWHIFF_ntskellys.webm": {
+    "still": "medias/stills/2f65a45274bd513f.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"363b072ca25bfa580579b4a1e1bf1b5c\""
+  },
   "Nanami_Severance_Kick_FINISHER_ntskellys.webm": {
     "still": "medias/stills/a8222270536f4c36.webp",
     "w": 1000,
     "h": 1000,
     "etag": "\"0cb48c65e5064a5e298e364ca6bba502\""
+  },
+  "Nanami_Severance_Kick_ONBLOCK_ntskellys.webm": {
+    "still": "medias/stills/ca37892b08ae93cc.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"6720f28597c4eb95c515ef94d5d03f60\""
+  },
+  "Nanami_Severance_Kick_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/0a140efd5ca52ca7.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"aff73693c6d2682584e68e0a1b4eb6e8\""
+  },
+  "Nanami_Severance_Kick_ONWHIFF_ntskellys.webm": {
+    "still": "medias/stills/39e0b39fd2751e69.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"cb5938a0afe6f222e4125a80d6e8996e\""
+  },
+  "Nanami_Stabilize_Entering_Overtime_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/eaa81ceec2ec9287.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"fc3ef0e5c42fa2abbb6a826e4a614774\""
+  },
+  "Nanami_Stabilize_Entering_Overtime_ONWHIFF_ntskellys.webm": {
+    "still": "medias/stills/f893a8ad5acaacd0.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"9b1177438edc4b2baf80cfbc7955bad4\""
   },
   "Nanami_Stabilize_ONBLOCK_ntskellys.webm": {
     "still": "medias/stills/64fd4bcdc350a535.webp",
@@ -1570,6 +1690,30 @@
     "w": 1000,
     "h": 1000,
     "etag": "\"54728e3c3a785bec5b3b37f7b51838b5\""
+  },
+  "Nanami_Stabilize_Ratio_Point_ntskellys.webm": {
+    "still": "medias/stills/4765c9a65fffa96b.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"40e0505dd691e336c0b1f6fdbfc30768\""
+  },
+  "Nanami_Uppercut_ONBLOCK_ntskellys.webm": {
+    "still": "medias/stills/b1ac0ae2901a92f3.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"5372728307c2efdbc358138acf3c9187\""
+  },
+  "Nanami_Uppercut_ONHIT_ntskellys.webm": {
+    "still": "medias/stills/3fd5dbadf2e5bce4.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"f6a6bb9a6cab07645cdece436c191756\""
+  },
+  "Nanami_Uppercut_Ratio_Point_ntskellys.webm": {
+    "still": "medias/stills/15448555c14e48bb.webp",
+    "w": 1000,
+    "h": 1000,
+    "etag": "\"b65c6c8e6f1a31a758fdbbcf3b147c88\""
   },
   "No Stunning.webm": {
     "still": "medias/stills/ca1646dae1b96af2.webp",
