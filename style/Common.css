@@ -289,8 +289,6 @@ body { background-image: none; }
     text-transform: none;
     border-bottom-width: 1px;
 }
-.character-header h1.character-title::before,
-.section-title::after { content: none; }
 /* Words the Dogslamloop look writes in capitals read as written. */
 :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option) {
     text-transform: none;
@@ -321,8 +319,6 @@ html:not(.look-classic) {
     text-transform: revert;
     border-bottom-width: revert;
 }
-:where(.character-header h1.character-title)::before { content: revert; }
-:where(.section-title)::after { content: revert; }
 :where(.btn-sys) {
     clip-path: revert;
     box-shadow: revert;
@@ -460,10 +456,7 @@ html:not(.look-classic) {
 }
 :where(#sidebar-dynamic-dock)::before {
     font-size: revert;
-    font-weight: revert;
     color: revert;
-    letter-spacing: revert;
-    text-shadow: revert;
     border-bottom: revert;
     padding-bottom: revert;
     margin-bottom: revert;
@@ -503,7 +496,6 @@ html:not(.look-classic) {
 :where(.global-sidebar-left .badge-ea) { color: revert; }
 :where(#sidebar-dynamic-dock) { gap: revert; }
 :where(#sidebar-dynamic-dock)::before { content: revert; }
-:where(.global-sidebar-left.collapsed #sidebar-dynamic-dock)::before { content: revert; }
 :where(.btn-sys.dock-action-btn) {
     background: revert;
     border: revert;

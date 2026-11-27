@@ -712,8 +712,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-size: 0.8rem;
     font-weight: normal;
     color: var(--text-muted);
-    letter-spacing: 0;
-    text-shadow: none;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.2rem;
     margin-bottom: 0.4rem;
@@ -749,7 +747,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    small box, and a collapsed sidebar keeps the icons. */
 #sidebar-dynamic-dock { gap: 0.15rem; }
 #sidebar-dynamic-dock::before { content: 'Account'; }
-.global-sidebar-left.collapsed #sidebar-dynamic-dock::before { content: none; }
 .btn-sys.dock-action-btn {
     background: none;
     border: 0;
