@@ -306,10 +306,6 @@
 
 /* The queue cards */
 .update-log-item {
-    background: var(--bg-secondary, #0a0a0a);
-    border: 1px solid var(--border-color, #333);
-    box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
-    padding: 1rem;
     margin-bottom: 0.75rem;
 }
 
@@ -326,9 +322,7 @@
 }
 
 /* Tool cards, shared by both pages */
-.admin-tool-card { position: relative; margin-bottom: 1rem; padding: 1rem; border-left: 3px solid; }
-.admin-tool-card.personnel { border-left-color: #a855f7; }
-.admin-tool-card.gc { border-left-color: #ef4444; }
+.admin-tool-card { position: relative; margin-bottom: 1rem; }
 .admin-tool-card.permissions { border-left-color: #eab308; }
 .admin-tool-card.pages { border-left-color: #22c55e; }
 .admin-tool-card.faq { border-left-color: #3b82f6; }
@@ -1029,5 +1023,23 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     opacity: 0.75;
     cursor: not-allowed;
     background: var(--bg-main);
+}
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.update-log-item {
+    background: var(--bg-secondary, #0a0a0a);
+    border: 1px solid var(--border-color, #333);
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+    padding: 1rem;
+}
+.admin-tool-card {
+    padding: 1rem;
+    border-left: 3px solid;
+}
+.admin-tool-card.personnel { border-left-color: #a855f7; }
+.admin-tool-card.gc { border-left-color: #ef4444; }
 }
 }

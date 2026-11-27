@@ -270,14 +270,14 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 }
 
 .block-actions { display: flex; gap: 0.25rem; }
-.block-actions button { background: transparent; border: 1px solid transparent; color: #666; cursor: pointer; padding: 0.1rem 0.3rem; font-size: 0.7rem; transition: all 0.1s; }
-.block-actions button:hover { background: #333; color: #fff; }
-.block-actions .btn-delete:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+.block-actions button { border: 1px solid transparent; color: #666; cursor: pointer; padding: 0.1rem 0.3rem; font-size: 0.7rem; transition: all 0.1s; }
+.block-actions button:hover { color: #fff; }
+.block-actions .btn-delete:hover { border-color: #ef4444; }
 
 .block-body.minimized { display: none; }
 .block-card.collapsed { border-left-color: #444; background: #080808; padding-bottom: 0.4rem; }
 .block-card.collapsed:hover { border-left-color: #666; }
-.block-actions .btn-collapse { font-weight: bold; font-family: monospace; }
+.block-actions .btn-collapse { font-weight: bold; }
 
 /* A selected Block. Scoped to #block-list: other tabs draw .block-card with no
    selection. The left border is already the card's state, so selection is the
@@ -1162,15 +1162,13 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     /* No cut corner: on a bare glyph the clip-path clips it and stops clicks. */
     --sys-cut: 0px;
     flex: 0 0 auto;
-    background: none;
     border: none;
-    box-shadow: none;
     padding: 0 0.15rem;
     font-size: 0.8rem;
     line-height: 1;
     color: #9ca3af;
 }
-.block-folder-toggle:hover { background: none; filter: brightness(1.4); }
+.block-folder-toggle:hover { filter: brightness(1.4); }
 /* Transparent until touched, so the header reads as a title, but still a real
    input: that is the rename. */
 .block-folder-name-input {
@@ -1294,10 +1292,11 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     width: 100%;
     text-align: left;
     background: transparent;
-    border: none;
-    border-bottom: 1px dashed #222;
     cursor: pointer;
 }
+.block-folder-picker .folder-option:not(:where(.manga-option, .manga-option.selected)) { border: none; }
+.block-folder-picker .folder-option:where(.manga-option) { border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.block-folder-picker .folder-option:where(.manga-option.selected) { border-top-width: medium; border-right-width: medium; border-bottom-width: medium; border-top-style: none; border-right-style: none; border-bottom-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-bottom-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 .folder-option-item::before { content: '\1F4C1\00a0'; }
 
 /* The two rows that are not folders. */
@@ -2498,5 +2497,34 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
     font-size: 0.8rem;
     color: var(--accent-blue);
     text-transform: uppercase;
+}
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.block-actions button { background: transparent; }
+.block-actions button:hover { background: #333; }
+.block-actions .btn-delete:hover {
+    background: #ef4444;
+    color: #fff;
+}
+.block-actions .btn-collapse { font-family: monospace; }
+.block-folder-toggle {
+    background: none;
+    box-shadow: none;
+}
+.block-folder-toggle:hover { background: none; }
+.block-folder-picker .folder-option:where(.manga-option) {
+    border-bottom-width: medium;
+    border-bottom-style: none;
+    border-bottom-color: currentcolor;
+}
+.block-folder-picker .folder-option:where(.manga-option.selected) {
+    border-left-width: medium;
+    border-left-style: none;
+    border-left-color: currentcolor;
+}
+.block-folder-picker .folder-option { border-bottom: 1px dashed #222; }
 }
 }

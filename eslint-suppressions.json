@@ -295,11 +295,6 @@
       "count": 1
     }
   },
-  "js/utility/site_lookups.js": {
-    "no-unsanitized/property": {
-      "count": 1
-    }
-  },
   "js/dashboards/hub_roster.js": {
     "no-unsanitized/property": {
       "count": 4

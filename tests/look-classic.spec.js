@@ -4,10 +4,11 @@
 // and "minimal code". Their picks: a skin over today's layout, chosen in Site
 // settings, on reader pages only.
 //
-// html.look-classic comes from the stored setting (js/utility/site_utils.js);
-// style/look-classic.css is linked on reader pages only, so the class does
-// nothing on the editor and staff pages. Supabase's REST API is refused here:
-// everything checked is the page's own chrome, not its content.
+// Classic is every stylesheet's plain part, and Default adds each sheet's
+// Dogslamloop part, which html.look-classic switches off (docs/looks.md). The
+// class comes from the stored setting (js/utility/site_utils.js); the editor and
+// staff pages never take it, so they keep the Default look. Supabase's REST API is
+// refused here: everything checked is the page's own chrome, not its content.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -37,27 +38,14 @@ async function boot(page, look, url = PAGE) {
     await page.waitForLoadState('domcontentloaded');
 }
 
-test('every reader page links the Classic stylesheet last, and no staff page does', () => {
+test('no page links a stylesheet of its own for a look: each sheet carries both', () => {
     const pages = execSync('git ls-files "*.html"', { cwd: ROOT, encoding: 'utf8' })
         .split('\n').filter(Boolean)
-        .map(rel => ({ rel, html: fs.readFileSync(path.join(ROOT, rel), 'utf8') }))
-        // A moved or archived stub loads no site script, so it has no look.
-        .filter(({ html }) => /src="[^"]*js\/utility\/site_utils\.js/.test(html));
-
-    const notLast = [];
-    const staff = [];
-    for (const { rel, html } of pages) {
-        const head = html.slice(0, html.indexOf('</head>'));
-        // Which file, so the cache stamp (?v=) is left off.
-        const sheets = [...head.matchAll(/<link rel="stylesheet" href="([^"]*)">/g)].map(m => m[1].replace(/\?.*$/, ''));
-        const linked = sheets.some(href => href.endsWith('style/look-classic.css'));
-        if (STAFF.includes(rel)) { if (linked) staff.push(rel); continue; }
-        // Last, so it wins any tie of specificity with the stylesheets before it.
-        if (!(sheets.length && sheets[sheets.length - 1].endsWith('style/look-classic.css'))) notLast.push(rel);
-    }
+        .map(rel => ({ rel, html: fs.readFileSync(path.join(ROOT, rel), 'utf8') }));
+    const linking = pages.filter(({ html }) => /href="[^"]*style\/look-[^"]*\.css/.test(html)).map(({ rel }) => rel);
     expect(pages.length).toBeGreaterThan(40);
-    expect(notLast, 'reader pages without it as their last stylesheet').toEqual([]);
-    expect(staff, 'editor and staff pages never load it').toEqual([]);
+    expect(linking).toEqual([]);
+    expect(fs.existsSync(path.join(ROOT, 'style', 'look-classic.css'))).toBe(false);
 });
 
 test('Classic is on <html> before the page body is built, so the other look never shows first', async ({ page }) => {
@@ -504,15 +492,62 @@ test('My Submissions takes Classic, before its body is built, with each submissi
     });
 });
 
-test('the editor keeps the default look even with Classic picked', async ({ page }) => {
-    await boot(page, 'classic', '/edit.html');
-    // The class follows the setting everywhere; the stylesheet is what is
-    // missing. Read off the variables it would set: the editor paints its own
-    // body, so the body's colour would not tell.
-    await expect(page.locator('html')).toHaveClass(/\blook-classic\b/);
-    const vars = await page.evaluate(() => {
-        const cs = getComputedStyle(document.documentElement);
-        return { ground: cs.getPropertyValue('--bg-main').trim(), title: cs.getPropertyValue('--font-title').trim() };
-    });
-    expect(vars).toEqual({ ground: 'hsl(216, 28%, 7%)', title: "'Finger-Paint'" });
+// A colour a look decides is never written inline, where no layer reaches it. Each
+// heading below is checked against a plain heading of its own class beside it. In
+// Classic they match. In Default the version heading is white like any card
+// heading, and the three titles take the accent, which a plain title does not.
+test('the Update Log\'s version headings and the History, Recent Changes and My Submissions titles follow the look', async ({ page }) => {
+    const HEADINGS = [
+        ['/systems/updatelog/index.html', '#changelog-container .card-header-title', 'card-header-title', '--text-white', false],
+        ['/history.html', '#history-page-title', 'character-title', '--accent-blue', true],
+        ['/recent-changes.html', '#recent-changes-page-title', 'character-title', '--accent-blue', true],
+        ['/submissions.html', '#submissions-page-title', 'character-title', '--accent-blue', true],
+    ];
+    // One made-up release, so the Update Log has a heading whatever the real log holds.
+    await page.route('**/data/updates.json', r => r.fulfill({ json: { changelogs: [
+        { version: 'Probe v0.0', date: '01/01/2026', type: 'site', title: 'Probe', description: 'Probe', changes: ['Probe'] },
+    ] } }));
+    for (const look of ['default', 'classic']) {
+        for (const [url, selector, cls, variable, ownColour] of HEADINGS) {
+            await boot(page, look, url);
+            const heading = page.locator(selector).first();
+            await expect(heading, `${look} ${url}`).toBeVisible();
+            const seen = await heading.evaluate((el, [cls, variable]) => {
+                const plain = document.createElement('h2');
+                plain.className = cls;
+                (el.closest('#changelog-container') || el).parentElement.appendChild(plain);
+                const swatch = document.createElement('span');
+                swatch.style.color = `var(${variable})`;
+                document.body.appendChild(swatch);
+                const out = { inline: el.getAttribute('style'), own: getComputedStyle(el).color, plain: getComputedStyle(plain).color, look: getComputedStyle(swatch).color };
+                plain.remove(); swatch.remove();
+                return out;
+            }, [cls, variable]);
+            expect(seen.inline, `${url}: no colour written inline`).toBeNull();
+            if (look === 'default') {
+                expect(seen.own, `Default ${url}: its own colour, ${variable}`).toBe(seen.look);
+                if (ownColour) expect(seen.own, `Default ${url}: not a plain title's`).not.toBe(seen.plain);
+                else expect(seen.own, `Default ${url}: a plain card heading's`).toBe(seen.plain);
+            } else {
+                expect(seen.own, `Classic ${url}: a plain heading's colour`).toBe(seen.plain);
+            }
+        }
+    }
+});
+
+test('the editor and staff pages keep the default look even with Classic picked', async ({ page }) => {
+    // They never take the class, so every sheet's Dogslamloop part stays on. Read
+    // off the variables it sets: the editor paints its own body, so the body's
+    // colour would not tell.
+    for (const rel of STAFF) {
+        await boot(page, 'classic', `/${rel}`);
+        await page.waitForFunction(() => !!window.siteSettings);
+        expect(await page.evaluate(() => window.siteSettings.get('look')), `${rel}: the setting is Classic`).toBe('classic');
+        await expect(page.locator('html'), rel).not.toHaveClass(/\blook-classic\b/);
+        const vars = await page.evaluate(() => {
+            const cs = getComputedStyle(document.documentElement);
+            return { ground: cs.getPropertyValue('--bg-main').trim(), title: cs.getPropertyValue('--font-title').trim() };
+        });
+        expect(vars, rel).toEqual({ ground: 'hsl(216, 28%, 7%)', title: "'Finger-Paint'" });
+    }
 });

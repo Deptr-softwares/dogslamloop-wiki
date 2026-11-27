@@ -52,6 +52,30 @@ test('every rule in every stylesheet is inside a layer, and only Common.css orde
   expect(parsed['Common.css'].filter(r => r.kind === 'CSSLayerBlockRule').every(r => r.inside > 0), 'Common.css\'s own rules are in a layer too').toBe(true);
 });
 
+// The Default look is each sheet's Dogslamloop part. Classic switches every part off
+// with html.look-classic, so a rule in that layer outside the wrapper would show in
+// both looks, and a plain rule written into it would win in Default only.
+test('everything in the dogslamloop layer sits inside html:not(.look-classic)', async ({ page }) => {
+  const texts = Object.fromEntries(sheets(STYLE).map(f => [f, fs.readFileSync(path.join(STYLE, f), 'utf8')]));
+  const found = await page.evaluate((texts) => {
+    const out = { parts: [], loose: [] };
+    for (const [file, text] of Object.entries(texts)) {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(text);
+      for (const rule of sheet.cssRules) {
+        if (rule.constructor.name !== 'CSSLayerBlockRule' || rule.name !== 'dogslamloop') continue;
+        out.parts.push(file);
+        for (const inner of rule.cssRules) {
+          if (inner.selectorText !== 'html:not(.look-classic)') out.loose.push(`${file}: ${inner.cssText.slice(0, 60)}`);
+        }
+      }
+    }
+    return out;
+  }, texts);
+  expect(found.parts.length, 'the sheets have Dogslamloop parts').toBeGreaterThan(5);
+  expect(found.loose).toEqual([]);
+});
+
 test('every kind of page loads Common.css first, so the order is stated before any layer is used', () => {
   const first = Object.fromEntries(Object.entries(PAGE_STYLES).map(([kind, list]) => [kind, list[0]]));
   const notFirst = Object.entries(first).filter(([, sheet]) => sheet !== 'Common.css').map(([kind, sheet]) => `${kind}: ${sheet}`);

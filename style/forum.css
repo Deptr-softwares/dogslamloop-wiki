@@ -66,7 +66,6 @@
 
 /* The category on show is filled with its colour, as a hovered button is. */
 .forum-filter[aria-pressed="true"] {
-    background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto;
     color: #000;
 }
 
@@ -216,5 +215,12 @@
 .forum-edit-btn[hidden],
 .forum-edit-form[hidden] {
     display: none;
+}
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.forum-filter[aria-pressed="true"] { background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto; }
 }
 }

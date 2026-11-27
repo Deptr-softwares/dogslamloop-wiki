@@ -38,38 +38,20 @@ button {
     --sys-fill: #888;
     --sys-cut: 9px;
     display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold;
-    text-transform: uppercase; padding: 0.4rem 0.75rem;
+    font-size: 0.7rem; font-weight: bold;
+    padding: 0.4rem 0.75rem;
     box-sizing: border-box;
     border: 1px solid var(--sys-edge);
-    background:
-        linear-gradient(225deg, transparent calc(50% - 0.75px), var(--sys-edge) calc(50% - 0.75px),
-            var(--sys-edge) calc(50% + 0.75px), transparent calc(50% + 0.75px)) right top / var(--sys-cut) var(--sys-cut) no-repeat border-box,
-        linear-gradient(var(--sys-fill), var(--sys-fill)) left top / 0% 100% no-repeat border-box,
-        color-mix(in srgb, var(--sys-edge) 9%, var(--bg-main, #0d1117));
-    box-shadow: 3px 3px 0 var(--manga-shadow, #000);
-    clip-path: polygon(0 0, calc(100% - var(--sys-cut)) 0, calc(100% + 6px) calc(var(--sys-cut) + 6px),
-        calc(100% + 6px) calc(100% + 6px), 0 calc(100% + 6px));
     transition: transform 0.1s ease, box-shadow 0.1s ease, background-size 0.18s ease-out, color 0.18s ease-out;
     color: var(--text-primary); white-space: nowrap; text-decoration: none;
     cursor: pointer;
 }
 /* The shadow stays where it was on the ground: lifting the button 1px makes
    it 1px taller, and a press shortens it by the 1px the button moved. */
-.btn-sys:hover:not(:disabled) {
-    transform: translateY(-1px);
-    background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto;
-    box-shadow: 3px 4px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
-    color: #000;
-}
-.btn-sys:active:not(:disabled) {
-    transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
-}
 .btn-sys:disabled { opacity: 0.4; cursor: not-allowed; }
 /* html.reduce-motion: the device's preference or Site settings (js/utility/site_utils.js). */
 html.reduce-motion .btn-sys { transition: none; }
-html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:active:not(:disabled) { transform: none; }
+html.reduce-motion .btn-sys:hover:not(:disabled):not(:where(.btn-sys:is(:hover, :active):not(:disabled))), html.reduce-motion .btn-sys:active:not(:disabled):not(:where(.btn-sys:is(:hover, :active):not(:disabled))) { transform: none; }
 
 .btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
 /* Blue is a fixed value, not var(--accent-blue), which a character page's theme
@@ -97,54 +79,33 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     color: var(--manga-text);
     border: 2px solid var(--manga-border);
     padding: 0.35rem 0.75rem;
-    font-family: var(--font-title), sans-serif;
     font-size: 0.75rem;
-    text-transform: uppercase;
     white-space: nowrap;
     text-decoration: none;
-    box-shadow: 3px 3px 0px var(--manga-shadow);
     transition: all 0.1s ease;
     cursor: pointer;
     box-sizing: border-box;
 }
-
-.btn-manga:hover, .filter-toggle:hover {
-    background: var(--bg-main);
-    color: var(--text-white);
-    border-color: var(--manga-accent);
-    box-shadow: 4px 4px 0px var(--manga-accent);
-}
+.btn-manga:hover:not(:where(:is(.btn-manga, .filter-toggle).active)), .filter-toggle:hover:not(:where(:is(.btn-manga, .filter-toggle).active)) { background: var(--bg-main); color: var(--text-white); border-color: var(--manga-accent); }
 
 /* Active / Selected State */
 .btn-manga.active, .filter-toggle.active {
-    background: var(--text-white);
-    color: var(--bg-main);
-    border-color: var(--text-white);
-    box-shadow: 4px 4px 0px var(--manga-accent);
     font-weight: bold;
 }
 
 /* A colour is one variable. */
 .btn-manga-gray   { --manga-accent: var(--text-muted); color: var(--text-muted); border-color: var(--border-color); }
 
-
-.btn-manga-slanted { transform: skewX(-10deg); }
-.btn-manga-slanted:hover { transform: skewX(-10deg) translate(-2px, -2px); }
-.btn-manga-slanted.active { transform: skewX(-10deg); }
-
 /* A clicked tab punches out a little and settles, in 0.2s. Added only by a click
    (site_utils.js), so a page opening on its first tab stays still. */
-.btn-manga-slanted.tab-punch { animation: tab-punch 0.2s cubic-bezier(0.3, 1.6, 0.6, 1); }
 @keyframes tab-punch {
     from { transform: skewX(-10deg) scale(1.1); box-shadow: 7px 7px 0 var(--manga-accent); }
 }
 
-.btn-manga-box { transform: none; border-radius: 0; }
-.btn-manga-box:hover { transform: translate(-2px, -2px); }
+.btn-manga-box { border-radius: 0; }
 
 /* Internals */
-.btn-manga-content { transform: skewX(10deg); display: flex; align-items: center; gap: 0.75rem; width: 100%; pointer-events: none; }
-.btn-manga-box .btn-manga-content { transform: none; }
+.btn-manga-content { display: flex; align-items: center; gap: 0.75rem; width: 100%; pointer-events: none; }
 .btn-manga-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* The box a dock button's icon sits in. The 16px pixel icon is never stretched or
@@ -160,30 +121,13 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     text-align: left;
     justify-content: flex-start;
     padding: 0.2rem 0.5rem;
-    margin-bottom: 1px;
-    font-family: var(--text-mono);
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid #333;
-    border-left: 3px solid transparent;
     transition: all 0.2s ease;
     text-decoration: none !important;
     box-sizing: border-box;
 }
 
-.btn-nav:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-left-color: #555;
-    transform: translateX(2px);
-    color: var(--text-white);
-}
-
 .btn-nav.active {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: #333;
     border-left-color: var(--accent-blue) !important;
-    color: var(--text-white);
 }
 
 
@@ -217,17 +161,18 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
 .sub-tabs {
     --sub-tab-accent: var(--accent-blue);
     display: flex; flex-wrap: wrap; gap: 0.35rem;
-    border-bottom: 2px solid var(--border-color); margin-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
 }
+.sub-tabs:not(:where(.sub-tabs)) { border-bottom: 2px solid var(--border-color); }
+.sub-tabs:where(.sub-tabs) { border-bottom-style: solid; border-bottom-color: var(--border-color); }
 .sub-tabs[hidden] { display: none; }
 .sub-tab {
     background: none; border: 1px solid var(--border-color); border-bottom: none;
-    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.65rem;
-    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted);
     padding: 0.35rem 0.7rem; cursor: pointer;
 }
-.sub-tab:hover { color: var(--text-white); }
-.sub-tab.is-active { background: var(--bg-main); color: var(--sub-tab-accent); border-color: var(--sub-tab-accent); }
+.sub-tab:hover:not(:where(.sub-tab.is-active)) { color: var(--text-white); }
+.sub-tab.is-active { background: var(--bg-main); }
 .sub-tab[hidden] { display: none; }
 .sub-tab-item { display: inline-flex; position: relative; }
 .sub-tab.sub-tab-removable { padding-right: 1.6rem; }
@@ -248,5 +193,199 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     .btn-sys, .btn-manga, .filter-toggle {
         min-height: 44px;
     }
+}
+
+/* Buttons and tabs: plain boxes. */
+.btn-sys {
+    clip-path: none;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--sys-edge) 12%, var(--bg-main));
+}
+.btn-sys:is(:hover, :active):not(:disabled) {
+    transform: none;
+    box-shadow: none;
+    color: var(--text-white);
+    background: color-mix(in srgb, var(--sys-edge) 30%, var(--bg-main));
+}
+:is(.btn-manga, .filter-toggle) {
+    border-width: 1px;
+    box-shadow: none;
+    transform: none;
+    animation: none;
+    font-family: Arial, Helvetica, sans-serif;
+}
+:is(.btn-manga, .filter-toggle).active {
+    background: var(--bg-secondary);
+    color: var(--text-white);
+    border-color: var(--text-primary);
+}
+.btn-manga-content { transform: none; }
+.sub-tabs { border-bottom-width: 1px; }
+.sub-tab { font-size: 0.8rem; letter-spacing: 0; }
+.sub-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+button:where(.wiki-video-btn, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav, .btn-sys.dock-action-btn, .inline-callout-btn) {
+    border: none;
+}
+button:where(:is(.btn-manga, .filter-toggle)) {
+    border-top-width: medium;
+    border-right-width: medium;
+    border-bottom-width: medium;
+    border-left-width: medium;
+}
+button:where(:is(.btn-manga, .filter-toggle).active, .inline-callout-btn:hover, .sub-tab.is-active, .manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
+    border-top-color: currentcolor;
+    border-right-color: currentcolor;
+    border-bottom-color: currentcolor;
+    border-left-color: currentcolor;
+}
+button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header, .manga-option) {
+    border-bottom-width: medium;
+    border-bottom-style: none;
+    border-bottom-color: currentcolor;
+}
+button:where(.manga-option.selected) {
+    border-left-width: medium;
+    border-left-style: none;
+    border-left-color: currentcolor;
+}
+button:where(.btn-sys, .btn-sys:is(:hover, :active):not(:disabled), :is(.btn-manga, .filter-toggle).active, .wiki-video-btn, .wiki-video-btn:hover, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active, .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled), .inline-callout-btn, .manga-select-trigger) {
+    background: transparent;
+}
+button:where(.wiki-video-btn, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav, .btn-sys.dock-action-btn) {
+    padding: 0;
+}
+button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) {
+    padding-bottom: 0px;
+}
+button:where(.local-sidebar-right .btn-nav.toc-link-minor, :is(.manga-option:hover, .manga-option.is-active)) {
+    padding-left: 0px;
+}
+button:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) { margin: 0; }
+button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) {
+    margin-bottom: 0px;
+}
+button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
+    font-family: inherit;
+}
+.btn-sys { font-family: var(--text-mono); }
+.btn-sys:where(.btn-sys.dock-action-btn) {
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+.btn-sys { text-transform: uppercase; }
+.btn-sys:where(.btn-sys.dock-action-btn) {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--sys-edge);
+}
+.btn-sys {
+    background: linear-gradient(225deg, transparent calc(50% - 0.75px), var(--sys-edge) calc(50% - 0.75px), var(--sys-edge) calc(50% + 0.75px), transparent calc(50% + 0.75px)) right top / var(--sys-cut) var(--sys-cut) no-repeat border-box, linear-gradient(var(--sys-fill), var(--sys-fill)) left top / 0% 100% no-repeat border-box, color-mix(in srgb, var(--sys-edge) 9%, var(--bg-main, #0d1117));
+    box-shadow: 3px 3px 0 var(--manga-shadow, #000);
+    clip-path: polygon(0 0, calc(100% - var(--sys-cut)) 0, calc(100% + 6px) calc(var(--sys-cut) + 6px), calc(100% + 6px) calc(100% + 6px), 0 calc(100% + 6px));
+}
+.btn-sys:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
+    color: var(--text-primary);
+}
+.btn-sys:where(.btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) { text-decoration: none; }
+.btn-sys:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto;
+    box-shadow: 3px 4px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
+    color: #000;
+}
+.btn-sys:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
+}
+&.reduce-motion .btn-sys:hover:not(:disabled):where(.btn-sys:is(:hover, :active):not(:disabled)),
+&.reduce-motion .btn-sys:active:not(:disabled):where(.btn-sys:is(:hover, :active):not(:disabled)) {
+    transform: none;
+}
+.btn-sys-regular:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
+    color: #aaa;
+}
+.btn-danger-fill:where(.btn-sys, .btn-sys:is(:hover, :active):not(:disabled)) {
+    background: #ef4444 !important;
+}
+.btn-danger-fill:where(.btn-sys:is(:hover, :active):not(:disabled)) { color: #000 !important; }
+.btn-manga:where(:is(.btn-manga, .filter-toggle)),
+.filter-toggle:where(:is(.btn-manga, .filter-toggle)) {
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+}
+.btn-manga:where(:is(.btn-manga, .filter-toggle).active),
+.filter-toggle:where(:is(.btn-manga, .filter-toggle).active) {
+    border-top-color: var(--manga-border);
+    border-right-color: var(--manga-border);
+    border-bottom-color: var(--manga-border);
+    border-left-color: var(--manga-border);
+}
+.btn-manga,
+.filter-toggle {
+    font-family: var(--font-title), sans-serif;
+    text-transform: uppercase;
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+}
+.btn-manga:hover, .filter-toggle:hover { box-shadow: 4px 4px 0px var(--manga-accent); }
+.btn-manga.active,
+.filter-toggle.active {
+    background: var(--text-white);
+    color: var(--bg-main);
+    border-color: var(--text-white);
+    box-shadow: 4px 4px 0px var(--manga-accent);
+}
+.btn-manga-slanted { transform: skewX(-10deg); }
+.btn-manga-slanted:hover { transform: skewX(-10deg) translate(-2px, -2px); }
+.btn-manga-slanted.active { transform: skewX(-10deg); }
+.btn-manga-slanted.tab-punch { animation: tab-punch 0.2s cubic-bezier(0.3, 1.6, 0.6, 1); }
+.btn-manga-box { transform: none; }
+.btn-manga-box:hover { transform: translate(-2px, -2px); }
+.btn-manga-content { transform: skewX(10deg); }
+.btn-manga-box .btn-manga-content { transform: none; }
+.btn-manga-icon:where(.global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon) {
+    display: flex;
+}
+.btn-nav:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) { padding: 0.2rem 0.5rem; }
+.btn-nav:where(.local-sidebar-right .btn-nav.toc-link-minor) { padding-left: 0.5rem; }
+.btn-nav {
+    margin-bottom: 1px;
+    font-family: var(--text-mono);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #333;
+    border-left: 3px solid transparent;
+}
+.btn-nav:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-left-color: #555;
+    transform: translateX(2px);
+    color: var(--text-white);
+}
+.btn-nav.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #333;
+}
+.btn-nav.active:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) {
+    border-left-color: var(--accent-blue) !important;
+}
+.btn-nav.active { color: var(--text-white); }
+.sub-tabs:where(.sub-tabs) { border-bottom-width: 2px; }
+.sub-tab {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.sub-tab.is-active {
+    color: var(--sub-tab-accent);
+    border-color: var(--sub-tab-accent);
+}
 }
 }

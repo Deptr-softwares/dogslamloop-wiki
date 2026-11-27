@@ -8,7 +8,6 @@
 
 /* The search page (search.html, search-page.js) */
 .search-page-header { margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; }
-.search-page-title { color: var(--accent-blue); }
 .search-page-blurb { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; margin-top: 0.5rem; max-width: 60ch; }
 
 .search-page-form { display: flex; gap: 0.5rem; align-items: stretch; margin-bottom: 1rem; }
@@ -41,4 +40,11 @@
 }
 /* The browser default for <mark> is a yellow that fights every palette here. */
 .search-page-snippet mark { background: var(--accent-blue); color: #000; padding: 0 2px; }
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.search-page-title { color: var(--accent-blue); }
+}
 }

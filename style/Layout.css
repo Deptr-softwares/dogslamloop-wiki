@@ -99,22 +99,17 @@
 .sidebar-master-title,
 .column-subgroup-title {
     font-family: var(--font-title), sans-serif;
-    font-size: 1.15rem;
-    color: var(--text-white);
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--border-color);
-    text-shadow: 2px 2px 0px var(--manga-shadow);
-    letter-spacing: 0.05em;
     text-transform: uppercase;
 }
+.column-subgroup-title, .sidebar-master-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { font-size: 1.15rem; color: var(--text-white); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
 
 /* "On this tab" header row (local-sidebar-right, above the ToC) */
 .sidebar-tab-header {
     display: flex; justify-content: space-between; align-items: flex-end;
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);
 }
-.sidebar-tab-header .sidebar-master-title { margin: 0; padding: 0; border: none; }
+.sidebar-tab-header .sidebar-master-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { margin: 0; padding: 0; border: none; }
+.sidebar-tab-header .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) { margin-top: 0px; margin-right: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 
 .sidebar-header-top { display: flex; align-items: center; margin-bottom: 1.5rem; width: 100%; white-space: normal; }
 .sidebar-site-logo { width: 38px; height: 38px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px var(--manga-shadow); object-fit: cover; flex-shrink: 0; }
@@ -134,9 +129,7 @@
 }
 
 .sidebar-nav-title {
-    font-family: var(--font-label), sans-serif; font-size: 0.85rem; color: var(--accent-blue);
-    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; margin-top: 0.35rem;
-    text-shadow: 1px 1px 0px var(--manga-shadow);
+    margin-top: 0.35rem;
 }
 .sidebar-nav-title:first-child { margin-top: 0; }
 
@@ -149,20 +142,16 @@
    only: plain .sidebar-nav-title is still a <div> elsewhere. */
 .sidebar-nav-title.sidebar-group-header {
     cursor: pointer; display: flex; justify-content: space-between;
-    align-items: center; margin-bottom: 0;
+    align-items: center;
     width: 100%;
-    padding: 0;
     background: none;
-    border: none;
     text-align: left;
 
     /* Stated, not inherited: font: inherit at 0-2-0 beat the title styling it sits in.
        --accent-blue follows the page's own accent. */
-    font-family: var(--font-title), sans-serif;
-    color: var(--accent-blue);
-    text-transform: inherit;
-    letter-spacing: inherit;
 }
+.sidebar-nav-title.sidebar-group-header:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header)) { padding: 0; border: none; }
+.sidebar-nav-title.sidebar-group-header:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) { padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
 .sidebar-group-wrapper .toc-list { margin-top: 0.3rem; }
 
@@ -171,11 +160,7 @@
 /* Contents links (refreshTOC), compound with .btn-nav, which sets colour, padding
    and size at one class too: where Layout.css loads first, .btn-nav won. A
    sub-heading's colour is .btn-nav's own, so hover and active reach it. */
-.btn-nav.toc-link-minor { padding-left: 1.5rem; font-size: 0.7rem; opacity: 0.7; }
-.btn-nav.toc-link-major { font-size: 0.75rem; color: var(--text-white); }
-.btn-nav.toc-link-major-toggle { font-size: 0.75rem; color: var(--text-white); padding-right: 2rem; }
 /* The Sitewide links sit straight in the sidebar; the contents are in a list. */
-.local-sidebar-right > .btn-nav { color: var(--text-white); }
 .toc-link-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .toc-group-row { display: flex; position: relative; }
 .toc-toggle-btn {
@@ -227,7 +212,7 @@
 /* Character page sidebar dock (js/pages/core/page_shell.js populates #sidebar-dynamic-dock) */
 #sidebar-dynamic-dock {
     margin-top: auto; width: 100%; display: flex; flex-direction: column;
-    gap: 0.75rem; padding-top: 2rem;
+    padding-top: 2rem;
 }
 .kofi-btn-wrapper { margin-top: 0.75rem; }
 /* Sizing left to .btn-sys, as for .dock-action-btn, so Ko-fi matches the buttons it
@@ -242,7 +227,7 @@
 
 /* Page headers and grids */
 .home-main-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }
-.home-main-title { font-size: 2rem; margin: 0; color: var(--text-white); }
+.home-main-title { font-size: 2rem; margin: 0; }
 
 .back-home-wrapper { margin-bottom: 1.5rem; }
 .character-header { margin-bottom: 2.5rem; }
@@ -478,7 +463,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     white-space: nowrap;
 }
 /* Here, not in Blocks.css: on a phone the .wiki-section padding further down wins. */
-.system-content-grid-section { padding: 0 0.5rem; }
 
 /* Phones */
 .mobile-top-bar { display: none; }
@@ -591,7 +575,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    screen. */
 @media (max-width: 640px) {
     .main-content-area { padding: 1rem; }
-    .wiki-section { padding: 1rem; }
 
     /* Phone text: the body at 14px and titles two steps down (section titles 18px, a
        character's name 24px, a Skill Card title 20px), on reader pages only
@@ -601,7 +584,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .character-title { font-size: 1.5rem; }
     .skill-title { font-size: 1.25rem; }
     .home-main-title { font-size: 1.25rem; }
-    .sidebar-master-title, .column-subgroup-title { font-size: 1rem; }
+    .column-subgroup-title, .sidebar-master-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { font-size: 1rem; }
 }
 
 /* Gallery pages (gallery.js): a flat grid, auto-fill with a minmax floor, so one
@@ -724,4 +707,169 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-family: var(--text-mono); font-size: 0.6rem;
 }
 .site-search-more:hover { background: var(--accent-blue); color: #000; }
+
+/* Sidebar headings and small panel labels: small grey words over a rule. */
+:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title),
+#sidebar-dynamic-dock::before {
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: var(--text-muted);
+    letter-spacing: 0;
+    text-shadow: none;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.2rem;
+    margin-bottom: 0.4rem;
+}
+
+/* The sidebar's category toggles share the heading class but are links. */
+.sidebar-nav-title.sidebar-group-header {
+    color: var(--accent-blue);
+    font-size: 0.85rem;
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+/* "On this tab" and the site menu: plain links, the minor ones indented. A
+   character's name keeps its own colour. */
+:is(.local-sidebar-right, .global-sidebar-left) .btn-nav {
+    background: none;
+    border: 0;
+    padding: 0.15rem 0;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--accent-blue);
+    transform: none;
+}
+.local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; opacity: 1; }
+:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active { background: none; color: var(--text-white); font-weight: bold; }
+/* WIP and EA in the menu: small coloured words, not a filled tag. */
+.global-sidebar-left .update-badge { background: none; border: 0; padding: 0; color: var(--accent-yellow); }
+.global-sidebar-left .badge-ea { color: hsl(28, 99%, 53%); }
+
+/* The account buttons are a list of links under "Account". Site settings keeps its
+   small box, and a collapsed sidebar keeps the icons. */
+#sidebar-dynamic-dock { gap: 0.15rem; }
+#sidebar-dynamic-dock::before { content: 'Account'; }
+.global-sidebar-left.collapsed #sidebar-dynamic-dock::before { content: none; }
+.btn-sys.dock-action-btn {
+    background: none;
+    border: 0;
+    padding: 0.15rem 0;
+    color: var(--accent-blue);
+    font-size: 0.85rem;
+    font-weight: normal;
+}
+.btn-sys.dock-action-btn:is(:hover, :active):not(:disabled) {
+    background: none;
+    color: var(--accent-blue-hover);
+    text-decoration: underline;
+}
+.global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon { display: none; }
+.dock-badge {
+    position: static;
+    width: auto;
+    height: auto;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    transform: none;
+    color: #ef4444;
+    font-size: 0.75rem;
+}
+.dock-badge::before { content: '(new)'; }
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.sidebar-master-title:where(:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
+    font-family: var(--font-title), sans-serif;
+}
+.sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+    font-size: 1.15rem;
+    color: var(--text-white);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+    text-shadow: 2px 2px 0px var(--manga-shadow);
+    letter-spacing: 0.05em;
+}
+.sidebar-master-title:where(:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
+    text-transform: uppercase;
+}
+.sidebar-tab-header .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+    margin-bottom: 0px;
+    padding-bottom: 0px;
+    border-bottom-width: medium;
+    border-bottom-style: none;
+    border-bottom-color: currentcolor;
+}
+.sidebar-nav-title {
+    font-family: var(--font-label), sans-serif;
+    font-size: 0.85rem;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+    text-shadow: 1px 1px 0px var(--manga-shadow);
+}
+.sidebar-nav-title.sidebar-group-header { margin-bottom: 0; }
+.sidebar-nav-title.sidebar-group-header:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) {
+    padding-bottom: 0px;
+    border-bottom-width: medium;
+    border-bottom-style: none;
+    border-bottom-color: currentcolor;
+}
+.sidebar-nav-title.sidebar-group-header {
+    font-family: var(--font-title), sans-serif;
+    color: var(--accent-blue);
+    text-transform: inherit;
+    letter-spacing: inherit;
+}
+.btn-nav.toc-link-minor {
+    padding-left: 1.5rem;
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+.btn-nav.toc-link-major {
+    font-size: 0.75rem;
+    color: var(--text-white);
+}
+.btn-nav.toc-link-major-toggle {
+    font-size: 0.75rem;
+    color: var(--text-white);
+    padding-right: 2rem;
+}
+.local-sidebar-right > .btn-nav { color: var(--text-white); }
+.dock-action-btn:where(.btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
+    text-decoration: none;
+}
+.dock-action-icon:where(.global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon) {
+    display: flex;
+}
+#sidebar-dynamic-dock { gap: 0.75rem; }
+.home-main-title { color: var(--text-white); }
+.section-title-clean:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
+    border-bottom-width: medium !important;
+}
+.section-title-flex:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
+    border-bottom-width: medium !important;
+}
+&.reduce-motion *:where(:is(.btn-manga, .filter-toggle), .manga-select-wrapper .manga-select-options) {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+}
+.system-content-grid-section { padding: 0 0.5rem; }
+@media (max-width: 640px) {
+    .wiki-section:where(:is(.wiki-card, .wiki-section), .wiki-section.profile-card) { padding: 1rem; }
+    .wiki-section:where(.wiki-section.submission-card) { padding-bottom: 1rem; }
+    .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+        font-size: 1rem;
+    }
+}
+/* The records pages' titles are the accent colour, until the character theme names a character on History. */
+:is(#history-page-title, #recent-changes-page-title, #submissions-page-title):not([data-themed]) { color: var(--accent-blue); }
+}
 }

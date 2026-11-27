@@ -71,31 +71,22 @@ select.editor-select.manga-initialized {
     unicode-bidi: isolate;
     line-height: inherit;
     letter-spacing: inherit;
-    background: #050505;
-    border: 1px solid #333; 
     padding: 0.3rem 1.5rem 0.3rem 0.4rem; 
     color: var(--text-white);
-    font-family: var(--text-mono);
     font-size: 0.75rem;
     font-weight: bold;
-    text-transform: uppercase;
     cursor: pointer;
-    box-shadow: 2px 2px 0px var(--manga-shadow); 
     transition: all 0.1s ease;
     box-sizing: border-box;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.manga-select-trigger:not(:where(.manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))) { border: 1px solid #333; }
+.manga-select-trigger:where(.manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) { border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 
 .manga-select-trigger:disabled { cursor: not-allowed; opacity: 0.5; }
-
-.manga-select-trigger:hover:not(:disabled),
-.manga-select-wrapper.open .manga-select-trigger {
-    border-color: var(--accent-blue);
-    transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0px var(--accent-blue);
-}
+.manga-select-trigger:hover:not(:disabled):not(:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))), .manga-select-wrapper.open .manga-select-trigger:not(:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))) { transform: translate(-2px, -2px); }
 
 /* The dropdown arrow */
 .manga-select-trigger::after {
@@ -124,10 +115,6 @@ select.editor-select.manga-initialized {
     max-width: min(20rem, 90vw);
     box-sizing: border-box;
     margin-top: 0.5rem;
-    background: #0a0a0a;
-    border: 2px solid var(--accent-blue);
-    border-top: 4px solid var(--accent-blue);
-    box-shadow: 8px 8px 0px var(--manga-shadow);
     z-index: 10010; 
     display: none;
     flex-direction: column;
@@ -137,7 +124,6 @@ select.editor-select.manga-initialized {
 
 .manga-select-wrapper.open .manga-select-options {
     display: flex;
-    animation: menuPop 0.1s ease-out;
 }
 
 @keyframes menuPop {
@@ -148,10 +134,8 @@ select.editor-select.manga-initialized {
 /* Individual list items */
 .manga-option {
     padding: 0.6rem 0.75rem;
-    font-family: var(--text-mono);
     font-size: 0.75rem;
     color: var(--text-muted);
-    border-bottom: 1px dashed #222;
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -159,22 +143,76 @@ select.editor-select.manga-initialized {
 /* A disabled option, such as a placeholder: shown, never picked. */
 .manga-option[aria-disabled="true"] { opacity: 0.5; cursor: default; pointer-events: none; }
 
-.manga-option:last-child {
-    border-bottom: none;
-}
-
 /* Slide-right hover effect, and the row the arrow keys are on */
 .manga-option:hover,
 .manga-option.is-active {
     background: var(--accent-blue);
     color: #000 !important; 
-    font-weight: bold;
-    padding-left: 1.5rem; 
 }
+.manga-option:hover:not(:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected)), .manga-option.is-active:not(:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected)) { font-weight: bold; }
+.manga-option:hover:not(:where(:is(.manga-option:hover, .manga-option.is-active))), .manga-option.is-active:not(:where(:is(.manga-option:hover, .manga-option.is-active))) { padding-left: 1.5rem; }
 
 .manga-option.selected {
     color: var(--text-white);
     background: rgba(255, 255, 255, 0.05);
-    border-left: 3px solid var(--accent-blue);
+}
+
+/* The site's dropdown: a plain box like a browser's own. */
+.manga-select-trigger { border-color: var(--border-color); background: var(--bg-secondary); box-shadow: none; }
+:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger) { transform: none; box-shadow: none; border-color: var(--text-muted); }
+.manga-select-wrapper .manga-select-options { border: 1px solid var(--border-color); box-shadow: none; animation: none; background: var(--bg-main); }
+.manga-option { border-bottom: 0; }
+:is(.manga-option:hover, .manga-option.is-active) { padding-left: 0.75rem; font-weight: normal; }
+.manga-option.selected { border-left: 0; font-weight: bold; }
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.manga-select-trigger { background: #050505; }
+.manga-select-trigger:where(.manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
+    border-top-color: rgb(51, 51, 51);
+    border-right-color: rgb(51, 51, 51);
+    border-bottom-color: rgb(51, 51, 51);
+    border-left-color: rgb(51, 51, 51);
+}
+.manga-select-trigger {
+    font-family: var(--text-mono);
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+}
+.manga-select-trigger:hover:not(:disabled),
+.manga-select-wrapper.open .manga-select-trigger {
+    border-color: var(--accent-blue);
+}
+.manga-select-trigger:hover:not(:disabled):where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)),
+.manga-select-wrapper.open .manga-select-trigger:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
+    transform: translate(-2px, -2px);
+}
+.manga-select-trigger:hover:not(:disabled),
+.manga-select-wrapper.open .manga-select-trigger {
+    box-shadow: 4px 4px 0px var(--accent-blue);
+}
+.manga-select-options {
+    background: #0a0a0a;
+    border: 2px solid var(--accent-blue);
+    border-top: 4px solid var(--accent-blue);
+    box-shadow: 8px 8px 0px var(--manga-shadow);
+}
+.manga-select-wrapper.open .manga-select-options { animation: menuPop 0.1s ease-out; }
+.manga-option {
+    font-family: var(--text-mono);
+    border-bottom: 1px dashed #222;
+}
+.manga-option:last-child { border-bottom: none; }
+.manga-option:hover:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected),
+.manga-option.is-active:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected) {
+    font-weight: bold;
+}
+.manga-option:hover:where(:is(.manga-option:hover, .manga-option.is-active)),
+.manga-option.is-active:where(:is(.manga-option:hover, .manga-option.is-active)) {
+    padding-left: 1.5rem;
+}
+.manga-option.selected { border-left: 3px solid var(--accent-blue); }
 }
 }

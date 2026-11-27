@@ -22,7 +22,7 @@ What each thing is called on screen, in the code and in the data, where those di
 | Admin, a role | `admin` | `user_roles.role` | `site_utils.js` (`window.ROLE_RANK`) |
 | A submission (the Overseer's Revision Queue) | a revision | a row of `pending_revisions`; its `scope` says which part of the page it changes (`system_tab`, `gallery_item`, `multi` and others) | `submissions.html` |
 | Workspace: the editor's main panel | `workspace` | | `edit.html` |
-| Default look, Classic look | no class, `html.look-classic` | a reader setting | `look-classic.css` |
+| Default look, Classic look | the Dogslamloop parts (`@layer dogslamloop`), the plain parts (`@layer site`); `html.look-classic` switches the Dogslamloop parts off | a reader setting | every sheet in `style/` |
 
 ## Renamed
 

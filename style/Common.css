@@ -7,7 +7,7 @@
    See: docs/looks.md */
 
 /* The cascade layers, lowest first: a rule in a later layer wins over any rule in an earlier one. */
-@layer site;
+@layer site, dogslamloop;
 
 @layer site {
 /* WOFF2 first, about half the TTF's bytes; a browser without WOFF2 takes the TTF. */
@@ -29,32 +29,34 @@
     font-display: swap;
 }
 
+/* The plain look's values. The Dogslamloop part at the end of this file re-points
+   the ones its look draws differently. */
 :root {
-    --bg-main: hsl(216, 28%, 7%);
-    --bg-secondary: hsl(215, 21%, 11%);
-    --border-color: hsl(212, 12%, 21%);
+    --bg-main: #101418;
+    --bg-secondary: #202122;
+    --border-color: #54595d;
     
-    --accent-blue: hsl(213, 94%, 68%);
+    --accent-blue: #88a3e8;
     /* The text colour on top of --accent-blue: site_lookups.js re-points both per
        character page, black on a light colour, white on a dark one. The default
        matches the default accent. */
     --character-ink: #000000;
-    --accent-blue-hover: hsl(212, 96%, 78%);
+    --accent-blue-hover: #a6bbf0;
     --accent-yellow: hsl(45, 93%, 47%);
     --accent-red: #ef4444;
     
-    --text-primary: hsl(210, 17%, 82%);
+    --text-primary: #eaecf0;
     --text-white: hsl(0, 0%, 100%);
-    --text-muted: hsl(212, 9%, 58%);
+    --text-muted: #a2a9b1;
     
-    --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    --manga-shadow: #000000;
+    --text-mono: Arial, Helvetica, sans-serif;
+    --manga-shadow: transparent;
 
-    /* The two display faces, named once so a look can swap them
-       (style/look-classic.css). Every rule that uses one keeps its own
-       fallbacks after the variable: font-family: var(--font-label), sans-serif. */
-    --font-title: 'Finger-Paint';
-    --font-label: 'CC-Wild-Words';
+    /* The two display faces, named once so a look can swap them. Every rule that
+       uses one keeps its own fallbacks after the variable:
+       font-family: var(--font-label), sans-serif. */
+    --font-title: Georgia, 'Times New Roman', serif;
+    --font-label: Arial, Helvetica;
 }
 
 body {
@@ -63,13 +65,6 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-image: repeating-linear-gradient(
-        -45deg,
-        rgba(255, 255, 255, 0.015) 0px,
-        rgba(255, 255, 255, 0.015) 2px,
-        transparent 2px,
-        transparent 8px
-    );
 }
 
 .site-body {
@@ -88,8 +83,6 @@ body {
 .flex-grow { flex-grow: 1; }
 
 .site-title, .character-title {
-    font-family: var(--font-title), 'Impact', sans-serif;
-    color: var(--text-white);
     letter-spacing: 0.05em; 
     text-decoration: none;
     transition: color 0.2s, text-shadow 0.2s;
@@ -98,18 +91,11 @@ body {
 .site-title {
     font-size: 1.875rem;
     display: block;
-    text-shadow: 2px 2px 0px var(--manga-shadow);
-}
-
-.site-title:hover {
-    color: var(--accent-blue);
-    text-shadow: 2px 2px 0px var(--manga-shadow), 0 0 15px hsla(213, 94%, 68%, 0.4);
 }
 
 .character-title {
     font-size: 3.5rem;
     margin: 0;
-    text-shadow: 3px 3px 0px var(--manga-shadow), -1px -1px 0 var(--border-color), 1px -1px 0 var(--border-color), -1px 1px 0 var(--border-color), 1px 1px 0 var(--border-color);
 }
 
 /* Halftone dots behind a character's name: faint, in the page colour, gone by the
@@ -117,7 +103,7 @@ body {
    only (the h1); other pages use .character-title as an h2. */
 .character-header h1.character-title { position: relative; isolation: isolate; width: fit-content; max-width: 100%; }
 .character-header h1.character-title::before {
-    content: ''; position: absolute; z-index: -1; pointer-events: none;
+    position: absolute; z-index: -1; pointer-events: none;
     left: -0.7rem; top: -0.45rem; width: calc(50% + 0.7rem); height: calc(100% + 0.9rem);
     background: radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 22%, transparent) 1.3px, transparent 1.9px) 0 0 / 7px 7px;
     -webkit-mask-image: linear-gradient(100deg, #000 10%, transparent 100%);
@@ -152,23 +138,20 @@ body {
 
 /* Typography */
 .section-title {
-    font-family: var(--font-title), sans-serif;
     font-size: 1.5rem;
-    color: var(--accent-blue);
     margin-bottom: 1.5rem;
-    border-bottom: 2px solid var(--border-color);
     padding-bottom: 0.5rem;
-    text-shadow: 2px 2px 0px var(--manga-shadow);
-    text-transform: uppercase;
     line-height: 1.2;
 }
+.section-title:not(:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title))) { border-bottom: 2px solid var(--border-color); }
+.section-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) { border-bottom-style: solid; border-bottom-color: var(--border-color); }
 
 /* A bar of the page colour on the start of a panel heading's underline. Hovering
    the panel stretches it to the end of the words, which site_utils.js measures into
    --title-words. Not on -clean and -flex headings, whose accent line would hide it. */
 .section-title:not(.section-title-clean):not(.section-title-flex) { position: relative; }
 .section-title:not(.section-title-clean):not(.section-title-flex)::after {
-    content: ''; position: absolute; left: 0; bottom: -2px; height: 4px; width: 2.6rem;
+    position: absolute; left: 0; bottom: -2px; height: 4px; width: 2.6rem;
     background: var(--accent-blue); clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
     transition: width 0.18s ease-out; pointer-events: none;
 }
@@ -296,4 +279,353 @@ body {
 /* html.reduce-motion: an outline, held, instead of the wipe. */
 html.reduce-motion .anchor-flash::before { content: none; }
 html.reduce-motion .anchor-flash { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+
+body { background-image: none; }
+/* Headings: the text colour, no outline, no bar. */
+:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title) {
+    color: var(--text-primary);
+    text-shadow: none;
+    font-family: var(--font-title), serif;
+    font-weight: normal;
+    text-transform: none;
+    border-bottom-width: 1px;
+}
+.character-header h1.character-title::before,
+.section-title::after { content: none; }
+/* Words the Dogslamloop look writes in capitals read as written. */
+:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option) {
+    text-transform: none;
+    font-family: Arial, Helvetica, sans-serif;
+}
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+--bg-main: hsl(216, 28%, 7%);
+--bg-secondary: hsl(215, 21%, 11%);
+--border-color: hsl(212, 12%, 21%);
+--accent-blue: hsl(213, 94%, 68%);
+--accent-blue-hover: hsl(212, 96%, 78%);
+--text-primary: hsl(210, 17%, 82%);
+--text-muted: hsl(212, 9%, 58%);
+--text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+--manga-shadow: #000000;
+--font-title: 'Finger-Paint';
+--font-label: 'CC-Wild-Words';
+:where(body) { background-image: revert; }
+:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
+    color: revert;
+    text-shadow: revert;
+    font-family: revert;
+    font-weight: revert;
+    text-transform: revert;
+    border-bottom-width: revert;
+}
+:where(.character-header h1.character-title)::before { content: revert; }
+:where(.section-title)::after { content: revert; }
+:where(.btn-sys) {
+    clip-path: revert;
+    box-shadow: revert;
+    background: revert;
+}
+:where(.btn-sys:is(:hover, :active):not(:disabled)) {
+    transform: revert;
+    box-shadow: revert;
+    color: revert;
+    background: revert;
+}
+:where(:is(.btn-manga, .filter-toggle)) {
+    border-width: revert;
+    box-shadow: revert;
+    transform: revert;
+    animation: revert;
+    font-family: revert;
+}
+:where(:is(.btn-manga, .filter-toggle).active) {
+    background: revert;
+    color: revert;
+    border-color: revert;
+}
+:where(.btn-manga-content) { transform: revert; }
+:where(:is(.wiki-card, .wiki-section)) {
+    background: revert;
+    border: revert;
+    box-shadow: revert;
+    padding: revert;
+}
+:where(:is(.update-log-item, .faq-details)) {
+    background: revert;
+    border: revert;
+    border-bottom: revert;
+    box-shadow: revert;
+    padding: revert;
+}
+:where(.wiki-section.submission-card) {
+    border-bottom: revert;
+    padding-bottom: revert;
+}
+:where(:is(.skill-entry-card, .wiki-section.profile-card)) {
+    background: revert;
+    border: revert;
+    box-shadow: revert;
+}
+:where(.wiki-section.profile-card) { padding: revert; }
+:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover, .roster-card:hover .roster-card-text) {
+    transform: revert;
+    box-shadow: revert;
+}
+:where(.profile-stat-row) {
+    justify-content: revert;
+    gap: revert;
+    padding: revert;
+}
+:where(.profile-stat-label) {
+    flex: revert;
+    color: revert;
+    font-weight: revert;
+}
+:where(.profile-stat-val) {
+    font-weight: revert;
+    color: revert;
+}
+:where(.playstyle-container) {
+    display: revert;
+    grid-template-columns: revert;
+    gap: revert;
+    background: revert;
+    border: revert;
+}
+:where(.playstyle-col) {
+    min-width: revert;
+    padding: revert;
+    border: revert;
+    box-shadow: revert;
+    background: revert;
+}
+:where(.playstyle-col .playstyle-header) {
+    margin: revert;
+    padding: revert;
+    background: revert;
+    border-bottom: revert;
+    color: revert;
+}
+:where(.playstyle-list) {
+    list-style: revert;
+    padding: revert;
+    font-family: revert;
+    color: revert;
+}
+:where(.playstyle-item) { display: revert; }
+:where(.playstyle-icon) { display: revert; }
+:where(.wiki-table-wrapper) {
+    border: revert;
+    box-shadow: revert;
+}
+:where(.update-table) {
+    border: revert;
+    background: revert;
+}
+:where(.update-table :is(th, td)) {
+    border: revert;
+    padding: revert;
+}
+:where(.update-table th) {
+    background: revert;
+    color: revert;
+}
+:where(.update-table tbody tr:is(:nth-child(even), :hover)) { background: revert; }
+:where(.wiki-video-btn) {
+    background: revert;
+    border: revert;
+    box-shadow: revert;
+    padding: revert;
+    color: revert;
+    transform: revert;
+}
+:where(.wiki-video-btn:hover) {
+    background: revert;
+    color: revert;
+    text-decoration: revert;
+    transform: revert;
+}
+:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+    font-size: revert;
+    font-weight: revert;
+    color: revert;
+    letter-spacing: revert;
+    text-shadow: revert;
+    border-bottom: revert;
+    padding-bottom: revert;
+    margin-bottom: revert;
+}
+:where(#sidebar-dynamic-dock)::before {
+    font-size: revert;
+    font-weight: revert;
+    color: revert;
+    letter-spacing: revert;
+    text-shadow: revert;
+    border-bottom: revert;
+    padding-bottom: revert;
+    margin-bottom: revert;
+}
+:where(.sidebar-nav-title.sidebar-group-header) {
+    color: revert;
+    font-size: revert;
+    border-bottom: revert;
+    padding-bottom: revert;
+    margin-bottom: revert;
+}
+:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) {
+    background: revert;
+    border: revert;
+    padding: revert;
+    margin: revert;
+    font-size: revert;
+    color: revert;
+    transform: revert;
+}
+:where(.local-sidebar-right .btn-nav.toc-link-minor) {
+    padding-left: revert;
+    font-size: revert;
+    opacity: revert;
+}
+:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active) {
+    background: revert;
+    color: revert;
+    font-weight: revert;
+}
+:where(.global-sidebar-left .update-badge) {
+    background: revert;
+    border: revert;
+    padding: revert;
+    color: revert;
+}
+:where(.global-sidebar-left .badge-ea) { color: revert; }
+:where(#sidebar-dynamic-dock) { gap: revert; }
+:where(#sidebar-dynamic-dock)::before { content: revert; }
+:where(.global-sidebar-left.collapsed #sidebar-dynamic-dock)::before { content: revert; }
+:where(.btn-sys.dock-action-btn) {
+    background: revert;
+    border: revert;
+    padding: revert;
+    color: revert;
+    font-size: revert;
+    font-weight: revert;
+}
+:where(.btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
+    background: revert;
+    color: revert;
+    text-decoration: revert;
+}
+:where(.global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon) { display: revert; }
+:where(.dock-badge) {
+    position: revert;
+    width: revert;
+    height: revert;
+    background: revert;
+    border: revert;
+    box-shadow: revert;
+    transform: revert;
+    color: revert;
+    font-size: revert;
+}
+:where(.dock-badge)::before { content: revert; }
+:where(.inline-callout-btn) {
+    background: revert;
+    border: revert;
+    border-left: revert;
+    box-shadow: revert;
+    font-size: revert;
+    font-weight: revert;
+}
+:where(.inline-callout-btn:hover) {
+    border-color: revert;
+    border-left-color: revert;
+    color: revert;
+    transform: revert;
+    box-shadow: revert;
+}
+:where(.wiki-accordion-summary) {
+    color: revert;
+    font-size: revert;
+    background: revert;
+}
+:where(.wiki-accordion-body) {
+    background: revert;
+    border-top-style: revert;
+}
+:where(.sbox-boxed, .wiki-block-list-boxed) {
+    border-width: revert;
+    box-shadow: revert;
+}
+:where(.sub-tabs) { border-bottom-width: revert; }
+:where(.sub-tab) {
+    font-size: revert;
+    letter-spacing: revert;
+}
+:where(.sub-tab.is-active) {
+    color: revert;
+    border-color: revert;
+}
+:where(#wiki-frame-tooltip) { border-width: revert; }
+:where(.manga-select-trigger) {
+    border-color: revert;
+    background: revert;
+    box-shadow: revert;
+}
+:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
+    transform: revert;
+    box-shadow: revert;
+    border-color: revert;
+}
+:where(.manga-select-wrapper .manga-select-options) {
+    border: revert;
+    box-shadow: revert;
+    animation: revert;
+    background: revert;
+}
+:where(.manga-option) { border-bottom: revert; }
+:where(:is(.manga-option:hover, .manga-option.is-active)) {
+    padding-left: revert;
+    font-weight: revert;
+}
+:where(.manga-option.selected) {
+    border-left: revert;
+    font-weight: revert;
+}
+:where(:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
+    text-transform: revert;
+    font-family: revert;
+}
+body {
+    background-image: repeating-linear-gradient( -45deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 2px, transparent 2px, transparent 8px );
+}
+.site-title,
+.character-title {
+    font-family: var(--font-title), 'Impact', sans-serif;
+    color: var(--text-white);
+}
+.site-title { text-shadow: 2px 2px 0px var(--manga-shadow); }
+.site-title:hover {
+    color: var(--accent-blue);
+    text-shadow: 2px 2px 0px var(--manga-shadow), 0 0 15px hsla(213, 94%, 68%, 0.4);
+}
+.character-title {
+    text-shadow: 3px 3px 0px var(--manga-shadow), -1px -1px 0 var(--border-color), 1px -1px 0 var(--border-color), -1px 1px 0 var(--border-color), 1px 1px 0 var(--border-color);
+}
+.character-header h1.character-title::before { content: ''; }
+.section-title {
+    font-family: var(--font-title), sans-serif;
+    color: var(--accent-blue);
+}
+.section-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
+    border-bottom-width: 2px;
+}
+.section-title {
+    text-shadow: 2px 2px 0px var(--manga-shadow);
+    text-transform: uppercase;
+}
+.section-title:not(.section-title-clean):not(.section-title-flex)::after { content: ''; }
+}
 }

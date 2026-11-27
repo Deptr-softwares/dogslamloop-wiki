@@ -56,8 +56,8 @@ const SUBJECT = (() => {
 })();
 
 // Boots the real page with this colour in the dictionary in place of the
-// character's own, and reads back what the theme wrote.
-async function themeWith(page, colour) {
+// character's own.
+async function bootWith(page, colour) {
   await page.addInitScript(([name, colour]) => {
     let colours;
     Object.defineProperty(window, 'CHARACTER_COLORS', {
@@ -67,10 +67,16 @@ async function themeWith(page, colour) {
     });
   }, [SUBJECT.name, colour]);
   await page.goto(`/${SUBJECT.url}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => document.documentElement.style.getPropertyValue('--accent-blue'), null, { timeout: 15000 });
+}
+
+// Boots the page with this colour and reads back what the theme wrote.
+async function themeWith(page, colour) {
+  await bootWith(page, colour);
+  // The theme writes its colours into its own style element, in the Dogslamloop layer.
+  await page.waitForFunction(() => !!document.getElementById('persona-dynamic-styles'), null, { timeout: 15000 });
   return page.evaluate(() => {
     const root = document.documentElement;
-    const prop = (p) => root.style.getPropertyValue(p);
+    const prop = (p) => getComputedStyle(root).getPropertyValue(p).trim();
     return {
       accent: prop('--accent-blue'),
       border: prop('--border-color'), muted: prop('--text-muted'),
@@ -99,4 +105,23 @@ test('a light hex colour gets black ink and no dark-page treatment', async ({ pa
   expect(light.bgMain).toBe('hsl(45, 15%, 7%)');
   expect(light.ink).toBe('#000000');
   expect(light.darkPage).toBe(false);
+});
+
+// The theme writes the colour into CSS text, so a value that is not one colour
+// must write nothing: it would close the rule and style the rest of the page.
+test('a colour that is not one colour writes no style', async ({ page }) => {
+  await bootWith(page, '#000; } body { display: none } x {');
+  await page.waitForFunction(() => typeof window.applyCharacterTheme === 'function'
+    && !!document.querySelector('.character-title') && !!document.body);
+  const seen = await page.evaluate(() => {
+    const before = getComputedStyle(document.body).display;
+    window.applyCharacterTheme();
+    return {
+      before,
+      after: getComputedStyle(document.body).display,
+      styled: !!document.getElementById('persona-dynamic-styles'),
+    };
+  });
+  expect(seen.before).not.toBe('none');
+  expect(seen).toEqual({ before: seen.before, after: seen.before, styled: false });
 });

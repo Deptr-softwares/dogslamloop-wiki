@@ -256,7 +256,8 @@ const PAGE_SCRIPTS = {
 };
 
 // Paths are under style/. Each kind keeps the order its pages had when the
-// lists were made; one cascade order for every page is C-3's (docs/looks.md).
+// lists were made: one order for every kind would change some pages, because two
+// rules that tie are settled by it (docs/looks.md).
 // Every page that loads site_utils.js gets the sign-in, profile and alert
 // boxes, which Modals.css and Forms.css dress (tests/modal-stylesheets.spec.js).
 // The sheets split from Layout.css, each loaded by the kinds that draw what it
@@ -270,31 +271,28 @@ const SPLIT_FROM_LAYOUT = [BLOCKS, DASHBOARDS, POSTS, TIERLIST, 'search-page.css
 const layout = (...split) => ['Layout.css', ...split];
 const readerStyles = (...split) => ['Common.css', ...layout(...split), 'Cards.css', 'Buttons.css', 'Badges.css', 'ColorCoding.css', 'Alerts.css', 'Modals.css', 'Forms.css'];
 const COMPONENT_STYLES = ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', 'Alerts.css', 'Cards.css'];
-// Classic wins on a reader page by loading last. The editor and staff pages
-// have the one look.
-const CLASSIC = 'look-classic.css';
 
 const PAGE_STYLES = {
-    character: [...COMPONENT_STYLES, 'FrameData.css', 'discussions.css', ...layout(BLOCKS), CLASSIC],
-    system: [...readerStyles(BLOCKS), CLASSIC],
-    gallery: [...readerStyles(BLOCKS), CLASSIC],
+    character: [...COMPONENT_STYLES, 'FrameData.css', 'discussions.css', ...layout(BLOCKS)],
+    system: [...readerStyles(BLOCKS)],
+    gallery: [...readerStyles(BLOCKS)],
     // A tool's own sheet is style/tools/<pageId>.css, when it has one.
-    tool: [...readerStyles(BLOCKS, TIERLIST), OWN, CLASSIC],
+    tool: [...readerStyles(BLOCKS, TIERLIST), OWN],
     // The archived and moved pages' one-paragraph notice.
     notice: ['Common.css', 'ColorCoding.css', 'Buttons.css', ...layout()],
 
-    'not-found': [...readerStyles(BLOCKS), 'FrameData.css', CLASSIC],
-    home: [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, DASHBOARDS, POSTS), CLASSIC],
-    hub: [...readerStyles(BLOCKS, DASHBOARDS), CLASSIC],
-    'tier-lists': ['Common.css', ...layout(BLOCKS, TIERLIST), 'certified-tier-lists.css', 'Cards.css', 'Buttons.css', 'Badges.css', 'ColorCoding.css', 'Alerts.css', 'Modals.css', 'Forms.css', CLASSIC],
-    'update-log': [...readerStyles(BLOCKS, POSTS), CLASSIC],
-    blog: [...readerStyles(BLOCKS, POSTS), 'FrameData.css', CLASSIC],
-    forum: [...readerStyles(BLOCKS), 'FrameData.css', 'discussions.css', 'forum.css', CLASSIC],
-    history: ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', 'Alerts.css', ...layout(BLOCKS, TIERLIST), 'Cards.css', 'FrameData.css', CLASSIC],
-    'recent-changes': ['Common.css', 'Buttons.css', 'Badges.css', ...layout(), 'Cards.css', 'Modals.css', 'Forms.css', 'RecentChanges.css', CLASSIC],
-    search: ['Common.css', 'Buttons.css', 'Badges.css', ...layout('search-page.css'), 'Cards.css', 'Modals.css', 'Forms.css', CLASSIC],
-    policy: [...readerStyles(), CLASSIC],
-    submissions: ['Common.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', ...layout(), 'Cards.css', 'Submissions.css', CLASSIC],
+    'not-found': [...readerStyles(BLOCKS), 'FrameData.css'],
+    home: [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, DASHBOARDS, POSTS)],
+    hub: [...readerStyles(BLOCKS, DASHBOARDS)],
+    'tier-lists': ['Common.css', ...layout(BLOCKS, TIERLIST), 'certified-tier-lists.css', 'Cards.css', 'Buttons.css', 'Badges.css', 'ColorCoding.css', 'Alerts.css', 'Modals.css', 'Forms.css'],
+    'update-log': [...readerStyles(BLOCKS, POSTS)],
+    blog: [...readerStyles(BLOCKS, POSTS), 'FrameData.css'],
+    forum: [...readerStyles(BLOCKS), 'FrameData.css', 'discussions.css', 'forum.css'],
+    history: ['Common.css', 'ColorCoding.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', 'Alerts.css', ...layout(BLOCKS, TIERLIST), 'Cards.css', 'FrameData.css'],
+    'recent-changes': ['Common.css', 'Buttons.css', 'Badges.css', ...layout(), 'Cards.css', 'Modals.css', 'Forms.css', 'RecentChanges.css'],
+    search: ['Common.css', 'Buttons.css', 'Badges.css', ...layout('search-page.css'), 'Cards.css', 'Modals.css', 'Forms.css'],
+    policy: [...readerStyles()],
+    submissions: ['Common.css', 'Buttons.css', 'Modals.css', 'Forms.css', 'Badges.css', ...layout(), 'Cards.css', 'Submissions.css'],
     editor: [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, TIERLIST), 'editor.css'],
     'post-editor': [...COMPONENT_STYLES, ...layout(BLOCKS, POSTS, 'post-editor.css'), 'editor.css', 'admin.css'],
     'tier-editor': [...COMPONENT_STYLES, 'FrameData.css', ...layout(BLOCKS, TIERLIST), 'editor.css', 'certified-tier-lists.css', 'tier-editor.css'],

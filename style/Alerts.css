@@ -56,29 +56,17 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border-color);
     
     /* --callout-color comes from page_render.js, per callout. */
-    border-left: 4px solid var(--callout-color, var(--accent-blue));
     color: var(--text-white);
     
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    font-weight: bold;
-    text-transform: uppercase;
     padding: 0.3rem 0.6rem;
     cursor: help;
-    box-shadow: 2px 2px 0px var(--manga-shadow);
     transition: all 0.15s ease;
 }
-
-.inline-callout-btn:hover {
-    border-color: var(--callout-color, var(--accent-blue));
-    transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0px var(--callout-color, var(--accent-blue));
-    color: var(--callout-color, var(--accent-blue));
-}
+.inline-callout-btn:not(:where(.inline-callout-btn)) { border: 2px solid var(--border-color); }
+.inline-callout-btn:not(:where(.inline-callout-btn, .inline-callout-btn:hover)) { border-left: 4px solid var(--callout-color, var(--accent-blue)); }
+.inline-callout-btn:where(.inline-callout-btn:hover) { border-left-width: 4px; border-left-style: solid; }
 
 .inline-callout-btn .callout-icon {
     font-size: 0.85rem;
@@ -86,4 +74,55 @@
 /* The rescue banner (page_rescue.js): the page is still an HTTP 404, so nothing
    indexes it until its stub is generated. */
 .rescue-banner { margin-bottom: 1.5rem; }
+
+/* Content Blocks: thin rules, no shadow, nothing that moves. A callout keeps its
+   colour as a left edge, which says what kind it is. */
+.inline-callout-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--callout-color, var(--accent-blue));
+    box-shadow: none;
+    font-size: 0.85rem;
+    font-weight: normal;
+}
+.inline-callout-btn:hover {
+    border-color: var(--border-color);
+    border-left-color: var(--callout-color, var(--accent-blue));
+    color: var(--text-white);
+    transform: none;
+    box-shadow: none;
+}
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.inline-callout-btn { background: var(--bg-secondary); }
+.inline-callout-btn:where(.inline-callout-btn) { border: 2px solid var(--border-color); }
+.inline-callout-btn:where(.inline-callout-btn:hover) {
+    border-top-color: var(--border-color);
+    border-right-color: var(--border-color);
+    border-bottom-color: var(--border-color);
+    border-left-color: var(--border-color);
+}
+.inline-callout-btn:where(.inline-callout-btn) {
+    border-left: 4px solid var(--callout-color, var(--accent-blue));
+}
+.inline-callout-btn:where(.inline-callout-btn:hover) {
+    border-left-color: var(--callout-color, var(--accent-blue));
+}
+.inline-callout-btn {
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+}
+.inline-callout-btn:hover {
+    border-color: var(--callout-color, var(--accent-blue));
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px var(--callout-color, var(--accent-blue));
+    color: var(--callout-color, var(--accent-blue));
+}
+}
 }

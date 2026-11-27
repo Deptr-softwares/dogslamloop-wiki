@@ -301,85 +301,62 @@ window.isDarkCharacterColor = function(color) {
     return parts ? parts.l < 50 : false;
 };
 
-/** Paints a character page in its character's colour: the accent, the tint, the ink and the title. */
+/**
+ * Paints a character page in its character's colour: the accent, the tint, the ink
+ * and the title. The colours are the Dogslamloop look's, so they are written into the
+ * dogslamloop layer under html:not(.look-classic): Classic never shows them, and
+ * switching looks needs no repaint.
+ * @touches #persona-dynamic-styles, html.page-character-dark, the title's data-themed
+ * @watch the colour goes into CSS text, so anything that is not one colour is refused
+ */
 window.applyCharacterTheme = function() {
     const titleEl = document.querySelector('.character-title');
-    if (!titleEl) return; 
+    if (!titleEl) return;
 
     const charName = titleEl.textContent.trim();
     const charColor = window.CHARACTER_COLORS[charName];
+    if (!charColor || !CSS.supports('color', charColor)) return;
 
-    if (charColor) {
-        document.documentElement.style.setProperty('--accent-blue', charColor);
-        
-        const parts = window.parseCharacterColor(charColor);
-        if (parts) {
-            const h = parts.h;
-            const s = parts.s;
-
-            const themeSat = s > 0 ? 25 : 0; 
-            const bgSat = s > 0 ? 15 : 0;
-
-            document.documentElement.style.setProperty('--border-color', `hsl(${h}, ${themeSat}%, 23%)`);
-            document.documentElement.style.setProperty('--text-muted', `hsl(${h}, ${themeSat}%, 65%)`);
-            
-            document.documentElement.style.setProperty('--bg-main', `hsl(${h}, ${bgSat}%, 7%)`);
-            document.documentElement.style.setProperty('--bg-secondary', `hsl(${h}, ${bgSat}%, 11%)`);
-
+    const vars = [`--accent-blue: ${charColor};`];
+    let rules = '';
+    const parts = window.parseCharacterColor(charColor);
+    if (parts) {
+        const { h, s } = parts;
+        const themeSat = s > 0 ? 25 : 0;
+        const bgSat = s > 0 ? 15 : 0;
+        const pageIsDark = window.isDarkCharacterColor(charColor);
+        vars.push(
+            `--border-color: hsl(${h}, ${themeSat}%, 23%);`,
+            `--text-muted: hsl(${h}, ${themeSat}%, 65%);`,
+            `--bg-main: hsl(${h}, ${bgSat}%, 7%);`,
+            `--bg-secondary: hsl(${h}, ${bgSat}%, 11%);`,
             // Box shadows stay black on every character's page.
-            document.documentElement.style.setProperty('--manga-shadow', '#000000');
+            '--manga-shadow: #000000;',
+            // Text drawn on a surface filled with the character colour (the combo
+            // block's hover highlight).
+            `--character-ink: ${pageIsDark ? '#ffffff' : '#000000'};`,
+        );
 
-            // Text drawn on a surface filled with the character colour (the combo block's
-            // hover highlight).
-            const pageIsDark = window.isDarkCharacterColor(charColor);
-            document.documentElement.style.setProperty('--character-ink', pageIsDark ? '#ffffff' : '#000000');
+        // Marks the page, not the name: one name is on many pages, and needs the outline
+        // only on the dark ones.
+        document.documentElement.classList.toggle('page-character-dark', pageIsDark);
 
-            // Marks the page, not the name: one name is on many pages, and needs the outline
-            // only on the dark ones.
-            document.documentElement.classList.toggle('page-character-dark', pageIsDark);
-
-            let dynamicStyle = document.getElementById('persona-dynamic-styles');
-            if (!dynamicStyle) {
-                dynamicStyle = document.createElement('style');
-                dynamicStyle.id = 'persona-dynamic-styles';
-                document.head.appendChild(dynamicStyle);
-            }
-
-            // A dark colour: headings and the title get a white outline.
-            if (pageIsDark) {
-                dynamicStyle.innerHTML = `
-                    .section-title, .strategy-title, .card-header-title, .skill-title {
-                        color: ${charColor} !important;
-                        text-shadow: 
-                            -1px -1px 0 #ffffff, 
-                             1px -1px 0 #ffffff, 
-                            -1px  1px 0 #ffffff, 
-                             1px  1px 0 #ffffff,
-                             3px  3px 0px #ffffff !important;
-                    }
-                `;
-                
-                titleEl.style.color = charColor;
-                titleEl.style.textShadow = `
-                    -1px -1px 0 #ffffff, 
-                     1px -1px 0 #ffffff, 
-                    -1px  1px 0 #ffffff, 
-                     1px  1px 0 #ffffff,
-                     3px  3px 0px #ffffff
-                `;
-            } else {
-                dynamicStyle.innerHTML = ''; 
-                titleEl.style.color = 'var(--text-white)';
-                titleEl.style.textShadow = `
-                    -1px -1px 0 ${charColor}, 
-                     1px -1px 0 ${charColor}, 
-                    -1px  1px 0 ${charColor}, 
-                     1px  1px 0 ${charColor},
-                     3px  3px 0px var(--manga-shadow)
-                `;
-            }
-        }
+        titleEl.setAttribute('data-themed', '');
+        const outline = c => `-1px -1px 0 ${c}, 1px -1px 0 ${c}, -1px 1px 0 ${c}, 1px 1px 0 ${c}`;
+        // A dark colour: headings and the title get a white outline.
+        rules = pageIsDark
+            ? `.section-title, .strategy-title, .card-header-title, .skill-title { color: ${charColor} !important; text-shadow: ${outline('#ffffff')}, 3px 3px 0px #ffffff !important; }
+.character-title[data-themed] { color: ${charColor}; text-shadow: ${outline('#ffffff')}, 3px 3px 0px #ffffff; }`
+            : `.character-title[data-themed] { color: var(--text-white); text-shadow: ${outline(charColor)}, 3px 3px 0px var(--manga-shadow); }`;
     }
+
+    let dynamicStyle = document.getElementById('persona-dynamic-styles');
+    if (!dynamicStyle) {
+        dynamicStyle = document.createElement('style');
+        dynamicStyle.id = 'persona-dynamic-styles';
+        document.head.appendChild(dynamicStyle);
+    }
+    dynamicStyle.textContent = `@layer dogslamloop {\nhtml:not(.look-classic) {\n${vars.join('\n')}\n${rules}\n}\n}\n`;
 };
 
 document.addEventListener('DOMContentLoaded', () => {
