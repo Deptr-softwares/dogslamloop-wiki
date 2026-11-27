@@ -3,6 +3,8 @@
    Touches: recent-changes.html.
    See: docs/records.md */
 
+@layer site {
+
 .recent-changes-pagination {
     display: flex; justify-content: space-between; align-items: center;
     background: var(--bg-main); padding: 0.5rem 1rem;
@@ -10,7 +12,7 @@
 }
 .recent-changes-page-label { font-family: var(--text-mono); font-size: 0.85rem; color: var(--text-white); }
 
-.change-card { margin-bottom: 1rem; border-left: 4px solid var(--accent-blue); }
+.change-card { margin-bottom: 1rem; }
 .change-card-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem;
@@ -24,3 +26,11 @@
 .change-card-meta .reviewer { color: #34d399; }
 .change-card-changelog { font-size: 0.85rem; color: #d1d5db; line-height: 1.6; font-family: var(--text-mono); }
 .change-card-history-link { font-size: 0.75rem; margin-top: 0.75rem; display: inline-block; }
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.change-card { border-left: 4px solid var(--accent-blue); }
+}
+}

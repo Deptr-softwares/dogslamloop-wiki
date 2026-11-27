@@ -3,6 +3,8 @@
    Since v0.4.
    See: docs/looks.md */
 
+@layer site {
+
 /* Update and tag badges */
 .update-badge { 
     padding: 0.25rem 0.4rem 0.15rem 0.4rem; 
@@ -17,8 +19,6 @@
 .badge-site { background-color: hsl(132, 59%, 33%); color: #fff; }
 .badge-patch { background-color: var(--accent-blue); color: #fff; }
 .badge-general { background-color: hsl(261, 73%, 62%); color: #fff; }
-.badge-wip { background-color: var(--accent-yellow); color: #000; }
-.badge-ea { background-color: hsl(28, 99%, 53%); color: #fff; }
 .update-badge-inline { margin-left: 0.5rem; }
 
 /* Author and credit badges */
@@ -92,9 +92,33 @@
 }
 
 .dock-badge {
-    position: absolute; top: -4px; right: -4px;
-    background: #ef4444; width: 12px; height: 12px;
+    top: -4px; right: -4px;
+}
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.update-badge:where(.global-sidebar-left .update-badge) {
+    padding: 0.25rem 0.4rem 0.15rem 0.4rem;
+    border: 1px solid #000;
+}
+.badge-wip {
+    background-color: var(--accent-yellow);
+    color: #000;
+}
+.badge-ea {
+    background-color: hsl(28, 99%, 53%);
+    color: #fff;
+}
+.dock-badge {
+    position: absolute;
+    background: #ef4444;
+    width: 12px;
+    height: 12px;
     border: 2px solid #050505;
     transform: skewX(10deg);
     box-shadow: 2px 2px 0px #000;
+}
+}
 }

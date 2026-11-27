@@ -9,6 +9,8 @@
    shared on purpose, with its size scoped to .mk-entry.
    See: docs/tier-lists.md */
 
+@layer site {
+
 /* .tool-frame lines its children up at the start, so the tool asks for the whole
    width. */
 .mk-tool {
@@ -293,4 +295,5 @@
     .mk-brand-small .mk-brand-text { font-size: 0.4rem; }
     .mk-entry .tier-portrait-name { font-size: 0.5rem; }
     .mk-control-name.editor-input { flex: 1 1 100%; }
+}
 }

@@ -7,6 +7,8 @@
    with one there.
    See: docs/home.md */
 
+@layer site {
+
 /* Two columns, for the dashboard widgets; stacks below 900px like the 3-column grid. */
 .grid-layout-2col { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
 @media (min-width: 900px) {
@@ -108,7 +110,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Systems directory grid (js/dashboards/hub_roster.js buildSystemsDirectory) */
 /* One solid line under every title, as .section-title has; dashed is for the lines
    between a list's rows. */
-.system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; }
+.system-category-block .sidebar-master-title { margin-top: 0; }
 .system-directory-btn { width: 100%; padding: 0.6rem 1rem; }
 .system-directory-btn .btn-manga-content { justify-content: center; }
 .system-directory-btn .btn-manga-text { font-size: 0.85rem; letter-spacing: 1px; }
@@ -318,3 +320,15 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .matchup-clashes a { color: var(--text-white); text-decoration: none; }
 .matchup-clashes a:hover { text-decoration: underline; }
 .matchup-clash-tier { font-weight: bold; }
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+.system-category-block .sidebar-master-title { margin-bottom: 1.25rem; }
+.systems-grid-container-compact .system-category-block .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.35rem;
+}
+}
+}

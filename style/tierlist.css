@@ -7,6 +7,8 @@
    Watch: certified-tier-lists.css raises a portrait's size on the Tier List page.
    See: docs/tier-lists.md */
 
+@layer site {
+
 /* The older tier list (tierlist.js). .tier-list-container wraps #tier-list-ui on the
    Tier List page and in History. */
 .tier-list-container { background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 6px 6px 0px var(--manga-shadow); display: flex; flex-direction: column; gap: 2px; }
@@ -195,3 +197,4 @@
 .ctl-tip-date { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.3rem; }
 .ctl-tip-note { max-width: 32ch; line-height: 1.45; }
 .ctl-tip-author { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }
+}

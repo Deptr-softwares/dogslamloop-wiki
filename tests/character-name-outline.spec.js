@@ -67,7 +67,7 @@ async function outlineOf(page, pageColour, name) {
   await open(page, pageColour, 'domcontentloaded');
   await page.waitForFunction(() => typeof window.applyInternalStyling === 'function'
     && !!document.querySelector('main')
-    && !!document.documentElement.style.getPropertyValue('--accent-blue'), null, { timeout: 15000 });
+    && !!document.getElementById('persona-dynamic-styles'), null, { timeout: 15000 });
 
   return page.evaluate((who) => {
     const host = document.createElement('p');

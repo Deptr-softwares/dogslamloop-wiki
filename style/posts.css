@@ -6,6 +6,8 @@
    Overseer's queue and owner.html use them too.
    See: docs/home.md */
 
+@layer site {
+
 /* Update Log Tables */
 .update-log-summary { cursor: pointer; list-style: none; outline: none; }
 .update-log-summary::-webkit-details-marker { display: none; }
@@ -31,3 +33,4 @@
 /* Distinguishes a hotfix note from a versioned release entry in the Update
    Log, where the two are deliberately interleaved. */
 .badge-hotfix { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
+}

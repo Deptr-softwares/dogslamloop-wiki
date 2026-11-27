@@ -4,6 +4,8 @@
    Watch: every page loads this file.
    See: docs/looks.md */
 
+@layer site {
+
 /* The site's dialog: a box on a <dialog>, opened by window.openDialog
    (site_utils.js), in the staff look. Sizes: .dialog-md, -lg, -xl (400 without
    one). Tones: .tone-red, -yellow, -green, -purple (blue without one).
@@ -501,4 +503,20 @@ html.reduce-motion .site-toast.is-new { animation: none; }
 /* A phone: across the top of the screen. */
 @media (max-width: 640px) {
     .site-toasts { inset: 0.75rem 0.75rem auto 0.75rem; width: auto; max-width: none; align-items: stretch; }
+}
+
+/* The hover tooltip draws its own border inline (site_media.js). */
+#wiki-frame-tooltip { border-width: 1px; }
+}
+
+/* The Dogslamloop look: Default's own, off when a reader picks Classic. */
+@layer dogslamloop {
+html:not(.look-classic) {
+#wiki-frame-tooltip:where(#wiki-frame-tooltip) {
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+}
+}
 }

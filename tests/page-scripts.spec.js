@@ -105,7 +105,7 @@ test('a generated page loads its type\'s stylesheets, a tool its own sheet befor
         expect(sheetsOf(page.html), page.pageId).toEqual(sheetsOf(styleTags(page.pageType, '../../', { own })));
     }
     const withOwn = sheetsOf(pages.find(p => p.pageId === 'probe_own').html);
-    expect(withOwn.slice(-2)).toEqual(['../../style/tools/probe_own.css', '../../style/look-classic.css']);
+    expect(withOwn.slice(-1)).toEqual(['../../style/tools/probe_own.css']);
     expect(sheetsOf(pages.find(p => p.pageId === 'probe_tool').html).join()).not.toContain('style/tools/');
 
     const notices = pages.filter(p => p.archived || p.moved);
