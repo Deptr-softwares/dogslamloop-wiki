@@ -24,6 +24,7 @@ How the reader pages look: the shared stylesheets every reader page loads, the t
 - The character theme (`applyCharacterTheme`, `site_lookups.js`) writes its colours and title rules into the `dogslamloop` layer under the same wrapper, so Classic never shows them. A colour in `<html>`'s own style attribute would win over every layer.
 - An inline style beats every rule in every layer, so a colour a look decides is never written inline (the Update Log's version headings were).
 - The editor and staff pages never take `html.look-classic` (`site_utils.js`, the pages that load `editor.css`): their own sheets have no plain parts yet, so they stay in the Default look.
+- A change to either look is checked with `npm run snapshot` (`scripts/style-snapshot.js`) against the commit before it, and a difference in its specimen markup counts until no page that draws the element could show it.
 - Every box is the site's dialog (`dialog.site-dialog` in `Modals.css`, `docs/shared-code.md`), in the staff look in both looks: Classic has no rule for it.
 - A strip of tabs inside a page is `.sub-tabs` and `.sub-tab` in `Buttons.css`, its picked tab `.is-active`, and a strip sets its own colour with `--sub-tab-accent`. The page tabs (`.btn-manga-slanted`) and the mode chips are not part of it. A button in a strip that is not a tab is `.sub-tabs-action`.
 - `.tier-portrait` is shared between the Tier List page and the tier editor; its size on the page is raised in `certified-tier-lists.css` only.
