@@ -40,6 +40,7 @@ npm run refresh-banners   # mirror character banners into medias/banners/ + Over
 npm run refresh-stills    # first frame + size of every video the pages show, into medias/stills/
 npm run refresh-registry  # rewrite navigation.json from site_pages
 npm run refresh-content   # rewrite faq.json + collaborators_data.json + site_meta.json
+npm run snapshot          # computed-style snapshot against a commit (local only; --base=<commit>, pages)
 ```
 
 `visual.spec.js` is excluded from CI (`testIgnore` in `playwright.config.js`): screenshot baselines are OS-specific. It stays a local-only tool for CSS work.

@@ -13,6 +13,7 @@
     "refresh-registry": "node scripts/fetch-registry.js --write",
     "refresh-content": "node scripts/fetch-content.js --write",
     "refresh-search-index": "node scripts/fetch-search-index.js --write",
+    "snapshot": "node scripts/style-snapshot.js",
     "pretest": "node scripts/stamp-assets.js --check"
   },
   "devDependencies": {

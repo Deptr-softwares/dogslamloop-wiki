@@ -82,11 +82,10 @@ select.editor-select.manga-initialized {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.manga-select-trigger:not(:where(.manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))) { border: 1px solid #333; }
-.manga-select-trigger:where(.manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) { border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.manga-select-trigger { border-width: 1px; border-style: solid; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 
 .manga-select-trigger:disabled { cursor: not-allowed; opacity: 0.5; }
-.manga-select-trigger:hover:not(:disabled):not(:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))), .manga-select-wrapper.open .manga-select-trigger:not(:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))) { transform: translate(-2px, -2px); }
+.manga-select-wrapper.open .manga-select-trigger:not(:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))) { transform: translate(-2px, -2px); }
 
 /* The dropdown arrow */
 .manga-select-trigger::after {
@@ -104,8 +103,8 @@ select.editor-select.manga-initialized {
     transform: translateY(-50%) rotate(180deg);
 }
 
-/* The menu: at least as wide as its button and as its longest option, capped by the
-   screen. Pinned to the button, a narrow "ALL" button cut its options short. */
+/* The menu: at least as wide as its button and its longest option, capped by the
+   screen. */
 .manga-select-options {
     position: absolute;
     top: 100%;
@@ -149,8 +148,6 @@ select.editor-select.manga-initialized {
     background: var(--accent-blue);
     color: #000 !important; 
 }
-.manga-option:hover:not(:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected)), .manga-option.is-active:not(:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected)) { font-weight: bold; }
-.manga-option:hover:not(:where(:is(.manga-option:hover, .manga-option.is-active))), .manga-option.is-active:not(:where(:is(.manga-option:hover, .manga-option.is-active))) { padding-left: 1.5rem; }
 
 .manga-option.selected {
     color: var(--text-white);
@@ -170,11 +167,8 @@ select.editor-select.manga-initialized {
 @layer dogslamloop {
 html:not(.look-classic) {
 .manga-select-trigger { background: #050505; }
-.manga-select-trigger:where(.manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
-    border-top-color: rgb(51, 51, 51);
-    border-right-color: rgb(51, 51, 51);
-    border-bottom-color: rgb(51, 51, 51);
-    border-left-color: rgb(51, 51, 51);
+.manga-select-trigger {
+    border-color: rgb(51, 51, 51);
 }
 .manga-select-trigger {
     font-family: var(--text-mono);
@@ -185,7 +179,7 @@ html:not(.look-classic) {
 .manga-select-wrapper.open .manga-select-trigger {
     border-color: var(--accent-blue);
 }
-.manga-select-trigger:hover:not(:disabled):where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)),
+.manga-select-trigger:hover:not(:disabled),
 .manga-select-wrapper.open .manga-select-trigger:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
     transform: translate(-2px, -2px);
 }
@@ -205,12 +199,12 @@ html:not(.look-classic) {
     border-bottom: 1px dashed #222;
 }
 .manga-option:last-child { border-bottom: none; }
-.manga-option:hover:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected),
-.manga-option.is-active:where(:is(.manga-option:hover, .manga-option.is-active), .manga-option.selected) {
+.manga-option:hover,
+.manga-option.is-active {
     font-weight: bold;
 }
-.manga-option:hover:where(:is(.manga-option:hover, .manga-option.is-active)),
-.manga-option.is-active:where(:is(.manga-option:hover, .manga-option.is-active)) {
+.manga-option:hover,
+.manga-option.is-active {
     padding-left: 1.5rem;
 }
 .manga-option.selected { border-left: 3px solid var(--accent-blue); }

@@ -13,10 +13,9 @@
     transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
     box-sizing: border-box;
 }
-.wiki-section:not(:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card))), .wiki-card:not(:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card))), .update-log-item:not(:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card))), .faq-details:not(:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card))), .skill-entry-card:not(:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card))) { border: 2px solid var(--border-color); }
 
-/* The hover lift, only where there is a pointer: a phone keeps :hover on whatever
-   was touched last, so a tap made the panel jump and stay jumped. */
+/* The hover lift, only where there is a pointer: a phone keeps :hover on the last
+   thing touched. */
 
 
 /* Large content panels */
@@ -26,7 +25,6 @@
 
 /* A quieter hover for the large sections. */
 @media (hover: hover) {
-    .wiki-section:hover:not(:where(:is(.wiki-card, .wiki-section), :is(.skill-entry-card, .wiki-section.profile-card), .wiki-section.submission-card)), .skill-entry-card:hover:not(:where(:is(.wiki-card, .wiki-section), :is(.skill-entry-card, .wiki-section.profile-card), .wiki-section.submission-card)) { border-color: hsl(212, 12%, 30%); }
     .wiki-section:hover:where(.wiki-section.submission-card), .skill-entry-card:hover:where(.wiki-section.submission-card) { border-top-color: rgb(67, 76, 86); border-right-color: rgb(67, 76, 86); border-left-color: rgb(67, 76, 86); }
 }
 
@@ -92,16 +90,14 @@
    icon has loaded; a card without one keeps the solid-colour design. */
 .roster-card {
     background-color: var(--char-color, var(--bg-main));
-    /* Thicker than the shared 2px: the border carries the character's colour. 3px,
-       which is what 3.5px renders as (Chromium floors border widths). On .roster-card,
-       not .has-icon, so every card stays one size (content-box), and not on the rule
-       the image cards share. */
+    /* Thicker than the shared 2px: the border carries the character's colour (3.5px
+       draws as 3px, since Chromium floors border widths). On .roster-card, not
+       .has-icon, so every card stays one size. */
     border-width: 3px;
 }
 
-/* With an icon the card is dark, with the site's diagonal hatching (body's, in
-   Common.css, at 0.06 alpha so it shows in a 96px box), and the colour moves to the
-   border. */
+/* With an icon the card is dark, with body's diagonal hatching, and the colour
+   moves to the border. */
 .roster-card.has-icon {
     background-color: var(--bg-main);
     background-image: repeating-linear-gradient(
@@ -113,9 +109,8 @@
     );
 }
 
-/* Stated for hover and focus too: the shared .roster-card:hover rule has the same
-   specificity, and equal specificity decided by file position has caught this
-   project three times. */
+/* Stated for hover and focus too: the shared .roster-card:hover rule ties with this
+   one. */
 .roster-card.has-icon,
 .roster-card.has-icon:hover,
 .roster-card.has-icon:focus-visible {
@@ -123,7 +118,7 @@
 }
 
 /* The hover shadow matches the border; only the colour differs from the shared rule. */
-.roster-card.has-icon:hover:not(:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover)), .roster-card.has-icon:focus-visible:not(:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover)) { box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue)); }
+.roster-card.has-icon:focus-visible:not(:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover)) { box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue)); }
 
 .roster-card-icon {
     width: 100%; height: 100%; object-fit: contain; position: absolute;
@@ -148,8 +143,8 @@
         white-space: normal; overflow-wrap: break-word;
         background-color: var(--char-color, var(--accent-blue));
         padding: 0.1rem 0.25rem;
-        /* clip-path, not width or scaleX: width cannot transition to auto, and scaleX
-           squashes the letters. The name is revealed left to right at its own size. */
+        /* clip-path, since width cannot transition to auto and scaleX squashes the
+           letters: the name shows at its own size. */
         clip-path: inset(0 100% 0 0);
         transition: clip-path 0.25s ease;
     }
@@ -213,14 +208,13 @@
    own spacing below it. */
 .update-changes-heading:first-child { margin-top: 1rem; }
 
-/* The list already carries an inline margin-top for the unheaded case; a list
-   that follows a heading of its own does not need it twice. */
+/* After its own heading, a list drops the inline margin-top it carries for the
+   unheaded case. */
 .update-changes-heading + .update-changes-list { margin-top: 0.4rem !important; }
 
-/* Hover banners: over a roster card after 0.25s, the character's banner, name and
-   the start of their Overview, edged in their colour, or a band of it without a
-   banner. Fixed to the screen and placed by the script; pointer-events off, so it
-   never takes the hover from the card. The name stays white. */
+/* Hover banners over a roster card: the character's banner, name and Overview line,
+   edged in their colour. Fixed and placed by the script; pointer-events off, so the
+   card keeps the hover. */
 .roster-banner {
     position: fixed; z-index: 60; width: min(360px, calc(100vw - 32px));
     background: var(--bg-secondary); border: 2px solid var(--banner-color, var(--border-color));
@@ -235,9 +229,8 @@
 }
 .roster-banner-overview { margin: 0; color: var(--text-primary); font-size: 0.8rem; line-height: 1.45; }
 
-/* Panels have no box, like an article: a heading and its rule separate them.
-   Nothing lifts on hover. A frame data card keeps a thin box, and the profile card
-   is the infobox. */
+/* Panels have no box, like an article, and nothing lifts on hover; a frame data
+   card keeps a thin box, and the profile card is the infobox. */
 :is(.wiki-card, .wiki-section) {
     background: none;
     border: 0;
@@ -276,11 +269,11 @@ html:not(.look-classic) {
 .skill-entry-card {
     background-color: var(--bg-secondary);
 }
-.wiki-section:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card)),
-.wiki-card:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card)),
-.update-log-item:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card)),
-.faq-details:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card)),
-.skill-entry-card:where(:is(.wiki-card, .wiki-section), :is(.update-log-item, .faq-details), :is(.skill-entry-card, .wiki-section.profile-card)) {
+.wiki-section,
+.wiki-card,
+.update-log-item,
+.faq-details,
+.skill-entry-card {
     border: 2px solid var(--border-color);
 }
 .wiki-section:where(.wiki-section.submission-card),
@@ -310,12 +303,12 @@ html:not(.look-classic) {
 }
 .wiki-section { box-shadow: 6px 6px 0px var(--manga-shadow); }
 @media not all and (max-width: 640px) {
-    .wiki-section:where(:is(.wiki-card, .wiki-section), .wiki-section.profile-card) { padding: 1.5rem; }
+    .wiki-section { padding: 1.5rem; }
     .wiki-section:where(.wiki-section.submission-card) { padding-bottom: 1.5rem; }
 }
 @media (hover: hover) {
-    .wiki-section:hover:where(:is(.wiki-card, .wiki-section), :is(.skill-entry-card, .wiki-section.profile-card)),
-    .skill-entry-card:hover:where(:is(.wiki-card, .wiki-section), :is(.skill-entry-card, .wiki-section.profile-card)) {
+    .wiki-section:hover,
+    .skill-entry-card:hover {
         border-color: hsl(212, 12%, 30%);
     }
     .wiki-section:hover:where(.wiki-section.submission-card),
@@ -335,7 +328,7 @@ html:not(.look-classic) {
     box-shadow: 5px 5px 0px var(--accent-blue);
 }
 .roster-card:hover .roster-card-text { transform: scale(1.05); }
-.roster-card.has-icon:hover:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover),
+.roster-card.has-icon:hover,
 .roster-card.has-icon:focus-visible:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover) {
     box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue));
 }

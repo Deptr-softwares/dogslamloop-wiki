@@ -64,8 +64,6 @@
     cursor: help;
     transition: all 0.15s ease;
 }
-.inline-callout-btn:not(:where(.inline-callout-btn)) { border: 2px solid var(--border-color); }
-.inline-callout-btn:not(:where(.inline-callout-btn, .inline-callout-btn:hover)) { border-left: 4px solid var(--callout-color, var(--accent-blue)); }
 .inline-callout-btn:where(.inline-callout-btn:hover) { border-left-width: 4px; border-left-style: solid; }
 
 .inline-callout-btn .callout-icon {
@@ -98,14 +96,11 @@
 @layer dogslamloop {
 html:not(.look-classic) {
 .inline-callout-btn { background: var(--bg-secondary); }
-.inline-callout-btn:where(.inline-callout-btn) { border: 2px solid var(--border-color); }
+.inline-callout-btn { border: 2px solid var(--border-color); }
 .inline-callout-btn:where(.inline-callout-btn:hover) {
-    border-top-color: var(--border-color);
-    border-right-color: var(--border-color);
-    border-bottom-color: var(--border-color);
-    border-left-color: var(--border-color);
+    border-color: var(--border-color);
 }
-.inline-callout-btn:where(.inline-callout-btn) {
+.inline-callout-btn {
     border-left: 4px solid var(--callout-color, var(--accent-blue));
 }
 .inline-callout-btn:where(.inline-callout-btn:hover) {

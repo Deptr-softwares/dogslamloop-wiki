@@ -6,12 +6,11 @@
 
 @layer site {
 
-/* The site's dialog: a box on a <dialog>, opened by window.openDialog
-   (site_utils.js), in the staff look. Sizes: .dialog-md, -lg, -xl (400 without
-   one). Tones: .tone-red, -yellow, -green, -purple (blue without one).
-   Since v1.3.
-   Watch: display goes on [open] only, or a closed dialog shows. The dialog sits in
-   the top layer, so a popup opened from inside it has to be inside it too. */
+/* The site's dialog on a <dialog>, opened by window.openDialog (site_utils.js), in
+   the staff look. Sizes .dialog-md, -lg, -xl (400px without one); tones .tone-red,
+   -yellow, -green, -purple (blue without one). Since v1.3. Watch: display goes on
+   [open] only; a popup opened from inside it must be inside it, since it sits in
+   the top layer. */
 dialog.site-dialog {
     --dialog-tone: var(--accent-blue);
     box-sizing: border-box;
@@ -111,10 +110,9 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* The site's tooltip (window.showTooltipFor, site_media.js): one element, pinned
-   above what it explains or below it, moved into an open box when what it explains
-   is in one.
-   Since v0.3, changed v1.3. */
+/* The site's tooltip (window.showTooltipFor, site_media.js): one element, above or
+   below what it explains, inside the open box when that is in one. Since v0.3,
+   changed v1.3. */
 #wiki-frame-tooltip {
     position: fixed;
     z-index: 100000;
@@ -127,8 +125,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     font-family: var(--text-mono);
     font-size: 0.75rem;
 }
-/* A one-line hint lets clicks through to whatever it covers; HTML content (a
-   callout, a phase, a Trivia fact) takes the pointer, so a long one can be read. */
+/* A one-line hint lets clicks through; HTML content (a callout, a phase, a Trivia
+   fact) takes the pointer so it can be read. */
 #wiki-frame-tooltip.is-text { white-space: pre-line; pointer-events: none; }
 
 /* Auth modal inline feedback (error/success message) */
@@ -146,9 +144,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
 .auth-terms-notice a { color: var(--accent-blue); text-decoration: underline; }
 
 
-/* The profile modal. Every class here is new and prefixed profile-; .btn-sys,
-   .editor-input and the dialog's parts are used as they are, since their other users are not
-   in this file. */
+/* The profile modal: its own classes are prefixed profile-; .btn-sys, .editor-input
+   and the dialog's parts are used as they are. */
 
 .profile-identity {
     display: flex;
@@ -243,8 +240,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     font-family: var(--text-mono);
 }
 
-/* > label.profile-toggle on purpose: .profile-field > label above outranks a bare
-   .profile-toggle, and pushed the toggle's words to the right margin. */
+/* > label.profile-toggle on purpose: .profile-field > label outranks a bare
+   .profile-toggle. */
 .profile-field > label.profile-toggle {
     display: flex;
     justify-content: flex-start;
@@ -316,8 +313,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     white-space: pre-wrap;
 }
 
-/* "No description yet." and "This description is private." are the site
-   talking, not the person - so they read as chrome rather than as a quote. */
+/* "No description yet." and "This description is private." are the site talking, so
+   they read as chrome, not a quote. */
 .pubprofile-bio-empty {
     color: var(--text-muted);
     font-style: italic;
@@ -346,10 +343,9 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     color: var(--text-muted);
 }
 
-/* Badges: a skill slot from the game with the badge's picture in it, the "3" key on
-   the larger sizes; Gold Ver has a gold frame. Here, not in discussions.css: the
-   profile modals, the toast and the threads all draw them, and every page carries
-   the modals. */
+/* Badges: a skill slot with the badge's picture, the "3" key on the larger sizes, a
+   gold frame for Gold Ver. Here, since the profile boxes, the toast and the threads
+   all draw them. */
 .user-badge {
     position: relative;
     display: inline-flex;
@@ -442,12 +438,9 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
 .pubprofile-badges-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
 .pubprofile-badge { display: flex; align-items: center; gap: 0.6rem; }
 
-/* The toasts (window.showToast, site_utils.js): short messages in the top right
-   corner that go by themselves, newest on top. The shelf is a popover, in the top
-   layer, and inside the top open box while one is open.
-   Since v1.3.
-   Watch: a popover's own [popover] rule hides it while closed, and display: flex
-   here would beat that rule, so the closed state is restated. */
+/* The toasts (window.showToast, site_utils.js), top right, newest on top, in a
+   popover shelf inside the top open box. Since v1.3. Watch: display: flex beats the
+   [popover] rule that hides it, so the closed state is restated. */
 .site-toasts {
     position: fixed;
     inset: 1rem 1rem auto auto;
@@ -512,11 +505,8 @@ html.reduce-motion .site-toast.is-new { animation: none; }
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
-#wiki-frame-tooltip:where(#wiki-frame-tooltip) {
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
+#wiki-frame-tooltip {
+    border-width: 2px;
 }
 }
 }

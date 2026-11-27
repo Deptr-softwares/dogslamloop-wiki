@@ -37,9 +37,8 @@
     --border-color: #54595d;
     
     --accent-blue: #88a3e8;
-    /* The text colour on top of --accent-blue: site_lookups.js re-points both per
-       character page, black on a light colour, white on a dark one. The default
-       matches the default accent. */
+    /* Text on --accent-blue: site_lookups.js sets both per character page, black on
+       a light colour, white on a dark one. */
     --character-ink: #000000;
     --accent-blue-hover: #a6bbf0;
     --accent-yellow: hsl(45, 93%, 47%);
@@ -52,9 +51,8 @@
     --text-mono: Arial, Helvetica, sans-serif;
     --manga-shadow: transparent;
 
-    /* The two display faces, named once so a look can swap them. Every rule that
-       uses one keeps its own fallbacks after the variable:
-       font-family: var(--font-label), sans-serif. */
+    /* The two display faces, named once so a look can swap them; a rule that uses
+       one keeps its own fallbacks after it. */
     --font-title: Georgia, 'Times New Roman', serif;
     --font-label: Arial, Helvetica;
 }
@@ -98,9 +96,8 @@ body {
     margin: 0;
 }
 
-/* Halftone dots behind a character's name: faint, in the page colour, gone by the
-   middle of the name, so the title is only as wide as its words. Character pages
-   only (the h1); other pages use .character-title as an h2. */
+/* Halftone dots behind a character's name, in the page colour, gone by the middle
+   of the name. The h1 on character pages only. */
 .character-header h1.character-title { position: relative; isolation: isolate; width: fit-content; max-width: 100%; }
 .character-header h1.character-title::before {
     position: absolute; z-index: -1; pointer-events: none;
@@ -120,10 +117,8 @@ body {
     margin: 0.25rem 0 0 0;
 }
 
-/* Scrollbars: square, in the border colour, the page colour when hovered or
-   grabbed. The standard properties sit under @supports for Firefox only: Chrome
-   121+ ignores every ::-webkit-scrollbar rule on an element that sets
-   scrollbar-width or scrollbar-color. */
+/* Square scrollbars in the border colour. The standard properties are for Firefox
+   only: Chrome ignores every ::-webkit-scrollbar rule where they are set. */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: var(--bg-main); }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border: 2px solid var(--bg-main); border-radius: 0; }
@@ -143,12 +138,11 @@ body {
     padding-bottom: 0.5rem;
     line-height: 1.2;
 }
-.section-title:not(:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title))) { border-bottom: 2px solid var(--border-color); }
-.section-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) { border-bottom-style: solid; border-bottom-color: var(--border-color); }
+.section-title { border-bottom-style: solid; border-bottom-color: var(--border-color); }
 
-/* A bar of the page colour on the start of a panel heading's underline. Hovering
-   the panel stretches it to the end of the words, which site_utils.js measures into
-   --title-words. Not on -clean and -flex headings, whose accent line would hide it. */
+/* A bar of the page colour at the start of a panel heading's underline, stretched
+   across the words on hover (--title-words, site_utils.js). Not on -clean and -flex
+   headings. */
 .section-title:not(.section-title-clean):not(.section-title-flex) { position: relative; }
 .section-title:not(.section-title-clean):not(.section-title-flex)::after {
     position: absolute; left: 0; bottom: -2px; height: 4px; width: 2.6rem;
@@ -166,10 +160,9 @@ body {
 .mb-4 { margin-bottom: 1rem !important; }
 .text-xl { font-size: 1.25rem !important; }
 
-/* Pixel icons (medias/icons/, 16px), in the colour of the text around them: the
-   colour is multiplied into the icon, and its shape masks the rest. Exactly 16px
-   and pixelated, so a pixel stays one pixel; a bigger one sets --px-size to a whole
-   multiple, never a size between. The file comes inline as --px-icon. */
+/* Pixel icons (medias/icons/, 16px) in the colour of the text around them, through
+   a mask. Pixelated, and bigger only by a whole multiple (--px-size), so a pixel
+   stays square. The file comes inline as --px-icon. */
 .px-icon {
     display: inline-block; flex: none; width: var(--px-size, 16px); height: var(--px-size, 16px); vertical-align: -0.2em;
     background-color: currentColor; background-image: var(--px-icon); background-size: var(--px-size, 16px) var(--px-size, 16px);
@@ -182,9 +175,8 @@ body {
    height of its line. An accolade's is a .px-icon. */
 .text-icon-character { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -0.3em; object-fit: contain; }
 
-/* The format tags' output (format_tags.js), as classes, so the only inline
-   values are the two dynamic colours, both checked first. Named sc-, since one
-   engine makes them. */
+/* The format tags' output (format_tags.js) as classes, so only the two dynamic
+   colours are inline, both checked first. */
 .sc-b { color: var(--text-white); }
 .sc-i { font-style: italic; }
 .sc-u { text-decoration: underline; text-underline-offset: 2px; }
@@ -205,12 +197,10 @@ body {
 .sc-color, .sc-auto, .sc-mc { font-weight: bold; }
 .sc-timing { font-family: var(--text-mono); font-weight: bold; }
 
-/* A dark character's name on a dark character page gets a white outline. Both
-   halves count: .page-character-dark is the page (applyCharacterTheme),
-   .sc-char-dark the name (isDarkCharacterColor), so a light name on a dark page is
-   left alone. Hard and drawn behind the fill, like the input slots' outline. */
-/* The [outline] shortcode (v1.1) shares the rule, so an outline a contributor
-   asks for is drawn exactly like the one the site adds. */
+/* A dark character's name on a dark character page gets a hard white outline behind
+   the fill: .page-character-dark is the page, .sc-char-dark the name. */
+/* The [outline] tag shares the rule, so an outline a contributor asks for matches
+   the one the site adds. */
 .page-character-dark .sc-char.sc-char-dark,
 .sc-outline {
     text-shadow: -1px 0 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff;
@@ -247,22 +237,21 @@ body {
     line-height: 1.4;
 }
 
-/* A character mention that resolved to a page. The colour is on the span
-   inside, which is the character's own - so this only adds the affordance,
-   never a second colour fighting the first. */
+/* A character mention that resolved to a page: only the affordance, since the
+   colour is the name's own, on the span inside. */
 .sc-char-link { text-decoration: none; }
 .sc-char-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 /* An in-page link ([url=#...]): a faint underline and no arrow, since these sit in
-   coloured text; a hover names the section (page_shell.js). */
+   coloured text. */
 .wiki-link-jump {
     text-decoration-color: color-mix(in srgb, var(--text-white) 22%, transparent);
     text-underline-offset: 3px;
 }
 
 /* Where the reader landed: a slanted bar of the page colour wipes across the
-   heading's words once. ::before, since .section-title's ::after is its bar.
-   page_shell.js measures the words into --flash-left and --flash-width. */
+   heading once (::before, since ::after is the bar). page_shell.js measures
+   --flash-left and --flash-width. */
 .anchor-flash { position: relative; }
 .anchor-flash::before {
     content: ''; position: absolute; top: -0.15rem; bottom: -0.15rem; pointer-events: none;
@@ -290,8 +279,6 @@ body { background-image: none; }
     text-transform: none;
     border-bottom-width: 1px;
 }
-.character-header h1.character-title::before,
-.section-title::after { content: none; }
 /* Words the Dogslamloop look writes in capitals read as written. */
 :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option) {
     text-transform: none;
@@ -322,8 +309,6 @@ html:not(.look-classic) {
     text-transform: revert;
     border-bottom-width: revert;
 }
-:where(.character-header h1.character-title)::before { content: revert; }
-:where(.section-title)::after { content: revert; }
 :where(.btn-sys) {
     clip-path: revert;
     box-shadow: revert;
@@ -461,10 +446,7 @@ html:not(.look-classic) {
 }
 :where(#sidebar-dynamic-dock)::before {
     font-size: revert;
-    font-weight: revert;
     color: revert;
-    letter-spacing: revert;
-    text-shadow: revert;
     border-bottom: revert;
     padding-bottom: revert;
     margin-bottom: revert;
@@ -504,7 +486,6 @@ html:not(.look-classic) {
 :where(.global-sidebar-left .badge-ea) { color: revert; }
 :where(#sidebar-dynamic-dock) { gap: revert; }
 :where(#sidebar-dynamic-dock)::before { content: revert; }
-:where(.global-sidebar-left.collapsed #sidebar-dynamic-dock)::before { content: revert; }
 :where(.btn-sys.dock-action-btn) {
     background: revert;
     border: revert;
@@ -619,7 +600,7 @@ body {
     font-family: var(--font-title), sans-serif;
     color: var(--accent-blue);
 }
-.section-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
+.section-title {
     border-bottom-width: 2px;
 }
 .section-title {
