@@ -14,7 +14,8 @@
  *
  * The base is served from git's own objects and the working tree from disk, each on a
  * port of its own. Every request off localhost is fetched once and replayed to both,
- * and the clock is fixed, so both draw the same content.
+ * and the clock is fixed, so both draw the same content. Every video is held with no
+ * file, since its height comes from the file and may arrive in one tree only.
  *
  * A block of specimen markup is added to every page, for what a signed-out visit does
  * not draw. Its differences are listed apart from the page's own. Each is still a real
@@ -201,6 +202,9 @@ async function load(browser, origin, url) {
     await page.clock.setFixedTime(FIXED);
     await page.route(/^https?:\/\/(?!localhost)/, async route => {
         const req = route.request();
+        // A video is a fixed file and comes in byte ranges, which do not replay well:
+        // each tree fetches its own.
+        if (req.resourceType() === 'media' || /\.(mp4|webm|mov)(\?|$)/i.test(req.url())) { await route.continue(); return; }
         const key = `${req.method()} ${req.url()} ${req.postData() || ''}`;
         if (!responses.has(key)) {
             responses.set(key, (async () => {
@@ -234,6 +238,9 @@ async function load(browser, origin, url) {
         Promise.all([...document.images].filter(i => !i.complete && i.loading !== 'lazy').map(i => new Promise(r => { i.addEventListener('load', r); i.addEventListener('error', r); }))),
         new Promise(r => setTimeout(r, 8000)),
     ]));
+    // A video takes its file's height only once the file says it, which may come in one
+    // tree and not the other: every video is held with no file, in both.
+    await page.evaluate(() => document.querySelectorAll('video').forEach(v => { v.removeAttribute('src'); v.querySelectorAll('source').forEach(s => s.remove()); v.load(); }));
     await page.evaluate(html => (document.querySelector('.main-content-area, main') || document.body).insertAdjacentHTML('beforeend', html), SPECIMEN);
     await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
     return { context, page, errors };
