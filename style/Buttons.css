@@ -51,7 +51,6 @@ button {
 .btn-sys:disabled { opacity: 0.4; cursor: not-allowed; }
 /* html.reduce-motion: the device's preference or Site settings (js/utility/site_utils.js). */
 html.reduce-motion .btn-sys { transition: none; }
-html.reduce-motion .btn-sys:hover:not(:disabled):not(:where(.btn-sys:is(:hover, :active):not(:disabled))), html.reduce-motion .btn-sys:active:not(:disabled):not(:where(.btn-sys:is(:hover, :active):not(:disabled))) { transform: none; }
 
 .btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
 /* Blue is a fixed value, not var(--accent-blue), which a character page's theme
@@ -163,8 +162,7 @@ html.reduce-motion .btn-sys:hover:not(:disabled):not(:where(.btn-sys:is(:hover, 
     display: flex; flex-wrap: wrap; gap: 0.35rem;
     margin-bottom: 0.75rem;
 }
-.sub-tabs:not(:where(.sub-tabs)) { border-bottom: 2px solid var(--border-color); }
-.sub-tabs:where(.sub-tabs) { border-bottom-style: solid; border-bottom-color: var(--border-color); }
+.sub-tabs { border-bottom-style: solid; border-bottom-color: var(--border-color); }
 .sub-tabs[hidden] { display: none; }
 .sub-tab {
     background: none; border: 1px solid var(--border-color); border-bottom: none;
@@ -232,26 +230,16 @@ button:where(.wiki-video-btn, :is(.local-sidebar-right, .global-sidebar-left) .b
     border: none;
 }
 button:where(:is(.btn-manga, .filter-toggle)) {
-    border-top-width: medium;
-    border-right-width: medium;
-    border-bottom-width: medium;
-    border-left-width: medium;
+    border-width: medium;
 }
 button:where(:is(.btn-manga, .filter-toggle).active, .inline-callout-btn:hover, .sub-tab.is-active, .manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
-    border-top-color: currentcolor;
-    border-right-color: currentcolor;
-    border-bottom-color: currentcolor;
-    border-left-color: currentcolor;
+    border-color: currentcolor;
 }
 button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header, .manga-option) {
-    border-bottom-width: medium;
-    border-bottom-style: none;
-    border-bottom-color: currentcolor;
+    border-bottom: none;
 }
 button:where(.manga-option.selected) {
-    border-left-width: medium;
-    border-left-style: none;
-    border-left-color: currentcolor;
+    border-left: none;
 }
 button:where(.btn-sys, .btn-sys:is(:hover, :active):not(:disabled), :is(.btn-manga, .filter-toggle).active, .wiki-video-btn, .wiki-video-btn:hover, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active, .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled), .inline-callout-btn, .manga-select-trigger) {
     background: transparent;
@@ -301,8 +289,8 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
     transform: translate(1px, 1px);
     box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
 }
-&.reduce-motion .btn-sys:hover:not(:disabled):where(.btn-sys:is(:hover, :active):not(:disabled)),
-&.reduce-motion .btn-sys:active:not(:disabled):where(.btn-sys:is(:hover, :active):not(:disabled)) {
+&.reduce-motion .btn-sys:hover:not(:disabled),
+&.reduce-motion .btn-sys:active:not(:disabled) {
     transform: none;
 }
 .btn-sys-regular:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
@@ -312,19 +300,13 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
     background: #ef4444 !important;
 }
 .btn-danger-fill:where(.btn-sys:is(:hover, :active):not(:disabled)) { color: #000 !important; }
-.btn-manga:where(:is(.btn-manga, .filter-toggle)),
-.filter-toggle:where(:is(.btn-manga, .filter-toggle)) {
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
+.btn-manga,
+.filter-toggle {
+    border-width: 2px;
 }
 .btn-manga:where(:is(.btn-manga, .filter-toggle).active),
 .filter-toggle:where(:is(.btn-manga, .filter-toggle).active) {
-    border-top-color: var(--manga-border);
-    border-right-color: var(--manga-border);
-    border-bottom-color: var(--manga-border);
-    border-left-color: var(--manga-border);
+    border-color: var(--manga-border);
 }
 .btn-manga,
 .filter-toggle {
@@ -376,7 +358,7 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
     border-left-color: var(--accent-blue) !important;
 }
 .btn-nav.active { color: var(--text-white); }
-.sub-tabs:where(.sub-tabs) { border-bottom-width: 2px; }
+.sub-tabs { border-bottom-width: 2px; }
 .sub-tab {
     font-family: var(--text-mono);
     font-size: 0.65rem;

@@ -2516,14 +2516,10 @@ html:not(.look-classic) {
 }
 .block-folder-toggle:hover { background: none; }
 .block-folder-picker .folder-option:where(.manga-option) {
-    border-bottom-width: medium;
-    border-bottom-style: none;
-    border-bottom-color: currentcolor;
+    border-bottom: none;
 }
 .block-folder-picker .folder-option:where(.manga-option.selected) {
-    border-left-width: medium;
-    border-left-style: none;
-    border-left-color: currentcolor;
+    border-left: none;
 }
 .block-folder-picker .folder-option { border-bottom: 1px dashed #222; }
 }

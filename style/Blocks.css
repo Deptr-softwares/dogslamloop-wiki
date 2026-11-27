@@ -388,8 +388,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
    left. Normal flow, with a clearfix so a float at the end stays inside. Any
    container that nests Blocks must avoid flex here too. */
 .wiki-accordion-body { padding: 1rem; text-align: left; }
-.wiki-accordion-body:not(:where(.wiki-accordion-body)) { border-top: 1px dashed var(--border-color, #333); }
-.wiki-accordion-body:where(.wiki-accordion-body) { border-top-width: 1px; border-top-color: var(--border-color, #333); }
+.wiki-accordion-body { border-top-width: 1px; border-top-color: var(--border-color, #333); }
 .wiki-accordion-body > * + * { margin-top: 0.5rem; }
 .wiki-accordion-body::after { content: ""; display: block; clear: both; }
 
@@ -514,8 +513,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     margin: 0 0 1rem; padding-bottom: 0.75rem;
     display: block;
 }
-.strategy-title:not(:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title))) { border-bottom: 1px solid var(--border-color); }
-.strategy-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) { border-bottom-style: solid; border-bottom-color: var(--border-color); }
+.strategy-title { border-bottom-style: solid; border-bottom-color: var(--border-color); }
 
 .wiki-blocks-clearfix { clear: both; display: table; width: 100%; }
 .wiki-section-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; font-style: italic; border-top: 1px dashed var(--border-color); }
@@ -886,13 +884,10 @@ html:not(.look-classic) {
     color: var(--accent-blue, #3b82f6);
     text-transform: uppercase;
 }
-.wiki-accordion-body:where(.wiki-accordion-body) { border-top-style: dashed; }
+.wiki-accordion-body { border-top-style: dashed; }
 .wiki-accordion-body { background: var(--bg-secondary, #111); }
-.sbox-boxed:where(.sbox-boxed) {
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
+.sbox-boxed {
+    border-width: 2px;
 }
 .sbox-boxed { box-shadow: 4px 4px 0px var(--manga-shadow); }
 .sbox-title { font-family: var(--font-label), sans-serif; }
@@ -901,14 +896,11 @@ html:not(.look-classic) {
     font-weight: bold;
     color: var(--text-white);
 }
-.strategy-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
+.strategy-title {
     border-bottom-width: 1px;
 }
-.wiki-block-list-boxed:where(.wiki-block-list-boxed) {
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
+.wiki-block-list-boxed {
+    border-width: 2px;
 }
 }
 }

@@ -326,7 +326,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 @layer dogslamloop {
 html:not(.look-classic) {
 .system-category-block .sidebar-master-title { margin-bottom: 1.25rem; }
-.systems-grid-container-compact .system-category-block .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+.systems-grid-container-compact .system-category-block .sidebar-master-title {
     margin-bottom: 0.6rem;
     padding-bottom: 0.35rem;
 }

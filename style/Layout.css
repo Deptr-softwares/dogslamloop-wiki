@@ -101,15 +101,14 @@
     font-family: var(--font-title), sans-serif;
     text-transform: uppercase;
 }
-.column-subgroup-title, .sidebar-master-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { font-size: 1.15rem; color: var(--text-white); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
+.column-subgroup-title { font-size: 1.15rem; color: var(--text-white); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
 
 /* "On this tab" header row (local-sidebar-right, above the ToC) */
 .sidebar-tab-header {
     display: flex; justify-content: space-between; align-items: flex-end;
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);
 }
-.sidebar-tab-header .sidebar-master-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { margin: 0; padding: 0; border: none; }
-.sidebar-tab-header .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) { margin-top: 0px; margin-right: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.sidebar-tab-header .sidebar-master-title { margin-top: 0px; margin-right: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 
 .sidebar-header-top { display: flex; align-items: center; margin-bottom: 1.5rem; width: 100%; white-space: normal; }
 .sidebar-site-logo { width: 38px; height: 38px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px var(--manga-shadow); object-fit: cover; flex-shrink: 0; }
@@ -150,8 +149,7 @@
     /* Stated, not inherited: font: inherit at 0-2-0 beat the title styling it sits in.
        --accent-blue follows the page's own accent. */
 }
-.sidebar-nav-title.sidebar-group-header:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header)) { padding: 0; border: none; }
-.sidebar-nav-title.sidebar-group-header:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) { padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.sidebar-nav-title.sidebar-group-header { padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
 .sidebar-group-wrapper .toc-list { margin-top: 0.3rem; }
 
@@ -584,7 +582,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .character-title { font-size: 1.5rem; }
     .skill-title { font-size: 1.25rem; }
     .home-main-title { font-size: 1.25rem; }
-    .column-subgroup-title, .sidebar-master-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { font-size: 1rem; }
+    .column-subgroup-title { font-size: 1rem; }
 }
 
 /* Gallery pages (gallery.js): a flat grid, auto-fill with a minmax floor, so one
@@ -783,10 +781,10 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
-.sidebar-master-title:where(:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
+.sidebar-master-title {
     font-family: var(--font-title), sans-serif;
 }
-.sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+.sidebar-master-title {
     font-size: 1.15rem;
     color: var(--text-white);
     margin-bottom: 1rem;
@@ -795,15 +793,13 @@ html:not(.look-classic) {
     text-shadow: 2px 2px 0px var(--manga-shadow);
     letter-spacing: 0.05em;
 }
-.sidebar-master-title:where(:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
+.sidebar-master-title {
     text-transform: uppercase;
 }
-.sidebar-tab-header .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+.sidebar-tab-header .sidebar-master-title {
     margin-bottom: 0px;
     padding-bottom: 0px;
-    border-bottom-width: medium;
-    border-bottom-style: none;
-    border-bottom-color: currentcolor;
+    border-bottom: none;
 }
 .sidebar-nav-title {
     font-family: var(--font-label), sans-serif;
@@ -815,11 +811,9 @@ html:not(.look-classic) {
     text-shadow: 1px 1px 0px var(--manga-shadow);
 }
 .sidebar-nav-title.sidebar-group-header { margin-bottom: 0; }
-.sidebar-nav-title.sidebar-group-header:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) {
+.sidebar-nav-title.sidebar-group-header {
     padding-bottom: 0px;
-    border-bottom-width: medium;
-    border-bottom-style: none;
-    border-bottom-color: currentcolor;
+    border-bottom: none;
 }
 .sidebar-nav-title.sidebar-group-header {
     font-family: var(--font-title), sans-serif;
@@ -863,9 +857,9 @@ html:not(.look-classic) {
 }
 .system-content-grid-section { padding: 0 0.5rem; }
 @media (max-width: 640px) {
-    .wiki-section:where(:is(.wiki-card, .wiki-section), .wiki-section.profile-card) { padding: 1rem; }
+    .wiki-section { padding: 1rem; }
     .wiki-section:where(.wiki-section.submission-card) { padding-bottom: 1rem; }
-    .sidebar-master-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
+    .sidebar-master-title {
         font-size: 1rem;
     }
 }

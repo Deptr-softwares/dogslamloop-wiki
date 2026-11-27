@@ -143,8 +143,7 @@ body {
     padding-bottom: 0.5rem;
     line-height: 1.2;
 }
-.section-title:not(:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title))) { border-bottom: 2px solid var(--border-color); }
-.section-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) { border-bottom-style: solid; border-bottom-color: var(--border-color); }
+.section-title { border-bottom-style: solid; border-bottom-color: var(--border-color); }
 
 /* A bar of the page colour on the start of a panel heading's underline. Hovering
    the panel stretches it to the end of the words, which site_utils.js measures into
@@ -619,7 +618,7 @@ body {
     font-family: var(--font-title), sans-serif;
     color: var(--accent-blue);
 }
-.section-title:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
+.section-title {
     border-bottom-width: 2px;
 }
 .section-title {
