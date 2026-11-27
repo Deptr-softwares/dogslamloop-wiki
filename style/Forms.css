@@ -103,8 +103,8 @@ select.editor-select.manga-initialized {
     transform: translateY(-50%) rotate(180deg);
 }
 
-/* The menu: at least as wide as its button and as its longest option, capped by the
-   screen. Pinned to the button, a narrow "ALL" button cut its options short. */
+/* The menu: at least as wide as its button and its longest option, capped by the
+   screen. */
 .manga-select-options {
     position: absolute;
     top: 100%;

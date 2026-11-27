@@ -22,13 +22,10 @@ button {
 /* System buttons */
 /* cursor: pointer, since a <button> defaults to an arrow. No outline: none, so a
    keyboard user keeps the focus ring. */
-/* The look: a cut top-right corner, a hover fill sweeping in from the left, a hard
-   shadow, a faint tint of the button's own colour, a 1px lift on hover and a 1px
-   nudge on a press. The corner is a clip-path running 6px past the right and bottom
-   edges, where the shadow sits, along the cut's 45 degree line, so one diagonal
-   cuts the button and its shadow; the cut's own line is the first background layer.
-   A colour tier sets --sys-edge (border, cut line, tint) and --sys-fill (the hover
-   fill and its shadow). */
+/* The look: a cut top-right corner, a hover fill from the left, a hard shadow, a
+   faint tint, a lift on hover and a nudge on a press. The corner's clip-path runs
+   past the edges along the cut, so one diagonal cuts the button and its shadow. A
+   colour tier sets --sys-edge and --sys-fill. */
 /* Registered, so a hover can change a button's colour gradually: an unregistered
    custom property jumps. The initial values are .btn-sys's own. */
 @property --sys-edge { syntax: '<color>'; inherits: true; initial-value: #555; }
@@ -53,8 +50,8 @@ button {
 html.reduce-motion .btn-sys { transition: none; }
 
 .btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
-/* Blue is a fixed value, not var(--accent-blue), which a character page's theme
-   sets to the character's colour. The value is the site's default accent. */
+/* Blue is fixed, not var(--accent-blue), which a character page's theme re-points;
+   it is the site's default accent. */
 .btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); color: hsl(213, 94%, 68%); }
 .btn-sys-green   { --sys-edge: #22c55e; --sys-fill: #22c55e; color: #22c55e; }
 .btn-sys-red     { --sys-edge: #ef4444; --sys-fill: #ef4444; color: #ef4444; }
@@ -95,8 +92,8 @@ html.reduce-motion .btn-sys { transition: none; }
 /* A colour is one variable. */
 .btn-manga-gray   { --manga-accent: var(--text-muted); color: var(--text-muted); border-color: var(--border-color); }
 
-/* A clicked tab punches out a little and settles, in 0.2s. Added only by a click
-   (site_utils.js), so a page opening on its first tab stays still. */
+/* A clicked tab punches out and settles. Added only by a click (site_utils.js), so
+   a page opening on its first tab stays still. */
 @keyframes tab-punch {
     from { transform: skewX(-10deg) scale(1.1); box-shadow: 7px 7px 0 var(--manga-accent); }
 }
@@ -146,17 +143,12 @@ html.reduce-motion .btn-sys { transition: none; }
     transform: translateX(3px);
 }
 
-/* The tab strip for what sits inside a page: folder tabs, the picked one in the
-   strip's accent colour. Section Box and Combo Card tabs, the editor's sub-tabs,
-   the Overseer's queues, the owner tools' groups, the QA box's form, the Sign In
-   box and the tier editor's two documents. The page tabs are .btn-manga-slanted and
-   the mode chips .character-mode-chip.
-   Since v1.3.
-   Touches: --sub-tab-accent, the page's accent unless a strip sets its own.
-   Watch: the picked tab is .is-active. A tab with a remove button sits in a
-   .sub-tab-item; a button in a strip that is not a tab (+ ADD) is .sub-tabs-action,
-   and the tabs beside it sit in a .sub-tabs-list, since a [role="tablist"] holds tabs
-   only (site_utils.js keeps the roles and the keys). */
+/* The tab strip inside a page: folder tabs, the picked one in the strip's accent.
+   Not the page tabs (.btn-manga-slanted) or the mode chips (.character-mode-chip).
+   Since v1.3. Touches: --sub-tab-accent. Watch: the picked tab is .is-active; a
+   remove button sits in .sub-tab-item, and a button that is not a tab is
+   .sub-tabs-action beside a .sub-tabs-list, since a [role="tablist"] holds tabs
+   only. */
 .sub-tabs {
     --sub-tab-accent: var(--accent-blue);
     display: flex; flex-wrap: wrap; gap: 0.35rem;

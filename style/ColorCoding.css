@@ -37,10 +37,9 @@
 
     /* Frame data timing colors - single source of truth, also read at runtime
        via getComputedStyle by site_lookups.js (window.FRAME_COLORS/WINDOW_COLORS) */
-    /* The ten input slots, for combo notation: a move name's slot comes from
-       frame_data's input (input_slots.js). Categorical, so distinct hues, not a ramp.
-       Every slot has a black outline, so the fills are bright; the three neutrals
-       (Space, Q, Shift) sit at about 82, 62 and 45 lightness, three steps apart. */
+    /* The ten input slots for combo notation (input_slots.js): distinct hues,
+       bright under a black outline; the three neutrals (Space, Q, Shift) are three
+       lightness steps apart. */
     --input-color-m1: hsl(0, 100%, 72%);        /* Light Red */
     --input-color-1: hsl(52, 100%, 68%);        /* Light Yellow */
     --input-color-2: hsl(205, 100%, 72%);       /* Light Blue */
@@ -81,9 +80,8 @@
     --track-color-gray-400: hsl(0, 0%, 50%);
 }
 
-/* Frame-data phase colours. Each rule matches three things, so a colour is defined
-   once: .bg-tick-X .frame-tick (a counted phase's divisions), .phase-solid (a phase
-   with no divisions: an estimate, or a timed phase) and .legend-swatch (the legend). */
+/* Frame-data phase colours, each defined once for three things: .bg-tick-X
+   .frame-tick, .phase-solid and .legend-swatch. */
 .bg-tick-start .frame-tick, .phase-solid.bg-tick-start, .legend-swatch.bg-tick-start { background-color: var(--frame-color-start); }   /* Startup */
 .bg-tick-active .frame-tick, .phase-solid.bg-tick-active, .legend-swatch.bg-tick-active { background-color: var(--frame-color-active); }       /* Active Frames */
 .bg-tick-recov .frame-tick, .phase-solid.bg-tick-recov, .legend-swatch.bg-tick-recov { background-color: var(--frame-color-recov); }  /* Recovery / Whiff Endlag */
@@ -120,16 +118,13 @@
 .text-cyan-400 { color: var(--track-color-cyan-400); }
 .text-gray-400 { color: var(--track-color-gray-400); }
 
-/* Input slot colouring, on a move name in prose and a step in a route, so a move is
-   one colour wherever it is written. The outline is always on, per slot: a light
-   slot on a light page is as unreadable as a dark one on a dark page. */
+/* Input slot colouring, in prose and in a route, so a move is one colour wherever
+   it is written. The outline is always on. */
 .is-m1, .is-1, .is-2, .is-3, .is-4,
 .is-r, .is-q, .is-f, .is-space, .is-shift { font-weight: bold; }
 
-/* The outline is hard, never blurred (a blurred halo reads as a glow), and black for
-   all ten slots, so notation looks the same on light and dark pages. A stroke
-   painted behind the fill (paint-order), so small bold monospace keeps its weight;
-   text-shadow is the fallback. */
+/* The outline is a hard black stroke behind the fill (paint-order), so bold
+   monospace keeps its weight; text-shadow is the fallback. */
 .is-m1, .is-1, .is-2, .is-3, .is-4,
 .is-r, .is-q, .is-f, .is-space, .is-shift {
     text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
@@ -145,10 +140,8 @@
     }
 }
 
-/* The class is doubled on purpose: .combo-node sets color in Layout.css, which loads
-   after this file, so at equal specificity it won and a slot on a chip got its
-   weight but not its colour. Doubled, it reaches (0,2,0) without naming another
-   component. */
+/* The class is doubled on purpose: .combo-node sets color in Layout.css, which
+   loads later, so one class lost to it. */
 .is-m1.is-m1       { color: var(--input-color-m1); }
 .is-1.is-1         { color: var(--input-color-1); }
 .is-2.is-2         { color: var(--input-color-2); }

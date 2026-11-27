@@ -93,9 +93,8 @@
     .local-sidebar-right { display: block; }
 }
 
-/* One declaration block with .column-subgroup-title, not two matching ones: both
-   label a group of pages in a dashboard column, and two rules that must agree will
-   not. */
+/* One block with .column-subgroup-title: both label a group of pages, and two rules
+   that must agree drift apart. */
 .sidebar-master-title,
 .column-subgroup-title {
     font-family: var(--font-title), sans-serif;
@@ -134,11 +133,10 @@
 
 /* Collapsible category groups in the global sidebar menu (js/pages/core/page_shell.js
    buildGlobalSidebarMenu) */
-/* Tight rows, so the categories leave Ko-fi above the fold as the list grows; the
-   spacing is proportional, not a one-off nudge. */
+/* Tight rows, so Ko-fi stays above the fold as the list grows. */
 .sidebar-group-wrapper { margin-bottom: 0.35rem; }
-/* A <button>, so the browser's button styling is reset, on the compound selector
-   only: plain .sidebar-nav-title is still a <div> elsewhere. */
+/* A <button>, its browser styling reset on the compound selector only:
+   .sidebar-nav-title is a <div> elsewhere. */
 .sidebar-nav-title.sidebar-group-header {
     cursor: pointer; display: flex; justify-content: space-between;
     align-items: center;
@@ -146,8 +144,7 @@
     background: none;
     text-align: left;
 
-    /* Stated, not inherited: font: inherit at 0-2-0 beat the title styling it sits in.
-       --accent-blue follows the page's own accent. */
+    /* Stated, not inherited: font: inherit would beat the title styling it sits in. */
 }
 .sidebar-nav-title.sidebar-group-header { padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
@@ -155,9 +152,8 @@
 
 .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 
-/* Contents links (refreshTOC), compound with .btn-nav, which sets colour, padding
-   and size at one class too: where Layout.css loads first, .btn-nav won. A
-   sub-heading's colour is .btn-nav's own, so hover and active reach it. */
+/* Contents links (refreshTOC), compound with .btn-nav so they win its tie on every
+   page. A sub-heading keeps .btn-nav's colour, so hover and active reach it. */
 /* The Sitewide links sit straight in the sidebar; the contents are in a list. */
 .toc-link-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .toc-group-row { display: flex; position: relative; }
@@ -173,9 +169,8 @@
 
 /* Auth/dock action buttons (js/pages/core/page_shell.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
-/* No padding and no font-size here: they tied with .btn-sys at 0-1-0 and the
-   stylesheet loaded last won, so one button stood 45px tall on a character page
-   and 34px on a system page. .btn-sys supplies both everywhere. */
+/* No padding or font-size here: .btn-sys supplies both, since a tie with it went to
+   whichever sheet loaded last. */
 .dock-action-btn {
     width: 100%; display: flex;
     align-items: center; justify-content: flex-start; gap: 0.75rem;
@@ -186,9 +181,8 @@
 .btn-sys.dock-action-btn { display: flex; justify-content: flex-start; }
 .dock-action-icon { display: flex; align-items: center; justify-content: center; }
 .dock-action-text { overflow: hidden; text-overflow: ellipsis; }
-/* The account button and SITE SETTINGS share one row (v1.1), so the settings
-   button adds no height above the account button. Collapsed, the sidebar is
-   too narrow for two, so the settings button goes under it instead. */
+/* The account button and SITE SETTINGS share one row; in the collapsed sidebar the
+   settings button goes under it. */
 .dock-auth-row { display: flex; gap: 0.5rem; align-items: stretch; }
 .dock-auth-row .dock-action-btn { flex: 1 1 0; width: auto; min-width: 0; }
 .dock-settings-btn { flex: 0 0 auto; padding-left: 0.6rem; padding-right: 0.6rem; }
@@ -219,8 +213,8 @@
     width: 100%; display: flex;
     align-items: center; justify-content: center; gap: 0.5rem;
 }
-/* At the top of the right sidebar (js/pages/core/page_shell.js, placeKofiOnTheRight),
-   with the sidebar's own headings below it. */
+/* At the top of the right sidebar (placeKofiOnTheRight, page_shell.js), above its
+   headings. */
 .local-sidebar-right > .kofi-btn-wrapper { margin: 0 0 1.5rem; }
 
 /* Page headers and grids */
@@ -229,18 +223,17 @@
 
 .back-home-wrapper { margin-bottom: 1.5rem; }
 .character-header { margin-bottom: 2.5rem; }
-/* Scoped to .character-header: history.js and the tier list page reuse
-   .character-nav with a different margin, and a bare rule would leak onto them. */
+/* Scoped to .character-header: history.js and the tier list reuse .character-nav
+   with their own margin. */
 .character-header .character-nav {
     display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem;
     padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue);
     align-items: center;
 }
 
-/* The character mode toggle (character_modes.js): which kit every tab below
-   describes. Not .btn-manga, so it does not read as a second row of the tab strip:
-   flatter, smaller and yellow, since blue is the strip's active state. Hidden for a
-   character with no modes. */
+/* The character mode toggle (character_modes.js): flatter, smaller and yellow, so
+   it never reads as a second row of page tabs. Hidden for a character with no
+   modes. */
 .character-mode-bar {
     display: flex; flex-wrap: wrap; gap: 0.4rem;
     margin-top: 1.25rem;
@@ -297,18 +290,16 @@
 .hub-link:hover { color: var(--accent-blue); }
 .update-log-meta { display: flex; gap: 0.5rem; align-items: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; font-family: var(--text-mono); }
 .update-title { margin: 0; font-size: 1.15rem; color: var(--text-white); font-family: var(--font-label), sans-serif; }
-/* Trivia, one fact a line. A "Label | text" fact shows its label underlined
-   and the text over the card on hover, or on a tap, which focuses it. The tip
-   is positioned, so the label's underline does not carry into it. */
-/* These two stay here, not in Blocks.css: the list is a .wiki-block-list too, and
-   that class's margin and the focus ring on every control, further down, win
-   their ties with them. */
+/* Trivia, one fact a line. A "Label | text" fact shows its text on hover or a tap;
+   the tip is positioned, so the label's underline stays out of it. */
+/* Kept here, not in Blocks.css: they lose their ties to .wiki-block-list's margin
+   and the focus ring further down. */
 .profile-trivia { margin: 0.5rem 0 0; font-size: 0.85rem; line-height: 1.5; }
 .profile-trivia-term:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 /* The tab footers stay here, not in Blocks.css: the .space-y-* spacing further
    down wins a footer's top margin. */
-/* border-box matters: the tab footer below is width: 100%, and this padding and
-   border made it 44px wider than its column. The site has no global border-box. */
+/* border-box, so the full-width tab footer below stays inside its column; the site
+   has no global border-box. */
 .aggregated-contributors-footer { box-sizing: border-box; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 0.5rem; padding: 1rem 1.25rem; background: var(--bg-main); border: 2px solid var(--border-color); clear: both; box-shadow: 6px 6px 0px var(--manga-shadow); position: relative; }
 .aggregated-contributors-footer::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--accent-blue); }
 .contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-label), sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
@@ -323,22 +314,20 @@
 .kofi-btn-full { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
 .system-back-row { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 
-/* Sitewide footer (js/pages/core/page_shell.js buildSiteFooter) - appended to <body>,
-   outside .site-layout, so it spans the full width below both sidebars rather
-   than sitting inside the content column. */
+/* The sitewide footer (buildSiteFooter, page_shell.js), outside .site-layout, so it
+   spans both sidebars. */
 .site-footer { border-top: 2px solid var(--border-color); background: var(--bg-main); padding: 1.5rem 2rem; margin-top: 2rem; }
 .site-footer-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; max-width: 1000px; margin: 0 auto; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
 .site-footer-link { color: var(--accent-blue); text-decoration: underline; }
 .site-footer-link:hover { color: var(--text-white); }
-/* Pushed to its own line on narrow screens by the flex-wrap above rather than
-   being hidden - it's the disclaimer, it should stay visible everywhere. */
+/* Wraps to its own line on narrow screens rather than hiding: the disclaimer stays
+   visible everywhere. */
 .site-footer-note { opacity: 0.7; }
 
 /* General Typography & Utility */
 .loading-msg { color: var(--text-muted); font-style: italic; margin: 0; }
-/* Something on its way: three slanted bars light up in turn before the words, on
-   .loading-msg-busy only (.loading-msg is also an empty list's or an error's text).
-   With less motion they hold still, the first one lit. */
+/* Something on its way (.loading-msg-busy only): three slanted bars light in turn;
+   with less motion they hold still, the first one lit. */
 @property --loading-bar-1 { syntax: '<color>'; inherits: false; initial-value: transparent; }
 @property --loading-bar-2 { syntax: '<color>'; inherits: false; initial-value: transparent; }
 @property --loading-bar-3 { syntax: '<color>'; inherits: false; initial-value: transparent; }
@@ -368,10 +357,8 @@
 
 /* Accessibility */
 
-/* Visually hidden but still announced. The clip-path/1px combination is used
-   rather than display:none or visibility:hidden, both of which remove the
-   element from the accessibility tree entirely - which is the opposite of
-   what this is for. */
+/* Hidden but still announced: display: none or visibility: hidden would take it out
+   of the accessibility tree. */
 .sr-only {
     position: absolute;
     width: 1px; height: 1px;
@@ -382,9 +369,8 @@
     border: 0;
 }
 
-/* Injected by page_shell.js on every page. Off-screen until focused, so a
-   keyboard user's first Tab offers a way past ~40 sidebar links instead of
-   walking through them on every page. */
+/* Added by page_shell.js: off-screen until focused, so a keyboard user's first Tab
+   can skip the sidebar. */
 .skip-link {
     position: absolute;
     top: -100px;
@@ -414,8 +400,8 @@ summary:focus-visible {
    layout is stated. */
 .mobile-site-title { display: block; }
 
-/* Less motion: html.reduce-motion, set for the device's preference and for Site
-   Settings > Turn off animations (site_utils.js), so each rule is written once. */
+/* Less motion: html.reduce-motion, for the device's preference and Site Settings
+   (site_utils.js). */
 html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
     animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
@@ -468,10 +454,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .mobile-bottom-bar { display: none; }
 
 /* The page's Edit and History buttons (initTabEditorButtons), shown by .is-active.
-   .btn-sys in the selector is needed: this and .btn-sys tie at one class, and the
-   stylesheet order differs per page kind, so the pair drew at two sizes.
-   tests/sidebar-button-parity.spec.js fails if a caller drops .btn-sys. Reordering
-   the stylesheets would move every other tie on 18 pages. */
+   .btn-sys is in the selector: the two tie, and the sheet order differs by kind of
+   page (sidebar-button-parity.spec.js). */
 .btn-sys.tab-editor-btn-sidebar { display: none; font-size: 0.6rem; padding: 0.25rem 0.5rem; align-items: center; gap: 0.35rem; flex: 1; }
 .btn-sys.tab-editor-btn-sidebar.is-active { display: flex; }
 #sidebar-btn-group { display: flex; gap: 0.5rem; width: 100%; }
@@ -497,9 +481,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .global-sidebar-left.mobile-open { transform: translateX(0); }
     .sidebar-toggle-btn { display: none !important; }
 
-    /* The table of contents is a drawer on a phone, the left drawer's mirror from the
-       other edge. Both are position: fixed, so the off-screen transform adds no
-       horizontal scroll. */
+    /* On a phone the contents are a drawer from the right edge, fixed, so its
+       off-screen transform adds no sideways scroll. */
     .local-sidebar-right {
         display: block; position: fixed; top: 0; right: 0;
         width: 280px; max-width: 85vw; height: 100vh;
@@ -523,7 +506,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .mobile-backdrop.active { display: block; animation: fadeIn 0.2s ease-out; }
     
     /* A <button> that opens the navigation drawer, its browser styling reset
-       explicitly, not by font: inherit, which beat the title styling before. */
+       explicitly, not by font: inherit. */
     .mobile-logo-link {
         display: flex; align-items: center; gap: 0.75rem; text-decoration: none;
         background: none; border: none; padding: 0; margin: 0;
@@ -538,9 +521,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; cursor: pointer; }
     .mobile-menu-btn[hidden] { display: none; }
     
-    /* The bottom bar (buildMobileBottomBar): search, Ko-fi, settings and the account,
-       under the drawers and their backdrop. The page and the edit button make room for
-       it, and for a phone's home indicator. */
+    /* The phone's bottom bar (buildMobileBottomBar), under the drawers; the page
+       and the edit button leave room for it and the home indicator. */
     .mobile-bottom-bar {
         display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
         background: var(--bg-main); border-top: 2px solid var(--border-color);
@@ -568,15 +550,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-/* Phone-width spacing and type, narrower than the 1023px drawer breakpoint: tablets
-   keep the desktop sizes. Stacked paddings ate about 56px on each side of a 375px
-   screen. */
+/* Phone spacing and type, below 640px: tablets keep the desktop sizes. */
 @media (max-width: 640px) {
     .main-content-area { padding: 1rem; }
 
-    /* Phone text: the body at 14px and titles two steps down (section titles 18px, a
-       character's name 24px, a Skill Card title 20px), on reader pages only
-       (.site-body). */
+    /* Phone text, on reader pages (.site-body) only: the body at 14px and titles
+       two steps down. */
     body.site-body { font-size: 0.875rem; }
     .section-title { font-size: 1.125rem; margin-bottom: 1rem; }
     .character-title { font-size: 1.5rem; }
@@ -585,8 +564,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .column-subgroup-title { font-size: 1rem; }
 }
 
-/* Gallery pages (gallery.js): a flat grid, auto-fill with a minmax floor, so one
-   markup gives four columns on a desktop and one on a phone. */
+/* Gallery pages (gallery.js): an auto-fill grid with a minmax floor, four columns
+   on a desktop, one on a phone. */
 .gallery-shell { display: flex; flex-direction: column; gap: 1.5rem; }
 .gallery-intro:empty { display: none; }
 
@@ -634,9 +613,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .tool-launch-btn { text-decoration: none; }
 
-/* The search box (search.js), added above #global-sidebar-nav on every page. The
-   results panel is positioned, not in flow, so typing never pushes the navigation
-   down. */
+/* The search box (search.js) above the navigation; its results panel is positioned,
+   so typing never pushes the links down. */
 .site-search { position: relative; margin-bottom: 0.75rem; }
 
 .site-search-input {
@@ -649,8 +627,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-input:focus { outline: none; border-color: var(--accent-blue); }
 .site-search-input::placeholder { color: var(--text-muted); }
 
-/* Collapsing the sidebar hides the label text everywhere else in here, and a
-   search field with no visible context is worse than none. */
+/* Collapsed, the sidebar hides the search too: a field with no visible context is
+   worse than none. */
 .global-sidebar-left.collapsed .site-search { display: none; }
 
 .site-search-results {
@@ -694,9 +672,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-family: var(--text-mono); font-size: 0.65rem; text-align: center;
 }
 
-/* The bridge from the sidebar box to search.html. Visually separated from the
-   hits above it because it is a different KIND of thing - not a result, an
-   offer to look harder - and it is the only row that is always present. */
+/* The way on to search.html, set apart from the hits: an offer to look harder, not
+   a result. */
 .site-search-more {
     display: block; padding: 0.45rem 0.6rem;
     border-top: 2px solid var(--border-color);
@@ -743,8 +720,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .global-sidebar-left .update-badge { background: none; border: 0; padding: 0; color: var(--accent-yellow); }
 .global-sidebar-left .badge-ea { color: hsl(28, 99%, 53%); }
 
-/* The account buttons are a list of links under "Account". Site settings keeps its
-   small box, and a collapsed sidebar keeps the icons. */
+/* The account buttons are links under "Account"; Site settings keeps its box, and a
+   collapsed sidebar its icons. */
 #sidebar-dynamic-dock { gap: 0.15rem; }
 #sidebar-dynamic-dock::before { content: 'Account'; }
 .btn-sys.dock-action-btn {
