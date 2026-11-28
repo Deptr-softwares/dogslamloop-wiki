@@ -215,3 +215,40 @@ test('a device that asks for less motion has it before <body> arrives, with noth
   expect(await page.evaluate(() => window.__classAtBody)).toMatch(/\breduce-motion\b/);
   expect(await page.evaluate(() => window.__classAtBody)).not.toMatch(/\blook-classic\b/);
 });
+
+// The box is js/utility/site_settings.js, loaded the first time it opens: every
+// page carries only the store and its opener.
+test('the box\'s file loads on the first open, once, with the page\'s stamp, and not before', async ({ page }) => {
+  const asked = [];
+  page.on('request', r => { if (/js\/utility\/site_settings\.js/.test(r.url())) asked.push(r.url()); });
+  await open(page);
+  expect(asked).toEqual([]);
+  expect(await page.evaluate(() => typeof window.showSiteSettings)).toBe('undefined');
+
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-look-default')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#site-settings-overlay')).toBeHidden();
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-settings-overlay')).toBeVisible();
+
+  expect(asked).toHaveLength(1);
+  const stamp = await page.evaluate(() => new URL(document.querySelector('script[src*="js/utility/site_utils.js"]').src).search);
+  expect(new URL(asked[0]).search).toBe(stamp);
+  expect(await page.locator('#site-settings-overlay').count()).toBe(1);
+});
+
+test('a box whose file cannot load says so', async ({ page }) => {
+  await page.route('**/js/utility/site_settings.js*', r => r.abort());
+  await open(page);
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#alert-modal-overlay')).toBeVisible();
+  await expect(page.locator('#alert-modal-msg')).toHaveText('Could not open Site settings. Try refreshing.');
+});
+
+test('the Classic hint says the look reaches every page', async ({ page }) => {
+  await open(page);
+  await page.locator('#dock-btn-settings').click();
+  const hint = page.locator('label[for="site-setting-look-classic"] .site-setting-hint');
+  await expect(hint).toHaveText('A plain, dark wiki look.');
+});
