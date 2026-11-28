@@ -145,12 +145,12 @@ select.editor-select.manga-initialized {
 .manga-option:hover,
 .manga-option.is-active {
     background: var(--accent-blue);
-    color: #000 !important; 
+    color: var(--black) !important; 
 }
 
 .manga-option.selected {
     color: var(--text-white);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--tint-5);
 }
 
 /* The site's dropdown: a plain box like a browser's own. */
@@ -164,8 +164,8 @@ select.editor-select.manga-initialized {
 @layer dogslamloop {
 html:not(.look-classic) {
 .manga-select-trigger {
-    background: #050505;
-    border-color: #333;
+    background: var(--grey-05);
+    border-color: var(--grey-33);
     font-family: var(--text-mono);
     text-transform: uppercase;
     box-shadow: 2px 2px 0px var(--manga-shadow);
@@ -177,7 +177,7 @@ html:not(.look-classic) {
     box-shadow: 4px 4px 0px var(--accent-blue);
 }
 .manga-select-options {
-    background: #0a0a0a;
+    background: var(--grey-0a);
     border: 2px solid var(--accent-blue);
     border-top: 4px solid var(--accent-blue);
     box-shadow: 8px 8px 0px var(--manga-shadow);
@@ -185,7 +185,7 @@ html:not(.look-classic) {
 .manga-select-wrapper.open .manga-select-options { animation: menuPop 0.1s ease-out; }
 .manga-option {
     font-family: var(--text-mono);
-    border-bottom: 1px dashed #222;
+    border-bottom: 1px dashed var(--grey-22);
 }
 .manga-option:last-child { border-bottom: none; }
 .manga-option:hover,

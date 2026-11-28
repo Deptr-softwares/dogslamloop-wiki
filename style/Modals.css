@@ -21,10 +21,10 @@ dialog.site-dialog {
     padding: 0;
     flex-direction: column;
     overflow: hidden;
-    background: #0a0a0a;
+    background: var(--grey-0a);
     color: var(--text-primary);
     text-align: left;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     border-top: 3px solid var(--dialog-tone);
     border-radius: 0;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
@@ -41,10 +41,10 @@ dialog.site-dialog.dialog-md { width: 500px; }
 dialog.site-dialog.dialog-lg { width: 650px; }
 dialog.site-dialog.dialog-xl { width: 860px; }
 
-dialog.site-dialog.tone-red { --dialog-tone: #ef4444; }
-dialog.site-dialog.tone-yellow { --dialog-tone: #eab308; }
-dialog.site-dialog.tone-green { --dialog-tone: #22c55e; }
-dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
+dialog.site-dialog.tone-red { --dialog-tone: var(--red); }
+dialog.site-dialog.tone-yellow { --dialog-tone: var(--yellow); }
+dialog.site-dialog.tone-green { --dialog-tone: var(--green); }
+dialog.site-dialog.tone-purple { --dialog-tone: var(--purple); }
 
 .dialog-header {
     display: flex;
@@ -53,8 +53,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     gap: 1rem;
     flex-shrink: 0;
     padding: 1rem 1.5rem;
-    background: #050505;
-    border-bottom: 1px solid #222;
+    background: var(--grey-05);
+    border-bottom: 1px solid var(--grey-22);
 }
 .dialog-header h3 {
     margin: 0;
@@ -100,8 +100,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     gap: 0.5rem;
     flex-shrink: 0;
     padding: 1rem 1.5rem;
-    background: #050505;
-    border-top: 1px solid #222;
+    background: var(--grey-05);
+    border-top: 1px solid var(--grey-22);
 }
 
 /* The dialog's fade and rise. */
@@ -118,10 +118,10 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     z-index: 100000;
     max-width: min(320px, calc(100vw - 2rem));
     padding: 0.75rem 1rem;
-    background: var(--bg-main, #050505);
-    border: 2px solid var(--border-color, #333);
-    box-shadow: 6px 6px 0px var(--manga-shadow, #000);
-    color: var(--text-white, #fff);
+    background: var(--bg-main, var(--grey-05));
+    border: 2px solid var(--border-color, var(--grey-33));
+    box-shadow: 6px 6px 0px var(--manga-shadow, var(--black));
+    color: var(--text-white, var(--white));
     font-family: var(--text-mono);
     font-size: 0.75rem;
 }
@@ -173,11 +173,11 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
 
 /* The badge colours match the sidebar dock's, because they are the same
    identity seen in two places. Keyed by name, never by rank. */
-.profile-standing-purple  { color: #a855f7; }
-.profile-standing-red     { color: #ef4444; }
+.profile-standing-purple  { color: var(--purple); }
+.profile-standing-red     { color: var(--red); }
 .profile-standing-blue    { color: var(--accent-blue); }
-.profile-standing-yellow  { color: #eab308; }
-.profile-standing-green   { color: #22c55e; }
+.profile-standing-yellow  { color: var(--yellow); }
+.profile-standing-green   { color: var(--green); }
 .profile-standing-regular { color: var(--text-muted); }
 
 .profile-identity-text {
@@ -259,7 +259,7 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     width: 1.05rem;
     height: 1.05rem;
     flex: 0 0 auto;
-    accent-color: #a855f7;
+    accent-color: var(--purple);
     cursor: pointer;
 }
 
@@ -281,8 +281,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     border: 2px solid var(--border-color);
 }
 
-.profile-feedback-bad { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: #ef4444; }
-.profile-feedback-ok  { color: #22c55e; background: rgba(34, 197, 94, 0.1); border-color: #22c55e; }
+.profile-feedback-bad { color: var(--red); background: rgba(239, 68, 68, 0.1); border-color: var(--red); }
+.profile-feedback-ok  { color: var(--green); background: rgba(34, 197, 94, 0.1); border-color: var(--green); }
 
 /* Somebody else's profile: read-only, reusing .profile-identity, so a person looks
    the same either way. */
@@ -364,9 +364,9 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     width: 38px;
     height: 38px;
     border-width: 3px;
-    box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #30363d, 2px 2px 0 var(--manga-shadow);
+    box-shadow: inset 0 0 0 2px var(--black), inset 0 0 0 4px #30363d, 2px 2px 0 var(--manga-shadow);
 }
-.user-badge-medium.user-badge-gold { box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #4a3d14, 2px 2px 0 var(--manga-shadow); }
+.user-badge-medium.user-badge-gold { box-shadow: inset 0 0 0 2px var(--black), inset 0 0 0 4px #4a3d14, 2px 2px 0 var(--manga-shadow); }
 .user-badge-key {
     position: absolute;
     top: 2px;
@@ -414,7 +414,7 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
     width: 1.05rem;
     height: 1.05rem;
     margin: 0;
-    accent-color: #a855f7;
+    accent-color: var(--purple);
     cursor: pointer;
 }
 
@@ -460,7 +460,7 @@ dialog.site-dialog.tone-purple { --dialog-tone: #a855f7; }
 }
 .site-toasts:not(:popover-open) { display: none; }
 .site-toast {
-    --toast-tone: #22c55e;
+    --toast-tone: var(--green);
     display: flex;
     align-items: center;
     gap: 0.75rem;

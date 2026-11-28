@@ -31,8 +31,8 @@ button {
 @property --sys-edge { syntax: '<color>'; inherits: true; initial-value: #555; }
 @property --sys-fill { syntax: '<color>'; inherits: true; initial-value: #888; }
 .btn-sys {
-    --sys-edge: #555;
-    --sys-fill: #888;
+    --sys-edge: var(--grey-55);
+    --sys-fill: var(--grey-88);
     --sys-cut: 9px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 0.7rem; font-weight: bold;
@@ -49,18 +49,18 @@ button {
 /* html.reduce-motion: the device's preference or Site settings (js/utility/site_utils.js). */
 html.reduce-motion .btn-sys { transition: none; }
 
-.btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
+.btn-sys-regular { --sys-edge: var(--grey-55); --sys-fill: var(--grey-88); color: #aaa; }
 /* Blue is fixed, not var(--accent-blue), which a character page's theme re-points;
    it is the site's default accent. */
 .btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); color: hsl(213, 94%, 68%); }
-.btn-sys-green   { --sys-edge: #22c55e; --sys-fill: #22c55e; color: #22c55e; }
-.btn-sys-red     { --sys-edge: #ef4444; --sys-fill: #ef4444; color: #ef4444; }
-.btn-sys-yellow  { --sys-edge: #eab308; --sys-fill: #eab308; color: #eab308; }
-.btn-sys-purple  { --sys-edge: #a855f7; --sys-fill: #a855f7; color: #a855f7; }
+.btn-sys-green   { --sys-edge: var(--green); --sys-fill: var(--green); color: var(--green); }
+.btn-sys-red     { --sys-edge: var(--red); --sys-fill: var(--red); color: var(--red); }
+.btn-sys-yellow  { --sys-edge: var(--yellow); --sys-fill: var(--yellow); color: var(--yellow); }
+.btn-sys-purple  { --sys-edge: var(--purple); --sys-fill: var(--purple); color: var(--purple); }
 
 /* Filled variants, for modals, always worn with .btn-sys and its colour tier. */
-.btn-danger-fill { background: #ef4444 !important; color: #000 !important; border-color: #ef4444 !important; }
-.btn-purple-fill { background: #a855f7 !important; color: #000 !important; border-color: #a855f7 !important; }
+.btn-danger-fill { background: var(--red) !important; color: var(--black) !important; border-color: var(--red) !important; }
+.btn-purple-fill { background: var(--purple) !important; color: var(--black) !important; border-color: var(--purple) !important; }
 
 
 /* Manga buttons: the live wiki's actions and filters */
@@ -168,7 +168,7 @@ html.reduce-motion .btn-sys { transition: none; }
 .sub-tab.sub-tab-removable { padding-right: 1.6rem; }
 .sub-tab-remove {
     position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: #ef4444; font-size: 10px; cursor: pointer;
+    background: none; border: none; color: var(--red); font-size: 10px; cursor: pointer;
 }
 .sub-tabs-action { align-self: center; font-size: 0.65rem; padding: 0.3rem 0.6rem; margin-left: 0.25rem; }
 /* The tabs of a strip that also holds an action button, laid out as the strip's own. */
@@ -219,7 +219,7 @@ html:not(.look-classic) {
     font-family: var(--text-mono);
     text-transform: uppercase;
     background: linear-gradient(225deg, transparent calc(50% - 0.75px), var(--sys-edge) calc(50% - 0.75px), var(--sys-edge) calc(50% + 0.75px), transparent calc(50% + 0.75px)) right top / var(--sys-cut) var(--sys-cut) no-repeat border-box, linear-gradient(var(--sys-fill), var(--sys-fill)) left top / 0% 100% no-repeat border-box, color-mix(in srgb, var(--sys-edge) 9%, var(--bg-main, #0d1117));
-    box-shadow: 3px 3px 0 var(--manga-shadow, #000);
+    box-shadow: 3px 3px 0 var(--manga-shadow, var(--black));
     clip-path: polygon(0 0, calc(100% - var(--sys-cut)) 0, calc(100% + 6px) calc(var(--sys-cut) + 6px), calc(100% + 6px) calc(100% + 6px), 0 calc(100% + 6px));
 }
 .btn-sys:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
@@ -229,12 +229,12 @@ html:not(.look-classic) {
 .btn-sys:hover:not(:disabled) {
     transform: translateY(-1px);
     background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto;
-    box-shadow: 3px 4px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
-    color: #000;
+    box-shadow: 3px 4px 0 color-mix(in srgb, var(--sys-fill) 40%, var(--black));
+    color: var(--black);
 }
 .btn-sys:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
+    box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, var(--black));
 }
 &.reduce-motion .btn-sys:hover:not(:disabled),
 &.reduce-motion .btn-sys:active:not(:disabled) {
@@ -272,13 +272,13 @@ html:not(.look-classic) {
     font-family: var(--text-mono);
     color: var(--text-muted);
     font-size: 0.75rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid #333;
+    background: var(--tint-2);
+    border: 1px solid var(--grey-33);
     border-left: 3px solid transparent;
 }
 .btn-nav:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-left-color: #555;
+    background: var(--tint-5);
+    border-left-color: var(--grey-55);
     transform: translateX(2px);
     color: var(--text-white);
 }

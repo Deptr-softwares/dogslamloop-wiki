@@ -46,7 +46,7 @@
 .banner-magenta { --banner-color: hsl(295, 89.76%, 50.2%); }
 .banner-cyan { --banner-color: hsl(180, 100%, 40%); }
 .banner-grey { --banner-color: hsl(215, 8%, 47%); }
-.banner-green { --banner-color: #22c55e; }
+.banner-green { --banner-color: var(--green); }
 
 /* Inline callouts */
 

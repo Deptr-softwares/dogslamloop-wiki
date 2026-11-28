@@ -11,14 +11,14 @@
     border-radius: 0; 
     font-size: 0.7rem; 
     font-family: var(--font-label), sans-serif; 
-    border: 1px solid #000; 
+    border: 1px solid var(--black); 
     white-space: nowrap; 
     display: inline-block;
     line-height: 1;
 }
-.badge-site { background-color: hsl(132, 59%, 33%); color: #fff; }
-.badge-patch { background-color: var(--accent-blue); color: #fff; }
-.badge-general { background-color: hsl(261, 73%, 62%); color: #fff; }
+.badge-site { background-color: hsl(132, 59%, 33%); color: var(--white); }
+.badge-patch { background-color: var(--accent-blue); color: var(--white); }
+.badge-general { background-color: hsl(261, 73%, 62%); color: var(--white); }
 .update-badge-inline { margin-left: 0.5rem; }
 
 /* Author and credit badges */
@@ -40,7 +40,7 @@
 }
 .author-badge:hover {
     background: var(--text-white);
-    color: #000;
+    color: var(--black);
     border-color: var(--text-white);
     transform: skewX(-10deg) translate(-2px, -2px);
     box-shadow: 4px 4px 0px var(--accent-blue);
@@ -63,10 +63,10 @@
 
 /* Status dots */
 .status-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
-.status-dot.offline { color: #ef4444; background: #ef4444; }
-.status-dot.online { color: #22c55e; background: #22c55e; }
+.status-dot.offline { color: var(--red); background: var(--red); }
+.status-dot.online { color: var(--green); background: var(--green); }
 
-.dot-indicator { width: 0.5rem; height: 0.5rem; border-radius: 0; border: 1px solid #000; display: inline-block; }
+.dot-indicator { width: 0.5rem; height: 0.5rem; border-radius: 0; border: 1px solid var(--black); display: inline-block; }
 .dot-green { background-color: hsl(132, 59%, 33%); }
 .dot-blue { background-color: var(--accent-blue); }
 .dot-yellow { background-color: var(--accent-yellow); }
@@ -79,7 +79,7 @@
     position: absolute; top: 2px; right: 4px;
     color: var(--accent-yellow); font-size: 1rem;
     font-family: var(--font-label), sans-serif; line-height: 1;
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 2px 2px 0px rgba(0,0,0,0.8);
+    text-shadow: -1px -1px 0 var(--black), 1px -1px 0 var(--black), -1px 1px 0 var(--black), 1px 1px 0 var(--black), 2px 2px 0px rgba(0,0,0,0.8);
 }
 
 /* The roster's WIP marker, in the corner opposite the Early Access star, so the
@@ -88,7 +88,7 @@
 .roster-wip-indicator {
     position: absolute; top: 2px; left: 4px;
     font-size: 0.7rem; line-height: 1; z-index: 3;
-    filter: drop-shadow(1px 1px 0 #000);
+    filter: drop-shadow(1px 1px 0 var(--black));
 }
 
 .dock-badge {
@@ -101,25 +101,25 @@
 html:not(.look-classic) {
 .update-badge:where(.global-sidebar-left .update-badge) {
     padding: 0.25rem 0.4rem 0.15rem 0.4rem;
-    border: 1px solid #000;
+    border: 1px solid var(--black);
     color: inherit;
 }
 .badge-wip {
     background-color: var(--accent-yellow);
-    color: #000;
+    color: var(--black);
 }
 .badge-ea {
     background-color: hsl(28, 99%, 53%);
-    color: #fff;
+    color: var(--white);
 }
 .dock-badge {
     position: absolute;
-    background: #ef4444;
+    background: var(--red);
     width: 12px;
     height: 12px;
-    border: 2px solid #050505;
+    border: 2px solid var(--grey-05);
     transform: skewX(10deg);
-    box-shadow: 2px 2px 0px #000;
+    box-shadow: 2px 2px 0px var(--black);
     color: inherit;
     font-size: inherit;
 }

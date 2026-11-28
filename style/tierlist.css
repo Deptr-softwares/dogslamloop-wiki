@@ -20,21 +20,21 @@
 .tier-nav-overall-text { font-size: 1.2rem; }
 .tier-nav-matchup-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); }
 .btn-manga.tier-nav-matchup-btn { border-color: var(--tier-nav-color); }
-.tier-nav-matchup-text { color: var(--tier-nav-color); text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+.tier-nav-matchup-text { color: var(--tier-nav-color); text-shadow: -1px -1px 0 var(--black), 1px -1px 0 var(--black), -1px 1px 0 var(--black), 1px 1px 0 var(--black); }
 
-.tier-list-inner { display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-secondary); border: 2px solid var(--border-color); padding: 0.5rem; box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
+.tier-list-inner { display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-secondary); border: 2px solid var(--border-color); padding: 0.5rem; box-shadow: 6px 6px 0px var(--manga-shadow, var(--black)); }
 .tier-list-empty { padding: 2rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }
 .tier-list-row { display: flex; min-height: 80px; background: var(--bg-main); border: 1px solid var(--border-color); }
 .tier-list-row-label { width: 100px; background-color: var(--tier-row-color); display: flex; align-items: center; justify-content: center; border-right: 2px solid var(--bg-secondary); flex-shrink: 0; box-shadow: inset -4px 0px 8px rgba(0,0,0,0.2); }
-.tier-list-row-label-text { font-family: var(--font-label), sans-serif; font-size: 1.5rem; color: #000; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
+.tier-list-row-label-text { font-family: var(--font-label), sans-serif; font-size: 1.5rem; color: var(--black); text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
 .tier-list-row-chars { flex: 1; padding: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; align-content: flex-start; }
 
-.tier-changelog-entry { background: rgba(255,255,255,0.02); border-left: 3px solid var(--accent-blue); padding: 1rem; }
+.tier-changelog-entry { background: var(--tint-2); border-left: 3px solid var(--accent-blue); padding: 1rem; }
 .tier-changelog-date { color: var(--accent-blue); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 0.5rem; font-weight: bold; }
 .wiki-block-list.tier-changelog-notes { margin: 0; padding-left: 1rem; }
 .tier-changelog-empty { color: var(--text-muted); font-family: var(--text-mono); font-style: italic; }
 
-.tier-portrait { width: 60px; height: 60px; position: relative; border: 2px solid var(--border-color); box-shadow: 3px 3px 0px var(--manga-shadow, #000); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0; }
+.tier-portrait { width: 60px; height: 60px; position: relative; border: 2px solid var(--border-color); box-shadow: 3px 3px 0px var(--manga-shadow, var(--black)); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0; }
 /* touch-action: none, so a touch-drag on a portrait does not also scroll the page:
    bindTierDragAndDrop owns the gesture. */
 .tier-portrait.draggable-portrait { cursor: grab; touch-action: none; }
@@ -79,7 +79,7 @@
 
 .tier-editor-row .ctl-chars .tier-portrait-name,
 .tier-editor-tray .tier-portrait-name { font-size: 0.62rem; }
-.tier-portrait-name { position: relative; z-index: 2; font-family: var(--font-label), sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
+.tier-portrait-name { position: relative; z-index: 2; font-family: var(--font-label), sans-serif; font-size: 0.5rem; color: var(--white); text-shadow: -1px -1px 0 var(--black), 1px -1px 0 var(--black), -1px 1px 0 var(--black), 1px 1px 0 var(--black); word-wrap: break-word; line-height: 1.1; padding: 2px; }
 
 /* Floating clone that follows the pointer during a drag (mouse or touch),
    created/destroyed by bindTierDragAndDrop. pointer-events: none so
@@ -105,7 +105,7 @@
         transform: translateY(100%);
         transition: transform 0.18s ease;
         background: rgba(0, 0, 0, 0.88);
-        color: #fff;
+        color: var(--white);
         font-family: var(--font-label), sans-serif;
         font-size: 0.5rem;
         line-height: 1.15;
@@ -153,16 +153,16 @@
 
 .tier-editor-row { margin-bottom: 1.5rem; padding-left: 0.5rem; }
 .tier-editor-row-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-.tier-color-input { width: 32px; height: 32px; cursor: pointer; border: 1px solid #333; padding: 0; background: none; flex-shrink: 0; border-radius: 4px; }
+.tier-color-input { width: 32px; height: 32px; cursor: pointer; border: 1px solid var(--grey-33); padding: 0; background: none; flex-shrink: 0; border-radius: 4px; }
 /* Compound: .editor-input's own base rule sets margin-bottom/background at
    the same specificity. */
-.editor-input.tier-name-input { margin: 0; font-family: var(--font-label), sans-serif; font-size: 1.1rem; flex: 1; background: #0a0a0a; }
+.editor-input.tier-name-input { margin: 0; font-family: var(--font-label), sans-serif; font-size: 1.1rem; flex: 1; background: var(--grey-0a); }
 .tier-row-btn-group { display: flex; gap: 0.25rem; }
 /* Compound: .btn-sys's own base rule sets padding at the same specificity. */
 .btn-sys.btn-sys-compact { padding: 0.3rem 0.5rem; }
 
 /* Both drop zones, the tier rows and the pool; a tier row adds .tier-row-dropzone. */
-.tier-dropzone { background: rgba(0,0,0,0.2); border: 1px dashed #333; border-radius: 4px; padding: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start; min-height: 80px; }
+.tier-dropzone { background: rgba(0,0,0,0.2); border: 1px dashed var(--grey-33); border-radius: 4px; padding: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start; min-height: 80px; }
 .tier-dropzone.tier-row-dropzone { min-height: 90px; }
 /* While a drag hovers the zone (the Pointer Events engine toggles it). */
 .tier-dropzone.drag-over { background-color: rgba(168, 85, 247, 0.1); }
@@ -177,12 +177,12 @@
 /* Compound: .editor-textarea's own base rule sets margin-bottom/min-height
    at the same specificity. */
 .editor-textarea.tier-changelog-textarea { min-height: 80px; margin: 0; }
-.tier-max-logs-msg { color: #ef4444; font-size: 0.75rem; font-family: var(--text-mono); font-weight: bold; }
+.tier-max-logs-msg { color: var(--red); font-size: 0.75rem; font-family: var(--text-mono); font-weight: bold; }
 
 .editor-row.tier-tab-meta-row { margin-bottom: 1.5rem; }
 .tier-tab-meta-field { flex: 1; }
 
-.tier-unassigned-container { margin-top: 0; margin-bottom: 1.5rem; border-top: 1px dashed #333; padding-top: 1rem; }
+.tier-unassigned-container { margin-top: 0; margin-bottom: 1.5rem; border-top: 1px dashed var(--grey-33); padding-top: 1rem; }
 .tier-unassigned-label-row { margin-bottom: 0.75rem; }
 /* Compound: .block-type-badge's own base rule sets padding at the same
    specificity. */

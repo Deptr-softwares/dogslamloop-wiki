@@ -10,6 +10,29 @@
 @layer site, dogslamloop;
 
 @layer site {
+/* The palette: the colours the sheets share, each named once. */
+:root {
+    --black: #000;
+    --white: #fff;
+    --red: #ef4444;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --purple: #a855f7;
+    --grey-05: #050505;
+    --grey-0a: #0a0a0a;
+    --grey-11: #111;
+    --grey-22: #222;
+    --grey-33: #333;
+    --grey-44: #444;
+    --grey-55: #555;
+    --grey-66: #666;
+    --grey-88: #888;
+    --grey-d1: #d1d5db;
+    --grey-e5: #e5e7eb;
+    --tint-2: rgba(255,255,255,0.02);
+    --tint-3: rgba(255,255,255,0.03);
+    --tint-5: rgba(255,255,255,0.05);
+}
 /* WOFF2 first, about half the TTF's bytes; a browser without WOFF2 takes the TTF. */
 @font-face {
     font-family: 'Finger-Paint';
@@ -39,10 +62,10 @@
     --accent-blue: #88a3e8;
     /* Text on --accent-blue: site_lookups.js sets both per character page, black on
        a light colour, white on a dark one. */
-    --character-ink: #000000;
+    --character-ink: var(--black);
     --accent-blue-hover: #a6bbf0;
     --accent-yellow: hsl(45, 93%, 47%);
-    --accent-red: #ef4444;
+    --accent-red: var(--red);
     
     --text-primary: #eaecf0;
     --text-white: hsl(0, 0%, 100%);
@@ -51,8 +74,9 @@
     --text-mono: Arial, Helvetica, sans-serif;
     --manga-shadow: transparent;
 
-    /* The two display faces, named once so a look can swap them; a rule that uses
-       one keeps its own fallbacks after it. */
+    /* The three faces, named once so a look or a setting can swap them; a rule that
+       uses a display face keeps its own fallbacks after it. */
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     --font-title: Georgia, 'Times New Roman', serif;
     --font-label: Arial, Helvetica;
 }
@@ -60,7 +84,7 @@
 body {
     background-color: var(--bg-main);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: var(--font-body);
     margin: 0;
     padding: 0;
 }
@@ -103,8 +127,8 @@ body {
     position: absolute; z-index: -1; pointer-events: none;
     left: -0.7rem; top: -0.45rem; width: calc(50% + 0.7rem); height: calc(100% + 0.9rem);
     background: radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 22%, transparent) 1.3px, transparent 1.9px) 0 0 / 7px 7px;
-    -webkit-mask-image: linear-gradient(100deg, #000 10%, transparent 100%);
-    mask-image: linear-gradient(100deg, #000 10%, transparent 100%);
+    -webkit-mask-image: linear-gradient(100deg, var(--black) 10%, transparent 100%);
+    mask-image: linear-gradient(100deg, var(--black) 10%, transparent 100%);
     transform: skewX(-12deg);
     animation: title-dots-in 0.45s ease-out both;
 }
@@ -203,7 +227,7 @@ body {
    the one the site adds. */
 .page-character-dark .sc-char.sc-char-dark,
 .sc-outline {
-    text-shadow: -1px 0 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff;
+    text-shadow: -1px 0 0 var(--white), 1px 0 0 var(--white), 0 -1px 0 var(--white), 0 1px 0 var(--white);
 }
 
 @supports (paint-order: stroke) {
@@ -212,7 +236,7 @@ body {
         text-shadow: none;
         paint-order: stroke fill;
         -webkit-text-stroke-width: 1px;
-        -webkit-text-stroke-color: #fff;
+        -webkit-text-stroke-color: var(--white);
     }
 }
 
@@ -294,7 +318,7 @@ html:not(.look-classic) {
 --text-primary: hsl(210, 17%, 82%);
 --text-muted: hsl(212, 9%, 58%);
 --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
---manga-shadow: #000000;
+--manga-shadow: var(--black);
 --font-title: 'Finger-Paint';
 --font-label: 'CC-Wild-Words';
 /* Where Default's value is the browser's own, which differs by tag (a heading's bold), it is revert. */

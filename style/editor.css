@@ -13,7 +13,7 @@
 
 @layer site {
 
-body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
+body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); }
 
 .editor-layout {
     display: flex;
@@ -28,8 +28,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-right: 1px solid #333;
-    background-color: #050505;
+    border-right: 1px solid var(--grey-33);
+    background-color: var(--grey-05);
     box-sizing: border-box;
 }
 
@@ -71,8 +71,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
         flex: 0 0 5px;
         cursor: col-resize;
         background: #1a1a1a;
-        border-left: 1px solid #333;
-        border-right: 1px solid #333;
+        border-left: 1px solid var(--grey-33);
+        border-right: 1px solid var(--grey-33);
         box-sizing: border-box;
         position: relative;
         z-index: 60;
@@ -88,7 +88,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
         width: 2px;
         height: 32px;
         transform: translate(-50%, -50%);
-        background: #555;
+        background: var(--grey-55);
         border-radius: 1px;
     }
 
@@ -102,17 +102,17 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     .editor-splitter:hover::after,
     .editor-splitter:focus-visible::after,
     .editor-splitter.is-dragging::after {
-        background: #fff;
+        background: var(--white);
     }
 
     /* On the default while dragging, so the snap reads as landing on something.
        Green: this is the view a reader gets. */
     .editor-splitter.is-snapped {
-        background: #22c55e;
+        background: var(--green);
     }
 
     .editor-splitter.is-snapped::after {
-        background: #000;
+        background: var(--black);
         height: 48px;
     }
 
@@ -143,8 +143,8 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
     margin: 0;
-    border-bottom: 1px solid #222;
-    background: #050505;
+    border-bottom: 1px solid var(--grey-22);
+    background: var(--grey-05);
     z-index: 50;
 }
 
@@ -159,7 +159,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-header-titles .editor-title {
     margin: 0;
     font-family: inherit;
-    color: #fff;
+    color: var(--white);
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
@@ -201,7 +201,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
    never Submit, and never the tab strip, which is used while writing. */
 .editor-chrome-toggle {
     background: none;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     color: var(--accent-blue);
     font-size: 0.7rem;
     line-height: 1;
@@ -234,14 +234,14 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     margin-top: 1rem;
     margin-left: -1.5rem;
     margin-right: -1.5rem;
-    border-top: 1px solid #222;
-    border-bottom: 1px solid #222;
+    border-top: 1px solid var(--grey-22);
+    border-bottom: 1px solid var(--grey-22);
 }
 
 .block-card {
-    background: #0a0a0a;
-    border: 1px solid #222;
-    border-left: 3px solid #333;
+    background: var(--grey-0a);
+    border: 1px solid var(--grey-22);
+    border-left: 3px solid var(--grey-33);
     border-right: none;
     border-radius: 0;
     padding: 0.5rem 1.5rem;
@@ -261,22 +261,22 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.4rem;
-    border-bottom: 1px dotted #333;
+    border-bottom: 1px dotted var(--grey-33);
     padding-bottom: 0.25rem;
 }
 
 .block-type-badge {
-    background: #fff; color: #000; padding: 0.1rem 0.3rem; font-family: var(--text-mono); font-size: 0.65rem; font-weight: bold; text-transform: uppercase;
+    background: var(--white); color: var(--black); padding: 0.1rem 0.3rem; font-family: var(--text-mono); font-size: 0.65rem; font-weight: bold; text-transform: uppercase;
 }
 
 .block-actions { display: flex; gap: 0.25rem; }
-.block-actions button { border: 1px solid transparent; color: #666; cursor: pointer; padding: 0.1rem 0.3rem; font-size: 0.7rem; transition: all 0.1s; }
-.block-actions button:hover { color: #fff; }
-.block-actions .btn-delete:hover { border-color: #ef4444; }
+.block-actions button { border: 1px solid transparent; color: var(--grey-66); cursor: pointer; padding: 0.1rem 0.3rem; font-size: 0.7rem; transition: all 0.1s; }
+.block-actions button:hover { color: var(--white); }
+.block-actions .btn-delete:hover { border-color: var(--red); }
 
 .block-body.minimized { display: none; }
-.block-card.collapsed { border-left-color: #444; background: #080808; padding-bottom: 0.4rem; }
-.block-card.collapsed:hover { border-left-color: #666; }
+.block-card.collapsed { border-left-color: var(--grey-44); background: #080808; padding-bottom: 0.4rem; }
+.block-card.collapsed:hover { border-left-color: var(--grey-66); }
 .block-actions .btn-collapse { font-weight: bold; }
 
 /* A selected Block. Scoped to #block-list: other tabs draw .block-card with no
@@ -325,9 +325,9 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 /* Fields */
 .editor-input, .editor-textarea {
     width: 100%;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid #222;
-    color: #d1d5db;
+    background: var(--tint-3);
+    border: 1px solid var(--grey-22);
+    color: var(--grey-d1);
     padding: 0.3rem 0.4rem;
     border-radius: 0;
     margin-bottom: 0.25rem;
@@ -337,7 +337,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     transition: border-color 0.1s, background 0.1s;
 }
 .editor-input:focus, .editor-textarea:focus {
-    outline: none; border-color: var(--accent-blue); background: rgba(0,0,0,0.5); color: #fff;
+    outline: none; border-color: var(--accent-blue); background: rgba(0,0,0,0.5); color: var(--white);
 }
 .editor-input:disabled, .editor-textarea:disabled { opacity: 0.5; }
 .editor-textarea { min-height: 50px; max-height: 260px; overflow-y: auto; resize: vertical; line-height: 1.4; }
@@ -357,9 +357,9 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-select {
     appearance: none;
     width: 100%;
-    background-color: rgba(255,255,255,0.03);
-    border: 1px solid #222;
-    color: #d1d5db;
+    background-color: var(--tint-3);
+    border: 1px solid var(--grey-22);
+    color: var(--grey-d1);
     padding: 0.3rem 2rem 0.3rem 0.4rem; /* Extra right padding for the arrow */
     border-radius: 0;
     margin-bottom: 0.25rem;
@@ -378,11 +378,11 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     image-rendering: pixelated;
 }
 .editor-select:focus {
-    outline: none; border-color: var(--accent-blue); background-color: rgba(0,0,0,0.5); color: #fff;
+    outline: none; border-color: var(--accent-blue); background-color: rgba(0,0,0,0.5); color: var(--white);
 }
 .editor-select option {
     background: #0f1218;
-    color: #d1d5db;
+    color: var(--grey-d1);
     padding: 0.5rem;
 }
 
@@ -391,8 +391,8 @@ input[type="checkbox"] {
     appearance: none;
     width: 14px;
     height: 14px;
-    border: 1px solid #444;
-    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--grey-44);
+    background: var(--tint-5);
     border-radius: 2px;
     cursor: pointer;
     position: relative;
@@ -415,14 +415,14 @@ input[type="checkbox"]:checked {
 }
 
 /* The Frame Track (DAW in the code) */
-.daw-container { background: #050505; border: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 1rem; margin-top: 0; border-radius: 0; }
+.daw-container { background: var(--grey-05); border: 1px solid var(--grey-22); border-left: 3px solid var(--accent-blue); padding: 1rem; margin-top: 0; border-radius: 0; }
 /* The variant tabs are the site's tab strip (.sub-tabs, Buttons.css), and wrap, so
    a new variant never pushes + ADD MICRO VARIANT out of the Workspace. */
-.daw-timeline-wrapper { position: relative; background: #0a0a0a; border: 1px solid #222; border-radius: 0; padding: 1rem 0; overflow-x: auto; margin-bottom: 1rem; }
-.daw-track { position: relative; height: 30px; background: #000; border: 1px solid #222; margin-bottom: 0.5rem; display: flex; align-items: stretch; }
-.daw-phase-block { position: relative; height: 100%; box-sizing: border-box; border-right: 1px solid #000; cursor: pointer; transition: filter 0.1s; display: flex; align-items: center; justify-content: center; font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; color: rgba(255,255,255,0.8); overflow: hidden; white-space: nowrap; }
-.daw-phase-block:hover { color: #fff; filter: brightness(1.2); }
-.daw-phase-block.selected { border: 2px solid #fff; z-index: 10; }
+.daw-timeline-wrapper { position: relative; background: var(--grey-0a); border: 1px solid var(--grey-22); border-radius: 0; padding: 1rem 0; overflow-x: auto; margin-bottom: 1rem; }
+.daw-track { position: relative; height: 30px; background: var(--black); border: 1px solid var(--grey-22); margin-bottom: 0.5rem; display: flex; align-items: stretch; }
+.daw-phase-block { position: relative; height: 100%; box-sizing: border-box; border-right: 1px solid var(--black); cursor: pointer; transition: filter 0.1s; display: flex; align-items: center; justify-content: center; font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; color: rgba(255,255,255,0.8); overflow: hidden; white-space: nowrap; }
+.daw-phase-block:hover { color: var(--white); filter: brightness(1.2); }
+.daw-phase-block.selected { border: 2px solid var(--white); z-index: 10; }
 
 /* An estimated phase: its label says "~Short" and its fill is softer, so a
    track shows which phases still need counting. */
@@ -430,7 +430,7 @@ input[type="checkbox"]:checked {
     opacity: 0.75;
     font-style: italic;
 }
-.daw-inspector { background: #0a0a0a; padding: 1rem; border: 1px solid #222; border-left: 3px solid #ef4444; border-radius: 0; }
+.daw-inspector { background: var(--grey-0a); padding: 1rem; border: 1px solid var(--grey-22); border-left: 3px solid var(--red); border-radius: 0; }
 
 /* Drag and drop */
 .block-card.drag-over-top {
@@ -465,9 +465,9 @@ html.reduce-motion .block-card.block-just-moved {
 .block-drag-ghost {
     position: fixed; z-index: 9999; pointer-events: none;
     transform: translate(12px, 12px);
-    background: var(--bg-main, #050505); border: 2px solid var(--accent-blue); color: #fff;
+    background: var(--bg-main, var(--grey-05)); border: 2px solid var(--accent-blue); color: var(--white);
     font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; text-transform: uppercase;
-    padding: 0.4rem 0.75rem; box-shadow: 4px 4px 0px var(--manga-shadow, #000); white-space: nowrap;
+    padding: 0.4rem 0.75rem; box-shadow: 4px 4px 0px var(--manga-shadow, var(--black)); white-space: nowrap;
 }
 .block-card.block-card-dragging { opacity: 0.4; }
 
@@ -488,8 +488,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .align-group {
     display: flex;
     width: 100%;
-    border: 1px solid #222;
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--grey-22);
+    background: var(--tint-3);
     margin-bottom: 0.25rem;
     box-sizing: border-box;
     height: calc(100% - 0.25rem); 
@@ -497,9 +497,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .align-btn {
     flex: 1;
     background: transparent;
-    color: #666;
+    color: var(--grey-66);
     border: none;
-    border-right: 1px solid #222;
+    border-right: 1px solid var(--grey-22);
     cursor: pointer;
     display: flex;
     justify-content: center;
@@ -516,7 +516,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .align-btn.active {
     background: var(--accent-blue);
-    color: #000;
+    color: var(--black);
 }
 .align-btn:active {
     transform: none; 
@@ -537,23 +537,23 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     justify-content: start;
 }
 .format-btn {
-    background: rgba(255,255,255,0.05); color: #d1d5db; border: 1px solid #333;
+    background: var(--tint-5); color: var(--grey-d1); border: 1px solid var(--grey-33);
     width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
     font-family: var(--text-mono); font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: all 0.1s;
 }
-.format-btn:hover { background: var(--accent-blue); color: #000; border-color: var(--accent-blue); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--accent-blue); }
+.format-btn:hover { background: var(--accent-blue); color: var(--black); border-color: var(--accent-blue); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--accent-blue); }
 .format-btn:active { transform: translate(1px, 1px); box-shadow: none; }
 .format-color-popup {
     display: block;
     position: absolute;
     bottom: calc(100% + 5px);
     left: 0;
-    background: #0a0a0a;
-    border: 1px solid #333;
+    background: var(--grey-0a);
+    border: 1px solid var(--grey-33);
     padding: 0.6rem;
     /* Square and hard-shadowed, like the rest of the editor's chrome. */
     border-radius: 0;
-    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    box-shadow: 4px 4px 0px var(--manga-shadow, var(--black));
     z-index: 100;
     /* Wide enough for nine swatches a row, then it scrolls: about 45 swatches in a
        popup that opens upward would run off the top of the screen. */
@@ -586,18 +586,18 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     bottom: calc(100% + 5px);
     left: 0;
     width: 260px;
-    background: #0a0a0a;
-    border: 1px solid #333;
+    background: var(--grey-0a);
+    border: 1px solid var(--grey-33);
     padding: 0.6rem;
     border-radius: 0;
-    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    box-shadow: 4px 4px 0px var(--manga-shadow, var(--black));
     z-index: 100;
 }
 .format-jump-popup.hidden { display: none; }
 .format-jump-label {
     font-family: var(--text-mono);
     font-size: 0.6rem;
-    color: #888;
+    color: var(--grey-88);
     margin-bottom: 0.4rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -605,8 +605,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .format-jump-search {
     width: 100%;
     box-sizing: border-box;
-    background: #000;
-    border: 1px solid #333;
+    background: var(--black);
+    border: 1px solid var(--grey-33);
     color: var(--text-primary);
     font-family: var(--text-mono);
     font-size: 0.7rem;
@@ -643,7 +643,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .format-jump-toggle:hover { color: var(--accent-blue); }
 .format-jump-toggle[aria-expanded="false"] { transform: rotate(-90deg); }
 /* Indented and dimmed: two levels without a second colour. */
-.format-jump-children { margin-left: 0.6rem; border-left: 1px solid #333; padding-left: 0.3rem; }
+.format-jump-children { margin-left: 0.6rem; border-left: 1px solid var(--grey-33); padding-left: 0.3rem; }
 .format-jump-children.hidden { display: none; }
 
 .format-jump-item {
@@ -676,7 +676,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .format-icon-glyph { display: inline-flex; }
 .format-icon-character { width: 20px; height: 20px; flex: none; object-fit: contain; }
 .format-icon-popup .loading-msg { font-size: 0.7rem; margin: 0.3rem 0; }
-.format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: var(--grey-88); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
 /* Separates the groups without a gap above the first. */
 .format-color-presets-row + .format-color-popup-label,
 [data-recent-slot]:not(:empty) + .format-color-popup-label { margin-top: 0.6rem; }
@@ -686,16 +686,16 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .color-preset-btn {
     width: 20px; height: 20px;
     border-radius: 0;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     cursor: pointer;
     padding: 0;
     transition: outline-color 0.12s ease, transform 0.12s ease;
     outline: 2px solid transparent;
     outline-offset: -1px;
 }
-.color-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
+.color-preset-btn:hover { outline-color: var(--text-white, var(--white)); transform: translateY(-1px); }
 .color-preset-btn:focus-visible { outline-color: var(--accent-blue); }
-.format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
+.format-color-custom-row { border-top: 1px solid var(--grey-33); padding-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
 
 /* The visual colour picker, drawn with CSS gradients: one hue-coloured
    background, white painted left to right and black bottom to top over it,
@@ -706,19 +706,19 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     /* Short, to give the swatch list back some of the room the pinned picker takes. */
     height: 88px;
     margin: 0.35rem 0;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     cursor: crosshair;
     touch-action: none;
     background-image:
-        linear-gradient(to top, #000, rgba(0, 0, 0, 0)),
-        linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+        linear-gradient(to top, var(--black), rgba(0, 0, 0, 0)),
+        linear-gradient(to right, var(--white), rgba(255, 255, 255, 0));
 }
 
 .cp-hue {
     position: relative;
     width: 100%;
     height: 14px;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     cursor: ew-resize;
     touch-action: none;
     background-image: linear-gradient(to right,
@@ -733,9 +733,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     position: absolute;
     width: 12px;
     height: 12px;
-    border: 2px solid #fff;
+    border: 2px solid var(--white);
     border-radius: 50%;
-    box-shadow: 0 0 0 1px #000;
+    box-shadow: 0 0 0 1px var(--black);
     transform: translate(-50%, -50%);
     pointer-events: none;
 }
@@ -746,15 +746,15 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     width: 22px;
     height: 22px;
     flex-shrink: 0;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     display: inline-block;
 }
 
 .cp-hex {
     flex: 1;
     min-width: 0;
-    background: #050505;
-    border: 1px solid #333;
+    background: var(--grey-05);
+    border: 1px solid var(--grey-33);
     color: var(--text-white);
     font-family: var(--text-mono);
     font-size: 0.7rem;
@@ -767,44 +767,44 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* The custom gradient: a chip per colour, the one being edited outlined, a
    remove button on each past two, and the result in a strip. */
 .cp-gradient-toggle { display: block; width: 100%; text-align: left; cursor: pointer; }
-.cp-gradient-toggle:hover, .cp-gradient-toggle[aria-expanded="true"] { color: var(--text-white, #fff); }
+.cp-gradient-toggle:hover, .cp-gradient-toggle[aria-expanded="true"] { color: var(--text-white, var(--white)); }
 .cp-gradient { display: flex; flex-direction: column; gap: 0.4rem; align-self: stretch; }
 .cp-gradient[hidden] { display: none; }
 .cp-gradient-stops { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
 .cp-gradient-stop-wrap { position: relative; display: inline-flex; }
 .cp-gradient-stop {
     width: 22px; height: 22px; padding: 0; cursor: pointer;
-    border: 1px solid #555; outline: 2px solid transparent; outline-offset: 1px;
+    border: 1px solid var(--grey-55); outline: 2px solid transparent; outline-offset: 1px;
 }
-.cp-gradient-stop.is-active { outline-color: var(--text-white, #fff); }
+.cp-gradient-stop.is-active { outline-color: var(--text-white, var(--white)); }
 .cp-gradient-stop:focus-visible { outline-color: var(--accent-blue); }
 .cp-gradient-stop-remove {
     position: absolute; top: -6px; right: -6px;
     width: 13px; height: 13px; padding: 0;
     font-size: 8px; line-height: 11px; text-align: center;
-    background: #111; color: #aaa; border: 1px solid #444; cursor: pointer;
+    background: var(--grey-11); color: #aaa; border: 1px solid var(--grey-44); cursor: pointer;
 }
-.cp-gradient-stop-remove:hover { color: #fff; border-color: #ef4444; }
+.cp-gradient-stop-remove:hover { color: var(--white); border-color: var(--red); }
 .cp-gradient-add {
     width: 22px; height: 22px; padding: 0; cursor: pointer;
-    border: 1px dashed #555; color: #aaa; font-size: 0.8rem;
+    border: 1px dashed var(--grey-55); color: #aaa; font-size: 0.8rem;
 }
-.cp-gradient-add:hover { color: #fff; border-color: #888; }
-.cp-gradient-strip { height: 12px; border: 1px solid #333; }
+.cp-gradient-add:hover { color: var(--white); border-color: var(--grey-88); }
+.cp-gradient-strip { height: 12px; border: 1px solid var(--grey-33); }
 .cp-gradient [data-gradient-use] { align-self: flex-start; }
 
 /* The Add Block menu */
 .add-block-menu-wrapper { position: relative; }
 .add-block-popup {
     position: absolute; bottom: 100%; right: 0; margin-bottom: 0.75rem;
-    background: #0a0a0a; border: 1px solid #333; border-top: 3px solid #ef4444;
+    background: var(--grey-0a); border: 1px solid var(--grey-33); border-top: 3px solid var(--red);
     padding: 0.75rem; width: 340px; display: none; grid-template-columns: 1fr 1fr; gap: 0.25rem;
     box-shadow: -10px -10px 40px rgba(0,0,0,0.8); z-index: 100;
 }
 .add-block-popup.active { display: grid; }
 .add-block-popup-title {
-    grid-column: 1 / -1; color: #666; font-size: 0.65rem; font-family: var(--text-mono);
-    text-transform: uppercase; margin-bottom: 0.25rem; border-bottom: 1px dashed #333; padding-bottom: 0.25rem;
+    grid-column: 1 / -1; color: var(--grey-66); font-size: 0.65rem; font-family: var(--text-mono);
+    text-transform: uppercase; margin-bottom: 0.25rem; border-bottom: 1px dashed var(--grey-33); padding-bottom: 0.25rem;
 }
 .add-block-popup-title-spaced { margin-top: 0.5rem; }
 .btn-add-block-toggle { gap: 0.5rem; }
@@ -827,14 +827,14 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     border-radius: 50%;
     box-shadow: 0 0 8px currentColor;
 }
-.status-dot.offline { color: #ef4444; background: #ef4444; }
-.status-dot.online { color: #22c55e; background: #22c55e; }
+.status-dot.offline { color: var(--red); background: var(--red); }
+.status-dot.online { color: var(--green); background: var(--green); }
 
 /* The QA modal (openQAModal) */
-.editor-intercept-label { color: #a855f7; }
+.editor-intercept-label { color: var(--purple); }
 .qa-form-container { display: flex; flex-direction: column; text-align: left; }
 .sub-tabs.qa-tabs-row { margin-bottom: 1rem; }
-.qa-field-label { font-family: var(--text-mono); font-size: 0.65rem; color: #888; }
+.qa-field-label { font-family: var(--text-mono); font-size: 0.65rem; color: var(--grey-88); }
 .qa-field-label-spaced { margin-top: 0.75rem; }
 .qa-field-row { display: flex; gap: 1rem; margin-bottom: 0.75rem; }
 .qa-field-col { flex: 1; }
@@ -845,7 +845,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .move-id-form-fields { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
 
 /* The tier list editor's notice where the preview would be */
-.tierlist-preview-disabled-notice { padding: 2rem; color: #888; text-align: center; border: 1px dashed #333; margin-top: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+.tierlist-preview-disabled-notice { padding: 2rem; color: var(--grey-88); text-align: center; border: 1px dashed var(--grey-33); margin-top: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
 .tierlist-preview-disabled-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
 .tierlist-preview-disabled-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
@@ -988,10 +988,10 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* The editor's sub-nav rows: the site's tab strip, scrolling sideways. */
 .sub-tabs.editor-nav-row { margin-bottom: 0.5rem; }
 .daw-empty-state { color: var(--text-muted); font-size: 0.75rem; padding: 0.5rem; }
-.editor-empty-dashed { padding: 2rem; border: 1px dashed #333; background: transparent; text-align: center; }
+.editor-empty-dashed { padding: 2rem; border: 1px dashed var(--grey-33); background: transparent; text-align: center; }
 
 /* The section banners across the tab editors */
-.editor-section-banner { background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center; }
+.editor-section-banner { background: var(--grey-0a); border-top: 1px solid var(--grey-22); border-bottom: 1px solid var(--grey-22); border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center; }
 .editor-section-banner-spaced { margin-top: 0.5rem; }
 .editor-section-banner-text { color: var(--accent-blue); font-family: inherit; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
 .editor-section-banner-text-inline { color: var(--accent-blue); font-family: inherit; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
@@ -1001,15 +1001,15 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* The fold button on "1. STATS & FRAME DATA", at the banner's right end. */
 .editor-stats-fold { margin-left: auto; }
 /* The [outline] button shows its own effect: a black letter, white outline. */
-.format-btn-outline .sc-outline { color: #000; font-weight: bold; }
+.format-btn-outline .sc-outline { color: var(--black); font-weight: bold; }
 /* A one-line field widened past its box while edited (growEditorField): width,
    margin and offset are set inline from a measurement. This lifts it above its
    neighbours and keeps a flex row from shrinking it back. */
 .editor-input.editor-input-grown {
     position: relative; z-index: 40; flex: none; max-width: none;
-    background: #0a0a0a; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+    background: var(--grey-0a); box-shadow: 0 4px 0 0 var(--manga-shadow, var(--black));
 }
-.editor-field-label-sm { font-size: 0.65rem; color: #888; }
+.editor-field-label-sm { font-size: 0.65rem; color: var(--grey-88); }
 .editor-input-spaced { margin-top: 0.25rem; }
 /* Compound: .block-editor-container sets margin-top at the same specificity. */
 .block-editor-container.block-editor-container-tight { margin-top: 0; margin-bottom: 1rem; }
@@ -1048,11 +1048,11 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-select.daw-track-color-select { margin: 0; width: 125px; flex: none; font-weight: bold; }
 .daw-inspector-spaced { margin-top: 1rem; }
 .daw-inspector-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-.daw-overlay-label { display: flex; align-items: center; color: #d1d5db; font-size: 0.7rem; margin-bottom: 0.25rem; cursor: pointer; }
+.daw-overlay-label { display: flex; align-items: center; color: var(--grey-d1); font-size: 0.7rem; margin-bottom: 0.25rem; cursor: pointer; }
 .daw-overlay-label-block { display: block; margin-bottom: 0.25rem; }
 .daw-overlay-details { padding: 0.3rem 0.4rem; cursor: pointer; height: auto; }
-.daw-overlay-summary { font-size: 0.75rem; color: #d1d5db; font-family: var(--text-mono); list-style-position: inside; }
-.daw-overlay-grid { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; }
+.daw-overlay-summary { font-size: 0.75rem; color: var(--grey-d1); font-family: var(--text-mono); list-style-position: inside; }
+.daw-overlay-grid { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--grey-33); display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; }
 .daw-inspector-field-flex1 { flex: 1; }
 .daw-container-header-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center; }
 .daw-container-header-meta { width: 250px; margin: 0; }
@@ -1071,7 +1071,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* Compound with `option`: .editor-select option sets colour at higher
    specificity than a bare class. The values are ColorCoding.css's
    --track-color-*, which the live page reads too. */
-.editor-select option.daw-option-default { color: #ffffff; }
+.editor-select option.daw-option-default { color: var(--white); }
 .editor-select option.daw-option-red-400 { color: var(--track-color-red-400); }
 .editor-select option.daw-option-red-600 { color: var(--track-color-red-600); }
 .editor-select option.daw-option-blue-400 { color: var(--track-color-blue-400); }
@@ -1090,17 +1090,17 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .block-editor-container.block-editor-container-blocklist { margin-top: 0; margin-bottom: 3rem; }
 .block-card-split { flex: 1; min-width: 300px; }
 /* Compound: .block-type-badge sets colour at the same specificity. */
-.block-type-badge.block-type-badge-positive { color: #22c55e; }
-.block-type-badge.block-type-badge-negative { color: #ef4444; }
+.block-type-badge.block-type-badge-positive { color: var(--green); }
+.block-type-badge.block-type-badge-negative { color: var(--red); }
 .strategy-toolbar-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .strategy-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 /* The Block editor's row has nothing on its left, so space-between would drag
    UNDO, REDO and CLEAR across. A modifier: the Profile form's toolbar still
    uses .strategy-toolbar-row with two children. */
 .strategy-toolbar-row-end { justify-content: flex-end; }
-.accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-.accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
-.accordion-back-title { color: #fff; font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
+.accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed var(--purple); padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+.accordion-back-label { color: var(--purple); font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
+.accordion-back-title { color: var(--white); font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
 /* Two dropdowns share this row, and Forms.css's .manga-select-wrapper is
    flex:1 with min-width:0, which in a shrink-wrapping row resolves to zero width
    and spilled over the folder picker. Scoped to .block-type-row, since the
@@ -1142,11 +1142,11 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .block-folder-color {
     flex: 0 0 auto;
     width: 14px; height: 14px; padding: 0;
-    border: 1px solid #555; outline: 1px solid transparent; outline-offset: 1px;
+    border: 1px solid var(--grey-55); outline: 1px solid transparent; outline-offset: 1px;
     cursor: pointer;
 }
 .block-folder-color.is-none { border-style: dashed; background: transparent; }
-.block-folder-color:hover, .block-folder-color[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
+.block-folder-color:hover, .block-folder-color[aria-expanded="true"] { outline-color: var(--text-white, var(--white)); }
 .block-folder-color:focus-visible { outline-color: var(--accent-blue); }
 /* Only while open, so an open folder still reads as a container. */
 .block-folder:not(.is-collapsed) > .block-folder-body {
@@ -1177,12 +1177,12 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     background: transparent;
     border: none;
     border-bottom: 1px dotted transparent;
-    color: #e5e7eb;
+    color: var(--grey-e5);
     font-family: inherit;
     font-size: 0.8rem;
     padding: 0.05rem 0.2rem;
 }
-.block-folder-name-input:hover { border-bottom-color: #444; }
+.block-folder-name-input:hover { border-bottom-color: var(--grey-44); }
 .block-folder-name-input:focus {
     outline: none;
     border-bottom-color: var(--accent-blue);
@@ -1214,9 +1214,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     transition: transform 0.1s ease, box-shadow 0.1s ease, background-size 0.18s ease-out, color 0.18s ease-out,
         --sys-fill 0.15s ease-out 0.18s, --sys-edge 0.15s ease-out 0.18s;
 }
-.block-folder-add:hover:not(:disabled) { --sys-fill: #22c55e; --sys-edge: #22c55e; }
+.block-folder-add:hover:not(:disabled) { --sys-fill: var(--green); --sys-edge: var(--green); }
 .block-folder-ungroup:hover:not(:disabled),
-.block-folder-discard:hover:not(:disabled) { --sys-fill: #ef4444; --sys-edge: #ef4444; }
+.block-folder-discard:hover:not(:disabled) { --sys-fill: var(--red); --sys-edge: var(--red); }
 html.reduce-motion .block-folder-add:hover:not(:disabled),
 html.reduce-motion .block-folder-ungroup:hover:not(:disabled),
 html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none; }
@@ -1258,8 +1258,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .block-folder-trigger {
     display: block;
     width: 100%;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid #222;
+    background: var(--tint-3);
+    border: 1px solid var(--grey-22);
     color: #6b7280;
     font-family: var(--text-mono);
     font-size: 0.7rem;
@@ -1280,9 +1280,9 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     font-size: 0.5rem;
     color: #4b5563;
 }
-.block-folder-trigger:hover { color: #fff; border-color: #444; }
+.block-folder-trigger:hover { color: var(--white); border-color: var(--grey-44); }
 /* Filed in a folder reads differently from loose, on the trigger itself. */
-.block-folder-trigger.has-folder { color: #e5e7eb; border-color: #4b5563; }
+.block-folder-trigger.has-folder { color: var(--grey-e5); border-color: #4b5563; }
 .block-folder-trigger.has-folder::before { content: '\1F4C1\00a0'; }
 
 .block-folder-picker.open .manga-select-options { display: flex; }
@@ -1301,9 +1301,9 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 /* The two rows that are not folders. */
 .folder-option-none { font-style: italic; color: #6b7280 !important; }
 .folder-option-none::before { content: '\2014\00a0'; }
-.folder-option-new { color: #22c55e !important; border-top: 1px solid #222; }
+.folder-option-new { color: var(--green) !important; border-top: 1px solid var(--grey-22); }
 .folder-option-new:hover,
-.folder-option-new.is-active { background: #22c55e !important; color: #000 !important; }
+.folder-option-new.is-active { background: var(--green) !important; color: var(--black) !important; }
 
 /* A group label, never a choice. */
 .folder-option-sep {
@@ -1313,7 +1313,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #4b5563;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--grey-22);
     cursor: default;
 }
 
@@ -1321,23 +1321,23 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
    since the Block leaves this level. */
 .accordion-inner-block-wrapper.drag-over-nest {
     background: rgba(34, 197, 94, 0.18);
-    outline: 1px dashed #22c55e;
+    outline: 1px dashed var(--green);
     outline-offset: -2px;
 }
 /* touch-action: none, so a drag on the handle does not also scroll the page. */
-.drag-handle { color: #666; font-size: 1rem; line-height: 1; cursor: grab; touch-action: none; }
+.drag-handle { color: var(--grey-66); font-size: 1rem; line-height: 1; cursor: grab; touch-action: none; }
 /* Compound: .editor-select sets border and padding at the same specificity. */
 .editor-select.block-type-selector { cursor: pointer; border: none; outline: none; padding-right: 0.2rem; }
 /* Compound: .editor-input sets font and colour at the same specificity. */
-.editor-input.block-heading-input { font-family: inherit; font-size: 1.1rem; color: #fff; }
+.editor-input.block-heading-input { font-family: inherit; font-size: 1.1rem; color: var(--white); }
 .block-video-controls-row { display: flex; align-items: center; }
 .block-video-controls-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
-.block-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #333; border-radius: 4px; }
+.block-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid var(--grey-33); border-radius: 4px; }
 .block-table { width: 100%; border-collapse: collapse; }
 /* Compound: .editor-input sets margin, border and background at the same
    specificity. */
-.editor-input.table-header-input { margin: 0; border-radius: 0; border: none; border-bottom: 2px solid #444; border-right: 1px solid #333; font-weight: bold; background: rgba(0,0,0,0.4); text-align: center; }
-.editor-input.table-cell-input { margin: 0; border-radius: 0; border: none; border-bottom: 1px solid #222; border-right: 1px solid #333; }
+.editor-input.table-header-input { margin: 0; border-radius: 0; border: none; border-bottom: 2px solid var(--grey-44); border-right: 1px solid var(--grey-33); font-weight: bold; background: rgba(0,0,0,0.4); text-align: center; }
+.editor-input.table-cell-input { margin: 0; border-radius: 0; border: none; border-bottom: 1px solid var(--grey-22); border-right: 1px solid var(--grey-33); }
 /* The picked table cell's row and column (editorTablePick): the fields are
    see-through, so the tint shows. */
 .block-table td.table-picked { background: color-mix(in srgb, var(--accent-blue) 12%, transparent); }
@@ -1345,8 +1345,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .btn-table-add-row, .btn-table-add-col, .btn-table-del-row, .btn-table-del-col { flex: 1; }
 .editor-row-spaced-md { margin-bottom: 0.5rem; }
 .editor-row-nomargin { margin: 0; }
-.accordion-inner-block-wrapper { padding: 1rem; border: 1px dashed #444; background: rgba(0,0,0,0.3); text-align: center; margin-bottom: 0.5rem; }
-.block-field-label-sm { font-size: 0.65rem; color: #888; }
+.accordion-inner-block-wrapper { padding: 1rem; border: 1px dashed var(--grey-44); background: rgba(0,0,0,0.3); text-align: center; margin-bottom: 0.5rem; }
+.block-field-label-sm { font-size: 0.65rem; color: var(--grey-88); }
 .block-unsupported-msg { color: var(--text-muted); font-style: italic; }
 
 /* The Media Library */
@@ -1360,7 +1360,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     gap: 1rem;
     margin-bottom: 1rem;
     padding-bottom: 1rem;
-    border-bottom: 1px dashed #333;
+    border-bottom: 1px dashed var(--grey-33);
 }
 
 #media-upload-zone:hover, #media-upload-zone.media-upload-zone-dragover {
@@ -1370,8 +1370,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 #btn-media-prev:disabled, #btn-media-next:disabled { opacity: 0.3; }
 
-.media-status-msg { color: #888; font-family: var(--text-mono); font-size: 0.75rem; padding: 2rem; text-align: center; grid-column: 1 / -1; }
-.media-error-msg { color: #ef4444; grid-column: 1 / -1; }
+.media-status-msg { color: var(--grey-88); font-family: var(--text-mono); font-size: 0.75rem; padding: 2rem; text-align: center; grid-column: 1 / -1; }
+.media-error-msg { color: var(--red); grid-column: 1 / -1; }
 
 /* A list of names and one preview, no thumbnails: only the file picked is
    fetched. Side by side on a desktop, the preview above the list on a phone. */
@@ -1384,8 +1384,8 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     width: 100%;
     flex: none;
     padding: 0.4rem 0.6rem;
-    background: #050505;
-    border: 1px solid #222;
+    background: var(--grey-05);
+    border: 1px solid var(--grey-22);
     color: var(--text-white);
     font-family: var(--text-mono);
     font-size: 0.75rem;
@@ -1401,13 +1401,13 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 .media-lib-preview { flex: 1 1 45%; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
 /* flex: none, or the column squeezes the frame to nothing before it scrolls. */
-.media-lib-preview-frame { flex: none; background: #050505; border: 2px solid #222; aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.media-lib-preview-frame { flex: none; background: var(--grey-05); border: 2px solid var(--grey-22); aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .media-lib-preview-media { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .media-lib-preview-name { margin: 0; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-white); overflow-wrap: anywhere; }
 .media-lib-preview-uploader { margin: 0; font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); overflow-wrap: anywhere; }
 /* Pinned to the bottom of the preview, so the button stays in view. */
-.media-lib-preview-actions { display: flex; gap: 0.5rem; position: sticky; bottom: 0; padding-top: 0.25rem; background: #0a0a0a; }
-.media-lib-preview-empty { margin: auto; color: #888; font-family: var(--text-mono); font-size: 0.75rem; text-align: center; }
+.media-lib-preview-actions { display: flex; gap: 0.5rem; position: sticky; bottom: 0; padding-top: 0.25rem; background: var(--grey-0a); }
+.media-lib-preview-empty { margin: auto; color: var(--grey-88); font-family: var(--text-mono); font-size: 0.75rem; text-align: center; }
 
 /* The upload queue (handleUploads) */
 /* Capped and scrolled, so a drop of thirty files keeps the zone and the pager
@@ -1416,7 +1416,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     max-height: 7rem;
     overflow-y: auto;
     margin: 0.5rem 0;
-    border: 1px dashed #333;
+    border: 1px dashed var(--grey-33);
     font-family: var(--text-mono);
     font-size: 0.7rem;
 }
@@ -1428,20 +1428,20 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     border-bottom: 1px solid #1a1a1a;
 }
 .media-upload-row:last-child { border-bottom: none; }
-.media-upload-row-name { color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-upload-row-name { color: var(--white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Bounded: a refusal is a sentence, and would push the file name out of the row. */
-.media-upload-row-detail { color: #888; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.media-upload-row-queued .media-upload-row-name { color: #888; }
+.media-upload-row-detail { color: var(--grey-88); max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-upload-row-queued .media-upload-row-name { color: var(--grey-88); }
 .media-upload-row-working .media-upload-row-detail { color: var(--accent-blue); }
-.media-upload-row-done .media-upload-row-detail { color: #22c55e; }
+.media-upload-row-done .media-upload-row-detail { color: var(--green); }
 /* A failure stays visible after the rest of the run. */
-.media-upload-row-failed .media-upload-row-detail { color: #ef4444; }
-.media-upload-row-failed .media-upload-row-name { color: #ef4444; }
+.media-upload-row-failed .media-upload-row-detail { color: var(--red); }
+.media-upload-row-failed .media-upload-row-name { color: var(--red); }
 /* A heavy clip waiting on the question above: yellow, the site's "look at this",
    not red, since nothing failed. */
 .media-upload-row-heavy .media-upload-row-detail { color: #f4cc43; }
 .media-upload-row-skipped .media-upload-row-name,
-.media-upload-row-skipped .media-upload-row-detail { color: #666; }
+.media-upload-row-skipped .media-upload-row-detail { color: var(--grey-66); }
 .media-upload-ask {
     margin: 0.5rem 0 0;
     padding: 0.6rem 0.75rem;
@@ -1480,7 +1480,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 }
 
 .media-modal-footer {
-    border-top: 1px dashed #333;
+    border-top: 1px dashed var(--grey-33);
     padding-top: 1rem;
     margin-top: 1rem;
     display: flex;
@@ -1490,7 +1490,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 #media-upload-zone {
     flex: 1;
-    border: 2px dashed #333;
+    border: 2px dashed var(--grey-33);
     padding: 0.5rem;
     text-align: center;
     cursor: pointer;
@@ -1510,15 +1510,15 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 #media-upload-zone.media-upload-zone-locked,
 #media-upload-zone.media-upload-zone-locked:hover {
     cursor: not-allowed;
-    border-color: #333;
+    border-color: var(--grey-33);
     border-style: solid;
     background: transparent !important;
 }
 
 /* The native select before the script loads. */
 .editor-select {
-    width: 100%; background-color: rgba(255,255,255,0.03); border: 1px solid #222;
-    color: #d1d5db; padding: 0.3rem 0.4rem; border-radius: 0; margin-bottom: 0.25rem;
+    width: 100%; background-color: var(--tint-3); border: 1px solid var(--grey-22);
+    color: var(--grey-d1); padding: 0.3rem 0.4rem; border-radius: 0; margin-bottom: 0.25rem;
     font-family: var(--text-mono); font-size: 0.75rem; box-sizing: border-box;
 }
 
@@ -1548,7 +1548,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         top: 0;
         left: 0;
         z-index: 50;
-        background-color: #000;
+        background-color: var(--black);
         /* No padding: .main-content-area already pads, as on the live page, and both
            made the preview narrower than the page. */
         padding: 0 !important;
@@ -1576,13 +1576,13 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         right: 1.5rem;
         z-index: 100;
         background: var(--accent-blue);
-        color: #000;
+        color: var(--black);
         padding: 0.6rem 1rem;
         border-radius: 4px;
         font-family: var(--font-label), sans-serif;
         font-size: 0.75rem;
         box-shadow: 4px 4px 0px var(--manga-shadow);
-        border: 2px solid #000;
+        border: 2px solid var(--black);
         cursor: pointer;
     }
 
@@ -1638,7 +1638,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
    this file, and a fix there never reached them. .add-block-btn stays on the
    Add Block menu's buttons as the click and drag hook, with the menu's smaller,
    dimmer look. */
-.btn-sys.add-block-btn { --sys-edge: #333; padding: 0.35rem 0.6rem; font-size: 0.65rem; }
+.btn-sys.add-block-btn { --sys-edge: var(--grey-33); padding: 0.35rem 0.6rem; font-size: 0.65rem; }
 /* touch-action: none on the drag sources only, so nothing else loses touch
    scrolling. */
 #add-block-popup .add-block-btn { touch-action: none; }
@@ -1670,10 +1670,10 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     align-items: center;
     position: sticky;
     bottom: -1.5rem; /* Offsets the padding of the interactive-builder */
-    background-color: #050505;
+    background-color: var(--grey-05);
     padding: 1rem 1.5rem;
     margin: 0 -1.5rem; /* Stretches edge-to-edge inside the builder */
-    border-top: 1px solid #222;
+    border-top: 1px solid var(--grey-22);
     z-index: 100;
     box-shadow: 0 -15px 25px rgba(0,0,0,0.9); /* Shadows the blocks scrolling behind it */
 }
@@ -1701,26 +1701,26 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     flex-direction: column;
     gap: 1rem;
     padding: 1.5rem;
-    background: var(--bg-secondary, #0a0a0a);
-    border: 1px solid var(--border-color, #333);
-    border-left: 3px solid #a855f7;
-    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    background: var(--bg-secondary, var(--grey-0a));
+    border: 1px solid var(--border-color, var(--grey-33));
+    border-left: 3px solid var(--purple);
+    box-shadow: 4px 4px 0px var(--manga-shadow, var(--black));
     margin-bottom: 2rem;
 }
 
 .diff-section-title {
     font-family: var(--font-label), sans-serif;
-    color: #a855f7;
+    color: var(--purple);
     font-size: 1rem;
-    border-bottom: 1px dashed #333;
+    border-bottom: 1px dashed var(--grey-33);
     padding-bottom: 0.5rem;
     margin: 0;
 }
 /* The raw and JSON branch (renderDiffView): a different border and shadow. */
-.diff-container.diff-container-raw { border: 2px solid var(--border-color, #333); box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
+.diff-container.diff-container-raw { border: 2px solid var(--border-color, var(--grey-33)); box-shadow: 6px 6px 0px var(--manga-shadow, var(--black)); }
 /* admin-preview.js uses it too. */
 .diff-inline-target { width: 100%; }
-.editor-diff-empty-msg { color: var(--text-muted); font-style: italic; border: 1px dashed #333; padding: 2rem; text-align: center; }
+.editor-diff-empty-msg { color: var(--text-muted); font-style: italic; border: 1px dashed var(--grey-33); padding: 2rem; text-align: center; }
 
 /* Inline changes */
 ins.diff-add {
@@ -1729,7 +1729,7 @@ ins.diff-add {
     text-decoration: none;
     padding: 0 4px;
     border-radius: 2px;
-    border-bottom: 2px solid #22c55e;
+    border-bottom: 2px solid var(--green);
     font-weight: bold;
 }
 
@@ -1819,9 +1819,9 @@ del.diff-del {
 }
 
 /* Outlines, not borders: an outline takes no room, so it cannot move its row. */
-.sbs-col-left .sbs-gone, .sbs-col-left .sbs-changed { outline: 2px solid #ef4444; outline-offset: 2px; }
+.sbs-col-left .sbs-gone, .sbs-col-left .sbs-changed { outline: 2px solid var(--red); outline-offset: 2px; }
 .sbs-col-left .sbs-gone { background-color: rgba(239, 68, 68, 0.12); }
-.sbs-col-right .sbs-new, .sbs-col-right .sbs-changed { outline: 2px solid #22c55e; outline-offset: 2px; }
+.sbs-col-right .sbs-new, .sbs-col-right .sbs-changed { outline: 2px solid var(--green); outline-offset: 2px; }
 .sbs-col-right .sbs-new { background-color: rgba(34, 197, 94, 0.12); }
 
 /* A Micro Variant or Section Box tab whose hidden content changed: the blue dot
@@ -1852,7 +1852,7 @@ del.diff-del {
 /* The fallback for what the <pre>'s own wrapping cannot break: a JSON blob with
    no whitespace would run past the edge. */
 .diff-stacked-old {
-    border: 1px solid #ef4444;
+    border: 1px solid var(--red);
     background: rgba(239, 68, 68, 0.05);
     padding: 1rem;
     margin-bottom: 0.5rem;
@@ -1862,7 +1862,7 @@ del.diff-del {
 }
 
 .diff-stacked-new {
-    border: 1px solid #22c55e;
+    border: 1px solid var(--green);
     background: rgba(34, 197, 94, 0.05);
     padding: 1rem;
     overflow-x: auto;
@@ -1877,13 +1877,13 @@ del.diff-del {
     text-transform: uppercase;
     margin-bottom: 1rem;
 }
-.diff-stacked-label.old { color: #ef4444; }
-.diff-stacked-label.new { color: #22c55e; }
+.diff-stacked-label.old { color: var(--red); }
+.diff-stacked-label.new { color: var(--green); }
 
 /* The structured field diff (renderStructuredDiff) for the Overseer's move stats
    and metadata. */
 .diff-structured { display: flex; flex-direction: column; gap: 0.5rem; }
-.diff-field-row { font-family: var(--text-mono); font-size: 0.8rem; line-height: 1.6; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.02); border-left: 2px solid #333; }
+.diff-field-row { font-family: var(--text-mono); font-size: 0.8rem; line-height: 1.6; padding: 0.4rem 0.6rem; background: var(--tint-2); border-left: 2px solid var(--grey-33); }
 .diff-field-key { color: var(--text-muted); font-weight: bold; margin-right: 0.4rem; }
 .diff-field-nested { margin-top: 0.4rem; margin-left: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
 .diff-field-unchanged { color: var(--text-muted); font-style: italic; border-left-color: transparent; }
@@ -1900,24 +1900,24 @@ del.diff-del {
 .diff-stacked-pre.new { color: #86efac; }
 
 /* The Draft Manager (openDraftManager) */
-.draft-empty-msg { color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333; }
-.draft-row { display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
+.draft-empty-msg { color: var(--grey-66); font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed var(--grey-33); }
+.draft-row { display: flex; justify-content: space-between; align-items: center; background: var(--grey-05); border: 1px solid var(--grey-33); padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
 .draft-row-label { color: var(--accent-blue); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
-.draft-row-title { color: #fff; font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
-.draft-row-context { color: #888; font-weight: normal; }
-.draft-row-timestamp { color: #666; font-family: var(--text-mono); font-size: 0.65rem; }
+.draft-row-title { color: var(--white); font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
+.draft-row-context { color: var(--grey-88); font-weight: normal; }
+.draft-row-timestamp { color: var(--grey-66); font-family: var(--text-mono); font-size: 0.65rem; }
 .draft-row-submitted { color: #f59e0b; font-family: var(--text-mono); font-size: 0.65rem; margin-top: 0.15rem; }
 .draft-row-actions { display: flex; gap: 0.5rem; align-items: center; }
 /* Compound: .btn-sys sets padding and font at the same specificity. */
 .btn-sys.draft-resume-btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; }
-.draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
+.draft-active-badge { color: var(--green); font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid var(--green); }
 .btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: var(--font-label), sans-serif; font-size: 0.65rem; }
 
 /* The system page editor (renderSystemEditor), on the tab strip's established
    classes. */
 /* A system page's sections, under its tabs: purple, like their + ADD SECTION. */
-.sub-tabs.system-section-tabs-row { --sub-tab-accent: #a855f7; background: rgba(0, 0, 0, 0.2); }
-.editor-row-divider { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; }
+.sub-tabs.system-section-tabs-row { --sub-tab-accent: var(--purple); background: rgba(0, 0, 0, 0.2); }
+.editor-row-divider { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--grey-33); }
 .system-checkbox-row { display: flex; align-items: center; }
 .system-checkbox-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; cursor: pointer; }
 /* The gallery bin: rows of a file and a name, not the Block editor. */
@@ -1927,7 +1927,7 @@ del.diff-del {
 
 .gallery-bin-row {
     display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem;
-    border: 1px solid #222; background: rgba(255,255,255,0.02);
+    border: 1px solid var(--grey-22); background: var(--tint-2);
 }
 .gallery-bin-thumb {
     width: 48px; height: 48px; flex-shrink: 0; overflow: hidden;
@@ -1984,7 +1984,7 @@ del.diff-del {
     letter-spacing: 0.08em;
     color: var(--text-muted);
     font-family: var(--text-mono);
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--grey-33);
     padding-top: 0.4rem;
 }
 
@@ -2056,9 +2056,9 @@ del.diff-del {
 .find-replace-where:first-child { margin-top: 0; }
 .find-replace-row {
     display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.3rem 0.35rem; border-left: 2px solid #333;
+    padding: 0.3rem 0.35rem; border-left: 2px solid var(--grey-33);
 }
-.find-replace-row:hover { background: rgba(255, 255, 255, 0.03); }
+.find-replace-row:hover { background: var(--tint-3); }
 .find-replace-snippet {
     flex: 1; min-width: 0; font-size: 0.75rem; color: var(--text-muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -2075,7 +2075,7 @@ del.diff-del {
 /* Small and square, quieter than the strip's own open and delete. */
 .daw-tab-move-btn, .daw-tab-insert-btn {
     background: transparent;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     border-left: none;
     color: var(--text-muted);
     font-size: 0.6rem;
@@ -2093,7 +2093,7 @@ del.diff-del {
 /* Kept at the ends, disabled: hiding it would shift the row as the selection
    moves. */
 .daw-tab-move-btn:disabled { opacity: 0.25; cursor: default; }
-.daw-tab-insert-btn { color: #22c55e; font-weight: bold; }
+.daw-tab-insert-btn { color: var(--green); font-weight: bold; }
 .daw-tab-insert-btn:hover { background: rgba(34, 197, 94, 0.15); }
 
 /* The 44px phone minimum the rest of the site's buttons have. */
@@ -2242,18 +2242,18 @@ del.diff-del {
 .gradient-preset-btn {
     width: 44px; height: 20px;
     border-radius: 0;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     cursor: pointer;
     padding: 0;
     transition: outline-color 0.12s ease, transform 0.12s ease;
     outline: 2px solid transparent;
     outline-offset: -1px;
 }
-.gradient-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
+.gradient-preset-btn:hover { outline-color: var(--text-white, var(--white)); transform: translateY(-1px); }
 .gradient-preset-btn:focus-visible { outline-color: var(--accent-blue); }
 
 /* The Section Box editor */
-.sbox-editor-sections { margin-top: 0.6rem; border-top: 1px dashed #333; padding-top: 0.6rem; }
+.sbox-editor-sections { margin-top: 0.6rem; border-top: 1px dashed var(--grey-33); padding-top: 0.6rem; }
 .sbox-editor-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
     letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
@@ -2266,7 +2266,7 @@ del.diff-del {
 
 /* A Combo Card's sections in the editor */
 .cardsec-switch { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem; }
-.cardsec-strip { border: 1px dashed #333; padding: 0.5rem; margin-bottom: 0.6rem; }
+.cardsec-strip { border: 1px dashed var(--grey-33); padding: 0.5rem; margin-bottom: 0.6rem; }
 .cardsec-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
     letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
@@ -2275,7 +2275,7 @@ del.diff-del {
 
 /* Notation style fields (comboNotationFieldsHTML): the section strip's dashed box
    and blue label, since it is the same kind of optional structure. */
-.nstyle-editor { border: 1px dashed #333; padding: 0.5rem; margin: 0.5rem 0 0.6rem; }
+.nstyle-editor { border: 1px dashed var(--grey-33); padding: 0.5rem; margin: 0.5rem 0 0.6rem; }
 .nstyle-editor-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
     letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
@@ -2291,7 +2291,7 @@ del.diff-del {
 }
 .nstyle-name-chip {
     font: inherit; color: var(--text-primary); background: var(--bg-secondary);
-    border: 1px solid #333; border-radius: 0; padding: 0.1rem 0.4rem; cursor: pointer;
+    border: 1px solid var(--grey-33); border-radius: 0; padding: 0.1rem 0.4rem; cursor: pointer;
 }
 .nstyle-name-chip:hover, .nstyle-name-chip:focus-visible { border-color: var(--accent-blue); outline: none; }
 .nstyle-name-count { color: var(--text-muted); margin-left: 0.35rem; }
@@ -2322,20 +2322,20 @@ del.diff-del {
 .config-option { display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; }
 .config-option input { margin: 0.15rem 0 0; flex-shrink: 0; accent-color: var(--accent-blue); }
 .config-option-text { display: flex; flex-direction: column; gap: 0.1rem; }
-.config-option-label { font-family: var(--text-mono); font-size: 0.8rem; font-weight: bold; color: #e5e7eb; }
+.config-option-label { font-family: var(--text-mono); font-size: 0.8rem; font-weight: bold; color: var(--grey-e5); }
 .config-option-hint { font-size: 0.72rem; line-height: 1.4; color: #9ca3af; }
-.config-group { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0.5rem 0.75rem; border: 1px solid #333; }
+.config-group { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0.5rem 0.75rem; border: 1px solid var(--grey-33); }
 .config-group legend { padding: 0 0.3rem; }
 .config-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .config-action-note:empty { display: none; }
 .config-footnote { margin: 0; font-size: 0.7rem; color: #6b7280; }
 .config-conflict-result:empty { display: none; }
 .config-conflict-result p { margin: 0 0 0.3rem; }
-.config-conflict-list { margin: 0; padding-left: 1.1rem; font-size: 0.75rem; line-height: 1.5; color: #e5e7eb; }
+.config-conflict-list { margin: 0; padding-left: 1.1rem; font-size: 0.75rem; line-height: 1.5; color: var(--grey-e5); }
 .config-section { display: flex; flex-direction: column; gap: 0.6rem; }
 .config-section + .config-section { margin-top: 0.4rem; }
 .config-section-title {
-    margin: 0; padding-bottom: 0.2rem; border-bottom: 1px solid #333;
+    margin: 0; padding-bottom: 0.2rem; border-bottom: 1px solid var(--grey-33);
     font-family: var(--text-mono); font-size: 0.75rem; letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--accent-blue);
 }
@@ -2349,15 +2349,15 @@ del.diff-del {
 .config-word-main .config-word-text { flex: 1; min-width: 0; margin: 0; }
 .config-word-swatch {
     flex-shrink: 0; width: 28px; height: 28px; padding: 0; cursor: pointer;
-    border: 1px solid #555; outline: 1px solid transparent; outline-offset: 1px;
+    border: 1px solid var(--grey-55); outline: 1px solid transparent; outline-offset: 1px;
 }
-.config-word-swatch:hover, .config-word-swatch[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
+.config-word-swatch:hover, .config-word-swatch[aria-expanded="true"] { outline-color: var(--text-white, var(--white)); }
 .config-word-swatch:focus-visible { outline-color: var(--accent-blue); }
 .config-word-remove { flex-shrink: 0; }
 .config-word-note:empty { display: none; }
 .config-word-popup {
     display: flex; flex-direction: column; gap: 0.4rem;
-    padding: 0.6rem; background: #111; border: 1px solid #333;
+    padding: 0.6rem; background: var(--grey-11); border: 1px solid var(--grey-33);
 }
 .config-word-popup .format-color-presets-scroll { max-height: 180px; }
 
@@ -2365,19 +2365,19 @@ del.diff-del {
 .heading-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 .heading-bar-swatch {
     width: 28px; height: 28px; padding: 0; cursor: pointer;
-    border: 1px solid #555; outline: 1px solid transparent; outline-offset: 1px;
+    border: 1px solid var(--grey-55); outline: 1px solid transparent; outline-offset: 1px;
 }
 .heading-bar-swatch.is-none {
     width: auto; padding: 0 0.5rem; background: transparent; color: #9ca3af;
     font-family: var(--text-mono); font-size: 0.7rem; border-style: dashed;
 }
-.heading-bar-swatch:hover, .heading-bar-swatch[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
+.heading-bar-swatch:hover, .heading-bar-swatch[aria-expanded="true"] { outline-color: var(--text-white, var(--white)); }
 .heading-bar-swatch:focus-visible { outline-color: var(--accent-blue); }
 /* Behind a colour swatch: a heading's side bar, a folder's colour. */
 .swatch-popup {
     flex-basis: 100%;
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem;
-    padding: 0.6rem; background: #111; border: 1px solid #333;
+    padding: 0.6rem; background: var(--grey-11); border: 1px solid var(--grey-33);
 }
 .swatch-popup .format-color-presets-scroll { max-height: 180px; align-self: stretch; }
 .swatch-popup .cp-surface, .swatch-popup .cp-hue { align-self: stretch; }
@@ -2468,7 +2468,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 .editor-mode-controls.cfg-stuck,
 .editor-tab-nav.cfg-stuck,
 .editor-nav-row.cfg-stuck,
-.strategy-toolbar-row.cfg-stuck { background: #050505; }
+.strategy-toolbar-row.cfg-stuck { background: var(--grey-05); }
 
 /* The Editor Playground's banner takes the scope tip's place, and is loud where
    the tip is quiet: it says this editor sends nothing. */
@@ -2503,10 +2503,10 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 @layer dogslamloop {
 html:not(.look-classic) {
 .block-actions button { background: transparent; }
-.block-actions button:hover { background: #333; }
+.block-actions button:hover { background: var(--grey-33); }
 .block-actions .btn-delete:hover {
-    background: #ef4444;
-    color: #fff;
+    background: var(--red);
+    color: var(--white);
 }
 .block-actions .btn-collapse { font-family: monospace; }
 .block-folder-toggle {
@@ -2517,6 +2517,6 @@ html:not(.look-classic) {
 .block-folder-picker .folder-option:where(.manga-option.selected) {
     border-left: none;
 }
-.block-folder-picker .folder-option { border-bottom: 1px dashed #222; }
+.block-folder-picker .folder-option { border-bottom: 1px dashed var(--grey-22); }
 }
 }

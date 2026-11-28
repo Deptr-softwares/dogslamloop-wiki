@@ -164,7 +164,7 @@
 .toc-toggle-btn:hover { color: var(--text-white); }
 .toc-sublist { list-style: none; padding: 0; margin: 0; }
 .loading-msg-toc { padding: 0.25rem 0.75rem; }
-.loading-msg-error { color: #ef4444; }
+.loading-msg-error { color: var(--red); }
 
 /* Auth/dock action buttons (js/pages/core/page_shell.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
@@ -197,7 +197,7 @@
 .site-setting-name { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
 .site-setting-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
 .site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
-.site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
+.site-settings-error { margin: 0; color: var(--red); font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
 
 /* Character page sidebar dock (js/pages/core/page_shell.js populates #sidebar-dynamic-dock) */
@@ -423,9 +423,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     width: 100%;
     padding: 1rem;
     box-sizing: border-box;
-    border: 1px dashed #ef4444;
+    border: 1px dashed var(--red);
     background: rgba(239, 68, 68, 0.06);
-    color: #ef4444;
+    color: var(--red);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-align: center;
@@ -437,9 +437,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     display: inline-flex;
     align-items: center;
     padding: 0.15rem 0.5rem;
-    border: 1px dashed #ef4444;
+    border: 1px dashed var(--red);
     background: rgba(239, 68, 68, 0.06);
-    color: #ef4444;
+    color: var(--red);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -511,7 +511,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         background: none; border: none; padding: 0; margin: 0;
         text-align: left; cursor: pointer;
     }
-    .mobile-logo-img { width: 32px; height: 32px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px #000; object-fit: cover; }
+    .mobile-logo-img { width: 32px; height: 32px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px var(--black); object-fit: cover; }
     /* The wiki's own typeface on the phone's one piece of branding. */
     .mobile-site-title {
         font-family: var(--font-title), sans-serif;
@@ -646,13 +646,13 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-hit:hover,
 .site-search-hit.is-active { background: var(--accent-blue); }
 .site-search-hit:hover .site-search-title,
-.site-search-hit.is-active .site-search-title { color: #000; }
+.site-search-hit.is-active .site-search-title { color: var(--black); }
 .site-search-hit:hover .site-search-where,
 .site-search-hit:hover .site-search-parent,
 .site-search-hit:hover .site-search-kind,
 .site-search-hit.is-active .site-search-where,
 .site-search-hit.is-active .site-search-parent,
-.site-search-hit.is-active .site-search-kind { color: #222; }
+.site-search-hit.is-active .site-search-kind { color: var(--grey-22); }
 
 .site-search-title {
     display: block; color: var(--text-white);
@@ -676,11 +676,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-more {
     display: block; padding: 0.45rem 0.6rem;
     border-top: 2px solid var(--border-color);
-    background: var(--bg-dark, #111);
+    background: var(--bg-dark, var(--grey-11));
     color: var(--accent-blue); text-decoration: none;
     font-family: var(--text-mono); font-size: 0.6rem;
 }
-.site-search-more:hover { background: var(--accent-blue); color: #000; }
+.site-search-more:hover { background: var(--accent-blue); color: var(--black); }
 
 /* Sidebar headings and small panel labels: small grey words over a rule. */
 :is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title),
@@ -737,7 +737,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .dock-badge {
     width: auto;
     height: auto;
-    color: #ef4444;
+    color: var(--red);
     font-size: 0.75rem;
 }
 .dock-badge::before { content: '(new)'; }
