@@ -81,6 +81,7 @@ const SPECIMEN = `
     <tbody><tr><td>1</td></tr><tr><td>2</td></tr></tbody></table></div>
   <button class="wiki-video-btn">Play</button>
   <button class="btn-sys btn-sys-regular">Sys</button>
+  <button class="btn-sys btn-sys-blue">Sys blue</button>
   <button class="btn-manga"><span class="btn-manga-content">Manga</span></button>
   <button class="btn-manga active"><span class="btn-manga-content">Active</span></button>
   <button class="filter-toggle">Filter</button>
@@ -98,7 +99,8 @@ const SPECIMEN = `
   <aside class="global-sidebar-left"><h3 class="sidebar-master-title">Menu</h3><h4 class="sidebar-nav-title">Group</h4>
     <button class="sidebar-nav-title sidebar-group-header">Toggle</button><button class="btn-nav">Link</button><button class="btn-nav active">Here</button>
     <span class="update-badge">WIP</span><span class="update-badge badge-ea">EA</span>
-    <button class="btn-sys dock-action-btn"><span class="dock-action-icon">i</span>Inbox<span class="dock-badge">3</span></button></aside>
+    <button class="btn-sys dock-action-btn"><span class="dock-action-icon">i</span>Inbox<span class="dock-badge">3</span></button>
+    <button class="btn-sys btn-sys-purple dock-action-btn"><span class="dock-action-icon">o</span>Overseer</button></aside>
   <aside class="local-sidebar-right"><button class="btn-nav">Toc</button><button class="btn-nav toc-link-minor">Minor</button></aside>
   <div class="update-log-item admin-tool-card personnel"><h3 class="update-title admin-tool-title personnel">Personnel</h3></div>
   <div class="update-log-item admin-tool-card gc"><h3 class="update-title admin-tool-title gc">GC</h3></div>

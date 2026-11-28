@@ -276,6 +276,55 @@ test('the account buttons are plain links under "Account", in normal case; a nam
     });
 });
 
+// In Default each account button's words and icon are its tier's colour, as on any
+// system button, at rest and pressed. A rule that only had to take back Classic's
+// link colour gave every one of them the plain text colour instead.
+test('in Default the account buttons keep their own colour at rest and pressed, and turn black on hover', async ({ page }) => {
+    await signedIn(page);
+    await boot(page, 'default');
+    await expect(page.locator('#dock-btn-inbox')).toBeVisible();
+    const read = () => page.evaluate(() => {
+        // The colour transitions, done. An endless animation cannot finish.
+        document.getAnimations().forEach(a => { try { a.finish(); } catch (e) { /* endless */ } });
+        // A system button of the same tier outside the dock: what the tier draws anywhere.
+        const tier = el => [...el.classList].find(c => /^btn-sys-/.test(c)) || '';
+        const plain = cls => {
+            const b = document.createElement('button');
+            b.className = `btn-sys ${cls}`;
+            document.body.appendChild(b);
+            const c = getComputedStyle(b).color;
+            b.remove();
+            return c;
+        };
+        const out = { untiered: plain('') };
+        for (const id of ['dock-btn-edit', 'dock-btn-inbox', 'dock-btn-auth']) {
+            const el = document.getElementById(id);
+            out[id] = { tier: tier(el), colour: getComputedStyle(el).color, tierColour: plain(tier(el)) };
+        }
+        return out;
+    });
+    const rest = await read();
+    expect(rest['dock-btn-edit'].tier).toBe('btn-sys-purple');
+    expect(rest['dock-btn-inbox'].tier).toBe('btn-sys-blue');
+    for (const id of ['dock-btn-edit', 'dock-btn-inbox', 'dock-btn-auth']) {
+        expect(rest[id].colour, `${id} at rest`).toBe(rest[id].tierColour);
+        expect(rest[id].colour, `${id} is not the plain text colour`).not.toBe(rest.untiered);
+    }
+
+    // Pressed without the pointer over it, as a held Space key does.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('DOM.enable');
+    await cdp.send('CSS.enable');
+    const { root } = await cdp.send('DOM.getDocument');
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#dock-btn-inbox' });
+    await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['active'] });
+    expect((await read())['dock-btn-inbox'].colour, 'pressed').toBe(rest['dock-btn-inbox'].tierColour);
+    await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+
+    await page.locator('#dock-btn-inbox').hover();
+    expect((await read())['dock-btn-inbox'].colour, 'hovered: black on the fill').toBe('rgb(0, 0, 0)');
+});
+
 test('the account links are spaced the same on the home page as on a character page, in both looks', async ({ page }) => {
     // Owner, 2026-11-20: the Classic account links sat further apart on the
     // Main Hub than on a character or system page, "a CSS inconsistency that
