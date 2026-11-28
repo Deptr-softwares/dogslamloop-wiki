@@ -10,9 +10,9 @@ const path = require('path');
 
 const FAMILIES = ['Finger-Paint', 'CC-Wild-Words'];
 
-// v1.2: the faces are named once, as --font-title and --font-label in
-// Common.css, so a look can swap them (style/look-classic.css). A rule that
-// names a face itself would keep it in every look.
+// The faces are named once, as --face-finger-paint and --face-wild-words in
+// Common.css, and the fonts point at them, so a look or a reader's font setting can
+// swap them. A rule that names a face itself would keep it whatever was picked.
 test('no stylesheet names the two faces except through their variables', () => {
     const files = [];
     (function walk(dir) {
@@ -28,7 +28,7 @@ test('no stylesheet names the two faces except through their variables', () => {
         const css = fs.readFileSync(file, 'utf8')
             .replace(/\/\*[\s\S]*?\*\//g, '')
             .replace(/@font-face\s*\{[^}]*\}/g, '')
-            .replace(/--font-(title|label)\s*:[^;]*;/g, '');
+            .replace(/--face-(finger-paint|wild-words)\s*:[^;]*;/g, '');
         for (const family of FAMILIES) {
             if (css.includes(family)) offenders.push(`${path.basename(file)}: ${family}`);
         }
