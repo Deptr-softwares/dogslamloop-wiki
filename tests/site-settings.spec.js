@@ -218,9 +218,9 @@ test('a device that asks for less motion has it before <body> arrives, with noth
 
 // The box is js/utility/site_settings.js, loaded the first time it opens: every
 // page carries only the store and its opener.
-test('the box\'s file loads on the first open, once, with the page\'s stamp, and not before', async ({ page }) => {
+test('the box\'s script and sheet load on the first open, once, with the page\'s stamp, and not before', async ({ page }) => {
   const asked = [];
-  page.on('request', r => { if (/js\/utility\/site_settings\.js/.test(r.url())) asked.push(r.url()); });
+  page.on('request', r => { if (/(js\/utility\/site_settings\.js|style\/site-settings\.css)/.test(r.url())) asked.push(r.url()); });
   await open(page);
   expect(asked).toEqual([]);
   expect(await page.evaluate(() => typeof window.showSiteSettings)).toBe('undefined');
@@ -232,10 +232,16 @@ test('the box\'s file loads on the first open, once, with the page\'s stamp, and
   await page.locator('#dock-btn-settings').click();
   await expect(page.locator('#site-settings-overlay')).toBeVisible();
 
-  expect(asked).toHaveLength(1);
+  expect(asked).toHaveLength(2);
   const stamp = await page.evaluate(() => new URL(document.querySelector('script[src*="js/utility/site_utils.js"]').src).search);
-  expect(new URL(asked[0]).search).toBe(stamp);
+  expect(asked.map(u => new URL(u).search)).toEqual([stamp, stamp]);
   expect(await page.locator('#site-settings-overlay').count()).toBe(1);
+
+  // Styled by its own sheet: each font's dropdown sits beside its name, on one row.
+  const [name, dropdown] = await page.evaluate(() => ['#site-settings-overlay label[for="site-setting-font-title"]', '#site-setting-font-title + .manga-select-wrapper']
+    .map(sel => document.querySelector(sel).getBoundingClientRect().toJSON()));
+  expect(dropdown.left).toBeGreaterThanOrEqual(name.right);
+  expect(dropdown.top).toBeLessThan(name.bottom);
 });
 
 test('a box whose file cannot load says so', async ({ page }) => {

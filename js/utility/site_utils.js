@@ -121,11 +121,12 @@ document.addEventListener('click', e => {
 
 /**
  * Opens the Site Settings box (the button beside the account button). The box is
- * js/utility/site_settings.js, loaded the first time it opens. A failure says so
- * rather than doing nothing.
+ * js/utility/site_settings.js and style/site-settings.css, loaded together the first
+ * time it opens. A failure says so rather than doing nothing.
  */
 window.openSiteSettings = function () {
-    return window.loadSiteFile('js/utility/site_settings.js').then(() => window.showSiteSettings(), error => {
+    const files = ['style/site-settings.css', 'js/utility/site_settings.js'];
+    return Promise.all(files.map(window.loadSiteFile)).then(() => window.showSiteSettings(), error => {
         console.error('[Settings] Could not load Site Settings:', error);
         window.showSystemAlert('Could not open Site settings. Try refreshing.');
     });
