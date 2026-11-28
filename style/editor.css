@@ -1295,8 +1295,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     cursor: pointer;
 }
 .block-folder-picker .folder-option:not(:where(.manga-option, .manga-option.selected)) { border: none; }
-.block-folder-picker .folder-option:where(.manga-option) { border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
-.block-folder-picker .folder-option:where(.manga-option.selected) { border-top-width: medium; border-right-width: medium; border-bottom-width: medium; border-top-style: none; border-right-style: none; border-bottom-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-bottom-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.block-folder-picker .folder-option:where(.manga-option) { border-top-style: none; border-top-color: currentcolor; }
 .folder-option-item::before { content: '\1F4C1\00a0'; }
 
 /* The two rows that are not folders. */
@@ -2515,9 +2514,6 @@ html:not(.look-classic) {
     box-shadow: none;
 }
 .block-folder-toggle:hover { background: none; }
-.block-folder-picker .folder-option:where(.manga-option) {
-    border-bottom: none;
-}
 .block-folder-picker .folder-option:where(.manga-option.selected) {
     border-left: none;
 }

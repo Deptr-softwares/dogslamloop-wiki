@@ -82,7 +82,7 @@ select.editor-select.manga-initialized {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.manga-select-trigger { border-width: 1px; border-style: solid; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.manga-select-trigger { border-width: 1px; border-style: solid; }
 
 .manga-select-trigger:disabled { cursor: not-allowed; opacity: 0.5; }
 .manga-select-wrapper.open .manga-select-trigger:not(:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger))) { transform: translate(-2px, -2px); }
@@ -155,12 +155,10 @@ select.editor-select.manga-initialized {
 }
 
 /* The site's dropdown: a plain box like a browser's own. */
-.manga-select-trigger { border-color: var(--border-color); background: var(--bg-secondary); box-shadow: none; }
-:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger) { transform: none; box-shadow: none; border-color: var(--text-muted); }
-.manga-select-wrapper .manga-select-options { border: 1px solid var(--border-color); box-shadow: none; animation: none; background: var(--bg-main); }
-.manga-option { border-bottom: 0; }
-:is(.manga-option:hover, .manga-option.is-active) { padding-left: 0.75rem; font-weight: normal; }
-.manga-option.selected { border-left: 0; font-weight: bold; }
+.manga-select-trigger { border-color: var(--border-color); background: var(--bg-secondary); }
+:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger) { border-color: var(--text-muted); }
+.manga-select-wrapper .manga-select-options { border: 1px solid var(--border-color); background: var(--bg-main); }
+.manga-option.selected { font-weight: bold; }
 }
 
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */

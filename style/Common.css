@@ -269,14 +269,11 @@ body {
 html.reduce-motion .anchor-flash::before { content: none; }
 html.reduce-motion .anchor-flash { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
 
-body { background-image: none; }
 /* Headings: the text colour, no outline, no bar. */
 :is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title) {
     color: var(--text-primary);
-    text-shadow: none;
     font-family: var(--font-title), serif;
     font-weight: normal;
-    text-transform: none;
     border-bottom-width: 1px;
 }
 /* Words the Dogslamloop look writes in capitals read as written. */
@@ -300,86 +297,32 @@ html:not(.look-classic) {
 --manga-shadow: #000000;
 --font-title: 'Finger-Paint';
 --font-label: 'CC-Wild-Words';
-:where(body) { background-image: revert; }
 :where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
-    color: revert;
-    text-shadow: revert;
     font-family: revert;
     font-weight: revert;
-    text-transform: revert;
-    border-bottom-width: revert;
 }
-:where(.btn-sys) {
-    clip-path: revert;
-    box-shadow: revert;
-    background: revert;
-}
-:where(.btn-sys:is(:hover, :active):not(:disabled)) {
-    transform: revert;
-    box-shadow: revert;
-    color: revert;
-    background: revert;
-}
-:where(:is(.btn-manga, .filter-toggle)) {
-    border-width: revert;
-    box-shadow: revert;
-    transform: revert;
-    animation: revert;
-    font-family: revert;
-}
-:where(:is(.btn-manga, .filter-toggle).active) {
-    background: revert;
-    color: revert;
-    border-color: revert;
-}
-:where(.btn-manga-content) { transform: revert; }
 :where(.profile-stat-row) {
-    justify-content: revert;
     gap: revert;
-    padding: revert;
 }
 :where(.profile-stat-label) {
     flex: revert;
-    color: revert;
     font-weight: revert;
-}
-:where(.profile-stat-val) {
-    font-weight: revert;
-    color: revert;
 }
 :where(.playstyle-container) {
-    display: revert;
     grid-template-columns: revert;
-    gap: revert;
     background: revert;
     border: revert;
 }
 :where(.playstyle-col) {
-    min-width: revert;
-    padding: revert;
-    border: revert;
-    box-shadow: revert;
     background: revert;
 }
 :where(.playstyle-col .playstyle-header) {
     margin: revert;
     padding: revert;
     background: revert;
-    border-bottom: revert;
     color: revert;
 }
-:where(.playstyle-list) {
-    list-style: revert;
-    padding: revert;
-    font-family: revert;
-    color: revert;
-}
-:where(.playstyle-item) { display: revert; }
 :where(.playstyle-icon) { display: revert; }
-:where(.wiki-table-wrapper) {
-    border: revert;
-    box-shadow: revert;
-}
 :where(.update-table) {
     border: revert;
     background: revert;
@@ -388,31 +331,14 @@ html:not(.look-classic) {
     border: revert;
     padding: revert;
 }
-:where(.update-table th) {
-    background: revert;
-    color: revert;
-}
 :where(.update-table tbody tr:is(:nth-child(even), :hover)) { background: revert; }
-:where(.wiki-video-btn) {
-    background: revert;
-    border: revert;
-    box-shadow: revert;
-    padding: revert;
-    color: revert;
-    transform: revert;
-}
 :where(.wiki-video-btn:hover) {
-    background: revert;
-    color: revert;
     text-decoration: revert;
-    transform: revert;
 }
 :where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
     font-size: revert;
     font-weight: revert;
     color: revert;
-    letter-spacing: revert;
-    text-shadow: revert;
     border-bottom: revert;
     padding-bottom: revert;
     margin-bottom: revert;
@@ -425,131 +351,32 @@ html:not(.look-classic) {
     margin-bottom: revert;
 }
 :where(.sidebar-nav-title.sidebar-group-header) {
-    color: revert;
-    font-size: revert;
-    border-bottom: revert;
-    padding-bottom: revert;
     margin-bottom: revert;
 }
 :where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) {
-    background: revert;
-    border: revert;
-    padding: revert;
     margin: revert;
-    font-size: revert;
-    color: revert;
-    transform: revert;
-}
-:where(.local-sidebar-right .btn-nav.toc-link-minor) {
-    padding-left: revert;
-    font-size: revert;
-    opacity: revert;
 }
 :where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active) {
-    background: revert;
-    color: revert;
     font-weight: revert;
 }
 :where(.global-sidebar-left .update-badge) {
-    background: revert;
-    border: revert;
-    padding: revert;
     color: revert;
 }
-:where(.global-sidebar-left .badge-ea) { color: revert; }
-:where(#sidebar-dynamic-dock) { gap: revert; }
 :where(#sidebar-dynamic-dock)::before { content: revert; }
-:where(.btn-sys.dock-action-btn) {
-    background: revert;
-    border: revert;
-    padding: revert;
-    color: revert;
-    font-size: revert;
-    font-weight: revert;
-}
-:where(.btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
-    background: revert;
-    color: revert;
-    text-decoration: revert;
-}
-:where(.global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon) { display: revert; }
 :where(.dock-badge) {
-    position: revert;
     width: revert;
     height: revert;
-    background: revert;
-    border: revert;
-    box-shadow: revert;
-    transform: revert;
     color: revert;
     font-size: revert;
 }
 :where(.dock-badge)::before { content: revert; }
-:where(.inline-callout-btn) {
-    background: revert;
-    border: revert;
-    border-left: revert;
-    box-shadow: revert;
-    font-size: revert;
-    font-weight: revert;
-}
-:where(.inline-callout-btn:hover) {
-    border-color: revert;
-    border-left-color: revert;
-    color: revert;
-    transform: revert;
-    box-shadow: revert;
-}
 :where(.wiki-accordion-summary) {
-    color: revert;
-    font-size: revert;
     background: revert;
-}
-:where(.wiki-accordion-body) {
-    background: revert;
-    border-top-style: revert;
-}
-:where(.sbox-boxed, .wiki-block-list-boxed) {
-    border-width: revert;
-    box-shadow: revert;
-}
-:where(.sub-tabs) { border-bottom-width: revert; }
-:where(.sub-tab) {
-    font-size: revert;
-    letter-spacing: revert;
-}
-:where(.sub-tab.is-active) {
-    color: revert;
-    border-color: revert;
-}
-:where(#wiki-frame-tooltip) { border-width: revert; }
-:where(.manga-select-trigger) {
-    border-color: revert;
-    background: revert;
-    box-shadow: revert;
-}
-:where(:is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
-    transform: revert;
-    box-shadow: revert;
-    border-color: revert;
-}
-:where(.manga-select-wrapper .manga-select-options) {
-    border: revert;
-    box-shadow: revert;
-    animation: revert;
-    background: revert;
-}
-:where(.manga-option) { border-bottom: revert; }
-:where(:is(.manga-option:hover, .manga-option.is-active)) {
-    padding-left: revert;
-    font-weight: revert;
 }
 :where(.manga-option.selected) {
-    border-left: revert;
     font-weight: revert;
 }
 :where(:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
-    text-transform: revert;
     font-family: revert;
 }
 body {

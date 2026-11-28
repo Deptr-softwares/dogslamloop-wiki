@@ -64,7 +64,6 @@
     cursor: help;
     transition: all 0.15s ease;
 }
-.inline-callout-btn:where(.inline-callout-btn:hover) { border-left-width: 4px; border-left-style: solid; }
 
 .inline-callout-btn .callout-icon {
     font-size: 0.85rem;
@@ -79,16 +78,7 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-left: 3px solid var(--callout-color, var(--accent-blue));
-    box-shadow: none;
     font-size: 0.85rem;
-    font-weight: normal;
-}
-.inline-callout-btn:hover {
-    border-color: var(--border-color);
-    border-left-color: var(--callout-color, var(--accent-blue));
-    color: var(--text-white);
-    transform: none;
-    box-shadow: none;
 }
 }
 
@@ -97,14 +87,8 @@
 html:not(.look-classic) {
 .inline-callout-btn { background: var(--bg-secondary); }
 .inline-callout-btn { border: 2px solid var(--border-color); }
-.inline-callout-btn:where(.inline-callout-btn:hover) {
-    border-color: var(--border-color);
-}
 .inline-callout-btn {
     border-left: 4px solid var(--callout-color, var(--accent-blue));
-}
-.inline-callout-btn:where(.inline-callout-btn:hover) {
-    border-left-color: var(--callout-color, var(--accent-blue));
 }
 .inline-callout-btn {
     font-family: var(--text-mono);

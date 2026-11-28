@@ -689,8 +689,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 
 /* The infobox's rows: the label, then the value, as a table would. */
 .profile-stat-row { justify-content: flex-start; gap: 0.75rem; padding: 0.3rem 0; }
-.profile-stat-label { flex: 0 0 45%; color: var(--text-primary); font-weight: bold; }
-.profile-stat-val { font-weight: normal; color: var(--text-primary); }
+.profile-stat-label { flex: 0 0 45%; font-weight: bold; }
 
 /* Playstyle: a two-column table, a list in each cell. The 1px gap over the
    border colour draws the rules, also when the columns stack on a phone. */
@@ -701,7 +700,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     background: var(--border-color);
     border: 1px solid var(--border-color);
 }
-.playstyle-col { min-width: 0; padding: 0; border: 0; box-shadow: none; background: var(--bg-main); }
+.playstyle-col { min-width: 0; background: var(--bg-main); }
 .playstyle-col .playstyle-header {
     margin: 0;
     padding: 0.4rem 0.75rem;
@@ -709,22 +708,20 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     border-bottom: 1px solid var(--border-color);
     color: var(--text-white);
 }
-.playstyle-list { list-style: disc; padding: 0.5rem 0.75rem 0.5rem 2rem; font-family: inherit; color: var(--text-primary); }
-.playstyle-item { display: list-item; }
+.playstyle-list { padding: 0.5rem 0.75rem 0.5rem 2rem; }
 .playstyle-icon { display: none; }
 
 /* Tables in page content: every cell ruled, a grey header row. Play is a link. */
-.wiki-table-wrapper { border: 0; box-shadow: none; }
 .update-table { border: 1px solid var(--border-color); background: var(--bg-main); }
 .update-table :is(th, td) { border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; }
 .update-table th { background: var(--bg-secondary); color: var(--text-white); }
 .update-table tbody tr:is(:nth-child(even), :hover) { background: none; }
-.wiki-video-btn { background: none; border: 0; box-shadow: none; padding: 0; color: var(--accent-blue); transform: none; }
-.wiki-video-btn:hover { background: none; color: var(--accent-blue-hover); text-decoration: underline; transform: none; }
-.wiki-accordion-summary { color: var(--text-primary); font-size: 0.9rem; background: var(--bg-secondary); }
-.wiki-accordion-body { background: none; border-top-style: solid; }
+.wiki-video-btn { color: var(--accent-blue); }
+.wiki-video-btn:hover { color: var(--accent-blue-hover); text-decoration: underline; }
+.wiki-accordion-summary { font-size: 0.9rem; background: var(--bg-secondary); }
+.wiki-accordion-body { border-top-style: solid; }
 .sbox-boxed,
-.wiki-block-list-boxed { border-width: 1px; box-shadow: none; }
+.wiki-block-list-boxed { border-width: 1px; }
 }
 
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
@@ -793,11 +790,9 @@ html:not(.look-classic) {
 }
 .playstyle-col.likes .playstyle-header {
     color: #22c55e;
-    border-bottom-color: #22c55e;
 }
 .playstyle-col.dislikes .playstyle-header {
     color: #ef4444;
-    border-bottom-color: #ef4444;
 }
 .playstyle-list {
     list-style: none;
@@ -808,7 +803,6 @@ html:not(.look-classic) {
 .playstyle-item { display: flex; }
 .wiki-video-btn {
     padding: 0.15rem 0.5rem;
-    background: transparent;
     border: 1px solid var(--accent-blue);
     box-shadow: 2px 2px 0px var(--manga-shadow);
     color: var(--accent-blue);
@@ -863,7 +857,6 @@ html:not(.look-classic) {
 .sbox-title { font-family: var(--font-label), sans-serif; }
 .strategy-title {
     font-family: var(--font-title), sans-serif;
-    font-weight: bold;
     color: var(--text-white);
 }
 .strategy-title {

@@ -100,14 +100,14 @@
     font-family: var(--font-title), sans-serif;
     text-transform: uppercase;
 }
-.column-subgroup-title { font-size: 1.15rem; color: var(--text-white); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
+.column-subgroup-title { font-size: 1.15rem; color: var(--text-white); margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
 
 /* "On this tab" header row (local-sidebar-right, above the ToC) */
 .sidebar-tab-header {
     display: flex; justify-content: space-between; align-items: flex-end;
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);
 }
-.sidebar-tab-header .sidebar-master-title { margin-top: 0px; margin-right: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.sidebar-tab-header .sidebar-master-title { margin-top: 0px; margin-left: 0px; }
 
 .sidebar-header-top { display: flex; align-items: center; margin-bottom: 1.5rem; width: 100%; white-space: normal; }
 .sidebar-site-logo { width: 38px; height: 38px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px var(--manga-shadow); object-fit: cover; flex-shrink: 0; }
@@ -146,7 +146,6 @@
 
     /* Stated, not inherited: font: inherit would beat the title styling it sits in. */
 }
-.sidebar-nav-title.sidebar-group-header { padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
 .sidebar-group-wrapper .toc-list { margin-top: 0.3rem; }
 
@@ -706,18 +705,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* "On this tab" and the site menu: plain links, the minor ones indented. A
    character's name keeps its own colour. */
 :is(.local-sidebar-right, .global-sidebar-left) .btn-nav {
-    background: none;
-    border: 0;
     padding: 0.15rem 0;
     margin: 0;
     font-size: 0.85rem;
     color: var(--accent-blue);
-    transform: none;
 }
-.local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; opacity: 1; }
-:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active { background: none; color: var(--text-white); font-weight: bold; }
+.local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; }
+:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active { color: var(--text-white); font-weight: bold; }
 /* WIP and EA in the menu: small coloured words, not a filled tag. */
-.global-sidebar-left .update-badge { background: none; border: 0; padding: 0; color: var(--accent-yellow); }
+.global-sidebar-left .update-badge { border: 0; padding: 0; color: var(--accent-yellow); }
 .global-sidebar-left .badge-ea { color: hsl(28, 99%, 53%); }
 
 /* The account buttons are links under "Account"; Site settings keeps its box, and a
@@ -739,13 +735,8 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon { display: none; }
 .dock-badge {
-    position: static;
     width: auto;
     height: auto;
-    background: none;
-    border: 0;
-    box-shadow: none;
-    transform: none;
     color: #ef4444;
     font-size: 0.75rem;
 }
@@ -791,7 +782,6 @@ html:not(.look-classic) {
 }
 .sidebar-nav-title.sidebar-group-header {
     font-family: var(--font-title), sans-serif;
-    color: var(--accent-blue);
     text-transform: inherit;
     letter-spacing: inherit;
 }
@@ -801,11 +791,9 @@ html:not(.look-classic) {
     opacity: 0.7;
 }
 .btn-nav.toc-link-major {
-    font-size: 0.75rem;
     color: var(--text-white);
 }
 .btn-nav.toc-link-major-toggle {
-    font-size: 0.75rem;
     color: var(--text-white);
     padding-right: 2rem;
 }
@@ -818,18 +806,6 @@ html:not(.look-classic) {
 }
 #sidebar-dynamic-dock { gap: 0.75rem; }
 .home-main-title { color: var(--text-white); }
-.section-title-clean:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
-    border-bottom-width: medium !important;
-}
-.section-title-flex:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
-    border-bottom-width: medium !important;
-}
-&.reduce-motion *:where(:is(.btn-manga, .filter-toggle), .manga-select-wrapper .manga-select-options) {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0s !important;
-    animation-iteration-count: 1 !important;
-}
-.system-content-grid-section { padding: 0 0.5rem; }
 @media (max-width: 640px) {
     .wiki-section { padding: 1rem; }
     .sidebar-master-title {
