@@ -11,7 +11,7 @@ What every generated page is built from before its content arrives: the skeleton
 - `js/pages/types/tool_page.js`: the tool page type, a host for a tool's own renderer.
 - `js/pages/types/gallery.js`: the gallery page type, a flat searchable list of media.
 - `js/pages/core/page_shell.js`: the sidebar and its dock, the phone bar, the Edit and History buttons, tabs, section anchors, the table of contents, page alerts and the footer. The hubs' roster and directories are in `js/dashboards/hub_roster.js` (`docs/home.md`).
-- `scripts/page-scripts.js`: the scripts and the stylesheets each kind of page loads, in order. The generator writes a generated page's tags from it, and `npm run generate` writes the two marked blocks in each hand-written page.
+- `scripts/page-scripts.js`: the scripts and the stylesheets each kind of page loads, in order, and the Site Settings script every page runs in `<head>` (`docs/shared-code.md`). The generator writes a generated page's tags from it, and `npm run generate` writes the three marked blocks in each hand-written page.
 
 ## Data
 
@@ -27,6 +27,7 @@ What every generated page is built from before its content arrives: the skeleton
 - Every tab button `page_router.js` draws must be bound by `page_boot.js`, optional ones included, or it ships unclickable.
 - A rescued page is still an HTTP 404, so crawlers and Discord previews do not see it until the stub is generated.
 - A page's scripts and stylesheets change in its lists in `scripts/page-scripts.js`, then `npm run generate`, never in the page: `npm run validate` fails a block that does not match its list, and a script or stylesheet tag outside its block. Test: `tests/page-scripts.spec.js`.
+- Every page a reader can stay on carries the Site Settings block in `<head>`, after its stylesheets, so a setting is on before the first paint. A moved page's stub forwards first and has none (`tests/site-settings.spec.js`).
 - The page templates hold HTML comments of their own. They are template text, so they reach readers, and the comment trim left them alone.
 
 ## Decisions
