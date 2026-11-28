@@ -30,7 +30,7 @@
 .tier-list-row-chars { flex: 1; padding: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; align-content: flex-start; }
 
 .tier-changelog-entry { background: var(--tint-2); border-left: 3px solid var(--accent-blue); padding: 1rem; }
-.tier-changelog-date { color: var(--accent-blue); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 0.5rem; font-weight: bold; }
+.tier-changelog-date { color: var(--accent-text); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 0.5rem; font-weight: bold; }
 .wiki-block-list.tier-changelog-notes { margin: 0; padding-left: 1rem; }
 .tier-changelog-empty { color: var(--text-muted); font-family: var(--text-mono); font-style: italic; }
 
@@ -55,8 +55,8 @@
     background-color: var(--bg-main);
     background-image: repeating-linear-gradient(
         -45deg,
-        rgba(255, 255, 255, 0.06) 0px,
-        rgba(255, 255, 255, 0.06) 2px,
+        var(--tint-6) 0px,
+        var(--tint-6) 2px,
         transparent 2px,
         transparent 8px
     );
@@ -177,7 +177,7 @@
 /* Compound: .editor-textarea's own base rule sets margin-bottom/min-height
    at the same specificity. */
 .editor-textarea.tier-changelog-textarea { min-height: 80px; margin: 0; }
-.tier-max-logs-msg { color: var(--red); font-size: 0.75rem; font-family: var(--text-mono); font-weight: bold; }
+.tier-max-logs-msg { color: var(--red-text); font-size: 0.75rem; font-family: var(--text-mono); font-weight: bold; }
 
 .editor-row.tier-tab-meta-row { margin-bottom: 1.5rem; }
 .tier-tab-meta-field { flex: 1; }
@@ -190,10 +190,10 @@
 
 .tier-section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .tier-section-header-row.tier-section-header-row-spaced { margin-top: 2rem; }
-.tier-section-title { color: var(--accent-blue); font-family: inherit; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
+.tier-section-title { color: var(--accent-text); font-family: inherit; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
 
 /* A tier portrait's change tooltip, inside the shared tooltip. */
-.ctl-tip-move { font-family: var(--text-mono); font-weight: bold; color: var(--accent-blue); }
+.ctl-tip-move { font-family: var(--text-mono); font-weight: bold; color: var(--accent-text); }
 .ctl-tip-date { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.3rem; }
 .ctl-tip-note { max-width: 32ch; line-height: 1.45; }
 .ctl-tip-author { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }

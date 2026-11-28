@@ -25,13 +25,17 @@
     // sheet's Dogslamloop part, on every page (docs/looks.md).
     // fontTitle, fontLabel, fontBody: '' (the look's own) or a key of FACES.
     // countVisits: whether js/others/analytics.js loads Umami on this device.
-    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default', fontTitle: '', fontLabel: '', fontBody: '', countVisits: true });
+    // theme: '' (Dark, each look's own colours) or a key of THEMES.
+    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default', fontTitle: '', fontLabel: '', fontBody: '', countVisits: true, theme: '' });
     // The faces each font can take, by key: the page reads a face's families from
     // --face-<key> (style/Common.css). Named here once, for the store and the box.
     const FACES = Object.freeze({ 'finger-paint': 'Finger Paint', 'wild-words': 'CC Wild Words', serif: 'Serif', sans: 'Sans-serif', mono: 'Monospace' });
+    // The themes, by key, in the box's order: the page draws a theme from its
+    // html[data-theme] rules (style/Common.css), which name the same keys.
+    const THEMES = Object.freeze({ '': 'Dark', light: 'Light', shadow: 'Shadow', 'brown-paper': 'Brown Paper', 'light-blue': 'Light Blue' });
     // The values a setting may hold, where it is a choice.
     const faceKeys = ['', ...Object.keys(FACES)];
-    const CHOICES = Object.freeze({ look: ['default', 'classic'], fontTitle: faceKeys, fontLabel: faceKeys, fontBody: faceKeys });
+    const CHOICES = Object.freeze({ look: ['default', 'classic'], fontTitle: faceKeys, fontLabel: faceKeys, fontBody: faceKeys, theme: Object.keys(THEMES) });
 
     function readStore() {
         try {
@@ -81,7 +85,7 @@
     if (deviceReduce && typeof deviceReduce.addEventListener === 'function') deviceReduce.addEventListener('change', apply);
     apply();
 
-    window.siteSettings = { get, set, DEFAULTS, FACES };
+    window.siteSettings = { get, set, DEFAULTS, FACES, THEMES };
 
     // For a scroll a script starts. CSS's scroll-behavior does not reach
     // scrollTo or scrollIntoView, so until this a device asking for less
@@ -456,9 +460,10 @@ function fillDropdown(wrapper) {
         const picked = index === select.selectedIndex;
         row.classList.toggle('selected', picked);
         row.setAttribute('aria-selected', picked ? 'true' : 'false');
-        // The resolved colour, not option.style.color: options are coloured by classes.
-        const color = getComputedStyle(option).color;
-        if (color) row.style.color = color;
+        // Only an option with a class or a style of its own (the frame data's track
+        // colours) passes its colour on. Any other's is inherited, often the browser's
+        // black field text, so its row takes the dropdown's own.
+        if (option.className || option.style.color) row.style.color = getComputedStyle(option).color;
         row.textContent = option.textContent;
         if (option.disabled) row.setAttribute('aria-disabled', 'true');
         return row;

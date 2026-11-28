@@ -111,7 +111,7 @@
 
 .wiki-divider-segment { flex-grow: 1; height: 2px; background: var(--border-color, var(--grey-33)); }
 .wiki-divider-circle-dot { margin: 0 1rem; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
-.wiki-divider-cross-plus { margin: 0 1rem; font-family: var(--text-mono); color: var(--accent-blue); font-weight: bold; font-size: 1.4rem; line-height: 0.5; }
+.wiki-divider-cross-plus { margin: 0 1rem; font-family: var(--text-mono); color: var(--accent-text); font-weight: bold; font-size: 1.4rem; line-height: 0.5; }
 .wiki-divider-slash-mark { margin: 0 1rem; font-family: var(--font-label), sans-serif; color: var(--border-color, var(--grey-33)); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
 .wiki-divider-diamond-mark { margin: 0 1rem; transform: rotate(45deg); width: 10px; height: 10px; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
 
@@ -122,8 +122,8 @@
 .playstyle-list { margin: 0; font-size: 0.8rem; }
 .playstyle-item { margin-bottom: 0.5rem; gap: 0.6rem; align-items: flex-start; }
 .playstyle-icon { font-weight: bold; font-size: 1rem; line-height: 1; }
-.playstyle-icon.likes { color: var(--green); }
-.playstyle-icon.dislikes { color: var(--red); }
+.playstyle-icon.likes { color: var(--green-text); }
+.playstyle-icon.dislikes { color: var(--red-text); }
 .playstyle-item-text { line-height: 1.4; }
 
 /* Content Blocks (generateHTMLForBlocks): media, callout tooltip content, tables,
@@ -222,7 +222,7 @@
     height: 0.5rem;
     flex: 1 1 auto;
     min-width: 0;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--tint-8);
     border: 1px solid var(--accent-blue);
     cursor: pointer;
     overflow: hidden;
@@ -310,7 +310,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     right: 0.35rem;
     background: transparent;
     border: 1px solid var(--accent-blue);
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-family: var(--text-mono);
     font-size: 0.8rem;
     line-height: 1;
@@ -441,7 +441,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 .diff-inline-target .combo-notation-name {
     display: inline; margin-right: 0.4rem;
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
-    letter-spacing: 0.06em; color: var(--accent-blue); text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--accent-text); text-transform: uppercase;
 }
 
 /* The separator, deliberately quiet - it is punctuation between steps, not a
@@ -475,7 +475,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     color: var(--character-ink, var(--black));
 }
 .combo-note {
-    background: var(--tint-5); border: 1px dashed var(--grey-44); color: #aaa;
+    background: var(--tint-5); border: 1px dashed var(--grey-44); color: var(--theme-text-muted, #aaa);
     font-family: var(--text-mono); font-size: 0.75rem; padding: 0.25rem 0.5rem;
 }
 /* Right after the route, so it reads as the end of the combo, sized to sit with the
@@ -520,7 +520,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     display: flex; align-items: center; justify-content: center;
     box-sizing: border-box; width: 100%; min-height: 6rem;
     border: 1px dashed var(--border-color); border-radius: 0;
-    color: hsl(215, 8%, 47%);
+    color: var(--theme-text-muted, hsl(215, 8%, 47%));
     font-family: var(--text-mono); font-size: 0.875rem; text-align: center;
 }
 /* In a fixed-shape frame it fills the frame, as the video it replaced did. */
@@ -574,9 +574,9 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     font-size: 0.7rem; letter-spacing: 0.5px;
 }
 .combo-th-sortable { cursor: pointer; user-select: none; }
-.combo-th-sortable:hover { color: var(--accent-blue); }
+.combo-th-sortable:hover { color: var(--accent-text); }
 .combo-sort-arrow::after { content: ' \2195'; opacity: 0.35; }
-.combo-th-sortable.is-sorted { color: var(--accent-blue); }
+.combo-th-sortable.is-sorted { color: var(--accent-text); }
 .combo-th-sortable.is-sorted .combo-sort-arrow::after { content: ' \2191'; opacity: 1; }
 .combo-th-sortable.is-sorted.is-desc .combo-sort-arrow::after { content: ' \2193'; }
 
@@ -713,8 +713,8 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 .update-table { border: 1px solid var(--border-color); background: var(--bg-main); }
 .update-table :is(th, td) { border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; }
 .update-table th { background: var(--bg-secondary); color: var(--text-white); }
-.wiki-video-btn { color: var(--accent-blue); }
-.wiki-video-btn:hover { color: var(--accent-blue-hover); text-decoration: underline; }
+.wiki-video-btn { color: var(--accent-text); }
+.wiki-video-btn:hover { color: var(--accent-hover-text); text-decoration: underline; }
 .wiki-accordion-summary { font-size: 0.9rem; background: var(--bg-secondary); }
 .wiki-accordion-body { border-top-style: solid; }
 .sbox-boxed,
@@ -742,7 +742,7 @@ html:not(.look-classic) {
     padding: 0.5rem 0;
     gap: normal;
 }
-.profile-stat-label { color: #8b949e; flex: initial; font-weight: inherit; }
+.profile-stat-label { color: var(--theme-text-muted, #8b949e); flex: initial; font-weight: inherit; }
 .profile-stat-val {
     color: var(--text-white);
     font-weight: bold;
@@ -794,10 +794,10 @@ html:not(.look-classic) {
     color: inherit;
 }
 .playstyle-col.likes .playstyle-header {
-    color: var(--green);
+    color: var(--green-text);
 }
 .playstyle-col.dislikes .playstyle-header {
-    color: var(--red);
+    color: var(--red-text);
 }
 .playstyle-list {
     list-style: none;
@@ -811,7 +811,7 @@ html:not(.look-classic) {
     padding: 0.15rem 0.5rem;
     border: 1px solid var(--accent-blue);
     box-shadow: 2px 2px 0px var(--manga-shadow);
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-family: var(--text-mono);
     text-transform: uppercase;
 }
@@ -837,7 +837,7 @@ html:not(.look-classic) {
 .update-table.wiki-content-table th {
     padding: 0.85rem 1rem;
     font-family: var(--text-mono);
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-transform: uppercase;
     background: none;
     border-bottom: none;

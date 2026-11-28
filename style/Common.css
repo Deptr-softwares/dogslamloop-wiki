@@ -7,7 +7,7 @@
    See: docs/looks.md */
 
 /* The cascade layers, lowest first: a rule in a later layer wins over any rule in an earlier one. */
-@layer site, dogslamloop;
+@layer site, dogslamloop, theme;
 
 @layer site {
 /* The palette: the colours the sheets share, each named once. */
@@ -32,6 +32,11 @@
     --tint-2: rgba(255,255,255,0.02);
     --tint-3: rgba(255,255,255,0.03);
     --tint-5: rgba(255,255,255,0.05);
+    --tint-6: rgba(255,255,255,0.06);
+    --tint-7: rgba(255,255,255,0.07);
+    --tint-8: rgba(255,255,255,0.08);
+    --tint-10: rgba(255,255,255,0.1);
+    --tint-20: rgba(255,255,255,0.2);
 }
 /* WOFF2 first, about half the TTF's bytes; a browser without WOFF2 takes the TTF. */
 @font-face {
@@ -70,7 +75,11 @@
     --text-primary: #eaecf0;
     --text-white: hsl(0, 0%, 100%);
     --text-muted: #a2a9b1;
-    
+
+    /* Text in a colour: darker on a light theme. A border or a fill reads the colour. */
+    --red-text: var(--red); --green-text: var(--green); --yellow-text: var(--yellow); --purple-text: var(--purple);
+    --accent-text: var(--accent-blue); --accent-hover-text: var(--accent-blue-hover); --accent-yellow-text: var(--accent-yellow);
+
     --text-mono: Arial, Helvetica, sans-serif;
     --manga-shadow: transparent;
 
@@ -144,7 +153,7 @@ body {
 
 .site-subtitle {
     font-size: 0.75rem;
-    color: hsl(215, 8%, 47%);
+    color: var(--theme-text-muted, hsl(215, 8%, 47%));
     font-family: var(--text-mono);
     margin: 0.25rem 0 0 0;
 }
@@ -215,13 +224,13 @@ body {
 .sc-s { text-decoration: line-through; opacity: 0.6; }
 
 .sc-code {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--tint-10);
     padding: 0.15rem 0.35rem;
     border-radius: 4px;
     font-family: var(--text-mono);
     color: var(--text-white);
     font-size: 0.85em;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 0 0 1px var(--tint-20);
 }
 
 /* Bold is the shared part; the colour is inline. .sc-mc is [multicolor=], one span
@@ -249,7 +258,7 @@ body {
 }
 
 .wiki-link {
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-decoration: underline;
     text-underline-offset: 2px;
     transition: color 0.1s;
@@ -262,7 +271,7 @@ body {
     border: 1px solid var(--border-color);
     border-bottom-width: 2px;
     border-radius: 3px;
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--tint-7);
     font-family: var(--text-mono);
     font-size: 0.85em;
     color: var(--text-white);
@@ -359,7 +368,7 @@ body {
 }
 .site-title { text-shadow: 2px 2px 0px var(--manga-shadow); }
 .site-title:hover {
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-shadow: 2px 2px 0px var(--manga-shadow), 0 0 15px hsla(213, 94%, 68%, 0.4);
 }
 .character-title {
@@ -368,11 +377,63 @@ body {
 .character-header h1.character-title::before { content: ''; }
 .section-title {
     font-family: var(--font-title), sans-serif;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     border-bottom-width: 2px;
     text-shadow: 2px 2px 0px var(--manga-shadow);
     text-transform: uppercase;
 }
 .section-title:not(.section-title-clean):not(.section-title-flex)::after { content: ''; }
+}
+}
+
+/* A Site settings theme, on <html> as data-theme, over both looks (docs/looks.md). */
+@layer theme {
+/* The palette's greys as the theme's colours, and the --theme-* names a rare colour
+   falls back from. Black and white stay true. */
+html[data-theme] {
+    --grey-05: var(--bg-main); --grey-0a: var(--bg-main); --grey-11: var(--bg-secondary);
+    --grey-22: var(--border-color); --grey-33: var(--border-color); --grey-44: var(--border-color); --grey-55: var(--border-color);
+    --grey-66: var(--text-muted); --grey-88: var(--text-muted);
+    --grey-d1: var(--text-primary); --grey-e5: var(--text-primary);
+    --theme-bg-main: var(--bg-main); --theme-bg-secondary: var(--bg-secondary); --theme-border-color: var(--border-color);
+    --theme-text-primary: var(--text-primary); --theme-text-white: var(--text-white); --theme-text-muted: var(--text-muted);
+    --theme-character-ink: var(--character-ink);
+}
+html[data-theme="light"] {
+    --bg-main: #f4f5f7; --bg-secondary: var(--white); --border-color: #d5d9e0;
+    --text-primary: #24292f; --text-white: #0d1117; --text-muted: #57606a;
+    --accent-blue: #0969da; --accent-blue-hover: #0550ae; --character-ink: var(--white);
+}
+html[data-theme="shadow"] {
+    --bg-main: var(--black); --bg-secondary: #0b0b0d; --border-color: #26262b;
+    --text-primary: #bfc3c9; --text-white: #f2f2f2; --text-muted: #80858d;
+    --accent-blue: #8ab4f8; --accent-blue-hover: #aecbfa;
+}
+html[data-theme="brown-paper"] {
+    --bg-main: #eadfc8; --bg-secondary: #f4ecdb; --border-color: #c5ad86;
+    --text-primary: #3d3024; --text-white: #22190f; --text-muted: #7b6650;
+    --accent-blue: #9a4b16; --accent-blue-hover: #7a3a10; --character-ink: var(--white);
+}
+html[data-theme="light-blue"] {
+    --bg-main: #e6f0fa; --bg-secondary: #f4f8fd; --border-color: #b8cce3;
+    --text-primary: #1d2b3a; --text-white: #0c1724; --text-muted: #50667e;
+    --accent-blue: #1565c0; --accent-blue-hover: #0d47a1; --character-ink: var(--white);
+}
+/* The light themes: dark tints, and text in a colour darkened to read. A character's
+   name comes with its colour inline, so its shade (.char-text) is important. */
+html:is([data-theme="light"], [data-theme="brown-paper"], [data-theme="light-blue"]) {
+    color-scheme: light;
+    --tint-2: rgba(0,0,0,0.02); --tint-3: rgba(0,0,0,0.03); --tint-5: rgba(0,0,0,0.05); --tint-6: rgba(0,0,0,0.06);
+    --tint-7: rgba(0,0,0,0.07); --tint-8: rgba(0,0,0,0.08); --tint-10: rgba(0,0,0,0.1); --tint-20: rgba(0,0,0,0.2);
+    --red-text: oklch(from var(--red) min(l, 0.5) c h);
+    --green-text: oklch(from var(--green) min(l, 0.5) c h);
+    --yellow-text: oklch(from var(--yellow) min(l, 0.5) c h);
+    --purple-text: oklch(from var(--purple) min(l, 0.5) c h);
+    --accent-text: oklch(from var(--accent-blue) min(l, 0.5) c h);
+    --accent-hover-text: oklch(from var(--accent-blue-hover) min(l, 0.42) c h);
+    --accent-yellow-text: oklch(from var(--accent-yellow) min(l, 0.5) c h);
+    --theme-blue-text: oklch(from hsl(213, 94%, 68%) min(l, 0.5) c h);
+    &:not(.look-classic) { --manga-shadow: var(--text-primary); }
+    & .char-text { color: oklch(from var(--char) min(l, 0.5) c h) !important; }
 }
 }

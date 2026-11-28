@@ -25,7 +25,7 @@ button {
 /* The look: a cut top-right corner, a hover fill from the left, a hard shadow, a
    faint tint, a lift on hover and a nudge on a press. The corner's clip-path runs
    past the edges along the cut, so one diagonal cuts the button and its shadow. A
-   colour tier sets --sys-edge and --sys-fill. */
+   colour tier sets --sys-edge, --sys-fill and --sys-text, the colour of its words. */
 /* Registered, so a hover can change a button's colour gradually: an unregistered
    custom property jumps. The initial values are .btn-sys's own. */
 @property --sys-edge { syntax: '<color>'; inherits: true; initial-value: #555; }
@@ -33,6 +33,7 @@ button {
 .btn-sys {
     --sys-edge: var(--grey-55);
     --sys-fill: var(--grey-88);
+    --sys-text: var(--text-primary);
     --sys-cut: 9px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 0.7rem; font-weight: bold;
@@ -40,7 +41,7 @@ button {
     box-sizing: border-box;
     border: 1px solid var(--sys-edge);
     transition: transform 0.1s ease, box-shadow 0.1s ease, background-size 0.18s ease-out, color 0.18s ease-out;
-    color: var(--text-primary); white-space: nowrap; text-decoration: none;
+    color: var(--sys-text); white-space: nowrap; text-decoration: none;
     cursor: pointer;
 }
 /* The shadow stays where it was on the ground: lifting the button 1px makes
@@ -49,14 +50,14 @@ button {
 /* html.reduce-motion: the device's preference or Site settings (js/utility/site_utils.js). */
 html.reduce-motion .btn-sys { transition: none; }
 
-.btn-sys-regular { --sys-edge: var(--grey-55); --sys-fill: var(--grey-88); color: #aaa; }
+.btn-sys-regular { --sys-edge: var(--grey-55); --sys-fill: var(--grey-88); --sys-text: var(--theme-text-muted, #aaa); }
 /* Blue is fixed, not var(--accent-blue), which a character page's theme re-points;
    it is the site's default accent. */
-.btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); color: hsl(213, 94%, 68%); }
-.btn-sys-green   { --sys-edge: var(--green); --sys-fill: var(--green); color: var(--green); }
-.btn-sys-red     { --sys-edge: var(--red); --sys-fill: var(--red); color: var(--red); }
-.btn-sys-yellow  { --sys-edge: var(--yellow); --sys-fill: var(--yellow); color: var(--yellow); }
-.btn-sys-purple  { --sys-edge: var(--purple); --sys-fill: var(--purple); color: var(--purple); }
+.btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); --sys-text: var(--theme-blue-text, hsl(213, 94%, 68%)); }
+.btn-sys-green   { --sys-edge: var(--green); --sys-fill: var(--green); --sys-text: var(--green-text); }
+.btn-sys-red     { --sys-edge: var(--red); --sys-fill: var(--red); --sys-text: var(--red-text); }
+.btn-sys-yellow  { --sys-edge: var(--yellow); --sys-fill: var(--yellow); --sys-text: var(--yellow-text); }
+.btn-sys-purple  { --sys-edge: var(--purple); --sys-fill: var(--purple); --sys-text: var(--purple-text); }
 
 /* Filled variants, for modals, always worn with .btn-sys and its colour tier. */
 .btn-danger-fill { background: var(--red) !important; color: var(--black) !important; border-color: var(--red) !important; }
@@ -130,7 +131,7 @@ html.reduce-motion .btn-sys { transition: none; }
 /* Ghost buttons */
 .btn-ghost {
     display: inline-flex; align-items: center; gap: 0.5rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-family: var(--text-mono);
     font-size: 0.75rem;
     text-decoration: none;
@@ -139,7 +140,7 @@ html.reduce-motion .btn-sys { transition: none; }
 }
 
 .btn-ghost:hover {
-    color: var(--accent-blue-hover);
+    color: var(--accent-hover-text);
     transform: translateX(3px);
 }
 
@@ -168,7 +169,7 @@ html.reduce-motion .btn-sys { transition: none; }
 .sub-tab.sub-tab-removable { padding-right: 1.6rem; }
 .sub-tab-remove {
     position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: var(--red); font-size: 10px; cursor: pointer;
+    background: none; border: none; color: var(--red-text); font-size: 10px; cursor: pointer;
 }
 .sub-tabs-action { align-self: center; font-size: 0.65rem; padding: 0.3rem 0.6rem; margin-left: 0.25rem; }
 /* The tabs of a strip that also holds an action button, laid out as the strip's own. */
@@ -223,7 +224,7 @@ html:not(.look-classic) {
     clip-path: polygon(0 0, calc(100% - var(--sys-cut)) 0, calc(100% + 6px) calc(var(--sys-cut) + 6px), calc(100% + 6px) calc(100% + 6px), 0 calc(100% + 6px));
 }
 .btn-sys:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
-    color: var(--text-primary);
+    color: var(--sys-text);
 }
 .btn-sys:where(.btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) { text-decoration: none; }
 .btn-sys:hover:not(:disabled) {
@@ -239,9 +240,6 @@ html:not(.look-classic) {
 &.reduce-motion .btn-sys:hover:not(:disabled),
 &.reduce-motion .btn-sys:active:not(:disabled) {
     transform: none;
-}
-.btn-sys-regular:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
-    color: #aaa;
 }
 .btn-manga,
 .filter-toggle {

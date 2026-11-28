@@ -100,8 +100,8 @@
     background-color: var(--bg-main);
     background-image: repeating-linear-gradient(
         -45deg,
-        rgba(255, 255, 255, 0.06) 0px,
-        rgba(255, 255, 255, 0.06) 2px,
+        var(--tint-6) 0px,
+        var(--tint-6) 2px,
         transparent 2px,
         transparent 8px
     );
@@ -187,7 +187,7 @@
 .collaborator-link { text-decoration: none; }
 .collaborator-thanks { margin: 0 0 1rem; }
 .collaborator-thanks > li + li { margin-top: 0.5rem; }
-.collaborator-line-name { color: var(--accent-blue); font-family: var(--text-mono); }
+.collaborator-line-name { color: var(--accent-text); font-family: var(--text-mono); }
 .collaborator-line-reason { color: var(--text-primary); }
 /* The Update Log's part headings (Features, Fine-tuning, Bug fixes), each opening
    its own list. An entry with no headings is one list. */
@@ -196,7 +196,7 @@
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     margin: 1.25rem 0 0.25rem 0;
     padding-bottom: 0.3rem;
     border-bottom: 1px solid var(--border-color);
@@ -261,7 +261,7 @@ html:not(.look-classic) {
 }
 @media (hover: hover) {
     .wiki-section:hover, .skill-entry-card:hover {
-        border-color: hsl(212, 12%, 30%);
+        border-color: var(--theme-text-muted, hsl(212, 12%, 30%));
         transform: translate(-2px, -2px);
         box-shadow: 8px 8px 0px var(--manga-shadow);
     }

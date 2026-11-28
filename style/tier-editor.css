@@ -76,7 +76,7 @@
 .tier-move-arrow {
     font-family: var(--text-mono);
     font-size: 0.68rem;
-    color: var(--yellow);
+    color: var(--yellow-text);
 }
 
 .tier-move-note { width: 100%; box-sizing: border-box; font-size: 0.78rem; }
@@ -85,7 +85,7 @@
     font-family: var(--text-mono);
     font-size: 0.8rem;
     font-weight: bold;
-    color: var(--yellow);
+    color: var(--yellow-text);
 }
 
 .tier-save-row {

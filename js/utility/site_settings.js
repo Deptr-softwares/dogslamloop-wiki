@@ -42,6 +42,11 @@ window.showSiteSettings = function () {
                         </label>
                     </fieldset>
                     <fieldset class="site-setting-group">
+                        <legend class="site-setting-name">Theme</legend>
+                        <span class="site-setting-hint">The colours, over either look. Dark is each look's own.</span>
+                        <div class="site-setting-choices" id="site-setting-themes"></div>
+                    </fieldset>
+                    <fieldset class="site-setting-group">
                         <legend class="site-setting-name">Fonts</legend>
                         <div class="site-setting-font">
                             <label class="site-setting-text" for="site-setting-font-title">
@@ -88,6 +93,22 @@ window.showSiteSettings = function () {
         overlay.querySelectorAll('select[data-setting]').forEach(select => {
             select.add(new Option("The look's own", ''));
             Object.entries(window.siteSettings.FACES).forEach(([key, name]) => select.add(new Option(name, key)));
+        });
+        // One radio a theme, in the store's order, Dark first.
+        const themes = overlay.querySelector('#site-setting-themes');
+        Object.entries(window.siteSettings.THEMES).forEach(([key, name]) => {
+            const id = `site-setting-theme-${key || 'dark'}`;
+            const label = document.createElement('label');
+            label.className = 'site-setting';
+            label.htmlFor = id;
+            const input = document.createElement('input');
+            Object.assign(input, { type: 'radio', name: 'site-setting-theme', id, value: key });
+            input.dataset.setting = 'theme';
+            const text = document.createElement('span');
+            text.className = 'site-setting-name';
+            text.textContent = name;
+            label.append(input, text);
+            themes.appendChild(label);
         });
         overlay.addEventListener('change', e => {
             const key = e.target.dataset.setting;

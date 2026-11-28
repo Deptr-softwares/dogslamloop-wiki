@@ -84,7 +84,7 @@
 .ctl-author {
     font-family: var(--font-label), sans-serif;
     font-size: 1.4rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     margin: 0;
 }
 
@@ -114,7 +114,7 @@
 .ctl-game-version {
     font-family: var(--text-mono);
     font-size: 0.62rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     border: 1px solid var(--accent-blue);
     padding: 0.05rem 0.35rem;
     white-space: nowrap;
@@ -171,7 +171,7 @@
 .ctl-subheading {
     font-family: var(--font-label), sans-serif;
     font-size: 1rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-transform: uppercase;
     margin: 0 0 0.75rem 0;
 }
@@ -226,7 +226,7 @@
 .ctl-change-move {
     font-family: var(--text-mono);
     font-size: 0.68rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 
 .ctl-change-date {

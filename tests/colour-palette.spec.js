@@ -65,8 +65,8 @@ const COLOUR = /#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|(?<![-\w])(?:black|white)(?![
 
 // Every place a sheet writes one of these colours, apart from the palette's own
 // block, a custom property named after a palette colour (the staff pages' Classic
-// mapping and Default's values over it, in editor.css) and a @property's
-// initial-value, which cannot read a variable.
+// map in editor.css, a theme's map in Common.css) and a @property's initial-value,
+// which cannot read a variable.
 function literals(names, values) {
     const found = [];
     for (const f of fs.readdirSync(STYLE).filter(f => f.endsWith('.css'))) {
@@ -98,6 +98,54 @@ test('the palette names each shared colour once, at the top of Common.css', () =
     const values = list.map(p => p.value);
     expect(new Set(names).size, 'a name is defined twice').toBe(names.length);
     expect(new Set(values).size, 'a colour has two names').toBe(values.length);
+});
+
+// An opaque grey (channels within 24 of each other) as red, green and blue, from hex,
+// rgb() or hsl(); null for anything else.
+function opaqueGrey(lit) {
+    let c = null;
+    const v = lit.toLowerCase().replace(/\s+/g, '');
+    let m = v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+    if (m) {
+        const h = m[1].length === 3 ? m[1].replace(/./g, x => x + x) : m[1];
+        c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+    }
+    m = v.match(/^rgb\((\d+),(\d+),(\d+)\)$/);
+    if (m) c = m.slice(1, 4).map(Number);
+    m = v.match(/^hsl\(([\d.]+),([\d.]+)%,([\d.]+)%\)$/);
+    if (m) {
+        const [h, s, l] = [+m[1], +m[2] / 100, +m[3] / 100];
+        const k = n => (n + h / 30) % 12;
+        const a = s * Math.min(l, 1 - l);
+        c = [0, 8, 4].map(n => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)))));
+    }
+    return c && Math.max(...c) - Math.min(...c) <= 24 ? c : null;
+}
+
+// C-4b: a theme re-points the palette's greys, and a rare grey C-3c kept exact is
+// written var(--theme-<role>, <its value>), so a theme reaches it too. A grey written
+// any other way is one no theme can reach. The user badges are art, and keep theirs.
+test('every grey a stylesheet writes outside the palette is a var() fallback, so a theme reaches it', () => {
+    const found = [];
+    for (const f of fs.readdirSync(STYLE).filter(f => f.endsWith('.css'))) {
+        const text = read(f);
+        const m = mask(text);
+        const skip = [...m.matchAll(/@property[^{]*\{[^}]*\}/g)].map(x => [x.index, x.index + x[0].length]);
+        for (const x of m.matchAll(/#[0-9a-fA-F]{3,6}\b|rgb\([^)]*\)|hsl\([^)]*\)/g)) {
+            if (!opaqueGrey(x[0])) continue;
+            if (skip.some(([a, b]) => x.index >= a && x.index < b)) continue;
+            const decl = m.slice(Math.max(m.lastIndexOf(';', x.index), m.lastIndexOf('{', x.index)) + 1, x.index);
+            // A custom property's own value: the variables themselves, palette and roles.
+            if (/^\s*--[\w-]+\s*:/.test(decl)) continue;
+            // Inside a var() still open at the literal: its fallback.
+            const at = decl.lastIndexOf('var(');
+            if (at >= 0 && (decl.slice(at).match(/\(/g) || []).length > (decl.slice(at).match(/\)/g) || []).length) continue;
+            const selector = m.slice(m.lastIndexOf('}', m.lastIndexOf('{', x.index)) + 1, m.lastIndexOf('{', x.index));
+            if (/\.user-badge/.test(selector)) continue;
+            found.push(`style/${f}:${text.slice(0, x.index).split('\n').length} ${x[0]}`);
+        }
+    }
+    expect(found, 'write it as var(--theme-<role>, <the grey>), or use a palette grey').toEqual([]);
 });
 
 test('no stylesheet writes a palette colour as a literal', () => {
