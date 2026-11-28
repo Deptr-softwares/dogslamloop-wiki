@@ -181,6 +181,13 @@ const fromGit = file => {
 const SNAPSHOT = (roots) => {
     // Every animation held at its start, so both trees are read at the same moment of it.
     document.getAnimations().forEach(a => { try { a.pause(); a.currentTime = 0; } catch (e) { /* a finished one cannot be held: it is left as it ended */ } });
+    // Again at every read: the ratio, or a file the lazy loader set, can arrive after the
+    // load-time hold.
+    document.querySelectorAll('video').forEach(v => {
+        const had = v.hasAttribute('src') || v.querySelector('source');
+        v.removeAttribute('poster'); v.removeAttribute('data-lazy-src'); v.style.removeProperty('aspect-ratio');
+        if (had) { v.removeAttribute('src'); v.querySelectorAll('source').forEach(s => s.remove()); v.load(); }
+    });
     const read = (el, pseudo) => {
         const cs = getComputedStyle(el, pseudo);
         if (pseudo && (cs.content === 'none' || cs.content === 'normal')) return '';
@@ -241,9 +248,13 @@ async function load(browser, origin, url) {
         Promise.all([...document.images].filter(i => !i.complete && i.loading !== 'lazy').map(i => new Promise(r => { i.addEventListener('load', r); i.addEventListener('error', r); }))),
         new Promise(r => setTimeout(r, 8000)),
     ]));
-    // A video takes its file's height only once the file says it, which may come in one
-    // tree and not the other: every video is held with no file, in both.
-    await page.evaluate(() => document.querySelectorAll('video').forEach(v => { v.removeAttribute('src'); v.querySelectorAll('source').forEach(s => s.remove()); v.load(); }));
+    // A video takes its height from its file, or from the ratio and still page_render.js
+    // sets once the list of stills arrives, and either may come in one tree only: every
+    // video is held with no file, no still and no inline ratio, in both.
+    await page.evaluate(() => document.querySelectorAll('video').forEach(v => {
+        v.removeAttribute('src'); v.removeAttribute('data-lazy-src'); v.removeAttribute('poster'); v.style.removeProperty('aspect-ratio');
+        v.querySelectorAll('source').forEach(s => s.remove()); v.load();
+    }));
     await page.evaluate(html => (document.querySelector('.main-content-area, main') || document.body).insertAdjacentHTML('beforeend', html), SPECIMEN);
     await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
     return { context, page, errors };
