@@ -13,6 +13,16 @@
 
 @layer site {
 
+/* On the editor and staff pages Classic draws the palette's greys as its own five
+   colours, darkest to lightest; the status hues and the tints keep theirs. */
+:root {
+    --black: var(--bg-main); --grey-05: var(--bg-main); --grey-0a: var(--bg-main);
+    --grey-11: var(--bg-secondary); --grey-22: var(--bg-secondary);
+    --grey-33: var(--border-color); --grey-44: var(--border-color); --grey-55: var(--border-color);
+    --grey-66: var(--text-muted); --grey-88: var(--text-muted);
+    --grey-d1: var(--text-primary); --grey-e5: var(--text-primary); --white: var(--text-primary);
+}
+
 body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); }
 
 .editor-layout {
@@ -2502,6 +2512,9 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
+--black: #000; --grey-05: #050505; --grey-0a: #0a0a0a; --grey-11: #111; --grey-22: #222;
+--grey-33: #333; --grey-44: #444; --grey-55: #555; --grey-66: #666; --grey-88: #888;
+--grey-d1: #d1d5db; --grey-e5: #e5e7eb; --white: #fff;
 .block-actions button { background: transparent; }
 .block-actions button:hover { background: var(--grey-33); }
 .block-actions .btn-delete:hover {

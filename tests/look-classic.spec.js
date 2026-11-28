@@ -6,9 +6,10 @@
 //
 // Classic is every stylesheet's plain part, and Default adds each sheet's
 // Dogslamloop part, which html.look-classic switches off (docs/looks.md). The
-// class comes from the stored setting (js/utility/site_utils.js); the editor and
-// staff pages never take it, so they keep the Default look. Supabase's REST API is
-// refused here: everything checked is the page's own chrome, not its content.
+// class comes from the stored setting (js/utility/site_utils.js), on every page;
+// on the editor and staff pages Classic draws their greys as its own five colours.
+// Supabase's REST API is refused here: everything checked is the page's own
+// chrome, not its content.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -535,19 +536,28 @@ test('the Update Log\'s version headings and the History, Recent Changes and My 
     }
 });
 
-test('the editor and staff pages keep the default look even with Classic picked', async ({ page }) => {
-    // They never take the class, so every sheet's Dogslamloop part stays on. Read
-    // off the variables it sets: the editor paints its own body, so the body's
-    // colour would not tell.
+test('the editor and staff pages follow the reader\'s look, their greys in Classic\'s colours and their hues kept', async ({ page }) => {
+    // The owner's picks, 2026-11-26/27: "Follow the reader's pick" and "Keep their
+    // hues". Read off what the page paints: the page's own ground (the editor's body
+    // is the palette's black, admin.css's .admin-body its #050505) and a red system
+    // button made on the page.
+    const DEFAULT_GROUND = { 'edit.html': 'rgb(0, 0, 0)', 'tier-editor.html': 'rgb(0, 0, 0)' };
     for (const rel of STAFF) {
-        await boot(page, 'classic', `/${rel}`);
-        await page.waitForFunction(() => !!window.siteSettings);
-        expect(await page.evaluate(() => window.siteSettings.get('look')), `${rel}: the setting is Classic`).toBe('classic');
-        await expect(page.locator('html'), rel).not.toHaveClass(/\blook-classic\b/);
-        const vars = await page.evaluate(() => {
-            const cs = getComputedStyle(document.documentElement);
-            return { ground: cs.getPropertyValue('--bg-main').trim(), title: cs.getPropertyValue('--font-title').trim() };
-        });
-        expect(vars, rel).toEqual({ ground: 'hsl(216, 28%, 7%)', title: "'Finger-Paint'" });
+        for (const look of ['classic', 'default']) {
+            await boot(page, look, `/${rel}`);
+            await page.waitForFunction(() => !!window.siteSettings);
+            const html = expect(page.locator('html'), `${look} ${rel}`);
+            if (look === 'classic') await html.toHaveClass(/\blook-classic\b/);
+            else await html.not.toHaveClass(/\blook-classic\b/);
+            const seen = await page.evaluate(() => {
+                const b = document.createElement('button');
+                b.className = 'btn-sys btn-sys-red';
+                document.body.appendChild(b);
+                const out = { ground: getComputedStyle(document.body).backgroundColor, red: getComputedStyle(b).color };
+                b.remove();
+                return out;
+            });
+            expect(seen, `${look} ${rel}`).toEqual({ ground: look === 'classic' ? CLASSIC_BG : DEFAULT_GROUND[rel] || 'rgb(5, 5, 5)', red: 'rgb(239, 68, 68)' });
+        }
     }
 });
