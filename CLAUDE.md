@@ -100,6 +100,8 @@ Code an assistant wrote is a draft until something has checked it. Assistant cod
 
 This section is the index. A rule that names a practice file has its incidents, its checks and an outside source there, in `.claude/rules/`, and the file loads by itself when a file it covers is read or edited. Name a practice file in backticks, never with `@`: an `@` import loads at launch.
 
+A batch is planned with the `scoping-a-batch` skill (the goal as a check that can fail, the starting point measured, the model the change fits) and each item is built with the `building-a-change` skill (change the base rather than adding on top, remove only with proof, check the checker, prove it).
+
 **Before writing**
 - Read the code being changed and the code that calls it. Search for an existing helper by what it does, not only by its name, and reuse it (`practice-new-code.md`).
 - The current devlog is the spec. If it does not settle a data shape or a behaviour, ask; never invent one.
