@@ -95,6 +95,18 @@ test('no page loads the account boxes with its tags; site_account.js loads them 
     expect(fs.existsSync(path.join(ROOT, file)), file).toBe(true);
 });
 
+test('no page loads the Site Settings box with its tags; site_utils.js loads it on first open', () => {
+    const script = 'js/utility/site_settings.js';
+    const sheet = 'style/site-settings.css';
+    expect(pages().filter(page => page.files.includes(script)).map(page => page.name)).toEqual([]);
+    const { PAGE_STYLES } = require('../scripts/page-scripts.js');
+    expect(Object.keys(PAGE_STYLES).filter(kind => PAGE_STYLES[kind].includes(path.basename(sheet)))).toEqual([]);
+    for (const file of [script, sheet]) {
+        expect(read('js/utility/site_utils.js')).toContain(`'${file}'`);
+        expect(fs.existsSync(path.join(ROOT, file)), file).toBe(true);
+    }
+});
+
 // What draws each sheet split from Layout.css: a kind of page loads the sheet
 // exactly when it loads one of these scripts. Every tool page loads tierlist.css,
 // since the tier list tools are tools.

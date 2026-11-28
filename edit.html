@@ -6,20 +6,33 @@
     <title>Wiki Contributor Editor</title>
     
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=374da5e6">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Buttons.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Modals.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Forms.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Badges.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Alerts.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Cards.css?v=374da5e6">
-    <link rel="stylesheet" href="style/FrameData.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Layout.css?v=374da5e6">
-    <link rel="stylesheet" href="style/Blocks.css?v=374da5e6">
-    <link rel="stylesheet" href="style/tierlist.css?v=374da5e6">
-    <link rel="stylesheet" href="style/editor.css?v=374da5e6">
+    <link rel="stylesheet" href="style/Common.css?v=82a89c44">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Buttons.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Modals.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Forms.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Badges.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Alerts.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Cards.css?v=82a89c44">
+    <link rel="stylesheet" href="style/FrameData.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Layout.css?v=82a89c44">
+    <link rel="stylesheet" href="style/Blocks.css?v=82a89c44">
+    <link rel="stylesheet" href="style/tierlist.css?v=82a89c44">
+    <link rel="stylesheet" href="style/editor.css?v=82a89c44">
     <!-- END GENERATED: styles -->
+    <!-- BEGIN GENERATED: settings - scripts/page-scripts.js - do not edit by hand -->
+    <script>window.applySiteSettings = function (s) {
+        var html = document.documentElement;
+        html.classList.toggle('look-classic', s.look === 'classic');
+        html.classList.toggle('reduce-motion', s.motionOff === true || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+        ['Title', 'Label', 'Body'].forEach(function (role) {
+            var face = s['font' + role], prop = '--font-' + role.toLowerCase();
+            if (typeof face === 'string' && /^[a-z]+(-[a-z]+)*$/.test(face)) html.style.setProperty(prop, 'var(--face-' + face + ')');
+            else html.style.removeProperty(prop);
+        });
+    };
+    try { window.applySiteSettings(JSON.parse(localStorage.getItem('dsl_site_settings')) || {}); } catch (e) { window.applySiteSettings({}); }</script>
+    <!-- END GENERATED: settings -->
 </head>
 <body>
     <dialog id="editor-custom-modal" class="site-dialog tone-red" aria-labelledby="editor-custom-modal-title">
@@ -323,45 +336,45 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=374da5e6"></script>
-    <script src="js/utility/input_slots.js?v=374da5e6"></script>
-    <script src="js/utility/site_utils.js?v=374da5e6"></script>
-    <script src="js/utility/site_data.js?v=374da5e6"></script>
-    <script src="js/utility/site_media.js?v=374da5e6"></script>
-    <script src="js/utility/site_account.js?v=374da5e6"></script>
-    <script src="js/utility/site_lookups.js?v=374da5e6"></script>
-    <script src="js/utility/submission_delta.js?v=374da5e6"></script>
-    <script src="js/pages/core/page_shell.js?v=374da5e6"></script>
-    <script src="js/utility/search.js?v=374da5e6"></script>
-    <script src="js/pages/core/skill_card.js?v=374da5e6"></script>
-    <script src="js/pages/core/page_render.js?v=374da5e6"></script>
-    <script src="js/pages/core/format_tags.js?v=374da5e6"></script>
-    <script src="js/editor/tools/editor-playground.js?v=374da5e6"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=374da5e6"></script>
-    <script src="js/editor/core/editor-config.js?v=374da5e6"></script>
-    <script src="js/editor/core/editor-modes.js?v=374da5e6"></script>
-    <script src="js/editor/core/editor-core.js?v=374da5e6"></script>
-    <script src="js/editor/tabs/editor-tabs.js?v=374da5e6"></script>
-    <script src="js/editor/tabs/editor-framedata.js?v=374da5e6"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=374da5e6"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=374da5e6"></script>
-    <script src="js/editor/tools/editor-previews.js?v=374da5e6"></script>
-    <script src="js/utility/diff-markers.js?v=374da5e6"></script>
-    <script src="js/utility/side-by-side.js?v=374da5e6"></script>
-    <script src="js/editor/core/editor-sync.js?v=374da5e6"></script>
-    <script src="js/editor/core/editor-drafts.js?v=374da5e6"></script>
-    <script src="js/editor/tools/editor-media.js?v=374da5e6"></script>
-    <script src="js/editor/tabs/editor-system.js?v=374da5e6"></script>
-    <script src="js/pages/types/tool_page.js?v=374da5e6"></script>
-    <script src="js/editor/tabs/editor-tool.js?v=374da5e6"></script>
-    <script src="js/pages/types/gallery.js?v=374da5e6"></script>
-    <script src="js/editor/tabs/editor-gallery.js?v=374da5e6"></script>
-    <script src="js/pages/tier-lists/tierlist.js?v=374da5e6"></script>
-    <script src="js/editor/blocks/editor-reorder.js?v=374da5e6"></script>
-    <script src="js/editor/tools/editor-find-replace.js?v=374da5e6"></script>
-    <script src="js/editor/tools/editor-writing-checks.js?v=374da5e6"></script>
-    <script src="js/editor/tools/editor-notices.js?v=374da5e6"></script>
-    <script src="js/editor/tools/editor-tutorial.js?v=374da5e6"></script>
+    <script src="js/utility/character_tabs.js?v=82a89c44"></script>
+    <script src="js/utility/input_slots.js?v=82a89c44"></script>
+    <script src="js/utility/site_utils.js?v=82a89c44"></script>
+    <script src="js/utility/site_data.js?v=82a89c44"></script>
+    <script src="js/utility/site_media.js?v=82a89c44"></script>
+    <script src="js/utility/site_account.js?v=82a89c44"></script>
+    <script src="js/utility/site_lookups.js?v=82a89c44"></script>
+    <script src="js/utility/submission_delta.js?v=82a89c44"></script>
+    <script src="js/pages/core/page_shell.js?v=82a89c44"></script>
+    <script src="js/utility/search.js?v=82a89c44"></script>
+    <script src="js/pages/core/skill_card.js?v=82a89c44"></script>
+    <script src="js/pages/core/page_render.js?v=82a89c44"></script>
+    <script src="js/pages/core/format_tags.js?v=82a89c44"></script>
+    <script src="js/editor/tools/editor-playground.js?v=82a89c44"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=82a89c44"></script>
+    <script src="js/editor/core/editor-config.js?v=82a89c44"></script>
+    <script src="js/editor/core/editor-modes.js?v=82a89c44"></script>
+    <script src="js/editor/core/editor-core.js?v=82a89c44"></script>
+    <script src="js/editor/tabs/editor-tabs.js?v=82a89c44"></script>
+    <script src="js/editor/tabs/editor-framedata.js?v=82a89c44"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=82a89c44"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=82a89c44"></script>
+    <script src="js/editor/tools/editor-previews.js?v=82a89c44"></script>
+    <script src="js/utility/diff-markers.js?v=82a89c44"></script>
+    <script src="js/utility/side-by-side.js?v=82a89c44"></script>
+    <script src="js/editor/core/editor-sync.js?v=82a89c44"></script>
+    <script src="js/editor/core/editor-drafts.js?v=82a89c44"></script>
+    <script src="js/editor/tools/editor-media.js?v=82a89c44"></script>
+    <script src="js/editor/tabs/editor-system.js?v=82a89c44"></script>
+    <script src="js/pages/types/tool_page.js?v=82a89c44"></script>
+    <script src="js/editor/tabs/editor-tool.js?v=82a89c44"></script>
+    <script src="js/pages/types/gallery.js?v=82a89c44"></script>
+    <script src="js/editor/tabs/editor-gallery.js?v=82a89c44"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=82a89c44"></script>
+    <script src="js/editor/blocks/editor-reorder.js?v=82a89c44"></script>
+    <script src="js/editor/tools/editor-find-replace.js?v=82a89c44"></script>
+    <script src="js/editor/tools/editor-writing-checks.js?v=82a89c44"></script>
+    <script src="js/editor/tools/editor-notices.js?v=82a89c44"></script>
+    <script src="js/editor/tools/editor-tutorial.js?v=82a89c44"></script>
     <!-- END GENERATED: scripts -->
 </body>
 </html>

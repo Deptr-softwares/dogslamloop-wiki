@@ -151,3 +151,177 @@ test('when the browser blocks saving, the panel says so and the setting still ho
   await expect(page.locator('.site-settings-error')).toContainText('blocked saving');
   await expect(page.locator('html')).toHaveClass(/\breduce-motion\b/);
 });
+
+// Every page applies the stored settings in <head>, from one generated block
+// (window.applySiteSettings, scripts/page-scripts.js), so nothing a reader picked
+// shows its default first. The staff pages had no block until v1.3, so a Classic
+// reader could see a frame of Default there.
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+const { settingsTag } = require('../scripts/page-scripts.js');
+
+const ROOT = path.join(__dirname, '..');
+const STAFF = ['edit.html', 'overseer.html', 'owner.html', 'tier-editor.html', 'post-editor.html'];
+
+test('every page a reader can stay on carries the settings block in <head>, after its stylesheets', () => {
+  const block = settingsTag().trim();
+  const pages = execSync('git ls-files "*.html"', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
+    .map(rel => ({ rel, html: fs.readFileSync(path.join(ROOT, rel), 'utf8') }))
+    // A moved page's stub forwards before anything paints.
+    .filter(({ html }) => /<link\b[^>]*rel="stylesheet"/.test(html) && !html.includes('dsl-moved-page'));
+  expect(pages.map(p => p.rel)).toEqual(expect.arrayContaining([...STAFF, 'index.html', 'characters/Boomcat/index.html']));
+  const wrong = [];
+  for (const { rel, html } of pages) {
+    const at = html.indexOf(block);
+    const lastSheet = [...html.matchAll(/<link\b[^>]*rel="stylesheet"/g)].pop().index;
+    if (at < 0 || html.indexOf(block, at + 1) >= 0) wrong.push(`${rel}: not exactly once`);
+    else if (at < lastSheet) wrong.push(`${rel}: before a stylesheet`);
+    else if (at > html.indexOf('</head>')) wrong.push(`${rel}: outside <head>`);
+  }
+  expect(wrong).toEqual([]);
+});
+
+test('the stored look and motion are on <html> before <body> arrives, on the staff pages too', async ({ page }) => {
+  await page.route('**/rest/v1/**', r => r.abort());
+  await page.addInitScript(() => {
+    try { localStorage.setItem('dsl_site_settings', JSON.stringify({ look: 'classic', motionOff: true })); } catch (e) {}
+    // An init script runs before <html> exists: watch the document.
+    new MutationObserver((_, obs) => {
+      if (!document.body) return;
+      window.__classAtBody = document.documentElement.className;
+      obs.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  const seen = {};
+  for (const rel of [...STAFF, 'index.html', 'characters/Boomcat/index.html']) {
+    await page.goto(`/${rel}`, { waitUntil: 'domcontentloaded' });
+    seen[rel] = await page.evaluate(() => window.__classAtBody.split(/\s+/).filter(c => /^(look-classic|reduce-motion)$/.test(c)).sort().join(' '));
+  }
+  const want = Object.fromEntries(Object.keys(seen).map(rel => [rel, 'look-classic reduce-motion']));
+  expect(seen).toEqual(want);
+});
+
+test('a device that asks for less motion has it before <body> arrives, with nothing stored', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => {
+    new MutationObserver((_, obs) => {
+      if (!document.body) return;
+      window.__classAtBody = document.documentElement.className;
+      obs.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await page.goto('/terms.html', { waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => window.__classAtBody)).toMatch(/\breduce-motion\b/);
+  expect(await page.evaluate(() => window.__classAtBody)).not.toMatch(/\blook-classic\b/);
+});
+
+// The box is js/utility/site_settings.js, loaded the first time it opens: every
+// page carries only the store and its opener.
+test('the box\'s script and sheet load on the first open, once, with the page\'s stamp, and not before', async ({ page }) => {
+  const asked = [];
+  page.on('request', r => { if (/(js\/utility\/site_settings\.js|style\/site-settings\.css)/.test(r.url())) asked.push(r.url()); });
+  await open(page);
+  expect(asked).toEqual([]);
+  expect(await page.evaluate(() => typeof window.showSiteSettings)).toBe('undefined');
+
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-look-default')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#site-settings-overlay')).toBeHidden();
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-settings-overlay')).toBeVisible();
+
+  expect(asked).toHaveLength(2);
+  const stamp = await page.evaluate(() => new URL(document.querySelector('script[src*="js/utility/site_utils.js"]').src).search);
+  expect(asked.map(u => new URL(u).search)).toEqual([stamp, stamp]);
+  expect(await page.locator('#site-settings-overlay').count()).toBe(1);
+
+  // Styled by its own sheet: each font's dropdown sits beside its name, on one row.
+  const [name, dropdown] = await page.evaluate(() => ['#site-settings-overlay label[for="site-setting-font-title"]', '#site-setting-font-title + .manga-select-wrapper']
+    .map(sel => document.querySelector(sel).getBoundingClientRect().toJSON()));
+  expect(dropdown.left).toBeGreaterThanOrEqual(name.right);
+  expect(dropdown.top).toBeLessThan(name.bottom);
+});
+
+test('a box whose file cannot load says so', async ({ page }) => {
+  await page.route('**/js/utility/site_settings.js*', r => r.abort());
+  await open(page);
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#alert-modal-overlay')).toBeVisible();
+  await expect(page.locator('#alert-modal-msg')).toHaveText('Could not open Site settings. Try refreshing.');
+});
+
+test('the Classic hint says the look reaches every page', async ({ page }) => {
+  await open(page);
+  await page.locator('#dock-btn-settings').click();
+  const hint = page.locator('label[for="site-setting-look-classic"] .site-setting-hint');
+  await expect(hint).toHaveText('A plain, dark wiki look.');
+});
+
+// The three fonts (v1.3; the owner's note: Heading/Title text, Sub-heading text,
+// Regular text). Each takes the look's own or one of the site's own faces
+// (--face-<key>, style/Common.css), over either look. Read on the site's own
+// chrome, never page content: the character's name, the Ko-fi button and the body.
+// In Classic the sidebar's headings and the buttons take the sub-heading font.
+const FONT_ROLES = { title: '.character-title', label: '.kofi-text', body: 'body' };
+const FIRST_FAMILY = { 'Finger Paint': 'Finger-Paint', 'CC Wild Words': 'CC-Wild-Words', Serif: 'Georgia', 'Sans-serif': '-apple-system', Monospace: 'ui-monospace' };
+
+async function pickFont(page, role, name) {
+  await page.locator(`#site-setting-font-${role} + .manga-select-wrapper .manga-select-trigger`).click();
+  await page.locator(`#site-setting-font-${role} + .manga-select-wrapper .manga-option`).filter({ hasText: new RegExp(`^${name}$`) }).click();
+}
+const fontsNow = (page) => page.evaluate(roles => Object.fromEntries(Object.entries(roles)
+  .map(([role, sel]) => [role, getComputedStyle(document.querySelector(sel)).fontFamily.split(',')[0].trim().replace(/"/g, '')])), FONT_ROLES);
+
+test('each font takes the face picked over either look, stays after a reload, and the look\'s own takes it back', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.addInitScript(() => {
+    new MutationObserver((_, obs) => {
+      if (!document.body) return;
+      window.__styleAtBody = document.documentElement.getAttribute('style') || '';
+      obs.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await open(page);
+  const usual = await fontsNow(page);
+  expect(usual).toEqual({ title: 'Finger-Paint', label: 'CC-Wild-Words', body: '-apple-system' });
+
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-font-title')).toHaveValue('');
+  for (const [name, family] of Object.entries(FIRST_FAMILY)) {
+    await pickFont(page, 'title', name);
+    expect((await fontsNow(page)).title, name).toBe(family);
+  }
+  await pickFont(page, 'label', 'Monospace');
+  await pickFont(page, 'body', 'Serif');
+  const picked = { title: 'ui-monospace', label: 'ui-monospace', body: 'Georgia' };
+  expect(await fontsNow(page)).toEqual(picked);
+
+  // Over Classic too, whose own faces differ.
+  await page.locator('#site-setting-look-classic').check();
+  expect(await fontsNow(page)).toEqual(picked);
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.sidebar-master-title')).fontFamily)).toMatch(/^ui-monospace/);
+  await page.keyboard.press('Escape');
+
+  await page.reload({ waitUntil: 'networkidle' });
+  expect(await fontsNow(page)).toEqual(picked);
+  expect(await page.evaluate(() => window.__styleAtBody)).toContain('--font-title: var(--face-mono)');
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-font-body')).toHaveValue('serif');
+
+  for (const role of Object.keys(FONT_ROLES)) await pickFont(page, role, "The look's own");
+  expect(await fontsNow(page)).toEqual({ title: 'Georgia', label: 'Arial', body: '-apple-system' });
+  expect(errors).toEqual([]);
+});
+
+test('a stored face the site does not have reads as the look\'s own', async ({ page }) => {
+  await page.addInitScript(() => {
+    try { localStorage.setItem('dsl_site_settings', JSON.stringify({ fontTitle: 'comic-sans', fontBody: 42 })); } catch (e) {}
+  });
+  await open(page);
+  expect(await fontsNow(page)).toEqual({ title: 'Finger-Paint', label: 'CC-Wild-Words', body: '-apple-system' });
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-font-title')).toHaveValue('');
+});

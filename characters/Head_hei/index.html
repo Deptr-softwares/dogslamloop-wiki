@@ -18,44 +18,51 @@
     <meta property="og:image" content="https://dogslamloop.com/medias/banners/head_hei.webp">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="stylesheet" href="../../style/Common.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/ColorCoding.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Buttons.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Modals.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Forms.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Badges.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Alerts.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Cards.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/FrameData.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/discussions.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Layout.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Blocks.css?v=374da5e6">
-    <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/utility/site_utils.js keeps it in step after.
-         Storage blocked or empty means the default look, silently. -->
-    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
+    <link rel="stylesheet" href="../../style/Common.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/ColorCoding.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Buttons.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Modals.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Forms.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Badges.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Alerts.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Cards.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/FrameData.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/discussions.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Layout.css?v=82a89c44">
+    <link rel="stylesheet" href="../../style/Blocks.css?v=82a89c44">
+    <script>window.applySiteSettings = function (s) {
+        var html = document.documentElement;
+        html.classList.toggle('look-classic', s.look === 'classic');
+        html.classList.toggle('reduce-motion', s.motionOff === true || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+        ['Title', 'Label', 'Body'].forEach(function (role) {
+            var face = s['font' + role], prop = '--font-' + role.toLowerCase();
+            if (typeof face === 'string' && /^[a-z]+(-[a-z]+)*$/.test(face)) html.style.setProperty(prop, 'var(--face-' + face + ')');
+            else html.style.removeProperty(prop);
+        });
+    };
+    try { window.applySiteSettings(JSON.parse(localStorage.getItem('dsl_site_settings')) || {}); } catch (e) { window.applySiteSettings({}); }</script>
 
 
     <script>window.PAGE_ROUTE = { pageId: "head_hei", pageType: "character", title: "Head of the Hei" };</script>
 </head>
 <body class="site-body p-0">
 
-    <script src="../../js/utility/character_tabs.js?v=374da5e6"></script>
-    <script src="../../js/utility/input_slots.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/page_router.js?v=374da5e6"></script>
+    <script src="../../js/utility/character_tabs.js?v=82a89c44"></script>
+    <script src="../../js/utility/input_slots.js?v=82a89c44"></script>
+    <script src="../../js/pages/core/page_router.js?v=82a89c44"></script>
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="../../js/utility/site_utils.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_data.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_media.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_account.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_lookups.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/page_shell.js?v=374da5e6"></script>
-    <script src="../../js/utility/search.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/skill_card.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/page_render.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/character_modes.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/format_tags.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/page_boot.js?v=374da5e6"></script>
-    <script async src="../../js/others/analytics.js?v=374da5e6"></script>
+    <script src="../../js/utility/site_utils.js?v=82a89c44"></script>
+    <script src="../../js/utility/site_data.js?v=82a89c44"></script>
+    <script src="../../js/utility/site_media.js?v=82a89c44"></script>
+    <script src="../../js/utility/site_account.js?v=82a89c44"></script>
+    <script src="../../js/utility/site_lookups.js?v=82a89c44"></script>
+    <script src="../../js/pages/core/page_shell.js?v=82a89c44"></script>
+    <script src="../../js/utility/search.js?v=82a89c44"></script>
+    <script src="../../js/pages/core/skill_card.js?v=82a89c44"></script>
+    <script src="../../js/pages/core/page_render.js?v=82a89c44"></script>
+    <script src="../../js/pages/core/character_modes.js?v=82a89c44"></script>
+    <script src="../../js/pages/core/format_tags.js?v=82a89c44"></script>
+    <script src="../../js/pages/core/page_boot.js?v=82a89c44"></script>
+    <script defer src="../../js/others/analytics.js?v=82a89c44"></script>
 </body>
 </html>

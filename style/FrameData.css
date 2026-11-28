@@ -177,7 +177,7 @@
 /* Frame data reads in monospace. */
 .views-wrapper,
 .legend-section {
-    --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --text-mono: var(--face-mono);
 }
 }
 

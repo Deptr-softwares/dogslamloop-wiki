@@ -187,17 +187,6 @@
 .dock-settings-btn { flex: 0 0 auto; padding-left: 0.6rem; padding-right: 0.6rem; }
 .global-sidebar-left.collapsed .dock-auth-row { flex-direction: column; }
 
-/* The Site settings panel (js/utility/site_utils.js openSiteSettings). */
-.site-settings-body { display: flex; flex-direction: column; gap: 0.9rem; }
-.site-setting-group { display: flex; flex-direction: column; gap: 0.6rem; margin: 0; padding: 0; border: 0; min-width: 0; }
-.site-setting-group legend { padding: 0; margin-bottom: 0.6rem; }
-.site-setting { display: flex; gap: 0.75rem; align-items: flex-start; cursor: pointer; }
-.site-setting input { margin: 0.2rem 0 0; width: 1rem; height: 1rem; flex: none; accent-color: var(--accent-blue); cursor: pointer; }
-.site-setting-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-.site-setting-name { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
-.site-setting-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
-.site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
-.site-settings-error { margin: 0; color: var(--red); font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
 
 /* Character page sidebar dock (js/pages/core/page_shell.js populates #sidebar-dynamic-dock) */

@@ -14,14 +14,24 @@
 
 // Site Settings: a reader's own settings, per device, in one JSON object shaped
 // like the editor's Config, so a new setting is one more key. Nothing reaches the
-// account or the database. html.reduce-motion is the one switch every "less
-// motion" rule reads: on when the device asks for it or the reader ticked "Turn
-// off animations". First in the file, so the class is on before anything moves.
+// account or the database. window.applySiteSettings, in every page's <head>
+// (scripts/page-scripts.js), has already applied them before the first paint; this
+// store checks each value and applies again after a change. html.reduce-motion is
+// the one switch every "less motion" rule reads: on when the device asks for it or
+// the reader ticked "Turn off animations".
 (function () {
     const STORE_KEY = 'dsl_site_settings';
     // look: 'default' or 'classic' (v1.2). html.look-classic switches off every
     // sheet's Dogslamloop part, on every page (docs/looks.md).
-    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default' });
+    // fontTitle, fontLabel, fontBody: '' (the look's own) or a key of FACES.
+    // countVisits: whether js/others/analytics.js loads Umami on this device.
+    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default', fontTitle: '', fontLabel: '', fontBody: '', countVisits: true });
+    // The faces each font can take, by key: the page reads a face's families from
+    // --face-<key> (style/Common.css). Named here once, for the store and the box.
+    const FACES = Object.freeze({ 'finger-paint': 'Finger Paint', 'wild-words': 'CC Wild Words', serif: 'Serif', sans: 'Sans-serif', mono: 'Monospace' });
+    // The values a setting may hold, where it is a choice.
+    const faceKeys = ['', ...Object.keys(FACES)];
+    const CHOICES = Object.freeze({ look: ['default', 'classic'], fontTitle: faceKeys, fontLabel: faceKeys, fontBody: faceKeys });
 
     function readStore() {
         try {
@@ -37,22 +47,27 @@
     const deviceReduce = typeof window.matchMedia === 'function'
         ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 
+    // A value of the default's type, and one of its choices: a face taken away
+    // later reads as the look's own.
+    function valid(key, value) {
+        return typeof value === typeof DEFAULTS[key] && (!CHOICES[key] || CHOICES[key].includes(value));
+    }
+
     function get(key) {
         if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) return undefined;
-        const value = stored[key];
-        return typeof value === typeof DEFAULTS[key] ? value : DEFAULTS[key];
+        return valid(key, stored[key]) ? stored[key] : DEFAULTS[key];
     }
 
     function apply() {
-        document.documentElement.classList.toggle('reduce-motion',
-            get('motionOff') || !!(deviceReduce && deviceReduce.matches));
-        document.documentElement.classList.toggle('look-classic', get('look') === 'classic');
+        const checked = {};
+        Object.keys(DEFAULTS).forEach(key => { checked[key] = get(key); });
+        window.applySiteSettings(checked);
     }
 
     // Returns whether the value was saved, so the panel can say when it was
     // not. Applied either way: it still holds until the page is left.
     function set(key, value) {
-        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key) || typeof value !== typeof DEFAULTS[key]) return false;
+        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key) || !valid(key, value)) return false;
         stored = Object.assign({}, stored, { [key]: value });
         apply();
         try {
@@ -66,7 +81,7 @@
     if (deviceReduce && typeof deviceReduce.addEventListener === 'function') deviceReduce.addEventListener('change', apply);
     apply();
 
-    window.siteSettings = { get, set, DEFAULTS };
+    window.siteSettings = { get, set, DEFAULTS, FACES };
 
     // For a scroll a script starts. CSS's scroll-behavior does not reach
     // scrollTo or scrollIntoView, so until this a device asking for less
@@ -105,64 +120,16 @@ document.addEventListener('click', e => {
 });
 
 /**
- * Opens the Site Settings panel (the button beside the account button). Built on
- * first open; every value in it is the site's own, so nothing is escaped.
+ * Opens the Site Settings box (the button beside the account button). The box is
+ * js/utility/site_settings.js and style/site-settings.css, loaded together the first
+ * time it opens. A failure says so rather than doing nothing.
  */
 window.openSiteSettings = function () {
-    let overlay = document.getElementById('site-settings-overlay');
-    if (!overlay) {
-        overlay = document.createElement('dialog');
-        overlay.id = 'site-settings-overlay';
-        overlay.className = 'site-dialog';
-        overlay.setAttribute('aria-labelledby', 'site-settings-title');
-        overlay.innerHTML = `
-                <div class="dialog-header"><h3 id="site-settings-title">Site settings</h3></div>
-                <div class="dialog-body site-settings-body">
-                    <fieldset class="site-setting-group">
-                        <legend class="site-setting-name">Look</legend>
-                        <label class="site-setting" for="site-setting-look-default">
-                            <input type="radio" name="site-setting-look" id="site-setting-look-default" value="default">
-                            <span class="site-setting-text">
-                                <span class="site-setting-name">Default</span>
-                                <span class="site-setting-hint">The site's usual look.</span>
-                            </span>
-                        </label>
-                        <label class="site-setting" for="site-setting-look-classic">
-                            <input type="radio" name="site-setting-look" id="site-setting-look-classic" value="classic">
-                            <span class="site-setting-text">
-                                <span class="site-setting-name">Classic</span>
-                                <span class="site-setting-hint">A plain, dark wiki look. The editor and staff pages keep the usual look.</span>
-                            </span>
-                        </label>
-                    </fieldset>
-                    <label class="site-setting" for="site-setting-motion-off">
-                        <input type="checkbox" id="site-setting-motion-off">
-                        <span class="site-setting-text">
-                            <span class="site-setting-name">Turn off animations</span>
-                            <span class="site-setting-hint">Stops hover lifts, button sweeps, flashes and smooth scrolling. If your device is set to reduce motion, the site already follows it.</span>
-                        </span>
-                    </label>
-                    <p class="site-settings-note">Saved on this device only.</p>
-                    <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
-                </div>
-                <div class="dialog-footer"><button type="button" class="btn-sys btn-sys-regular" data-dialog-close>CLOSE</button></div>`;
-        document.body.appendChild(overlay);
-
-        overlay.querySelector('#site-setting-motion-off').addEventListener('change', e => {
-            const saved = window.siteSettings.set('motionOff', e.target.checked);
-            overlay.querySelector('.site-settings-error').hidden = saved;
-        });
-        overlay.querySelector('.site-setting-group').addEventListener('change', e => {
-            const saved = window.siteSettings.set('look', e.target.value);
-            overlay.querySelector('.site-settings-error').hidden = saved;
-        });
-    }
-    const look = window.siteSettings.get('look') === 'classic' ? 'classic' : 'default';
-    overlay.querySelector(`#site-setting-look-${look}`).checked = true;
-    overlay.querySelector('#site-setting-motion-off').checked = window.siteSettings.get('motionOff');
-    // Nothing typed in it: a click outside closes it.
-    window.openDialog(overlay, { light: true });
-    overlay.querySelector(`#site-setting-look-${look}`).focus();
+    const files = ['style/site-settings.css', 'js/utility/site_settings.js'];
+    return Promise.all(files.map(window.loadSiteFile)).then(() => window.showSiteSettings(), error => {
+        console.error('[Settings] Could not load Site Settings:', error);
+        window.showSystemAlert('Could not open Site settings. Try refreshing.');
+    });
 };
 
 const fetchPromiseCache = {};

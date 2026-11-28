@@ -337,8 +337,9 @@ test('"On this tab" is a list of plain links', async ({ page }) => {
 // The same box, with the look's own variables: Classic re-points the accent and
 // the monospace font, and the box follows them.
 test('pop-ups are the same staff box in both looks', async ({ page }) => {
-    const open = () => page.evaluate(() => {
-        window.openSiteSettings();
+    // The box's file loads on its first open: wait for it.
+    const open = () => page.evaluate(async () => {
+        await window.openSiteSettings();
         const dialog = document.getElementById('site-settings-overlay');
         const box = getComputedStyle(dialog);
         const title = document.getElementById('site-settings-title');

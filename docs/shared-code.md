@@ -4,24 +4,26 @@ What every page loads before its own scripts: the reader's settings, paths and p
 
 ## Files
 
-- `js/utility/site_utils.js`: Site Settings, paths and page addresses, the Supabase client and its local-only override, the escapers, the role ladder, the system alert, the dropdowns, the dialog engine (`openDialog`, `runDialog`), the confirm and prompt any page can use (`siteConfirm`, `sitePrompt`), the toasts (`showToast`), the banner (`siteBanner`), the tab strips' roles and keys, and the mobile preview switch.
+- `js/utility/site_utils.js`: Site Settings (the store and the opener of its box), paths and page addresses, the Supabase client and its local-only override, the escapers, the role ladder, the system alert, the dropdowns, the dialog engine (`openDialog`, `runDialog`), the confirm and prompt any page can use (`siteConfirm`, `sitePrompt`), the toasts (`showToast`), the banner (`siteBanner`), the tab strips' roles and keys, and the mobile preview switch.
 - `js/utility/site_data.js`: page data (`docs/page-data.md`). The delta engine is `js/utility/submission_delta.js`, which only the editor, the Overseer and History load.
 - `js/utility/site_media.js`: media framing, the blocked-media guard, the shared tooltip and math.
 - `js/utility/site_account.js`: signing in, the alert box, public profile lookups, badges and role badges, and the openers for the account boxes.
 - `js/utility/account_boxes.js`: the reader's own profile, another reader's public profile and the inbox, loaded the first time one opens (`window.loadSiteFile`, in `site_utils.js`).
+- `js/utility/site_settings.js` and `style/site-settings.css`: the Site Settings box, loaded together the first time it opens.
 - `js/utility/site_lookups.js`: character colours (generated), aliases, accolades, the site's icons, character icon paths, frame colours, the version line and the character theme.
 
 They load in that order on every page, right after the Supabase library (`tests/site-utils-parts.spec.js`).
 
 ## Data
 
-- `localStorage`: `dsl_site_settings` (Site Settings), `dsl_supabase_override` (the local-only override), `dsl_badges_pending` (a badge won signed out).
+- `localStorage`: `dsl_site_settings` (Site Settings: `look`, `motionOff`, `fontTitle`, `fontLabel`, `fontBody`, `countVisits`), `dsl_supabase_override` (the local-only override), `dsl_badges_pending` (a badge won signed out).
 - `user_roles`, `user_profiles`, `user_notifications`, `media_moderation`, and the RPCs `claim_badge`, `get_public_profiles` and `get_user_expert_pages`.
 - `data/navigation.json`, `data/archived-pages.json`, `data/site_meta.json`.
 - `site_pages.color`, copied into `site_lookups.js` between its generated-region markers by `scripts/fetch-content.js`.
 
 ## Watch for
 
+- Site Settings become the page's state in one place, `window.applySiteSettings`, which every page defines and runs in `<head>` before it paints (`scripts/page-scripts.js`). The store in `site_utils.js` checks each value against its choices and calls it again after a change. A new setting is a key in the store's `DEFAULTS` (and `CHOICES`, if it is a choice), a control with `data-setting` in the box, and, if it changes the page, a line in `applySiteSettings` (`tests/site-settings.spec.js`).
 - One escaper, `window.escapeHtml`; `page_router.js` keeps its own copy because it runs first. Test: `tests/one-escape-helper.spec.js`.
 - `ROLE_RANK` mirrors `role_rank()` in SQL, and the SQL one is the boundary. Never test a role by name (CLAUDE.md, Roles). The role badges are the one place matched by name: an icon is an identity, not a bar.
 - `SITE_BADGES` and `claim_badge()` in SQL list the same badges.
@@ -40,6 +42,10 @@ They load in that order on every page, right after the Supabase library (`tests/
 ## Decisions
 
 Newest first. One entry per decision.
+
+- **2026-11-28, v1.3, #322.** A reader can turn visitor counting off on their device: "Count my visits" in Site Settings, ticked by default, held back from v1.2. Unticked, `analytics.js` never adds Umami's script, so nothing is loaded or sent. It is a key in the same store, so `analytics.js` is deferred after `site_utils.js` instead of async; neither stops the parser. The privacy policy says it, in sentences for the owner to edit. Claude's calls: the site's own key rather than Umami's `umami.disabled`, so the box, the store and the counter read one value; the policy's list of what the browser keeps names Site Settings, which it never listed.
+- **2026-11-28, v1.3, #322.** The Site Settings box loads the first time it opens, its script and its sheet together, like the account boxes: every page carried its markup and rules for a box most visits never open. Claude's call, from the C-4 scope ("no page's JS or CSS gets heavier").
+- **2026-11-28, v1.3, #322.** Site Settings apply before the first paint on every page, from one generated block in `<head>` (`window.applySiteSettings`), and the store applies through the same function after a change. The before-paint step was a one-line snippet copied into 14 pages and three times into the generator, and only for the look: the five staff pages had none, so since #320 a Classic reader could see a frame of Default there, and the motion setting waited for `site_utils.js`. Turned down: a blocking script file in `<head>`, one more request before every first paint.
 
 - **2026-11-26, v1.3, #317.** Every tab strip works by keyboard, the page tabs and the mode chips included (W3C's tabs pattern): Tab reaches the picked tab only, the arrow keys move along the strip and open each tab they reach, Home and End go to its ends, and Tab leaves it. A screen reader hears each strip as tabs, which one is picked and how many there are. Until then Tab stopped on every tab, and nothing said they were tabs. Claude's calls: a tab's ✖ is for the mouse and Delete removes the tab, after the same question, since axe fails a button inside a tab list (which turned down keeping the ✖ on Tab); focus comes back to the strip after a removal; a tab the arrows open counts as the reader's own click, so it clears a section link's # from the address as a click does; the editor's state chips are tabs too, with + STATE beside them.
 - **2026-11-26, v1.3, #317.** One banner for a notice that stays on the page: a coloured bar on its left, a thin grey border round the rest and the title in the bar's colour (the owner's pick, "Left bar"). The page alerts (Work In Progress, Early Access, Media Missing), a rescued page's "Not published yet", the Editor Playground's line and the Overseer's batch line had four looks between them. The page alerts keep their colours and icons; the rescued page and the Playground are yellow, the batch line green. Turned down: the page alerts' look (a border all round and a hard shadow) for all, and a tinted band. Claude's calls: the batch line says "Batched submission" and "N edits in this submission." where it said "BATCHED MULTI-PAYLOAD DETECTED (N EDITS)"; a banner in the editor or the Overseer is a size smaller; its title is bold text rather than a heading, since the page alerts' heading came before the page's own title.
