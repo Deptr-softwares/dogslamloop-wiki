@@ -333,33 +333,6 @@ html:not(.look-classic) {
     border-color: revert;
 }
 :where(.btn-manga-content) { transform: revert; }
-:where(:is(.wiki-card, .wiki-section)) {
-    background: revert;
-    border: revert;
-    box-shadow: revert;
-    padding: revert;
-}
-:where(:is(.update-log-item, .faq-details)) {
-    background: revert;
-    border: revert;
-    border-bottom: revert;
-    box-shadow: revert;
-    padding: revert;
-}
-:where(.wiki-section.submission-card) {
-    border-bottom: revert;
-    padding-bottom: revert;
-}
-:where(:is(.skill-entry-card, .wiki-section.profile-card)) {
-    background: revert;
-    border: revert;
-    box-shadow: revert;
-}
-:where(.wiki-section.profile-card) { padding: revert; }
-:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover, .roster-card:hover .roster-card-text) {
-    transform: revert;
-    box-shadow: revert;
-}
 :where(.profile-stat-row) {
     justify-content: revert;
     gap: revert;

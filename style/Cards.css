@@ -23,16 +23,13 @@
     margin-bottom: 1.5rem;
 }
 
-/* A quieter hover for the large sections. */
-@media (hover: hover) {
-    .wiki-section:hover:where(.wiki-section.submission-card), .skill-entry-card:hover:where(.wiki-section.submission-card) { border-top-color: rgb(67, 76, 86); border-right-color: rgb(67, 76, 86); border-left-color: rgb(67, 76, 86); }
-}
-
 .skill-entry-card { margin-bottom: 2rem; }
 
-/* Dashboard list items */
+/* Dashboard list items, ruled off like a list */
 .update-log-item, .faq-details {
     margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0;
 }
 
 
@@ -54,6 +51,7 @@
 .roster-card:hover, .image-card-container:hover {
     border-color: var(--accent-blue);
     z-index: 10;
+    box-shadow: none;
 }
 
 /* Grid Item Sizing Modifiers */
@@ -118,7 +116,7 @@
 }
 
 /* The hover shadow matches the border; only the colour differs from the shared rule. */
-.roster-card.has-icon:focus-visible:not(:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover)) { box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue)); }
+.roster-card.has-icon:focus-visible:not(:hover) { box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue)); }
 
 .roster-card-icon {
     width: 100%; height: 100%; object-fit: contain; position: absolute;
@@ -229,67 +227,23 @@
 }
 .roster-banner-overview { margin: 0; color: var(--text-primary); font-size: 0.8rem; line-height: 1.45; }
 
-/* Panels have no box, like an article, and nothing lifts on hover; a frame data
-   card keeps a thin box, and the profile card is the infobox. */
-:is(.wiki-card, .wiki-section) {
-    background: none;
-    border: 0;
-    box-shadow: none;
-    padding: 0;
-}
-:is(.update-log-item, .faq-details) {
-    background: none;
-    border: 0;
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: none;
-    padding: 0.75rem 0;
-}
+/* Panels have no box, like an article; a frame data card keeps a thin box, and the
+   profile card is the infobox. */
 /* My Submissions: one entry per submission, ruled off like the Update Log. */
 .wiki-section.submission-card { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-:is(.skill-entry-card, .wiki-section.profile-card) {
+.skill-entry-card, .wiki-section.profile-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    box-shadow: none;
 }
 .wiki-section.profile-card { padding: 0.75rem; }
-:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover,
-.roster-card:hover .roster-card-text {
-    transform: none;
-    box-shadow: none;
-}
 }
 
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
-.wiki-section,
-.wiki-card,
-.update-log-item,
-.faq-details,
-.skill-entry-card {
+.wiki-section, .wiki-card, .update-log-item, .faq-details, .skill-entry-card {
     background-color: var(--bg-secondary);
-}
-.wiki-section,
-.wiki-card,
-.update-log-item,
-.faq-details,
-.skill-entry-card {
     border: 2px solid var(--border-color);
-}
-.wiki-section:where(.wiki-section.submission-card),
-.wiki-card:where(.wiki-section.submission-card),
-.update-log-item:where(.wiki-section.submission-card),
-.faq-details:where(.wiki-section.submission-card),
-.skill-entry-card:where(.wiki-section.submission-card) {
-    border-bottom-color: var(--border-color);
-    border-bottom-style: solid;
-    border-bottom-width: 2px;
-}
-.wiki-section,
-.wiki-card,
-.update-log-item,
-.faq-details,
-.skill-entry-card {
     box-shadow: 4px 4px 0px var(--manga-shadow);
 }
 @media (hover: hover) {
@@ -304,19 +258,10 @@ html:not(.look-classic) {
 .wiki-section { box-shadow: 6px 6px 0px var(--manga-shadow); }
 @media not all and (max-width: 640px) {
     .wiki-section { padding: 1.5rem; }
-    .wiki-section:where(.wiki-section.submission-card) { padding-bottom: 1.5rem; }
 }
 @media (hover: hover) {
-    .wiki-section:hover,
-    .skill-entry-card:hover {
+    .wiki-section:hover, .skill-entry-card:hover {
         border-color: hsl(212, 12%, 30%);
-    }
-    .wiki-section:hover:where(.wiki-section.submission-card),
-    .skill-entry-card:hover:where(.wiki-section.submission-card) {
-        border-bottom-color: rgb(67, 76, 86);
-    }
-    .wiki-section:hover,
-    .skill-entry-card:hover {
         transform: translate(-2px, -2px);
         box-shadow: 8px 8px 0px var(--manga-shadow);
     }
@@ -328,9 +273,6 @@ html:not(.look-classic) {
     box-shadow: 5px 5px 0px var(--accent-blue);
 }
 .roster-card:hover .roster-card-text { transform: scale(1.05); }
-.roster-card.has-icon:hover,
-.roster-card.has-icon:focus-visible:where(:is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover) {
-    box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue));
-}
+.roster-card.has-icon:hover { box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue)); }
 }
 }
