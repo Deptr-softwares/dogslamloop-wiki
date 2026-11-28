@@ -248,13 +248,14 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
                 let colorStyle = '';
                 if (category === 'Characters' && window.CHARACTER_COLORS && window.CHARACTER_COLORS[item.name]) {
-                    colorStyle = `color: ${window.CHARACTER_COLORS[item.name]}; font-weight: bold;`;
+                    const colour = window.escapeHtml(window.CHARACTER_COLORS[item.name]);
+                    colorStyle = `color: ${colour}; --char: ${colour}; font-weight: bold;`;
                 }
 
                 html += `
                     <li>
                         <a href="${window.escapeHtml(rootPath + item.url)}" class="btn-nav">
-                            <span class="toc-link-text" style="${colorStyle}">${window.escapeHtml(item.name)}</span>
+                            <span class="toc-link-text${colorStyle ? ' char-text' : ''}" style="${colorStyle}">${window.escapeHtml(item.name)}</span>
                             ${badge}
                         </a>
                     </li>

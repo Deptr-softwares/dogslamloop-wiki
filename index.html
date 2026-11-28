@@ -24,19 +24,19 @@
     <!-- END GENERATED: hub-meta -->
 
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="style/Common.css?v=e161a17a">
-    <link rel="stylesheet" href="style/ColorCoding.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Buttons.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Modals.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Forms.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Badges.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Alerts.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Cards.css?v=e161a17a">
-    <link rel="stylesheet" href="style/FrameData.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Layout.css?v=e161a17a">
-    <link rel="stylesheet" href="style/Blocks.css?v=e161a17a">
-    <link rel="stylesheet" href="style/dashboards.css?v=e161a17a">
-    <link rel="stylesheet" href="style/posts.css?v=e161a17a">
+    <link rel="stylesheet" href="style/Common.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/ColorCoding.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Buttons.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Modals.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Forms.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Badges.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Alerts.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Cards.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/FrameData.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Layout.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/Blocks.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/dashboards.css?v=fcd30f27">
+    <link rel="stylesheet" href="style/posts.css?v=fcd30f27">
     <!-- END GENERATED: styles -->
     <!-- BEGIN GENERATED: settings - scripts/page-scripts.js - do not edit by hand -->
     <script>window.applySiteSettings = function (s) {
@@ -48,6 +48,8 @@
             if (typeof face === 'string' && /^[a-z]+(-[a-z]+)*$/.test(face)) html.style.setProperty(prop, 'var(--face-' + face + ')');
             else html.style.removeProperty(prop);
         });
+        if (typeof s.theme === 'string' && /^[a-z]+(-[a-z]+)*$/.test(s.theme)) html.setAttribute('data-theme', s.theme);
+        else html.removeAttribute('data-theme');
     };
     try { window.applySiteSettings(JSON.parse(localStorage.getItem('dsl_site_settings')) || {}); } catch (e) { window.applySiteSettings({}); }</script>
     <!-- END GENERATED: settings -->
@@ -302,22 +304,22 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script defer src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script defer src="js/utility/site_lookups.js?v=e161a17a"></script>
-    <script defer src="js/utility/character_tabs.js?v=e161a17a"></script>
-    <script defer src="js/utility/input_slots.js?v=e161a17a"></script>
-    <script defer src="js/utility/site_utils.js?v=e161a17a"></script>
-    <script defer src="js/utility/site_data.js?v=e161a17a"></script>
-    <script defer src="js/utility/site_media.js?v=e161a17a"></script>
-    <script defer src="js/utility/site_account.js?v=e161a17a"></script>
-    <script defer src="js/dashboards/home_widgets.js?v=e161a17a"></script>
-    <script defer src="js/pages/core/page_shell.js?v=e161a17a"></script>
-    <script defer src="js/utility/search.js?v=e161a17a"></script>
-    <script defer src="js/dashboards/hub_roster.js?v=e161a17a"></script>
-    <script defer src="js/pages/core/page_render.js?v=e161a17a"></script>
-    <script defer src="js/pages/core/format_tags.js?v=e161a17a"></script>
-    <script defer src="js/pages/community/posts.js?v=e161a17a"></script>
-    <script defer src="js/dashboards/hub_content.js?v=e161a17a"></script>
-    <script defer src="js/others/analytics.js?v=e161a17a"></script>
+    <script defer src="js/utility/site_lookups.js?v=fcd30f27"></script>
+    <script defer src="js/utility/character_tabs.js?v=fcd30f27"></script>
+    <script defer src="js/utility/input_slots.js?v=fcd30f27"></script>
+    <script defer src="js/utility/site_utils.js?v=fcd30f27"></script>
+    <script defer src="js/utility/site_data.js?v=fcd30f27"></script>
+    <script defer src="js/utility/site_media.js?v=fcd30f27"></script>
+    <script defer src="js/utility/site_account.js?v=fcd30f27"></script>
+    <script defer src="js/dashboards/home_widgets.js?v=fcd30f27"></script>
+    <script defer src="js/pages/core/page_shell.js?v=fcd30f27"></script>
+    <script defer src="js/utility/search.js?v=fcd30f27"></script>
+    <script defer src="js/dashboards/hub_roster.js?v=fcd30f27"></script>
+    <script defer src="js/pages/core/page_render.js?v=fcd30f27"></script>
+    <script defer src="js/pages/core/format_tags.js?v=fcd30f27"></script>
+    <script defer src="js/pages/community/posts.js?v=fcd30f27"></script>
+    <script defer src="js/dashboards/hub_content.js?v=fcd30f27"></script>
+    <script defer src="js/others/analytics.js?v=fcd30f27"></script>
     <!-- END GENERATED: scripts -->
 
     <!-- A module rather than a plain script since v1.2: a module waits in the

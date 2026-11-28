@@ -350,7 +350,7 @@ function paintPageWords(block, words) {
             matched = true;
             return entry.stops
                 ? `<span class="sc-auto sc-page-word sc-page-gradient">${splitGradient(match, entry.stops)}</span>`
-                : `<span class="sc-auto sc-page-word" style="color: ${window.escapeHtml(entry.color)};">${match}</span>`;
+                : `<span class="sc-auto sc-page-word char-text" style="color: ${window.escapeHtml(entry.color)}; --char: ${window.escapeHtml(entry.color)};">${match}</span>`;
         });
         if (!matched) return;
         const tpl = document.createElement('template');
@@ -761,9 +761,9 @@ function applyInternalStyling() {
                 if (!entry) return match;
                 const dark = typeof window.isDarkCharacterColor === 'function'
                     && window.isDarkCharacterColor(entry.color);
-                return `<span class="sc-auto sc-char${dark ? ' sc-char-dark' : ''}"`
+                return `<span class="sc-auto sc-char char-text${dark ? ' sc-char-dark' : ''}"`
                      + ` data-character="${window.escapeHtml(entry.canonical)}"`
-                     + ` style="color: ${window.escapeHtml(entry.color)};">${match}</span>`;
+                     + ` style="color: ${window.escapeHtml(entry.color)}; --char: ${window.escapeHtml(entry.color)};">${match}</span>`;
             });
         }
 

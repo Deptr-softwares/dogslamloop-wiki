@@ -305,7 +305,8 @@ window.isDarkCharacterColor = function(color) {
  * Paints a character page in its character's colour: the accent, the tint, the ink
  * and the title. The colours are the Dogslamloop look's, so they are written into the
  * dogslamloop layer under html:not(.look-classic): Classic never shows them, and
- * switching looks needs no repaint.
+ * switching looks needs no repaint. The accent and the ink go into the theme layer too,
+ * so they win over a Site settings theme's.
  * @touches #persona-dynamic-styles, html.page-character-dark, the title's data-themed
  * @watch the colour goes into CSS text, so anything that is not one colour is refused
  */
@@ -356,7 +357,11 @@ window.applyCharacterTheme = function() {
         dynamicStyle.id = 'persona-dynamic-styles';
         document.head.appendChild(dynamicStyle);
     }
-    dynamicStyle.textContent = `@layer dogslamloop {\nhtml:not(.look-classic) {\n${vars.join('\n')}\n${rules}\n}\n}\n`;
+    // Under a Site settings theme the character's colour and its ink still win (the
+    // theme layer, past the theme's own accent); its dark grounds give way to the theme's.
+    const winsOverTheme = vars.filter(v => /^--(accent-blue|character-ink):/.test(v));
+    dynamicStyle.textContent = `@layer dogslamloop {\nhtml:not(.look-classic) {\n${vars.join('\n')}\n${rules}\n}\n}\n`
+        + `@layer theme {\nhtml:not(.look-classic)[data-theme] {\n${winsOverTheme.join('\n')}\n}\n}\n`;
 };
 
 document.addEventListener('DOMContentLoaded', () => {

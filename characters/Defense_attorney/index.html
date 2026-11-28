@@ -18,18 +18,18 @@
     <meta property="og:image" content="https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/DeffenseAttorneyPortrait2.webp">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="stylesheet" href="../../style/Common.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/ColorCoding.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Buttons.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Modals.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Forms.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Badges.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Alerts.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Cards.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/FrameData.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/discussions.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Layout.css?v=e161a17a">
-    <link rel="stylesheet" href="../../style/Blocks.css?v=e161a17a">
+    <link rel="stylesheet" href="../../style/Common.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/ColorCoding.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Buttons.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Modals.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Forms.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Badges.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Alerts.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Cards.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/FrameData.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/discussions.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Layout.css?v=fcd30f27">
+    <link rel="stylesheet" href="../../style/Blocks.css?v=fcd30f27">
     <script>window.applySiteSettings = function (s) {
         var html = document.documentElement;
         html.classList.toggle('look-classic', s.look === 'classic');
@@ -39,6 +39,8 @@
             if (typeof face === 'string' && /^[a-z]+(-[a-z]+)*$/.test(face)) html.style.setProperty(prop, 'var(--face-' + face + ')');
             else html.style.removeProperty(prop);
         });
+        if (typeof s.theme === 'string' && /^[a-z]+(-[a-z]+)*$/.test(s.theme)) html.setAttribute('data-theme', s.theme);
+        else html.removeAttribute('data-theme');
     };
     try { window.applySiteSettings(JSON.parse(localStorage.getItem('dsl_site_settings')) || {}); } catch (e) { window.applySiteSettings({}); }</script>
 
@@ -47,22 +49,22 @@
 </head>
 <body class="site-body p-0">
 
-    <script src="../../js/utility/character_tabs.js?v=e161a17a"></script>
-    <script src="../../js/utility/input_slots.js?v=e161a17a"></script>
-    <script src="../../js/pages/core/page_router.js?v=e161a17a"></script>
+    <script src="../../js/utility/character_tabs.js?v=fcd30f27"></script>
+    <script src="../../js/utility/input_slots.js?v=fcd30f27"></script>
+    <script src="../../js/pages/core/page_router.js?v=fcd30f27"></script>
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="../../js/utility/site_utils.js?v=e161a17a"></script>
-    <script src="../../js/utility/site_data.js?v=e161a17a"></script>
-    <script src="../../js/utility/site_media.js?v=e161a17a"></script>
-    <script src="../../js/utility/site_account.js?v=e161a17a"></script>
-    <script src="../../js/utility/site_lookups.js?v=e161a17a"></script>
-    <script src="../../js/pages/core/page_shell.js?v=e161a17a"></script>
-    <script src="../../js/utility/search.js?v=e161a17a"></script>
-    <script src="../../js/pages/core/skill_card.js?v=e161a17a"></script>
-    <script src="../../js/pages/core/page_render.js?v=e161a17a"></script>
-    <script src="../../js/pages/core/character_modes.js?v=e161a17a"></script>
-    <script src="../../js/pages/core/format_tags.js?v=e161a17a"></script>
-    <script src="../../js/pages/core/page_boot.js?v=e161a17a"></script>
-    <script defer src="../../js/others/analytics.js?v=e161a17a"></script>
+    <script src="../../js/utility/site_utils.js?v=fcd30f27"></script>
+    <script src="../../js/utility/site_data.js?v=fcd30f27"></script>
+    <script src="../../js/utility/site_media.js?v=fcd30f27"></script>
+    <script src="../../js/utility/site_account.js?v=fcd30f27"></script>
+    <script src="../../js/utility/site_lookups.js?v=fcd30f27"></script>
+    <script src="../../js/pages/core/page_shell.js?v=fcd30f27"></script>
+    <script src="../../js/utility/search.js?v=fcd30f27"></script>
+    <script src="../../js/pages/core/skill_card.js?v=fcd30f27"></script>
+    <script src="../../js/pages/core/page_render.js?v=fcd30f27"></script>
+    <script src="../../js/pages/core/character_modes.js?v=fcd30f27"></script>
+    <script src="../../js/pages/core/format_tags.js?v=fcd30f27"></script>
+    <script src="../../js/pages/core/page_boot.js?v=fcd30f27"></script>
+    <script defer src="../../js/others/analytics.js?v=fcd30f27"></script>
 </body>
 </html>
