@@ -52,8 +52,7 @@ html.reduce-motion .btn-sys { transition: none; }
 
 .btn-sys-regular { --sys-edge: var(--grey-55); --sys-fill: var(--grey-88); --sys-text: var(--theme-text-muted, #aaa); }
 /* Blue is fixed, not var(--accent-blue), which a character page's theme re-points;
-   it is the site's default accent. Its words darken on a light theme like the
-   status colours' (Common.css). */
+   it is the site's default accent. */
 .btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); --sys-text: var(--theme-blue-text, hsl(213, 94%, 68%)); }
 .btn-sys-green   { --sys-edge: var(--green); --sys-fill: var(--green); --sys-text: var(--green-text); }
 .btn-sys-red     { --sys-edge: var(--red); --sys-fill: var(--red); --sys-text: var(--red-text); }

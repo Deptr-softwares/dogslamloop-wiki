@@ -14,8 +14,8 @@
 @layer site {
 
 /* On the editor and staff pages Classic draws the palette's greys as its own five
-   colours, darkest to lightest; the status hues and the tints keep theirs. Under a
-   theme the theme's map does it (Common.css), with black and white kept true. */
+   colours, darkest to lightest; the status hues and the tints keep theirs. A theme
+   has its own map (Common.css). */
 html.look-classic:not([data-theme]) {
     --black: var(--bg-main); --grey-05: var(--bg-main); --grey-0a: var(--bg-main);
     --grey-11: var(--bg-secondary); --grey-22: var(--bg-secondary);
