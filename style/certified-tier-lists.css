@@ -277,7 +277,6 @@
     border-bottom: 2px solid var(--border-color);
 }
 .tierlist-sidebar-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { margin: 0; padding: 0; border: none; }
-.tierlist-sidebar-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) { margin-top: 0px; }
 
 .tierlist-sidebar-actions {
     display: flex;

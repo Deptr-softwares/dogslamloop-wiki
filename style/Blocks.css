@@ -366,8 +366,6 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 .update-table.wiki-content-table thead tr { background: var(--bg-main, #050505); border-bottom: 2px solid var(--border-color, #333); }
 .update-table.wiki-content-table td { color: var(--text-primary); }
 .update-table.wiki-content-table tbody tr { border-bottom: 1px dashed var(--border-color, #222); transition: background 0.1s; }
-.update-table.wiki-content-table tbody tr:nth-child(even):not(:where(.update-table tbody tr:is(:nth-child(2n), :hover))) { background: rgba(255,255,255,0.02); }
-.update-table.wiki-content-table tbody tr:hover:not(:where(.update-table tbody tr:is(:nth-child(2n), :hover))) { background: rgba(255,255,255,0.05); }
 .wiki-table-empty-cell { padding: 1rem; text-align: center; color: #888; font-style: italic; }
 
 .wiki-accordion-wrapper { margin: 1.5rem 0; width: 100%; }
@@ -715,7 +713,6 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 .update-table { border: 1px solid var(--border-color); background: var(--bg-main); }
 .update-table :is(th, td) { border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; }
 .update-table th { background: var(--bg-secondary); color: var(--text-white); }
-.update-table tbody tr:is(:nth-child(even), :hover) { background: none; }
 .wiki-video-btn { color: var(--accent-blue); }
 .wiki-video-btn:hover { color: var(--accent-blue-hover); text-decoration: underline; }
 .wiki-accordion-summary { font-size: 0.9rem; background: var(--bg-secondary); }
@@ -836,34 +833,22 @@ html:not(.look-classic) {
     border-bottom: none;
 }
 .update-table.wiki-content-table td { padding: 0.75rem 1rem; }
-.update-table.wiki-content-table tbody tr:nth-child(even):where(.update-table tbody tr:is(:nth-child(2n), :hover)) {
-    background: rgba(255,255,255,0.02);
-}
-.update-table.wiki-content-table tbody tr:hover:where(.update-table tbody tr:is(:nth-child(2n), :hover)) {
-    background: rgba(255,255,255,0.05);
-}
+.update-table.wiki-content-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.update-table.wiki-content-table tbody tr:hover { background: rgba(255,255,255,0.05); }
 .wiki-accordion-summary {
     font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     color: var(--accent-blue, #3b82f6);
     text-transform: uppercase;
 }
-.wiki-accordion-body { border-top-style: dashed; }
-.wiki-accordion-body { background: var(--bg-secondary, #111); }
-.sbox-boxed {
-    border-width: 2px;
-}
+.wiki-accordion-body { border-top-style: dashed; background: var(--bg-secondary, #111); }
+.sbox-boxed, .wiki-block-list-boxed { border-width: 2px; }
 .sbox-boxed { box-shadow: 4px 4px 0px var(--manga-shadow); }
 .sbox-title { font-family: var(--font-label), sans-serif; }
 .strategy-title {
     font-family: var(--font-title), sans-serif;
     color: var(--text-white);
-}
-.strategy-title {
     border-bottom-width: 1px;
-}
-.wiki-block-list-boxed {
-    border-width: 2px;
 }
 }
 }

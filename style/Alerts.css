@@ -85,12 +85,10 @@
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
-.inline-callout-btn { background: var(--bg-secondary); }
-.inline-callout-btn { border: 2px solid var(--border-color); }
 .inline-callout-btn {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
     border-left: 4px solid var(--callout-color, var(--accent-blue));
-}
-.inline-callout-btn {
     font-family: var(--text-mono);
     font-size: 0.75rem;
     font-weight: bold;

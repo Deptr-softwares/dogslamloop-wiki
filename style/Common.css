@@ -331,7 +331,6 @@ html:not(.look-classic) {
     border: revert;
     padding: revert;
 }
-:where(.update-table tbody tr:is(:nth-child(even), :hover)) { background: revert; }
 :where(.wiki-video-btn:hover) {
     text-decoration: revert;
 }
@@ -399,11 +398,7 @@ body {
 .section-title {
     font-family: var(--font-title), sans-serif;
     color: var(--accent-blue);
-}
-.section-title {
     border-bottom-width: 2px;
-}
-.section-title {
     text-shadow: 2px 2px 0px var(--manga-shadow);
     text-transform: uppercase;
 }

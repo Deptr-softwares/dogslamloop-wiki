@@ -82,7 +82,7 @@ html.reduce-motion .btn-sys { transition: none; }
     cursor: pointer;
     box-sizing: border-box;
 }
-.btn-manga:hover:not(:where(:is(.btn-manga, .filter-toggle).active)), .filter-toggle:hover:not(:where(:is(.btn-manga, .filter-toggle).active)) { color: var(--text-white); border-color: var(--manga-accent); }
+.btn-manga:hover, .filter-toggle:hover { color: var(--text-white); border-color: var(--manga-accent); }
 
 /* Active / Selected State */
 .btn-manga.active, .filter-toggle.active {
@@ -161,7 +161,7 @@ html.reduce-motion .btn-sys { transition: none; }
     color: var(--text-muted);
     padding: 0.35rem 0.7rem; cursor: pointer;
 }
-.sub-tab:hover:not(:where(.sub-tab.is-active)) { color: var(--text-white); }
+.sub-tab:hover { color: var(--text-white); }
 .sub-tab.is-active { background: var(--bg-main); }
 .sub-tab[hidden] { display: none; }
 .sub-tab-item { display: inline-flex; position: relative; }
@@ -219,17 +219,15 @@ button:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) { margin:
 button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
     font-family: inherit;
 }
-.btn-sys { font-family: var(--text-mono); }
-.btn-sys:where(.btn-sys.dock-action-btn) {
+.btn-sys:where(.dock-action-btn) {
     font-size: 0.7rem;
     font-weight: bold;
-}
-.btn-sys { text-transform: uppercase; }
-.btn-sys:where(.btn-sys.dock-action-btn) {
     padding: 0.4rem 0.75rem;
     border: 1px solid var(--sys-edge);
 }
 .btn-sys {
+    font-family: var(--text-mono);
+    text-transform: uppercase;
     background: linear-gradient(225deg, transparent calc(50% - 0.75px), var(--sys-edge) calc(50% - 0.75px), var(--sys-edge) calc(50% + 0.75px), transparent calc(50% + 0.75px)) right top / var(--sys-cut) var(--sys-cut) no-repeat border-box, linear-gradient(var(--sys-fill), var(--sys-fill)) left top / 0% 100% no-repeat border-box, color-mix(in srgb, var(--sys-edge) 9%, var(--bg-main, #0d1117));
     box-shadow: 3px 3px 0 var(--manga-shadow, #000);
     clip-path: polygon(0 0, calc(100% - var(--sys-cut)) 0, calc(100% + 6px) calc(var(--sys-cut) + 6px), calc(100% + 6px) calc(100% + 6px), 0 calc(100% + 6px));
@@ -258,9 +256,6 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
 .btn-manga,
 .filter-toggle {
     border-width: 2px;
-}
-.btn-manga,
-.filter-toggle {
     font-family: var(--font-title), sans-serif;
     text-transform: uppercase;
     box-shadow: 3px 3px 0px var(--manga-shadow);
@@ -299,8 +294,8 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
 }
 .btn-nav.active {
     background: rgba(59, 130, 246, 0.1);
+    color: var(--text-white);
 }
-.btn-nav.active { color: var(--text-white); }
 .sub-tabs { border-bottom-width: 2px; }
 .sub-tab {
     font-family: var(--text-mono);

@@ -100,7 +100,7 @@
     font-family: var(--font-title), sans-serif;
     text-transform: uppercase;
 }
-.column-subgroup-title { font-size: 1.15rem; color: var(--text-white); margin-bottom: 1rem; border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
+.column-subgroup-title { font-size: 1.15rem; color: var(--text-white); border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
 
 /* "On this tab" header row (local-sidebar-right, above the ToC) */
 .sidebar-tab-header {
@@ -748,8 +748,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 html:not(.look-classic) {
 .sidebar-master-title {
     font-family: var(--font-title), sans-serif;
-}
-.sidebar-master-title {
     font-size: 1.15rem;
     color: var(--text-white);
     margin-bottom: 1rem;
@@ -757,8 +755,6 @@ html:not(.look-classic) {
     border-bottom: 2px solid var(--border-color);
     text-shadow: 2px 2px 0px var(--manga-shadow);
     letter-spacing: 0.05em;
-}
-.sidebar-master-title {
     text-transform: uppercase;
 }
 .sidebar-tab-header .sidebar-master-title {
@@ -775,12 +771,10 @@ html:not(.look-classic) {
     margin-bottom: 0.4rem;
     text-shadow: 1px 1px 0px var(--manga-shadow);
 }
-.sidebar-nav-title.sidebar-group-header { margin-bottom: 0; }
 .sidebar-nav-title.sidebar-group-header {
-    padding-bottom: 0px;
+    margin-bottom: 0;
+    padding-bottom: 0;
     border-bottom: none;
-}
-.sidebar-nav-title.sidebar-group-header {
     font-family: var(--font-title), sans-serif;
     text-transform: inherit;
     letter-spacing: inherit;
