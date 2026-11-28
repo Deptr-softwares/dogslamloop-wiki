@@ -252,3 +252,70 @@ test('the Classic hint says the look reaches every page', async ({ page }) => {
   const hint = page.locator('label[for="site-setting-look-classic"] .site-setting-hint');
   await expect(hint).toHaveText('A plain, dark wiki look.');
 });
+
+// The three fonts (v1.3; the owner's note: Heading/Title text, Sub-heading text,
+// Regular text). Each takes the look's own or one of the site's own faces
+// (--face-<key>, style/Common.css), over either look. Read on the site's own
+// chrome, never page content: the character's name, the Ko-fi button and the body.
+// In Classic the sidebar's headings and the buttons take the sub-heading font.
+const FONT_ROLES = { title: '.character-title', label: '.kofi-text', body: 'body' };
+const FIRST_FAMILY = { 'Finger Paint': 'Finger-Paint', 'CC Wild Words': 'CC-Wild-Words', Serif: 'Georgia', 'Sans-serif': '-apple-system', Monospace: 'ui-monospace' };
+
+async function pickFont(page, role, name) {
+  await page.locator(`#site-setting-font-${role} + .manga-select-wrapper .manga-select-trigger`).click();
+  await page.locator(`#site-setting-font-${role} + .manga-select-wrapper .manga-option`).filter({ hasText: new RegExp(`^${name}$`) }).click();
+}
+const fontsNow = (page) => page.evaluate(roles => Object.fromEntries(Object.entries(roles)
+  .map(([role, sel]) => [role, getComputedStyle(document.querySelector(sel)).fontFamily.split(',')[0].trim().replace(/"/g, '')])), FONT_ROLES);
+
+test('each font takes the face picked over either look, stays after a reload, and the look\'s own takes it back', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.addInitScript(() => {
+    new MutationObserver((_, obs) => {
+      if (!document.body) return;
+      window.__styleAtBody = document.documentElement.getAttribute('style') || '';
+      obs.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await open(page);
+  const usual = await fontsNow(page);
+  expect(usual).toEqual({ title: 'Finger-Paint', label: 'CC-Wild-Words', body: '-apple-system' });
+
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-font-title')).toHaveValue('');
+  for (const [name, family] of Object.entries(FIRST_FAMILY)) {
+    await pickFont(page, 'title', name);
+    expect((await fontsNow(page)).title, name).toBe(family);
+  }
+  await pickFont(page, 'label', 'Monospace');
+  await pickFont(page, 'body', 'Serif');
+  const picked = { title: 'ui-monospace', label: 'ui-monospace', body: 'Georgia' };
+  expect(await fontsNow(page)).toEqual(picked);
+
+  // Over Classic too, whose own faces differ.
+  await page.locator('#site-setting-look-classic').check();
+  expect(await fontsNow(page)).toEqual(picked);
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.sidebar-master-title')).fontFamily)).toMatch(/^ui-monospace/);
+  await page.keyboard.press('Escape');
+
+  await page.reload({ waitUntil: 'networkidle' });
+  expect(await fontsNow(page)).toEqual(picked);
+  expect(await page.evaluate(() => window.__styleAtBody)).toContain('--font-title: var(--face-mono)');
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-font-body')).toHaveValue('serif');
+
+  for (const role of Object.keys(FONT_ROLES)) await pickFont(page, role, "The look's own");
+  expect(await fontsNow(page)).toEqual({ title: 'Georgia', label: 'Arial', body: '-apple-system' });
+  expect(errors).toEqual([]);
+});
+
+test('a stored face the site does not have reads as the look\'s own', async ({ page }) => {
+  await page.addInitScript(() => {
+    try { localStorage.setItem('dsl_site_settings', JSON.stringify({ fontTitle: 'comic-sans', fontBody: 42 })); } catch (e) {}
+  });
+  await open(page);
+  expect(await fontsNow(page)).toEqual({ title: 'Finger-Paint', label: 'CC-Wild-Words', body: '-apple-system' });
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-font-title')).toHaveValue('');
+});

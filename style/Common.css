@@ -74,10 +74,18 @@
     --text-mono: Arial, Helvetica, sans-serif;
     --manga-shadow: transparent;
 
-    /* The three faces, named once so a look or a setting can swap them; a rule that
+    /* The faces a reader can pick in Site settings, by key: a pick points a font
+       below at one (window.applySiteSettings), over either look's own. */
+    --face-finger-paint: 'Finger-Paint';
+    --face-wild-words: 'CC-Wild-Words';
+    --face-serif: Georgia, 'Times New Roman', serif;
+    --face-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --face-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* The three fonts, named once so a look or a setting can swap them; a rule that
        uses a display face keeps its own fallbacks after it. */
-    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    --font-title: Georgia, 'Times New Roman', serif;
+    --font-body: var(--face-sans);
+    --font-title: var(--face-serif);
     --font-label: Arial, Helvetica;
 }
 
@@ -303,7 +311,7 @@ html.reduce-motion .anchor-flash { outline: 2px solid var(--accent-blue); outlin
 /* Words the Dogslamloop look writes in capitals read as written. */
 :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option) {
     text-transform: none;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-label), sans-serif;
 }
 }
 
@@ -317,10 +325,10 @@ html:not(.look-classic) {
 --accent-blue-hover: hsl(212, 96%, 78%);
 --text-primary: hsl(210, 17%, 82%);
 --text-muted: hsl(212, 9%, 58%);
---text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+--text-mono: var(--face-mono);
 --manga-shadow: var(--black);
---font-title: 'Finger-Paint';
---font-label: 'CC-Wild-Words';
+--font-title: var(--face-finger-paint);
+--font-label: var(--face-wild-words);
 /* Where Default's value is the browser's own, which differs by tag (a heading's bold), it is revert. */
 :where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
     font-family: inherit;

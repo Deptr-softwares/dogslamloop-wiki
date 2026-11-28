@@ -23,7 +23,14 @@
     const STORE_KEY = 'dsl_site_settings';
     // look: 'default' or 'classic' (v1.2). html.look-classic switches off every
     // sheet's Dogslamloop part, on every page (docs/looks.md).
-    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default' });
+    // fontTitle, fontLabel, fontBody: '' (the look's own) or a key of FACES.
+    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default', fontTitle: '', fontLabel: '', fontBody: '' });
+    // The faces each font can take, by key: the page reads a face's families from
+    // --face-<key> (style/Common.css). Named here once, for the store and the box.
+    const FACES = Object.freeze({ 'finger-paint': 'Finger Paint', 'wild-words': 'CC Wild Words', serif: 'Serif', sans: 'Sans-serif', mono: 'Monospace' });
+    // The values a setting may hold, where it is a choice.
+    const faceKeys = ['', ...Object.keys(FACES)];
+    const CHOICES = Object.freeze({ look: ['default', 'classic'], fontTitle: faceKeys, fontLabel: faceKeys, fontBody: faceKeys });
 
     function readStore() {
         try {
@@ -39,10 +46,15 @@
     const deviceReduce = typeof window.matchMedia === 'function'
         ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 
+    // A value of the default's type, and one of its choices: a face taken away
+    // later reads as the look's own.
+    function valid(key, value) {
+        return typeof value === typeof DEFAULTS[key] && (!CHOICES[key] || CHOICES[key].includes(value));
+    }
+
     function get(key) {
         if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) return undefined;
-        const value = stored[key];
-        return typeof value === typeof DEFAULTS[key] ? value : DEFAULTS[key];
+        return valid(key, stored[key]) ? stored[key] : DEFAULTS[key];
     }
 
     function apply() {
@@ -54,7 +66,7 @@
     // Returns whether the value was saved, so the panel can say when it was
     // not. Applied either way: it still holds until the page is left.
     function set(key, value) {
-        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key) || typeof value !== typeof DEFAULTS[key]) return false;
+        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key) || !valid(key, value)) return false;
         stored = Object.assign({}, stored, { [key]: value });
         apply();
         try {
@@ -68,7 +80,7 @@
     if (deviceReduce && typeof deviceReduce.addEventListener === 'function') deviceReduce.addEventListener('change', apply);
     apply();
 
-    window.siteSettings = { get, set, DEFAULTS };
+    window.siteSettings = { get, set, DEFAULTS, FACES };
 
     // For a scroll a script starts. CSS's scroll-behavior does not reach
     // scrollTo or scrollIntoView, so until this a device asking for less
