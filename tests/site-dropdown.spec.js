@@ -307,6 +307,64 @@ test('a disabled option, such as a placeholder, is shown but never picked', asyn
   await expect(button).toHaveText('News');
 });
 
+// A row once took its option's resolved colour. Where no page rule colours options,
+// that is inherited from the browser's black field text, so Site settings' font lists
+// were black on a reader page, and every dropdown's rows depended on the page.
+test('rows are drawn in the dropdown\'s own colours; only an option coloured by its own class or style keeps it', async ({ page }) => {
+  const errors = await openRoster(page);
+  // What a row at rest and the picked row draw, resolved inside the list.
+  const rowColours = (wrapper) => wrapper.evaluate(w => {
+    document.getAnimations().forEach(a => { try { a.finish(); } catch (e) { /* endless */ } });
+    const list = w.querySelector('.manga-select-options');
+    const probe = value => {
+      const s = document.createElement('span');
+      s.style.color = value;
+      list.appendChild(s);
+      const c = getComputedStyle(s).color;
+      s.remove();
+      return c;
+    };
+    const rows = [...list.querySelectorAll('.manga-option')];
+    return {
+      muted: probe('var(--text-muted)'), white: probe('var(--text-white)'),
+      rest: rows.filter(r => !r.matches('.selected, .is-active')).map(r => getComputedStyle(r).color),
+      picked: rows.filter(r => r.matches('.selected:not(.is-active)')).map(r => getComputedStyle(r).color),
+    };
+  });
+
+  await page.evaluate(() => window.openSiteSettings());
+  const font = page.locator('#site-setting-font-title + .manga-select-wrapper');
+  await font.locator('.manga-select-trigger').click();
+  await expect(font.locator('.manga-option').first()).toBeVisible();
+  // Off the picked row, so it shows as picked rather than as the row the keys or
+  // the pointer are on.
+  await page.keyboard.press('End');
+  await page.mouse.move(1, 1);
+  const box = await rowColours(font);
+  expect(box.rest.length).toBeGreaterThan(1);
+  expect(box.picked.length).toBe(1);
+  expect(new Set(box.rest)).toEqual(new Set([box.muted]));
+  expect(box.picked).toEqual([box.white]);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#site-settings-overlay')).toBeHidden();
+
+  const button = await addDropdown(page, { options: ['Picked', 'Plain', 'Classed', 'Styled'] });
+  await page.evaluate(() => {
+    const tone = document.createElement('style');
+    tone.textContent = 'option.test-tone { color: rgb(200, 10, 10); }';
+    document.head.appendChild(tone);
+    const select = document.getElementById('test-dropdown');
+    select.options[2].className = 'test-tone';
+    select.options[3].style.color = 'rgb(10, 150, 10)';
+  });
+  await button.click();
+  await page.mouse.move(1, 1);
+  const own = await rowColours(button.locator('xpath=..'));
+  expect(own.rest).toEqual([own.muted, 'rgb(200, 10, 10)', 'rgb(10, 150, 10)']);
+  expect(errors).toEqual([]);
+});
+
 test('the Block folder picker takes the same keys: End reaches Create new folder and Enter makes it', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));

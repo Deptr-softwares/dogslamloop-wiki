@@ -456,9 +456,10 @@ function fillDropdown(wrapper) {
         const picked = index === select.selectedIndex;
         row.classList.toggle('selected', picked);
         row.setAttribute('aria-selected', picked ? 'true' : 'false');
-        // The resolved colour, not option.style.color: options are coloured by classes.
-        const color = getComputedStyle(option).color;
-        if (color) row.style.color = color;
+        // Only an option with a class or a style of its own (the frame data's track
+        // colours) passes its colour on. Any other's is inherited, often the browser's
+        // black field text, so its row takes the dropdown's own.
+        if (option.className || option.style.color) row.style.color = getComputedStyle(option).color;
         row.textContent = option.textContent;
         if (option.disabled) row.setAttribute('aria-disabled', 'true');
         return row;
