@@ -209,6 +209,28 @@ test('a character page keeps its colour as the accent under a theme; Classic tak
     expect(classic.accent, 'Classic: the theme\'s accent').toBe('rgb(9, 105, 218)');
 });
 
+// A name the site colours itself comes with its colour inline. An invented character
+// in a light yellow, so no real character's colour is relied on.
+test('on a light theme, a character\'s name in text takes a darker shade of its colour', async ({ page }) => {
+    const mention = () => page.evaluate(() => {
+        window.CHARACTER_COLORS = { Zelvaar: '#ffe066' };
+        const p = document.createElement('p');
+        p.className = 'wiki-text';
+        p.textContent = 'Zelvaar wins the trade.';
+        document.querySelector('.main-content-area').appendChild(p);
+        window.applyInternalStyling();
+        const name = p.querySelector('.sc-char');
+        return name ? getComputedStyle(name).color : 'no name drawn';
+    });
+    await boot(page, {}, '/systems/hud/index.html');
+    expect(await mention(), 'Dark: the colour itself').toBe('rgb(255, 224, 102)');
+    await boot(page, { theme: 'light' }, '/systems/hud/index.html');
+    const lit = await mention();
+    const [l, , h] = (lit.match(/oklch\(([\d.]+) ([\d.]+) ([\d.]+)/) || [0, 1, 0, 0]).slice(1).map(Number);
+    expect(l, `light: darker (${lit})`).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(h - 95), 'still yellow').toBeLessThan(10);
+});
+
 test('on a light theme, text in a status colour takes a darker shade of its hue, and its border keeps the colour', async ({ page }) => {
     const kofi = () => page.evaluate(() => {
         document.getAnimations().forEach(a => { try { a.finish(); } catch (e) { /* endless */ } });
