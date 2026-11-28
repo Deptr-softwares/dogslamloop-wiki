@@ -151,3 +151,67 @@ test('when the browser blocks saving, the panel says so and the setting still ho
   await expect(page.locator('.site-settings-error')).toContainText('blocked saving');
   await expect(page.locator('html')).toHaveClass(/\breduce-motion\b/);
 });
+
+// Every page applies the stored settings in <head>, from one generated block
+// (window.applySiteSettings, scripts/page-scripts.js), so nothing a reader picked
+// shows its default first. The staff pages had no block until v1.3, so a Classic
+// reader could see a frame of Default there.
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+const { settingsTag } = require('../scripts/page-scripts.js');
+
+const ROOT = path.join(__dirname, '..');
+const STAFF = ['edit.html', 'overseer.html', 'owner.html', 'tier-editor.html', 'post-editor.html'];
+
+test('every page a reader can stay on carries the settings block in <head>, after its stylesheets', () => {
+  const block = settingsTag().trim();
+  const pages = execSync('git ls-files "*.html"', { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
+    .map(rel => ({ rel, html: fs.readFileSync(path.join(ROOT, rel), 'utf8') }))
+    // A moved page's stub forwards before anything paints.
+    .filter(({ html }) => /<link\b[^>]*rel="stylesheet"/.test(html) && !html.includes('dsl-moved-page'));
+  expect(pages.map(p => p.rel)).toEqual(expect.arrayContaining([...STAFF, 'index.html', 'characters/Boomcat/index.html']));
+  const wrong = [];
+  for (const { rel, html } of pages) {
+    const at = html.indexOf(block);
+    const lastSheet = [...html.matchAll(/<link\b[^>]*rel="stylesheet"/g)].pop().index;
+    if (at < 0 || html.indexOf(block, at + 1) >= 0) wrong.push(`${rel}: not exactly once`);
+    else if (at < lastSheet) wrong.push(`${rel}: before a stylesheet`);
+    else if (at > html.indexOf('</head>')) wrong.push(`${rel}: outside <head>`);
+  }
+  expect(wrong).toEqual([]);
+});
+
+test('the stored look and motion are on <html> before <body> arrives, on the staff pages too', async ({ page }) => {
+  await page.route('**/rest/v1/**', r => r.abort());
+  await page.addInitScript(() => {
+    try { localStorage.setItem('dsl_site_settings', JSON.stringify({ look: 'classic', motionOff: true })); } catch (e) {}
+    // An init script runs before <html> exists: watch the document.
+    new MutationObserver((_, obs) => {
+      if (!document.body) return;
+      window.__classAtBody = document.documentElement.className;
+      obs.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  const seen = {};
+  for (const rel of [...STAFF, 'index.html', 'characters/Boomcat/index.html']) {
+    await page.goto(`/${rel}`, { waitUntil: 'domcontentloaded' });
+    seen[rel] = await page.evaluate(() => window.__classAtBody.split(/\s+/).filter(c => /^(look-classic|reduce-motion)$/.test(c)).sort().join(' '));
+  }
+  const want = Object.fromEntries(Object.keys(seen).map(rel => [rel, 'look-classic reduce-motion']));
+  expect(seen).toEqual(want);
+});
+
+test('a device that asks for less motion has it before <body> arrives, with nothing stored', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => {
+    new MutationObserver((_, obs) => {
+      if (!document.body) return;
+      window.__classAtBody = document.documentElement.className;
+      obs.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await page.goto('/terms.html', { waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => window.__classAtBody)).toMatch(/\breduce-motion\b/);
+  expect(await page.evaluate(() => window.__classAtBody)).not.toMatch(/\blook-classic\b/);
+});

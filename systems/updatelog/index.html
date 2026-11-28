@@ -7,22 +7,31 @@
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
     
     <!-- BEGIN GENERATED: styles - scripts/page-scripts.js - do not edit by hand -->
-    <link rel="stylesheet" href="../../style/Common.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Layout.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Blocks.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/posts.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Cards.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Buttons.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Badges.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/ColorCoding.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Alerts.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Modals.css?v=374da5e6">
-    <link rel="stylesheet" href="../../style/Forms.css?v=374da5e6">
+    <link rel="stylesheet" href="../../style/Common.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Layout.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Blocks.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/posts.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Cards.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Buttons.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Badges.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/ColorCoding.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Alerts.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Modals.css?v=3fdb8b77">
+    <link rel="stylesheet" href="../../style/Forms.css?v=3fdb8b77">
     <!-- END GENERATED: styles -->
-    <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/utility/site_utils.js keeps it in step after.
-         Storage blocked or empty means the default look, silently. -->
-    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
+    <!-- BEGIN GENERATED: settings - scripts/page-scripts.js - do not edit by hand -->
+    <script>window.applySiteSettings = function (s) {
+        var html = document.documentElement;
+        html.classList.toggle('look-classic', s.look === 'classic');
+        html.classList.toggle('reduce-motion', s.motionOff === true || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+        ['Title', 'Label', 'Body'].forEach(function (role) {
+            var face = s['font' + role], prop = '--font-' + role.toLowerCase();
+            if (typeof face === 'string' && /^[a-z]+(-[a-z]+)*$/.test(face)) html.style.setProperty(prop, 'var(--face-' + face + ')');
+            else html.style.removeProperty(prop);
+        });
+    };
+    try { window.applySiteSettings(JSON.parse(localStorage.getItem('dsl_site_settings')) || {}); } catch (e) { window.applySiteSettings({}); }</script>
+    <!-- END GENERATED: settings -->
 </head>
 <body class="site-body p-0">
 
@@ -108,20 +117,20 @@
 
     <!-- BEGIN GENERATED: scripts - scripts/page-scripts.js - do not edit by hand -->
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="../../js/utility/character_tabs.js?v=374da5e6"></script>
-    <script src="../../js/utility/input_slots.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_utils.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_data.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_media.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_account.js?v=374da5e6"></script>
-    <script src="../../js/utility/site_lookups.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/page_shell.js?v=374da5e6"></script>
-    <script src="../../js/utility/search.js?v=374da5e6"></script>
-    <script src="../../js/dashboards/home_widgets.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/page_render.js?v=374da5e6"></script>
-    <script src="../../js/pages/core/format_tags.js?v=374da5e6"></script>
-    <script src="../../js/pages/community/posts.js?v=374da5e6"></script>
-    <script async src="../../js/others/analytics.js?v=374da5e6"></script>
+    <script src="../../js/utility/character_tabs.js?v=3fdb8b77"></script>
+    <script src="../../js/utility/input_slots.js?v=3fdb8b77"></script>
+    <script src="../../js/utility/site_utils.js?v=3fdb8b77"></script>
+    <script src="../../js/utility/site_data.js?v=3fdb8b77"></script>
+    <script src="../../js/utility/site_media.js?v=3fdb8b77"></script>
+    <script src="../../js/utility/site_account.js?v=3fdb8b77"></script>
+    <script src="../../js/utility/site_lookups.js?v=3fdb8b77"></script>
+    <script src="../../js/pages/core/page_shell.js?v=3fdb8b77"></script>
+    <script src="../../js/utility/search.js?v=3fdb8b77"></script>
+    <script src="../../js/dashboards/home_widgets.js?v=3fdb8b77"></script>
+    <script src="../../js/pages/core/page_render.js?v=3fdb8b77"></script>
+    <script src="../../js/pages/core/format_tags.js?v=3fdb8b77"></script>
+    <script src="../../js/pages/community/posts.js?v=3fdb8b77"></script>
+    <script async src="../../js/others/analytics.js?v=3fdb8b77"></script>
     <!-- END GENERATED: scripts -->
 
     <!-- DYNAMIC FETCH & RENDER SCRIPT -->

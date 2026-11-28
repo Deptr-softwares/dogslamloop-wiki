@@ -14,9 +14,11 @@
 
 // Site Settings: a reader's own settings, per device, in one JSON object shaped
 // like the editor's Config, so a new setting is one more key. Nothing reaches the
-// account or the database. html.reduce-motion is the one switch every "less
-// motion" rule reads: on when the device asks for it or the reader ticked "Turn
-// off animations". First in the file, so the class is on before anything moves.
+// account or the database. window.applySiteSettings, in every page's <head>
+// (scripts/page-scripts.js), has already applied them before the first paint; this
+// store checks each value and applies again after a change. html.reduce-motion is
+// the one switch every "less motion" rule reads: on when the device asks for it or
+// the reader ticked "Turn off animations".
 (function () {
     const STORE_KEY = 'dsl_site_settings';
     // look: 'default' or 'classic' (v1.2). html.look-classic switches off every
@@ -44,9 +46,9 @@
     }
 
     function apply() {
-        document.documentElement.classList.toggle('reduce-motion',
-            get('motionOff') || !!(deviceReduce && deviceReduce.matches));
-        document.documentElement.classList.toggle('look-classic', get('look') === 'classic');
+        const checked = {};
+        Object.keys(DEFAULTS).forEach(key => { checked[key] = get(key); });
+        window.applySiteSettings(checked);
     }
 
     // Returns whether the value was saved, so the panel can say when it was

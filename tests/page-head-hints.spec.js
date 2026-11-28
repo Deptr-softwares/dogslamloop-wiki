@@ -134,10 +134,10 @@ test('on the home page every script is deferred and covered by the policy, and t
     }
     // A plain inline script would run during parsing, before the deferred
     // ones, and add its DOMContentLoaded listener ahead of theirs. The one
-    // allowed is the Classic look's line in <head> (v1.2), which has to run
-    // before the first paint and only sets a class.
+    // allowed is the Site Settings block in <head>, which has to run before the
+    // first paint and only sets classes and variables on <html>.
     const inline = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)];
     expect(inline.map(m => m[0].match(/^<script\b[^>]*>/)[0])).toEqual(['<script>', '<script type="module">']);
-    expect(inline[0][1]).toContain("classList.add('look-classic')");
-    expect(inline[0][1]).not.toMatch(/addEventListener|DOMContentLoaded/);
+    expect(inline[0][1]).toContain('window.applySiteSettings');
+    expect(inline[0][1]).not.toMatch(/addEventListener|DOMContentLoaded|onchange/);
 });
