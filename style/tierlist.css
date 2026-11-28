@@ -55,8 +55,8 @@
     background-color: var(--bg-main);
     background-image: repeating-linear-gradient(
         -45deg,
-        rgba(255, 255, 255, 0.06) 0px,
-        rgba(255, 255, 255, 0.06) 2px,
+        var(--tint-6) 0px,
+        var(--tint-6) 2px,
         transparent 2px,
         transparent 8px
     );

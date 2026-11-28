@@ -22,7 +22,7 @@
 .change-card-page-link:hover { color: var(--accent-blue); }
 .change-card-scope { font-size: 0.75rem; color: var(--purple); font-family: var(--text-mono); margin-top: 0.25rem; }
 .change-card-meta { text-align: right; font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted); }
-.change-card-meta strong { color: var(--white); font-size: 0.85rem; }
+.change-card-meta strong { color: var(--text-white); font-size: 0.85rem; }
 .change-card-meta .reviewer { color: #34d399; }
 .change-card-changelog { font-size: 0.85rem; color: var(--grey-d1); line-height: 1.6; font-family: var(--text-mono); }
 .change-card-history-link { font-size: 0.75rem; margin-top: 0.75rem; display: inline-block; }

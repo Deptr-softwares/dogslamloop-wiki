@@ -16,7 +16,7 @@
 .update-log-body { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 2px dashed var(--border-color); }
 
 .update-table-container { overflow-x: auto; }
-.update-row:hover { background-color: hsl(215, 28%, 17%); }
+.update-row:hover { background-color: var(--theme-bg-secondary, hsl(215, 28%, 17%)); }
 
 /* Site posts (blog + hotfix notes, js/pages/community/posts.js). Post bodies reuse the wiki's
    own .wiki-section block styling, so only the listing card and post header

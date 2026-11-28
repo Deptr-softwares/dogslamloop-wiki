@@ -65,7 +65,7 @@
 .skill-media-wrapper-empty { background-color: transparent !important; }
 .skill-media-missing { 
     display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; 
-    border: 1px dashed var(--border-color); color: hsl(215, 8%, 47%); 
+    border: 1px dashed var(--border-color); color: var(--theme-text-muted, hsl(215, 8%, 47%)); 
     font-family: var(--text-mono); font-size: 0.875rem; 
 }
 .skill-media-img { object-fit: cover; width: 100%; height: 100%; }
@@ -83,7 +83,7 @@
     margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 0.25rem;
 }
 .stat-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
-.stat-row-empty { justify-content: center; color: hsl(215, 8%, 47%); font-style: italic; }
+.stat-row-empty { justify-content: center; color: var(--theme-text-muted, hsl(215, 8%, 47%)); font-style: italic; }
 
 .stat-label { 
     color: var(--text-muted); font-family: var(--font-label), sans-serif; 

@@ -6,8 +6,9 @@
    site_lookups.js.
    See: docs/looks.md */
 
-/* The cascade layers, lowest first: a rule in a later layer wins over any rule in an earlier one. */
-@layer site, dogslamloop;
+/* The cascade layers, lowest first: a rule in a later layer wins over any rule in an
+   earlier one. A Site settings theme is last, so its colours win over both looks. */
+@layer site, dogslamloop, theme;
 
 @layer site {
 /* The palette: the colours the sheets share, each named once. */
@@ -32,6 +33,11 @@
     --tint-2: rgba(255,255,255,0.02);
     --tint-3: rgba(255,255,255,0.03);
     --tint-5: rgba(255,255,255,0.05);
+    --tint-6: rgba(255,255,255,0.06);
+    --tint-7: rgba(255,255,255,0.07);
+    --tint-8: rgba(255,255,255,0.08);
+    --tint-10: rgba(255,255,255,0.1);
+    --tint-20: rgba(255,255,255,0.2);
 }
 /* WOFF2 first, about half the TTF's bytes; a browser without WOFF2 takes the TTF. */
 @font-face {
@@ -144,7 +150,7 @@ body {
 
 .site-subtitle {
     font-size: 0.75rem;
-    color: hsl(215, 8%, 47%);
+    color: var(--theme-text-muted, hsl(215, 8%, 47%));
     font-family: var(--text-mono);
     margin: 0.25rem 0 0 0;
 }
@@ -215,13 +221,13 @@ body {
 .sc-s { text-decoration: line-through; opacity: 0.6; }
 
 .sc-code {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--tint-10);
     padding: 0.15rem 0.35rem;
     border-radius: 4px;
     font-family: var(--text-mono);
     color: var(--text-white);
     font-size: 0.85em;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 0 0 1px var(--tint-20);
 }
 
 /* Bold is the shared part; the colour is inline. .sc-mc is [multicolor=], one span
@@ -262,7 +268,7 @@ body {
     border: 1px solid var(--border-color);
     border-bottom-width: 2px;
     border-radius: 3px;
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--tint-7);
     font-family: var(--text-mono);
     font-size: 0.85em;
     color: var(--text-white);
@@ -374,5 +380,23 @@ body {
     text-transform: uppercase;
 }
 .section-title:not(.section-title-clean):not(.section-title-flex)::after { content: ''; }
+}
+}
+
+/* A Site settings theme (data-theme on <html>, window.applySiteSettings), over both
+   looks. Dark, the default, is no theme. */
+@layer theme {
+/* Under a theme the palette's greys are its colours, as Classic draws them on the
+   staff pages, and the --theme-* names are defined: a colour written
+   var(--theme-<role>, <its own value>) keeps its own value until a theme is on. Black
+   and white stay true, for ink on a coloured fill, frame data and the colour picker. */
+html:is([data-theme="light"], [data-theme="shadow"], [data-theme="brown-paper"], [data-theme="light-blue"]) {
+    --grey-05: var(--bg-main); --grey-0a: var(--bg-main); --grey-11: var(--bg-secondary);
+    --grey-22: var(--border-color); --grey-33: var(--border-color); --grey-44: var(--border-color); --grey-55: var(--border-color);
+    --grey-66: var(--text-muted); --grey-88: var(--text-muted);
+    --grey-d1: var(--text-primary); --grey-e5: var(--text-primary);
+    --theme-bg-main: var(--bg-main); --theme-bg-secondary: var(--bg-secondary); --theme-border-color: var(--border-color);
+    --theme-text-primary: var(--text-primary); --theme-text-white: var(--text-white); --theme-text-muted: var(--text-muted);
+    --theme-character-ink: var(--character-ink);
 }
 }

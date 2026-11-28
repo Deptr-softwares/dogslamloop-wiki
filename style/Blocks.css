@@ -222,7 +222,7 @@
     height: 0.5rem;
     flex: 1 1 auto;
     min-width: 0;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--tint-8);
     border: 1px solid var(--accent-blue);
     cursor: pointer;
     overflow: hidden;
@@ -475,7 +475,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     color: var(--character-ink, var(--black));
 }
 .combo-note {
-    background: var(--tint-5); border: 1px dashed var(--grey-44); color: #aaa;
+    background: var(--tint-5); border: 1px dashed var(--grey-44); color: var(--theme-text-muted, #aaa);
     font-family: var(--text-mono); font-size: 0.75rem; padding: 0.25rem 0.5rem;
 }
 /* Right after the route, so it reads as the end of the combo, sized to sit with the
@@ -520,7 +520,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     display: flex; align-items: center; justify-content: center;
     box-sizing: border-box; width: 100%; min-height: 6rem;
     border: 1px dashed var(--border-color); border-radius: 0;
-    color: hsl(215, 8%, 47%);
+    color: var(--theme-text-muted, hsl(215, 8%, 47%));
     font-family: var(--text-mono); font-size: 0.875rem; text-align: center;
 }
 /* In a fixed-shape frame it fills the frame, as the video it replaced did. */
@@ -742,7 +742,7 @@ html:not(.look-classic) {
     padding: 0.5rem 0;
     gap: normal;
 }
-.profile-stat-label { color: #8b949e; flex: initial; font-weight: inherit; }
+.profile-stat-label { color: var(--theme-text-muted, #8b949e); flex: initial; font-weight: inherit; }
 .profile-stat-val {
     color: var(--text-white);
     font-weight: bold;

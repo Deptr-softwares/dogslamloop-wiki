@@ -65,8 +65,8 @@ const COLOUR = /#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|(?<![-\w])(?:black|white)(?![
 
 // Every place a sheet writes one of these colours, apart from the palette's own
 // block, a custom property named after a palette colour (the staff pages' Classic
-// mapping and Default's values over it, in editor.css) and a @property's
-// initial-value, which cannot read a variable.
+// map in editor.css, a theme's map in Common.css) and a @property's initial-value,
+// which cannot read a variable.
 function literals(names, values) {
     const found = [];
     for (const f of fs.readdirSync(STYLE).filter(f => f.endsWith('.css'))) {

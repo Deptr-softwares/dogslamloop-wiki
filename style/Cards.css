@@ -100,8 +100,8 @@
     background-color: var(--bg-main);
     background-image: repeating-linear-gradient(
         -45deg,
-        rgba(255, 255, 255, 0.06) 0px,
-        rgba(255, 255, 255, 0.06) 2px,
+        var(--tint-6) 0px,
+        var(--tint-6) 2px,
         transparent 2px,
         transparent 8px
     );
@@ -261,7 +261,7 @@ html:not(.look-classic) {
 }
 @media (hover: hover) {
     .wiki-section:hover, .skill-entry-card:hover {
-        border-color: hsl(212, 12%, 30%);
+        border-color: var(--theme-text-muted, hsl(212, 12%, 30%));
         transform: translate(-2px, -2px);
         box-shadow: 8px 8px 0px var(--manga-shadow);
     }

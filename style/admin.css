@@ -413,13 +413,13 @@
 .media-queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
 .media-queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: var(--grey-88); margin: 0 0 0.75rem 0; }
 
-.media-queue-row { border: 1px solid var(--grey-22); border-left: 3px solid var(--grey-33); padding: 0.6rem 0.75rem; background: hsl(0, 0%, 3%); }
+.media-queue-row { border: 1px solid var(--grey-22); border-left: 3px solid var(--grey-33); padding: 0.6rem 0.75rem; background: var(--theme-bg-main, hsl(0, 0%, 3%)); }
 .media-queue-row-flagged { border-left-color: var(--red); }
 .media-queue-row-approved { border-left-color: var(--green); }
 .media-queue-row-unchecked { border-left-color: var(--yellow); }
 
 .media-queue-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-.media-queue-name { font-family: var(--text-mono); font-size: 0.72rem; color: var(--white); word-break: break-all; }
+.media-queue-name { font-family: var(--text-mono); font-size: 0.72rem; color: var(--theme-text-white, var(--white)); word-break: break-all; }
 .media-queue-status-unchecked { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
 .media-queue-status-approved { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
 .media-queue-status-flagged { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid var(--red); }
@@ -514,8 +514,8 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 
 /* The ticket */
 .ticket-workspace { 
-    background: hsl(0, 0%, 2%); 
-    border: 1px solid hsl(0, 0%, 20%); 
+    background: var(--theme-bg-main, hsl(0, 0%, 2%)); 
+    border: 1px solid var(--theme-border-color, hsl(0, 0%, 20%)); 
     border-top: 2px solid hsl(45, 93%, 47%); 
     padding: 1.5rem; 
     margin-bottom: 2rem; 
@@ -535,8 +535,8 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 
 /* The QA report, above the ticket, on every submission */
 .qa-report-panel {
-    background: hsl(0, 0%, 2%);
-    border: 1px solid hsl(0, 0%, 20%);
+    background: var(--theme-bg-main, hsl(0, 0%, 2%));
+    border: 1px solid var(--theme-border-color, hsl(0, 0%, 20%));
     border-top: 2px solid #3b82f6;
     padding: 1rem 1.5rem;
     margin-bottom: 2rem;
@@ -552,7 +552,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .ticket-status-text.oppose { color: var(--red); margin-bottom: 1.5rem; }
 #ticket-support-actions { margin-top: auto; }
 
-.ticket-chat-log { flex: 1; min-height: 150px; max-height: 250px; overflow-y: auto; background: hsl(0, 0%, 0%); border: 1px inset hsl(0, 0%, 13%); padding: 0.75rem; font-family: var(--text-mono); font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.ticket-chat-log { flex: 1; min-height: 150px; max-height: 250px; overflow-y: auto; background: var(--theme-bg-main, hsl(0, 0%, 0%)); border: 1px inset var(--theme-border-color, hsl(0, 0%, 13%)); padding: 0.75rem; font-family: var(--text-mono); font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
 #ticket-typing-indicator { font-size: 0.7rem; color: var(--grey-88); height: 16px; margin-top: 4px; font-style: italic; font-family: var(--text-mono); }
 .ticket-chat-input-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 .ticket-chat-input { flex: 1; padding: 0.5rem; font-size: 0.8rem; }
@@ -579,7 +579,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* Queue badges */
 .badge-status-ticket-open { background: var(--yellow); color: var(--black); border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
-.badge-status-pending { background: var(--accent-blue); color: var(--black); border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
+.badge-status-pending { background: var(--accent-blue); color: var(--theme-character-ink, var(--black)); border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
 /* The one .update-badge with text not written by hand: a system section's key
    runs long, so it breaks anywhere. `anywhere`, not `break-word`: only it also
    shrinks the min-content size, so the badge yields as a flex item. */
@@ -592,7 +592,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     box-sizing: border-box;
 }
 .badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-page-id { font-size: 0.5rem; background: var(--grey-33); color: var(--white); border: 1px solid var(--grey-55); padding: 0.15rem 0.4rem; }
+.badge-page-id { font-size: 0.5rem; background: var(--grey-33); color: var(--theme-text-white, var(--white)); border: 1px solid var(--grey-55); padding: 0.15rem 0.4rem; }
 
 /* A rough size hint, from the changed content's length at load. */
 .badge-size-s { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid var(--green); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
@@ -700,14 +700,14 @@ body.sbs-active #preview-content-area { max-width: none; }
 .page-history-diff { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
 
 /* The merge compiler */
-.compiler-title-highlight { color: var(--white); }
+.compiler-title-highlight { color: var(--theme-text-white, var(--white)); }
 .compiler-status-text { color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem; }
 .compiler-empty-text { color: var(--text-muted); padding: 2rem; border: 1px dashed var(--grey-33); text-align: center; }
 .compiler-instructions { font-family: var(--text-mono); font-size: 0.75rem; color: var(--grey-88); margin-bottom: 1.5rem; line-height: 1.5; }
-.compiler-select { margin-bottom: 0; border-color: var(--purple); background: rgba(168,85,247,0.1); color: var(--white); font-weight: bold; }
+.compiler-select { margin-bottom: 0; border-color: var(--purple); background: rgba(168,85,247,0.1); color: var(--theme-text-white, var(--white)); font-weight: bold; }
 .compiler-discard-option { color: var(--grey-88); font-weight: normal; }
 .compiler-conflict-card { background: var(--tint-2); border: 1px solid var(--grey-33); padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid var(--purple); }
-.compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: var(--white); margin-bottom: 0.5rem; text-transform: uppercase; }
+.compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: var(--theme-text-white, var(--white)); margin-bottom: 0.5rem; text-transform: uppercase; }
 #btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
 /* Per-account capabilities, on owner.html */
@@ -796,7 +796,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .page-group-count {
     font-size: 0.65rem;
     color: var(--grey-88);
-    background: #1c1c1c;
+    background: var(--theme-bg-secondary, #1c1c1c);
     border: 1px solid var(--grey-33);
     padding: 0.1rem 0.45rem;
 }
@@ -826,7 +826,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 }
 
 /* No role: neutral, since it is the absence of a rank. */
-.badge-role-none { background: #2a2a2a; color: #999; border-color: #3a3a3a; }
+.badge-role-none { background: var(--theme-bg-secondary, #2a2a2a); color: var(--theme-text-muted, #999); border-color: var(--theme-border-color, #3a3a3a); }
 
 /* The report queue: built from the media queue's pieces, so three queues share
    one layout. */
@@ -884,7 +884,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     border-left: 3px solid var(--border-color, var(--grey-33));
     font-size: 0.78rem;
     line-height: 1.45;
-    color: var(--white);
+    color: var(--theme-text-white, var(--white));
     white-space: pre-wrap;
     overflow-wrap: break-word;
     max-height: 12rem;

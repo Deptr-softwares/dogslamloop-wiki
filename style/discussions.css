@@ -205,7 +205,7 @@
     border-radius: 50%;
     font-family: var(--font-label), sans-serif;
     font-size: 0.6rem;
-    color: var(--white);
+    color: var(--text-white);
     background: var(--border-color);
     user-select: none;
     align-self: center;
@@ -841,7 +841,7 @@ button.discussion-author-link:focus-visible {
     font-weight: bold;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--black);
+    color: var(--theme-character-ink, var(--black));
     background: var(--accent-blue);
     border: 1px solid var(--accent-blue);
     padding: 0.1rem 0.35rem;

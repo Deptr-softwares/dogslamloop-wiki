@@ -14,8 +14,9 @@
 @layer site {
 
 /* On the editor and staff pages Classic draws the palette's greys as its own five
-   colours, darkest to lightest; the status hues and the tints keep theirs. */
-:root {
+   colours, darkest to lightest; the status hues and the tints keep theirs. Under a
+   theme the theme's map does it (Common.css), with black and white kept true. */
+html.look-classic:not([data-theme]) {
     --black: var(--bg-main); --grey-05: var(--bg-main); --grey-0a: var(--bg-main);
     --grey-11: var(--bg-secondary); --grey-22: var(--bg-secondary);
     --grey-33: var(--border-color); --grey-44: var(--border-color); --grey-55: var(--border-color);
@@ -23,7 +24,7 @@
     --grey-d1: var(--text-primary); --grey-e5: var(--text-primary); --white: var(--text-primary);
 }
 
-body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); }
+body { margin: 0; padding: 0; overflow: hidden; background-color: var(--theme-bg-main, var(--black)); }
 
 .editor-layout {
     display: flex;
@@ -80,7 +81,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
     .editor-splitter {
         flex: 0 0 5px;
         cursor: col-resize;
-        background: #1a1a1a;
+        background: var(--theme-border-color, #1a1a1a);
         border-left: 1px solid var(--grey-33);
         border-right: 1px solid var(--grey-33);
         box-sizing: border-box;
@@ -112,7 +113,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
     .editor-splitter:hover::after,
     .editor-splitter:focus-visible::after,
     .editor-splitter.is-dragging::after {
-        background: var(--white);
+        background: var(--theme-text-white, var(--white));
     }
 
     /* On the default while dragging, so the snap reads as landing on something.
@@ -169,7 +170,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
 .editor-header-titles .editor-title {
     margin: 0;
     font-family: inherit;
-    color: var(--white);
+    color: var(--theme-text-white, var(--white));
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
@@ -264,7 +265,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
     box-sizing: border-box;
 }
 .block-card:hover { border-left-color: rgba(59, 130, 246, 0.5); }
-.block-card:focus-within { border-left-color: var(--accent-blue); background: #0f1218; }
+.block-card:focus-within { border-left-color: var(--accent-blue); background: var(--theme-bg-secondary, #0f1218); }
 
 .block-header {
     display: flex;
@@ -281,11 +282,11 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
 
 .block-actions { display: flex; gap: 0.25rem; }
 .block-actions button { border: 1px solid transparent; color: var(--grey-66); cursor: pointer; padding: 0.1rem 0.3rem; font-size: 0.7rem; transition: all 0.1s; }
-.block-actions button:hover { color: var(--white); }
+.block-actions button:hover { color: var(--theme-text-white, var(--white)); }
 .block-actions .btn-delete:hover { border-color: var(--red); }
 
 .block-body.minimized { display: none; }
-.block-card.collapsed { border-left-color: var(--grey-44); background: #080808; padding-bottom: 0.4rem; }
+.block-card.collapsed { border-left-color: var(--grey-44); background: var(--theme-bg-main, #080808); padding-bottom: 0.4rem; }
 .block-card.collapsed:hover { border-left-color: var(--grey-66); }
 .block-actions .btn-collapse { font-weight: bold; }
 
@@ -295,7 +296,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
    .block-card.collapsed:hover. */
 #block-list .block-card.block-card-selected {
     border-left-color: var(--accent-yellow);
-    background: #14120a;
+    background: var(--theme-bg-secondary, #14120a);
 }
 
 /* Copy changes nothing on screen, so the copied cards say so themselves. */
@@ -347,7 +348,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
     transition: border-color 0.1s, background 0.1s;
 }
 .editor-input:focus, .editor-textarea:focus {
-    outline: none; border-color: var(--accent-blue); background: rgba(0,0,0,0.5); color: var(--white);
+    outline: none; border-color: var(--accent-blue); background: var(--theme-bg-secondary, rgba(0,0,0,0.5)); color: var(--theme-text-white, var(--white));
 }
 .editor-input:disabled, .editor-textarea:disabled { opacity: 0.5; }
 .editor-textarea { min-height: 50px; max-height: 260px; overflow-y: auto; resize: vertical; line-height: 1.4; }
@@ -388,10 +389,10 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--black); 
     image-rendering: pixelated;
 }
 .editor-select:focus {
-    outline: none; border-color: var(--accent-blue); background-color: rgba(0,0,0,0.5); color: var(--white);
+    outline: none; border-color: var(--accent-blue); background-color: var(--theme-bg-secondary, rgba(0,0,0,0.5)); color: var(--theme-text-white, var(--white));
 }
 .editor-select option {
-    background: #0f1218;
+    background: var(--theme-bg-secondary, #0f1218);
     color: var(--grey-d1);
     padding: 0.5rem;
 }
@@ -475,7 +476,7 @@ html.reduce-motion .block-card.block-just-moved {
 .block-drag-ghost {
     position: fixed; z-index: 9999; pointer-events: none;
     transform: translate(12px, 12px);
-    background: var(--bg-main, var(--grey-05)); border: 2px solid var(--accent-blue); color: var(--white);
+    background: var(--bg-main, var(--grey-05)); border: 2px solid var(--accent-blue); color: var(--theme-text-white, var(--white));
     font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; text-transform: uppercase;
     padding: 0.4rem 0.75rem; box-shadow: 4px 4px 0px var(--manga-shadow, var(--black)); white-space: nowrap;
 }
@@ -521,12 +522,12 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     border-right: none;
 }
 .align-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ccc;
+    background: var(--tint-10);
+    color: var(--theme-text-primary, #ccc);
 }
 .align-btn.active {
     background: var(--accent-blue);
-    color: var(--black);
+    color: var(--theme-character-ink, var(--black));
 }
 .align-btn:active {
     transform: none; 
@@ -551,7 +552,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
     font-family: var(--text-mono); font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: all 0.1s;
 }
-.format-btn:hover { background: var(--accent-blue); color: var(--black); border-color: var(--accent-blue); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--accent-blue); }
+.format-btn:hover { background: var(--accent-blue); color: var(--theme-character-ink, var(--black)); border-color: var(--accent-blue); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--accent-blue); }
 .format-btn:active { transform: translate(1px, 1px); box-shadow: none; }
 .format-color-popup {
     display: block;
@@ -615,7 +616,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .format-jump-search {
     width: 100%;
     box-sizing: border-box;
-    background: var(--black);
+    background: var(--theme-bg-main, var(--black));
     border: 1px solid var(--grey-33);
     color: var(--text-primary);
     font-family: var(--text-mono);
@@ -792,14 +793,14 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     position: absolute; top: -6px; right: -6px;
     width: 13px; height: 13px; padding: 0;
     font-size: 8px; line-height: 11px; text-align: center;
-    background: var(--grey-11); color: #aaa; border: 1px solid var(--grey-44); cursor: pointer;
+    background: var(--grey-11); color: var(--theme-text-muted, #aaa); border: 1px solid var(--grey-44); cursor: pointer;
 }
-.cp-gradient-stop-remove:hover { color: var(--white); border-color: var(--red); }
+.cp-gradient-stop-remove:hover { color: var(--theme-text-white, var(--white)); border-color: var(--red); }
 .cp-gradient-add {
     width: 22px; height: 22px; padding: 0; cursor: pointer;
-    border: 1px dashed var(--grey-55); color: #aaa; font-size: 0.8rem;
+    border: 1px dashed var(--grey-55); color: var(--theme-text-muted, #aaa); font-size: 0.8rem;
 }
-.cp-gradient-add:hover { color: var(--white); border-color: var(--grey-88); }
+.cp-gradient-add:hover { color: var(--theme-text-white, var(--white)); border-color: var(--grey-88); }
 .cp-gradient-strip { height: 12px; border: 1px solid var(--grey-33); }
 .cp-gradient [data-gradient-use] { align-self: flex-start; }
 
@@ -826,7 +827,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 
 .block-card.virtual-unloaded {
-    border-color: #1a1a1a !important;
+    border-color: var(--theme-border-color, #1a1a1a) !important;
     background: transparent !important;
 }
 
@@ -1081,7 +1082,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* Compound with `option`: .editor-select option sets colour at higher
    specificity than a bare class. The values are ColorCoding.css's
    --track-color-*, which the live page reads too. */
-.editor-select option.daw-option-default { color: var(--white); }
+.editor-select option.daw-option-default { color: var(--theme-text-white, var(--white)); }
 .editor-select option.daw-option-red-400 { color: var(--track-color-red-400); }
 .editor-select option.daw-option-red-600 { color: var(--track-color-red-600); }
 .editor-select option.daw-option-blue-400 { color: var(--track-color-blue-400); }
@@ -1110,7 +1111,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed var(--purple); padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: var(--purple); font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
-.accordion-back-title { color: var(--white); font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
+.accordion-back-title { color: var(--theme-text-white, var(--white)); font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
 /* Two dropdowns share this row, and Forms.css's .manga-select-wrapper is
    flex:1 with min-width:0, which in a shrink-wrapping row resolves to zero width
    and spilled over the folder picker. Scoped to .block-type-row, since the
@@ -1134,7 +1135,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
    left rule, and as short as it can be, since the list is mostly folders. */
 .block-folder {
     border: none;
-    border-left: 2px solid #3f4652;
+    border-left: 2px solid var(--theme-border-color, #3f4652);
     background: transparent;
     margin-bottom: 0.15rem;
 }
@@ -1160,7 +1161,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .block-folder-color:focus-visible { outline-color: var(--accent-blue); }
 /* Only while open, so an open folder still reads as a container. */
 .block-folder:not(.is-collapsed) > .block-folder-body {
-    border-left: 1px dotted #2a2a2a;
+    border-left: 1px dotted var(--theme-border-color, #2a2a2a);
     margin-left: 0.45rem;
     padding-left: 0.4rem;
 }
@@ -1176,7 +1177,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     padding: 0 0.15rem;
     font-size: 0.8rem;
     line-height: 1;
-    color: #9ca3af;
+    color: var(--theme-text-muted, #9ca3af);
 }
 .block-folder-toggle:hover { filter: brightness(1.4); }
 /* Transparent until touched, so the header reads as a title, but still a real
@@ -1200,7 +1201,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .block-folder-count {
     flex: 0 0 auto;
-    color: #6b7280;
+    color: var(--theme-text-muted, #6b7280);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -1233,14 +1234,14 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 /* An empty folder exists only for this session: dashed, so it does not look like
    a folder whose contents failed to load. */
-.block-folder.is-empty { border-left-style: dashed; border-left-color: #6b7280; }
+.block-folder.is-empty { border-left-style: dashed; border-left-color: var(--theme-text-muted, #6b7280); }
 .block-folder-empty {
     padding: 0.6rem 0.75rem;
-    color: #6b7280;
+    color: var(--theme-text-muted, #6b7280);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-align: center;
-    border: 1px dashed #2f2f2f;
+    border: 1px dashed var(--theme-border-color, #2f2f2f);
     margin: 0.35rem;
 }
 
@@ -1270,7 +1271,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     width: 100%;
     background: var(--tint-3);
     border: 1px solid var(--grey-22);
-    color: #6b7280;
+    color: var(--theme-text-muted, #6b7280);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-align: left;
@@ -1288,11 +1289,11 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.5rem;
-    color: #4b5563;
+    color: var(--theme-text-muted, #4b5563);
 }
-.block-folder-trigger:hover { color: var(--white); border-color: var(--grey-44); }
+.block-folder-trigger:hover { color: var(--theme-text-white, var(--white)); border-color: var(--grey-44); }
 /* Filed in a folder reads differently from loose, on the trigger itself. */
-.block-folder-trigger.has-folder { color: var(--grey-e5); border-color: #4b5563; }
+.block-folder-trigger.has-folder { color: var(--grey-e5); border-color: var(--theme-border-color, #4b5563); }
 .block-folder-trigger.has-folder::before { content: '\1F4C1\00a0'; }
 
 .block-folder-picker.open .manga-select-options { display: flex; }
@@ -1309,7 +1310,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .folder-option-item::before { content: '\1F4C1\00a0'; }
 
 /* The two rows that are not folders. */
-.folder-option-none { font-style: italic; color: #6b7280 !important; }
+.folder-option-none { font-style: italic; color: var(--theme-text-muted, #6b7280) !important; }
 .folder-option-none::before { content: '\2014\00a0'; }
 .folder-option-new { color: var(--green) !important; border-top: 1px solid var(--grey-22); }
 .folder-option-new:hover,
@@ -1322,7 +1323,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     font-size: 0.6rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #4b5563;
+    color: var(--theme-text-muted, #4b5563);
     border-bottom: 1px solid var(--grey-22);
     cursor: default;
 }
@@ -1339,7 +1340,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 /* Compound: .editor-select sets border and padding at the same specificity. */
 .editor-select.block-type-selector { cursor: pointer; border: none; outline: none; padding-right: 0.2rem; }
 /* Compound: .editor-input sets font and colour at the same specificity. */
-.editor-input.block-heading-input { font-family: inherit; font-size: 1.1rem; color: var(--white); }
+.editor-input.block-heading-input { font-family: inherit; font-size: 1.1rem; color: var(--theme-text-white, var(--white)); }
 .block-video-controls-row { display: flex; align-items: center; }
 .block-video-controls-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
 .block-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid var(--grey-33); border-radius: 4px; }
@@ -1362,7 +1363,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 /* The Media Library */
 #media-modal-overlay {
     backdrop-filter: none !important;
-    background: rgba(5, 5, 5, 0.98) !important;
+    background: var(--theme-bg-main, rgba(5, 5, 5, 0.98)) !important;
 }
 
 .media-toolbar {
@@ -1435,10 +1436,10 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     justify-content: space-between;
     gap: 1rem;
     padding: 0.25rem 0.5rem;
-    border-bottom: 1px solid #1a1a1a;
+    border-bottom: 1px solid var(--theme-border-color, #1a1a1a);
 }
 .media-upload-row:last-child { border-bottom: none; }
-.media-upload-row-name { color: var(--white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-upload-row-name { color: var(--theme-text-white, var(--white)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Bounded: a refusal is a sentence, and would push the file name out of the row. */
 .media-upload-row-detail { color: var(--grey-88); max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .media-upload-row-queued .media-upload-row-name { color: var(--grey-88); }
@@ -1558,7 +1559,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         top: 0;
         left: 0;
         z-index: 50;
-        background-color: var(--black);
+        background-color: var(--theme-bg-main, var(--black));
         /* No padding: .main-content-area already pads, as on the live page, and both
            made the preview narrower than the page. */
         padding: 0 !important;
@@ -1586,7 +1587,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         right: 1.5rem;
         z-index: 100;
         background: var(--accent-blue);
-        color: var(--black);
+        color: var(--theme-character-ink, var(--black));
         padding: 0.6rem 1rem;
         border-radius: 4px;
         font-family: var(--font-label), sans-serif;
@@ -1685,7 +1686,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     margin: 0 -1.5rem; /* Stretches edge-to-edge inside the builder */
     border-top: 1px solid var(--grey-22);
     z-index: 100;
-    box-shadow: 0 -15px 25px rgba(0,0,0,0.9); /* Shadows the blocks scrolling behind it */
+    box-shadow: 0 -15px 25px var(--theme-bg-main, rgba(0,0,0,0.9)); /* Shadows the blocks scrolling behind it */
 }
 
 /* The preview badge */
@@ -1913,7 +1914,7 @@ del.diff-del {
 .draft-empty-msg { color: var(--grey-66); font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed var(--grey-33); }
 .draft-row { display: flex; justify-content: space-between; align-items: center; background: var(--grey-05); border: 1px solid var(--grey-33); padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
 .draft-row-label { color: var(--accent-blue); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
-.draft-row-title { color: var(--white); font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
+.draft-row-title { color: var(--theme-text-white, var(--white)); font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
 .draft-row-context { color: var(--grey-88); font-weight: normal; }
 .draft-row-timestamp { color: var(--grey-66); font-family: var(--text-mono); font-size: 0.65rem; }
 .draft-row-submitted { color: #f59e0b; font-family: var(--text-mono); font-size: 0.65rem; margin-top: 0.15rem; }
@@ -2098,7 +2099,7 @@ del.diff-del {
 .daw-tab-move-btn:hover:not(:disabled),
 .daw-tab-insert-btn:hover:not(:disabled) {
     color: var(--text-white);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--tint-8);
 }
 /* Kept at the ends, disabled: hiding it would shift the row as the selection
    moves. */
@@ -2143,7 +2144,7 @@ del.diff-del {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #9ca3af;
+    color: var(--theme-text-muted, #9ca3af);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     padding: 0 0.5rem;
@@ -2333,12 +2334,12 @@ del.diff-del {
 .config-option input { margin: 0.15rem 0 0; flex-shrink: 0; accent-color: var(--accent-blue); }
 .config-option-text { display: flex; flex-direction: column; gap: 0.1rem; }
 .config-option-label { font-family: var(--text-mono); font-size: 0.8rem; font-weight: bold; color: var(--grey-e5); }
-.config-option-hint { font-size: 0.72rem; line-height: 1.4; color: #9ca3af; }
+.config-option-hint { font-size: 0.72rem; line-height: 1.4; color: var(--theme-text-muted, #9ca3af); }
 .config-group { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0.5rem 0.75rem; border: 1px solid var(--grey-33); }
 .config-group legend { padding: 0 0.3rem; }
 .config-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .config-action-note:empty { display: none; }
-.config-footnote { margin: 0; font-size: 0.7rem; color: #6b7280; }
+.config-footnote { margin: 0; font-size: 0.7rem; color: var(--theme-text-muted, #6b7280); }
 .config-conflict-result:empty { display: none; }
 .config-conflict-result p { margin: 0 0 0.3rem; }
 .config-conflict-list { margin: 0; padding-left: 1.1rem; font-size: 0.75rem; line-height: 1.5; color: var(--grey-e5); }
@@ -2378,7 +2379,7 @@ del.diff-del {
     border: 1px solid var(--grey-55); outline: 1px solid transparent; outline-offset: 1px;
 }
 .heading-bar-swatch.is-none {
-    width: auto; padding: 0 0.5rem; background: transparent; color: #9ca3af;
+    width: auto; padding: 0 0.5rem; background: transparent; color: var(--theme-text-muted, #9ca3af);
     font-family: var(--text-mono); font-size: 0.7rem; border-style: dashed;
 }
 .heading-bar-swatch:hover, .heading-bar-swatch[aria-expanded="true"] { outline-color: var(--text-white, var(--white)); }
@@ -2392,7 +2393,7 @@ del.diff-del {
 .swatch-popup .format-color-presets-scroll { max-height: 180px; align-self: stretch; }
 .swatch-popup .cp-surface, .swatch-popup .cp-hue { align-self: stretch; }
 .config-house-style { width: 100%; box-sizing: border-box; resize: vertical; margin: 0; }
-.house-style-empty { margin: 0; color: #9ca3af; font-style: italic; }
+.house-style-empty { margin: 0; color: var(--theme-text-muted, #9ca3af); font-style: italic; }
 
 /* Hide Block Type dropdown: the type as a badge. initializeMangaSelects draws its
    dropdown as the next sibling of the select, so that sibling goes. */
@@ -2512,9 +2513,6 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
---black: #000; --grey-05: #050505; --grey-0a: #0a0a0a; --grey-11: #111; --grey-22: #222;
---grey-33: #333; --grey-44: #444; --grey-55: #555; --grey-66: #666; --grey-88: #888;
---grey-d1: #d1d5db; --grey-e5: #e5e7eb; --white: #fff;
 .block-actions button { background: transparent; }
 .block-actions button:hover { background: var(--grey-33); }
 .block-actions .btn-delete:hover {

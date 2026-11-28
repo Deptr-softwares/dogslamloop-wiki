@@ -145,7 +145,7 @@ select.editor-select.manga-initialized {
 .manga-option:hover,
 .manga-option.is-active {
     background: var(--accent-blue);
-    color: var(--black) !important; 
+    color: var(--theme-character-ink, var(--black)) !important; 
 }
 
 .manga-option.selected {

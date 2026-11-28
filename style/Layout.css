@@ -635,13 +635,13 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-hit:hover,
 .site-search-hit.is-active { background: var(--accent-blue); }
 .site-search-hit:hover .site-search-title,
-.site-search-hit.is-active .site-search-title { color: var(--black); }
+.site-search-hit.is-active .site-search-title { color: var(--theme-character-ink, var(--black)); }
 .site-search-hit:hover .site-search-where,
 .site-search-hit:hover .site-search-parent,
 .site-search-hit:hover .site-search-kind,
 .site-search-hit.is-active .site-search-where,
 .site-search-hit.is-active .site-search-parent,
-.site-search-hit.is-active .site-search-kind { color: var(--grey-22); }
+.site-search-hit.is-active .site-search-kind { color: var(--theme-character-ink, var(--grey-22)); }
 
 .site-search-title {
     display: block; color: var(--text-white);
@@ -669,7 +669,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     color: var(--accent-blue); text-decoration: none;
     font-family: var(--text-mono); font-size: 0.6rem;
 }
-.site-search-more:hover { background: var(--accent-blue); color: var(--black); }
+.site-search-more:hover { background: var(--accent-blue); color: var(--theme-character-ink, var(--black)); }
 
 /* Sidebar headings and small panel labels: small grey words over a rule. */
 :is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title),
