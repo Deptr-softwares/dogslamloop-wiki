@@ -23,6 +23,9 @@
  * sheets this page loads. Only a page that never draws it, or never loads the sheet
  * that styles it, makes one harmless.
  *
+ * A border colour on a side whose border style is none in both trees is left out: no
+ * border is drawn there to show it.
+ *
  * @since v1.3
  * @touches git (the base commit's files), the working tree, every request off localhost
  *   (fetched once, replayed)
@@ -289,6 +292,12 @@ async function hoverSnap(page, look) {
 
 const split = s => new Map(s ? s.split(';').map(p => [p.slice(0, p.indexOf(':')), p.slice(p.indexOf(':') + 1)]) : []);
 
+// A side's border colour draws nothing while that side has no border style, in both trees.
+const unseen = (p, a, b) => {
+    const side = /^border-(.+)-color$/.exec(p);
+    return !!side && [a, b].every(m => /^(none|hidden)$/.test(m.get(`border-${side[1]}-style`)));
+};
+
 /** Each element that differs: its index, which of itself, ::before or ::after, and the properties. */
 function diff(before, after) {
     const out = [];
@@ -300,7 +309,8 @@ function diff(before, after) {
             if (before[i].s[k] === after[i].s[k]) continue;
             const a = split(after[i].s[k]);
             const b = split(before[i].s[k]);
-            const props = [...new Set([...a.keys(), ...b.keys()])].filter(p => a.get(p) !== b.get(p));
+            const props = [...new Set([...a.keys(), ...b.keys()])].filter(p => a.get(p) !== b.get(p) && !unseen(p, a, b));
+            if (!props.length) continue;
             out.push({ i, pseudo: ['', '::before', '::after'][k], props, specimen: after[i].specimen,
                 sizeOnly: props.every(p => GEOMETRY.test(p)),
                 text: `${after[i].label}${['', '::before', '::after'][k]}  ${props.map(p => `${p}: ${b.get(p)} -> ${a.get(p)}`).join('; ')}` });
