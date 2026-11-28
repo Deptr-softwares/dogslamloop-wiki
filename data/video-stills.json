@@ -1661,11 +1661,17 @@
     "h": 1000,
     "etag": "\"fc3ef0e5c42fa2abbb6a826e4a614774\""
   },
-  "Nanami_Stabilize_Entering_Overtime_ONWHIFF_ntskellys.webm": {
-    "still": "medias/stills/f893a8ad5acaacd0.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"9b1177438edc4b2baf80cfbc7955bad4\""
+  "Nanami_Stabilize_Example_1.webm": {
+    "still": "medias/stills/d5d4d33a72004d7d.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"edd8c0cd35b1948137d5441146f46cac\""
+  },
+  "Nanami_Stabilize_Example_2.webm": {
+    "still": "medias/stills/6b6a8ab36613ccbf.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"d4f6e5527671005a8eccc7a03f544d4e\""
   },
   "Nanami_Stabilize_ONBLOCK_ntskellys.webm": {
     "still": "medias/stills/64fd4bcdc350a535.webp",
@@ -1684,12 +1690,6 @@
     "w": 1000,
     "h": 1000,
     "etag": "\"d32589ce41a862ed6c17f5d70410dd28\""
-  },
-  "Nanami_Stabilize_ONWHIFF_ntskellys.webm": {
-    "still": "medias/stills/1c6c7f74254593cd.webp",
-    "w": 1000,
-    "h": 1000,
-    "etag": "\"54728e3c3a785bec5b3b37f7b51838b5\""
   },
   "Nanami_Stabilize_Ratio_Point_ntskellys.webm": {
     "still": "medias/stills/4765c9a65fffa96b.webp",
