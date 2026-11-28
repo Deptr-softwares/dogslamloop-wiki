@@ -24,7 +24,8 @@
     // look: 'default' or 'classic' (v1.2). html.look-classic switches off every
     // sheet's Dogslamloop part, on every page (docs/looks.md).
     // fontTitle, fontLabel, fontBody: '' (the look's own) or a key of FACES.
-    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default', fontTitle: '', fontLabel: '', fontBody: '' });
+    // countVisits: whether js/others/analytics.js loads Umami on this device.
+    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default', fontTitle: '', fontLabel: '', fontBody: '', countVisits: true });
     // The faces each font can take, by key: the page reads a face's families from
     // --face-<key> (style/Common.css). Named here once, for the store and the box.
     const FACES = Object.freeze({ 'finger-paint': 'Finger Paint', 'wild-words': 'CC Wild Words', serif: 'Serif', sans: 'Sans-serif', mono: 'Monospace' });

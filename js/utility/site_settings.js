@@ -72,6 +72,13 @@ window.showSiteSettings = function () {
                             <span class="site-setting-hint">Stops hover lifts, button sweeps, flashes and smooth scrolling. If your device is set to reduce motion, the site already follows it.</span>
                         </span>
                     </label>
+                    <label class="site-setting" for="site-setting-count-visits">
+                        <input type="checkbox" id="site-setting-count-visits" data-setting="countVisits">
+                        <span class="site-setting-text">
+                            <span class="site-setting-name">Count my visits</span>
+                            <span class="site-setting-hint">Your visits are counted anonymously with Umami Cloud, as the Privacy Policy says. Untick it and the site stops loading Umami on this device.</span>
+                        </span>
+                    </label>
                     <p class="site-settings-note">Saved on this device only.</p>
                     <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
                 </div>

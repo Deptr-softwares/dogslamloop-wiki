@@ -79,8 +79,9 @@ const DELTA = 'utility/submission_delta.js';
 const SHELL = ['pages/core/page_shell.js', 'utility/search.js'];
 // Blocks to markup, then format tags in that markup.
 const RENDER = ['pages/core/page_render.js', 'pages/core/format_tags.js'];
-// Reader pages only, never a staff or editor page (CLAUDE.md, Stack).
-const ANALYTICS = { src: 'others/analytics.js', async: true };
+// Reader pages only, never a staff or editor page (CLAUDE.md, Stack). Deferred, so
+// it runs once the page is read, after site_utils.js: it reads Site Settings.
+const ANALYTICS = { src: 'others/analytics.js', defer: true };
 
 // A generated page: the skeleton is drawn before the Supabase library loads,
 // and page_boot.js comes last, so site_lookups.js's character theme has run.

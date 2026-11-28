@@ -27,20 +27,23 @@ const PAGES = execSync('git ls-files "*.html"', { cwd: ROOT, encoding: 'utf8' })
     // A moved-page stub only redirects, and loads nothing at all.
     .filter(({ html }) => /src="[^"]*js\/utility\/site_utils\.js/.test(html));
 
-test('every reader page loads the counter, without holding the page up, and no staff page does', () => {
+test('every reader page loads the counter deferred, after site_utils.js, and no staff page does', () => {
     const tag = /<script\b[^>]*\bsrc="[^"]*js\/others\/analytics\.js[^"]*"[^>]*>/;
+    const utils = /<script\b[^>]*\bsrc="[^"]*js\/utility\/site_utils\.js/;
     const missing = [];
-    const blocking = [];
+    const wrong = [];
     const staff = [];
     for (const { rel, html } of PAGES) {
         const found = html.match(tag);
         if (STAFF.includes(rel)) { if (found) staff.push(rel); continue; }
         if (!found) missing.push(rel);
-        else if (!/\basync\b/.test(found[0])) blocking.push(rel);
+        // Deferred: it never stops the parser, and it runs after site_utils.js,
+        // whose Site Settings it reads.
+        else if (!/\bdefer\b/.test(found[0]) || found.index < html.match(utils).index) wrong.push(rel);
     }
     expect(PAGES.length).toBeGreaterThan(STAFF.length);
     expect(missing, 'reader pages without the counter').toEqual([]);
-    expect(blocking, 'loaded async, so it never waits on anything').toEqual([]);
+    expect(wrong, 'deferred, and after site_utils.js').toEqual([]);
     expect(staff, 'staff and editor pages are not counted').toEqual([]);
 });
 
@@ -152,4 +155,45 @@ test('anywhere but dogslamloop.com nothing is loaded or sent: local runs, previe
     await page.waitForTimeout(500);
     expect(asked).toEqual([]);
     expect(await page.evaluate(() => document.querySelectorAll('script[src*="umami"]').length)).toBe(0);
+});
+
+// "Count my visits" in Site Settings (v1.3): unticked, Umami is never loaded on
+// that device, so nothing at all is sent. The setting is the store's
+// (window.siteSettings), read by js/others/analytics.js.
+test('with "Count my visits" unticked, nothing is loaded on dogslamloop.com', async ({ page }) => {
+    const asked = umamiRequests(page);
+    await page.addInitScript(() => {
+        try { localStorage.setItem('dsl_site_settings', JSON.stringify({ countVisits: false })); } catch (e) {}
+    });
+    await serveSite(page, { websiteId: 'test-website-id' });
+    await page.goto(`${SITE}/terms.html`, { waitUntil: 'load' });
+    await page.waitForTimeout(500);
+    expect(asked).toEqual([]);
+    expect(await page.evaluate(() => document.querySelectorAll('script[src*="umami"]').length)).toBe(0);
+});
+
+test('unticking "Count my visits" in the box stops the counting from the next page on', async ({ page }) => {
+    const asked = umamiRequests(page);
+    const sent = await serveSite(page, { websiteId: 'test-website-id' });
+    await page.goto(`${SITE}/terms.html`, { waitUntil: 'load' });
+    await expect.poll(() => sent.length).toBe(1);
+
+    await page.locator('#dock-btn-settings').click();
+    const box = page.locator('#site-setting-count-visits');
+    await expect(box).toBeChecked();
+    await box.uncheck();
+    await page.keyboard.press('Escape');
+
+    const before = asked.length;
+    await page.goto(`${SITE}/privacy-policy.html`, { waitUntil: 'load' });
+    await page.waitForTimeout(500);
+    expect(asked.length).toBe(before);
+    expect(sent).toHaveLength(1);
+
+    await page.locator('#dock-btn-settings').click();
+    await expect(box).not.toBeChecked();
+    await box.check();
+    await page.keyboard.press('Escape');
+    await page.goto(`${SITE}/terms.html`, { waitUntil: 'load' });
+    await expect.poll(() => sent.length).toBe(2);
 });
