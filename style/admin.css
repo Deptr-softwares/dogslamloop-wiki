@@ -68,7 +68,7 @@
 #preview-nav-sidebar .sidebar-nav-title {
     font-family: var(--font-label), sans-serif;
     font-size: 0.7rem; 
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 0.75rem;
@@ -287,7 +287,7 @@
 /* Headers and nav */
 .admin-header { border-bottom: 2px solid var(--accent-blue); padding: 1.5rem 1.5rem 1rem 1.5rem; }
 .admin-header-flex { display: flex; justify-content: space-between; align-items: flex-start; }
-.admin-title { color: var(--accent-blue); font-size: 1.1rem; margin: 0; text-transform: uppercase; }
+.admin-title { color: var(--accent-text); font-size: 1.1rem; margin: 0; text-transform: uppercase; }
 .admin-subtitle { font-size: 0.7rem; color: var(--text-muted); }
 .admin-hub-btn { padding: 0.3rem 0.6rem; font-size: 0.65rem; }
 .admin-header-actions-col { display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
@@ -327,15 +327,15 @@
 .admin-tool-card.pages { border-left-color: var(--green); }
 .admin-tool-card.faq { border-left-color: #3b82f6; }
 .admin-tool-title { font-size: 0.8rem; margin: 0; text-transform: uppercase; }
-.admin-tool-title.personnel { color: var(--purple); }
-.admin-tool-title.gc { color: var(--red); }
-.admin-tool-title.permissions { color: var(--yellow); }
-.admin-tool-title.pages { color: var(--green); }
-.admin-tool-title.faq { color: var(--accent-blue); }
+.admin-tool-title.personnel { color: var(--purple-text); }
+.admin-tool-title.gc { color: var(--red-text); }
+.admin-tool-title.permissions { color: var(--yellow-text); }
+.admin-tool-title.pages { color: var(--green-text); }
+.admin-tool-title.faq { color: var(--accent-text); }
 .page-row-path { font-family: var(--text-mono); font-size: 0.62rem; color: var(--text-muted); overflow-wrap: anywhere; }
-.badge-status-live { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
+.badge-status-live { background: rgba(34,197,94,0.15); color: var(--green-text); border: 1px solid var(--green); }
 .badge-status-draft { background: rgba(136,136,136,0.15); color: var(--grey-88); border: 1px solid var(--grey-88); }
-.badge-status-archived { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
+.badge-status-archived { background: rgba(234,179,8,0.15); color: var(--yellow-text); border: 1px solid var(--yellow); }
 .admin-tool-hint { font-family: var(--text-mono); font-size: 0.68rem; color: var(--text-muted); line-height: 1.5; margin: 0.5rem 0 0 0; }
 
 /* The one control on a tool card that destroys data, set apart from SAVE so
@@ -347,7 +347,7 @@
 }
 
 .admin-tool-danger-row .admin-tool-hint { margin-top: 0; margin-bottom: 0.6rem; }
-.admin-tool-danger-row .admin-tool-hint strong { color: var(--red); }
+.admin-tool-danger-row .admin-tool-hint strong { color: var(--red-text); }
 .permissions-list { margin: 1rem 0; }
 
 /* The personnel roster, on owner.html */
@@ -357,11 +357,11 @@
 .personnel-row:last-child { border-bottom: none; }
 .personnel-row-main { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; min-width: 0; }
 .personnel-email { color: var(--text-white); font-family: var(--text-mono); font-size: 0.75rem; overflow-wrap: anywhere; }
-.personnel-self { color: var(--accent-blue); }
+.personnel-self { color: var(--accent-text); }
 .personnel-row-actions { display: flex; gap: 0.4rem; align-items: center; }
 .personnel-role-select { margin: 0; font-size: 0.7rem; padding: 0.3rem; }
 .personnel-add { border-top: 1px dashed var(--border-color); padding-top: 1rem; margin-top: 1rem; }
-.owner-success-text { color: var(--green); }
+.owner-success-text { color: var(--green-text); }
 
 /* A whole row is the hit target, next to role controls that are destructive. */
 .owner-perk-row {
@@ -390,10 +390,10 @@
     line-height: 1.5;
 }
 /* The same role colours as the rest of the staff tooling. */
-.badge-role-admin { background: rgba(168,85,247,0.15); color: var(--purple); border: 1px solid var(--purple); }
-.badge-role-reviewer { background: rgba(59,130,246,0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
-.badge-role-trusted_editor { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
-.badge-role-contributor { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
+.badge-role-admin { background: rgba(168,85,247,0.15); color: var(--purple-text); border: 1px solid var(--purple); }
+.badge-role-reviewer { background: rgba(59,130,246,0.15); color: var(--accent-text); border: 1px solid var(--accent-blue); }
+.badge-role-trusted_editor { background: rgba(234,179,8,0.15); color: var(--yellow-text); border: 1px solid var(--yellow); }
+.badge-role-contributor { background: rgba(34,197,94,0.15); color: var(--green-text); border: 1px solid var(--green); }
 .badge-role-viewer { background: rgba(136,136,136,0.15); color: var(--grey-88); border: 1px solid var(--grey-88); }
 
 .admin-input-full { width: 100%; margin: 0.75rem 0; font-size: 0.75rem; padding: 0.5rem; box-sizing: border-box; }
@@ -408,7 +408,7 @@
 /* The queue tabs wrap rather than scroll, so every name stays in view. */
 .sub-tabs.admin-queue-tabs { margin-bottom: 1rem; }
 /* How many are waiting, once that queue has loaded. */
-.admin-queue-count:not(:empty) { margin-left: 0.4rem; color: var(--accent-blue); font-weight: bold; }
+.admin-queue-count:not(:empty) { margin-left: 0.4rem; color: var(--accent-text); font-weight: bold; }
 .media-queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .media-queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
 .media-queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: var(--grey-88); margin: 0 0 0.75rem 0; }
@@ -420,17 +420,17 @@
 
 .media-queue-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
 .media-queue-name { font-family: var(--text-mono); font-size: 0.72rem; color: var(--theme-text-white, var(--white)); word-break: break-all; }
-.media-queue-status-unchecked { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
-.media-queue-status-approved { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
-.media-queue-status-flagged { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid var(--red); }
+.media-queue-status-unchecked { background: rgba(234,179,8,0.15); color: var(--yellow-text); border: 1px solid var(--yellow); }
+.media-queue-status-approved { background: rgba(34,197,94,0.15); color: var(--green-text); border: 1px solid var(--green); }
+.media-queue-status-flagged { background: rgba(239,68,68,0.15); color: var(--red-text); border: 1px solid var(--red); }
 
 .media-queue-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; font-family: var(--text-mono); font-size: 0.65rem; color: var(--grey-88); }
 /* Where a file is used is the most useful sort, so it is coloured. */
-.media-queue-usage-live { color: var(--green); }
-.media-queue-usage-history { color: var(--yellow); }
+.media-queue-usage-live { color: var(--green-text); }
+.media-queue-usage-history { color: var(--yellow-text); }
 .media-queue-usage-unused { color: #f97316; }
 .media-queue-pages { display: block; margin-top: 0.25rem; font-family: var(--text-mono); font-size: 0.62rem; color: var(--grey-66); word-break: break-word; }
-.media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: var(--red); }
+.media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: var(--red-text); }
 
 /* The phone's preview only; wider, a clip opens in the main pane. */
 .media-queue-preview:empty { display: none; }
@@ -493,7 +493,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* Media garbage collection, on owner.html */
 /* Pinned, since the button it hides deletes files. */
 .admin-tool-btn[hidden] { display: none; }
-.gc-orphan-count { color: var(--yellow); }
+.gc-orphan-count { color: var(--yellow-text); }
 .gc-orphan-list { margin: 0.35rem 0 0 0; padding: 0.4rem 0.4rem 0.4rem 1.4rem; max-height: 9rem; overflow-y: auto; border: 1px dashed var(--grey-33); }
 .gc-orphan-list li { word-break: break-all; }
 
@@ -529,8 +529,8 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .ticket-left-col { flex: 1; border-right: 1px solid var(--grey-33); padding-right: 2rem; display: flex; flex-direction: column; }
 .ticket-right-col { flex: 2; display: flex; flex-direction: column; }
 .ticket-header-title { margin: 0 0 0.75rem 0; font-size: 0.85rem; font-family: var(--font-label), sans-serif; }
-.ticket-header-title.status { color: var(--yellow); }
-.ticket-header-title.log { color: var(--accent-blue); }
+.ticket-header-title.status { color: var(--yellow-text); }
+.ticket-header-title.log { color: var(--accent-text); }
 .ticket-header-title.qa { color: #3b82f6; }
 
 /* The QA report, above the ticket, on every submission */
@@ -548,8 +548,8 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* A changelog with a staff note, and a merged ticket's evidence, are several lines. */
 .qa-report-value { white-space: pre-wrap; }
 .ticket-status-text { font-size: 0.75rem; margin: 0 0 0.25rem 0; font-family: var(--text-mono); }
-.ticket-status-text.support { color: var(--green); }
-.ticket-status-text.oppose { color: var(--red); margin-bottom: 1.5rem; }
+.ticket-status-text.support { color: var(--green-text); }
+.ticket-status-text.oppose { color: var(--red-text); margin-bottom: 1.5rem; }
 #ticket-support-actions { margin-top: auto; }
 
 .ticket-chat-log { flex: 1; min-height: 150px; max-height: 250px; overflow-y: auto; background: var(--theme-bg-main, hsl(0, 0%, 0%)); border: 1px inset var(--theme-border-color, hsl(0, 0%, 13%)); padding: 0.75rem; font-family: var(--text-mono); font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
@@ -568,10 +568,10 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* Access denied */
 .access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: var(--grey-05); }
-.access-denied-title { color: var(--red); font-family: var(--font-label), sans-serif; }
+.access-denied-title { color: var(--red-text); font-family: var(--font-label), sans-serif; }
 
 /* The queue's loading, error and empty states */
-.admin-error-text { color: var(--red); font-size: 0.75rem; }
+.admin-error-text { color: var(--red-text); font-size: 0.75rem; }
 .admin-queue-empty-msg { border: 1px dashed var(--grey-33); padding: 1.5rem 1rem; font-size: 0.7rem; }
 
 .admin-queue-group-title { font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
@@ -584,26 +584,26 @@ body.sbs-active #preview-content-area { max-width: none; }
    runs long, so it breaks anywhere. `anywhere`, not `break-word`: only it also
    shrinks the min-content size, so the badge yields as a flex item. */
 .badge-patch-delta {
-    background: rgba(168,85,247,0.1); color: var(--purple); border: 1px solid var(--purple);
+    background: rgba(168,85,247,0.1); color: var(--purple-text); border: 1px solid var(--purple);
     font-size: 0.55rem; padding: 0.1rem 0.4rem;
     white-space: normal;
     overflow-wrap: anywhere;
     max-width: 100%;
     box-sizing: border-box;
 }
-.badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: var(--red-text); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-page-id { font-size: 0.5rem; background: var(--grey-33); color: var(--theme-text-white, var(--white)); border: 1px solid var(--grey-55); padding: 0.15rem 0.4rem; }
 
 /* A rough size hint, from the changed content's length at load. */
-.badge-size-s { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid var(--green); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-size-m { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid var(--yellow); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-size-l { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-s { background: rgba(34,197,94,0.1); color: var(--green-text); border: 1px solid var(--green); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-m { background: rgba(234,179,8,0.1); color: var(--yellow-text); border: 1px solid var(--yellow); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-l { background: rgba(239,68,68,0.1); color: var(--red-text); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
 /* The contributor's confidence, in the size badges' three colours, since both
    answer "what to open next". N/A is muted: typo fixes are no risk, not a level. */
-.badge-confidence-high { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid var(--green); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-confidence-medium { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid var(--yellow); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-confidence-low { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-high { background: rgba(34,197,94,0.1); color: var(--green-text); border: 1px solid var(--green); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-medium { background: rgba(234,179,8,0.1); color: var(--yellow-text); border: 1px solid var(--yellow); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-low { background: rgba(239,68,68,0.1); color: var(--red-text); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-confidence-na { background: rgba(136,136,136,0.1); color: var(--grey-88); border: 1px solid var(--grey-55); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
 /* Clamped to three lines and visual only: the full note stays selectable and
@@ -642,14 +642,14 @@ body.sbs-active #preview-content-area { max-width: none; }
 .admin-queue-card-info .update-log-meta { font-size: 0.65rem; color: var(--grey-88); }
 .admin-queue-badges-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 .admin-queue-author-name { color: var(--text-white); }
-.admin-queue-time-relative { color: var(--accent-blue); }
+.admin-queue-time-relative { color: var(--accent-text); }
 .admin-queue-time-exact { opacity: 0.5; }
 /* The badges yield, not the card's only control. */
 .admin-review-btn { font-size: 0.6rem; padding: 0.3rem 0.6rem; margin-top: 0.2rem; flex-shrink: 0; }
 
 /* The preview header and the diff view */
 .admin-preview-status-highlight { color: var(--text-white); }
-.diff-view-title { color: var(--purple); }
+.diff-view-title { color: var(--purple-text); }
 /* The breadcrumb a reviewer navigates by, so it is bright. */
 .diff-location-label { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-primary); margin-bottom: 1.5rem; margin-top: 2rem; }
 .diff-location-lead { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 0.4rem; }
@@ -657,7 +657,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 /* Says this is the fallback view, so a reviewer knows it is a real change. */
 .diff-unknown-scope {
     font-size: 0.8rem;
-    color: var(--accent-yellow);
+    color: var(--accent-yellow-text);
     border-left: 3px solid var(--accent-yellow);
     background: rgba(234, 179, 8, 0.08);
     padding: 0.6rem 0.75rem;
@@ -675,20 +675,20 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* The ticket's score and chat */
 .ticket-score-value { font-size: 1.1rem; }
-.ticket-perk-note { color: var(--purple); font-weight: bold; }
+.ticket-perk-note { color: var(--purple-text); font-weight: bold; }
 .ticket-requirement-text { color: var(--grey-88); font-size: 0.75rem; }
-.ticket-own-submission-note { color: var(--red); font-size: 0.65rem; font-family: var(--text-mono); }
+.ticket-own-submission-note { color: var(--red-text); font-size: 0.65rem; font-family: var(--text-mono); }
 .ticket-vote-btn { flex: 1; }
 .ticket-vote-actions-row { display: flex; gap: 0.5rem; width: 100%; }
 .ticket-qa-field { margin-bottom: 0.5rem; }
 .ticket-qa-label { color: var(--text-white); }
-.ticket-qa-link { color: var(--accent-blue); text-decoration: underline; }
+.ticket-qa-link { color: var(--accent-text); text-decoration: underline; }
 .ticket-chat-empty { color: var(--grey-55); font-style: italic; }
-.ticket-chat-author { color: var(--accent-blue); }
+.ticket-chat-author { color: var(--accent-text); }
 
 /* A REQUEST CHANGES message stands out from ordinary chat. */
 .ticket-chat-changes-requested { background: rgba(234,179,8,0.08); border-left: 3px solid var(--yellow); padding: 0.5rem 0.75rem; margin: 0.35rem 0; }
-.ticket-chat-changes-requested-label { color: var(--yellow); font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
+.ticket-chat-changes-requested-label { color: var(--yellow-text); font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
 .ticket-chat-changes-requested-text { color: var(--text-white); }
 
 /* Page History */
@@ -852,7 +852,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .report-page {
     font-family: var(--text-mono);
     font-size: 0.65rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-weight: bold;
 }
 
@@ -872,7 +872,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 .report-note {
     font-size: 0.75rem;
-    color: var(--yellow);
+    color: var(--yellow-text);
     margin-bottom: 0.5rem;
     overflow-wrap: break-word;
 }
@@ -900,7 +900,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     font-family: var(--text-mono);
     font-size: 0.65rem;
     letter-spacing: 0.06em;
-    color: var(--yellow);
+    color: var(--yellow-text);
     margin-bottom: 0.3rem;
 }
 .report-edit-when { font-size: 0.7rem; color: var(--text-muted); margin: 0.3rem 0 0.2rem; }
@@ -911,12 +911,12 @@ body.sbs-active #preview-content-area { max-width: none; }
 .media-report-page { border-top: 1px solid var(--border-color, var(--grey-33)); padding: 0.5rem 0; }
 .media-report-page-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
 .media-report-page-name { color: var(--text-white); font-weight: bold; }
-.media-report-count { font-family: var(--text-mono); font-size: 0.7rem; color: var(--red); }
+.media-report-count { font-family: var(--text-mono); font-size: 0.7rem; color: var(--red-text); }
 .media-report-list { list-style: none; margin: 0.35rem 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 .media-report-item { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: baseline; font-size: 0.75rem; }
 .media-report-where { color: var(--text-muted); }
-.media-report-file { font-family: var(--text-mono); color: var(--accent-blue); overflow-wrap: anywhere; }
-.media-report-state { font-family: var(--text-mono); font-size: 0.65rem; text-transform: uppercase; color: var(--red); }
+.media-report-file { font-family: var(--text-mono); color: var(--accent-text); overflow-wrap: anywhere; }
+.media-report-state { font-family: var(--text-mono); font-size: 0.65rem; text-transform: uppercase; color: var(--red-text); }
 .media-report-state.is-unknown { color: #facc15; }
 
 /* A reported post's images, small, each opening the full file. */
@@ -967,7 +967,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     font-family: var(--text-mono);
     font-size: 0.72rem;
     font-weight: bold;
-    color: var(--red);
+    color: var(--red-text);
     overflow-wrap: anywhere;
 }
 
@@ -985,7 +985,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     margin: 0 0 0.5rem 0;
     font-family: var(--text-mono);
     font-size: 0.68rem;
-    color: var(--red);
+    color: var(--red-text);
 }
 
 .media-queue-confirm-status {
@@ -1004,7 +1004,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
 .expert-group { margin-bottom: 1rem; }
 .expert-group-title {
     font-family: var(--text-mono); font-size: 0.7rem; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--accent-blue);
+    letter-spacing: 0.05em; color: var(--accent-text);
     margin: 0 0 0.4rem 0; padding-bottom: 0.25rem;
     border-bottom: 1px solid var(--grey-22);
 }
@@ -1016,7 +1016,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     margin: 0.15rem 0;
     background: rgba(96, 165, 250, 0.06);
 }
-.ticket-chat-author-badge { color: var(--accent-blue); }
+.ticket-chat-author-badge { color: var(--accent-text); }
 
 /* A field the form fills for you: decided, not broken. */
 .owner-field-locked {

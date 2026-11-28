@@ -265,7 +265,7 @@ body {
 }
 
 .wiki-link {
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-decoration: underline;
     text-underline-offset: 2px;
     transition: color 0.1s;
@@ -375,7 +375,7 @@ body {
 }
 .site-title { text-shadow: 2px 2px 0px var(--manga-shadow); }
 .site-title:hover {
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-shadow: 2px 2px 0px var(--manga-shadow), 0 0 15px hsla(213, 94%, 68%, 0.4);
 }
 .character-title {
@@ -384,7 +384,7 @@ body {
 .character-header h1.character-title::before { content: ''; }
 .section-title {
     font-family: var(--font-title), sans-serif;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     border-bottom-width: 2px;
     text-shadow: 2px 2px 0px var(--manga-shadow);
     text-transform: uppercase;

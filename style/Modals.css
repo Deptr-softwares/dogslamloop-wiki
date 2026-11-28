@@ -141,7 +141,7 @@ dialog.site-dialog.tone-purple { --dialog-tone: var(--purple); }
     color: var(--text-muted);
     text-align: left;
 }
-.auth-terms-notice a { color: var(--accent-blue); text-decoration: underline; }
+.auth-terms-notice a { color: var(--accent-text); text-decoration: underline; }
 
 
 /* The profile modal: its own classes are prefixed profile-; .btn-sys, .editor-input
@@ -173,11 +173,11 @@ dialog.site-dialog.tone-purple { --dialog-tone: var(--purple); }
 
 /* The badge colours match the sidebar dock's, because they are the same
    identity seen in two places. Keyed by name, never by rank. */
-.profile-standing-purple  { color: var(--purple); }
-.profile-standing-red     { color: var(--red); }
-.profile-standing-blue    { color: var(--accent-blue); }
-.profile-standing-yellow  { color: var(--yellow); }
-.profile-standing-green   { color: var(--green); }
+.profile-standing-purple  { color: var(--purple-text); }
+.profile-standing-red     { color: var(--red-text); }
+.profile-standing-blue    { color: var(--accent-text); }
+.profile-standing-yellow  { color: var(--yellow-text); }
+.profile-standing-green   { color: var(--green-text); }
 .profile-standing-regular { color: var(--text-muted); }
 
 .profile-identity-text {
@@ -223,7 +223,7 @@ dialog.site-dialog.tone-purple { --dialog-tone: var(--purple); }
 }
 
 .profile-count { color: var(--text-muted); font-size: 0.6rem; }
-.profile-count-full { color: var(--accent-yellow); }
+.profile-count-full { color: var(--accent-yellow-text); }
 
 .profile-hint {
     font-family: var(--text-mono);
@@ -281,8 +281,8 @@ dialog.site-dialog.tone-purple { --dialog-tone: var(--purple); }
     border: 2px solid var(--border-color);
 }
 
-.profile-feedback-bad { color: var(--red); background: rgba(239, 68, 68, 0.1); border-color: var(--red); }
-.profile-feedback-ok  { color: var(--green); background: rgba(34, 197, 94, 0.1); border-color: var(--green); }
+.profile-feedback-bad { color: var(--red-text); background: rgba(239, 68, 68, 0.1); border-color: var(--red); }
+.profile-feedback-ok  { color: var(--green-text); background: rgba(34, 197, 94, 0.1); border-color: var(--green); }
 
 /* Somebody else's profile: read-only, reusing .profile-identity, so a person looks
    the same either way. */

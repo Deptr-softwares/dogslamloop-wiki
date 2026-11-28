@@ -73,7 +73,7 @@
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     margin-bottom: 0.4rem;
 }
 
@@ -121,11 +121,11 @@
 }
 
 .discussion-rules-link:hover {
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 
 .discussion-status-error {
-    color: var(--red);
+    color: var(--red-text);
 }
 
 /* Sign-in prompt and empty state */
@@ -299,7 +299,7 @@
     font-size: 0.72rem;
     font-weight: bold;
     letter-spacing: 0.04em;
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 
 .discussion-time {
@@ -623,18 +623,18 @@
 }
 
 .discussion-action-btn:hover {
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 
 .discussion-action-danger:hover {
-    color: var(--red);
+    color: var(--red-text);
 }
 
 /* Moderation, drawn only for a moderator: the server filters hidden rows out of
    everyone else's result. */
 
 .discussion-action-mod:hover {
-    color: var(--accent-yellow);
+    color: var(--accent-yellow-text);
 }
 
 /* A hidden post is invisible to readers but sits in the thread for staff, so
@@ -663,7 +663,7 @@
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--accent-yellow);
+    color: var(--accent-yellow-text);
     margin-bottom: 0.45rem;
 }
 
@@ -720,7 +720,7 @@
     border: 2px solid var(--yellow);
     font-family: var(--text-mono);
     font-size: 0.7rem;
-    color: var(--yellow);
+    color: var(--yellow-text);
 }
 
 /* Replies: one step in, so one indent, carried by the left rule. */
@@ -790,7 +790,7 @@ button.discussion-author-link {
     font-size: 0.72rem;
     font-weight: bold;
     letter-spacing: 0.04em;
-    color: var(--accent-blue);
+    color: var(--accent-text);
 
     display: inline-flex;
     align-items: baseline;
@@ -802,7 +802,7 @@ button.discussion-author-link {
 button.discussion-author-link:hover,
 button.discussion-author-link:focus-visible {
     text-decoration: underline;
-    color: var(--accent-blue-hover);
+    color: var(--accent-hover-text);
 }
 
 /* The flair beside the name, capped and ellipsised: 32 characters can all be wide
@@ -896,7 +896,7 @@ button.discussion-author-link:focus-visible {
 
 .discussion-edited-open:hover,
 .discussion-edited-open:focus-visible {
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 
 /* Which reply a reply answers. A button, because it jumps to that reply; laid
@@ -943,7 +943,7 @@ button.discussion-author-link:focus-visible {
     font-size: 0.62rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--accent-yellow);
+    color: var(--accent-yellow-text);
     margin: 0 0 0.3rem;
 }
 

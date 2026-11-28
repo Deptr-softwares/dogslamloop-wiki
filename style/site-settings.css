@@ -17,5 +17,5 @@
 .site-setting-font .site-setting-text { flex: 1; }
 .site-setting-font .manga-select-wrapper { flex: 0 0 9.5rem; margin-bottom: 0; }
 .site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
-.site-settings-error { margin: 0; color: var(--red); font-size: 0.8rem; }
+.site-settings-error { margin: 0; color: var(--red-text); font-size: 0.8rem; }
 }

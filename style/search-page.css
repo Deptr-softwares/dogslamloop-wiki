@@ -18,7 +18,7 @@
 
 .search-page-group {
     font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase;
-    color: var(--accent-blue); margin: 1.5rem 0 0.5rem;
+    color: var(--accent-text); margin: 1.5rem 0 0.5rem;
     border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;
 }
 .search-page-list { list-style: none; margin: 0; padding: 0; }
@@ -29,7 +29,7 @@
     display: inline-block; color: var(--text-white); text-decoration: none;
     font-family: var(--text-mono); font-size: 0.85rem; font-weight: bold;
 }
-.search-page-hit-link:hover { color: var(--accent-blue); text-decoration: underline; }
+.search-page-hit-link:hover { color: var(--accent-text); text-decoration: underline; }
 .search-page-hit-where {
     display: block; color: var(--text-muted);
     font-family: var(--text-mono); font-size: 0.6rem; margin-top: 2px;
@@ -45,6 +45,6 @@
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
-.search-page-title { color: var(--accent-blue); }
+.search-page-title { color: var(--accent-text); }
 }
 }

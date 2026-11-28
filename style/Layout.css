@@ -164,7 +164,7 @@
 .toc-toggle-btn:hover { color: var(--text-white); }
 .toc-sublist { list-style: none; padding: 0; margin: 0; }
 .loading-msg-toc { padding: 0.25rem 0.75rem; }
-.loading-msg-error { color: var(--red); }
+.loading-msg-error { color: var(--red-text); }
 
 /* Auth/dock action buttons (js/pages/core/page_shell.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
@@ -275,7 +275,7 @@
 .section-title-flex { border-bottom: none !important; margin-bottom: 0 !important; padding-bottom: 0 !important; display: flex; align-items: baseline; gap: 0.75rem; transform: translateY(4px); }
 
 .hub-link { font-size: 0.75rem; color: var(--text-muted); font-family: var(--text-mono); text-decoration: none; transition: color 0.2s; margin-top: 0.25rem; }
-.hub-link:hover { color: var(--accent-blue); }
+.hub-link:hover { color: var(--accent-text); }
 .update-log-meta { display: flex; gap: 0.5rem; align-items: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; font-family: var(--text-mono); }
 .update-title { margin: 0; font-size: 1.15rem; color: var(--text-white); font-family: var(--font-label), sans-serif; }
 /* Trivia, one fact a line. A "Label | text" fact shows its text on hover or a tap;
@@ -306,7 +306,7 @@
    spans both sidebars. */
 .site-footer { border-top: 2px solid var(--border-color); background: var(--bg-main); padding: 1.5rem 2rem; margin-top: 2rem; }
 .site-footer-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; max-width: 1000px; margin: 0 auto; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
-.site-footer-link { color: var(--accent-blue); text-decoration: underline; }
+.site-footer-link { color: var(--accent-text); text-decoration: underline; }
 .site-footer-link:hover { color: var(--text-white); }
 /* Wraps to its own line on narrow screens rather than hiding: the disclaimer stays
    visible everywhere. */
@@ -414,7 +414,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     box-sizing: border-box;
     border: 1px dashed var(--red);
     background: rgba(239, 68, 68, 0.06);
-    color: var(--red);
+    color: var(--red-text);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-align: center;
@@ -428,7 +428,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     padding: 0.15rem 0.5rem;
     border: 1px dashed var(--red);
     background: rgba(239, 68, 68, 0.06);
-    color: var(--red);
+    color: var(--red-text);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -527,7 +527,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .mobile-bottom-btn .px-icon { display: block; }
     .mobile-bottom-icon { display: block; height: 16px; }
     .mobile-bottom-btn:active { color: var(--text-white); background: var(--bg-secondary); }
-    .mobile-bottom-kofi { color: var(--accent-yellow); }
+    .mobile-bottom-kofi { color: var(--accent-yellow-text); }
     /* !important only to get past .p-0, which every page puts on its body. */
     body.has-mobile-bottom-bar { padding-bottom: calc(3rem + 2px + env(safe-area-inset-bottom, 0px)) !important; }
     /* Mobile Sidebar Dock Collapsing */
@@ -563,7 +563,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .gallery-search-label {
     font-family: var(--text-mono); font-size: 0.7rem; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--accent-blue);
+    letter-spacing: 1px; color: var(--accent-text);
 }
 .gallery-search { flex: 1 1 220px; margin: 0; min-width: 0; }
 .gallery-count { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
@@ -666,7 +666,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     display: block; padding: 0.45rem 0.6rem;
     border-top: 2px solid var(--border-color);
     background: var(--bg-dark, var(--grey-11));
-    color: var(--accent-blue); text-decoration: none;
+    color: var(--accent-text); text-decoration: none;
     font-family: var(--text-mono); font-size: 0.6rem;
 }
 .site-search-more:hover { background: var(--accent-blue); color: var(--theme-character-ink, var(--black)); }
@@ -684,7 +684,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
 /* The sidebar's category toggles share the heading class but are links. */
 .sidebar-nav-title.sidebar-group-header {
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-size: 0.85rem;
     border-bottom: 0;
     padding-bottom: 0;
@@ -697,12 +697,12 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     padding: 0.15rem 0;
     margin: 0;
     font-size: 0.85rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 .local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; }
 :is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active { color: var(--text-white); font-weight: bold; }
 /* WIP and EA in the menu: small coloured words, not a filled tag. */
-.global-sidebar-left .update-badge { border: 0; padding: 0; color: var(--accent-yellow); }
+.global-sidebar-left .update-badge { border: 0; padding: 0; color: var(--accent-yellow-text); }
 .global-sidebar-left .badge-ea { color: hsl(28, 99%, 53%); }
 
 /* The account buttons are links under "Account"; Site settings keeps its box, and a
@@ -713,20 +713,20 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     background: none;
     border: 0;
     padding: 0.15rem 0;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-size: 0.85rem;
     font-weight: normal;
 }
 .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled) {
     background: none;
-    color: var(--accent-blue-hover);
+    color: var(--accent-hover-text);
     text-decoration: underline;
 }
 .global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon { display: none; }
 .dock-badge {
     width: auto;
     height: auto;
-    color: var(--red);
+    color: var(--red-text);
     font-size: 0.75rem;
 }
 .dock-badge::before { content: '(new)'; }
@@ -754,7 +754,7 @@ html:not(.look-classic) {
 .sidebar-nav-title {
     font-family: var(--font-label), sans-serif;
     font-size: 0.85rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.4rem;
@@ -796,6 +796,6 @@ html:not(.look-classic) {
     }
 }
 /* The records pages' titles are the accent colour, until the character theme names a character on History. */
-:is(#history-page-title, #recent-changes-page-title, #submissions-page-title):not([data-themed]) { color: var(--accent-blue); }
+:is(#history-page-title, #recent-changes-page-title, #submissions-page-title):not([data-themed]) { color: var(--accent-text); }
 }
 }

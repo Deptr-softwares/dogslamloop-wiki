@@ -35,10 +35,10 @@
     text-align: center;
     font-family: var(--text-mono);
     font-weight: bold;
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 .reading-step-title { display: block; color: var(--text-white); font-weight: bold; text-decoration: none; }
-a.reading-step-title:hover { color: var(--accent-blue); }
+a.reading-step-title:hover { color: var(--accent-text); }
 .reading-step-desc { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
 
 /* Needs-work and recent-edit lists share a row shape: a name, then muted
@@ -55,7 +55,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 .needs-work-row:last-child, .recent-edit-row:last-child { border-bottom: none; }
 .needs-work-name, .recent-edit-name { color: var(--text-white); text-decoration: none; font-weight: bold; }
-.needs-work-name:hover, .recent-edit-name:hover { color: var(--accent-blue); }
+.needs-work-name:hover, .recent-edit-name:hover { color: var(--accent-text); }
 .needs-work-missing, .recent-edit-meta {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -77,7 +77,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 .tier-snapshot-names { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; }
 .tier-snapshot-name { font-size: 0.8rem; color: var(--text-primary); text-decoration: none; }
-.tier-snapshot-name:hover { color: var(--accent-blue); }
+.tier-snapshot-name:hover { color: var(--accent-text); }
 
 /* Site statistics. auto-fit so three stats sit in a row on desktop and wrap
    to two-plus-one on a narrow card, without a media query per breakpoint. */
@@ -87,7 +87,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     display: block;
     font-family: var(--font-title), sans-serif;
     font-size: 1.75rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-shadow: 2px 2px 0px var(--manga-shadow);
 }
 .wiki-stat-label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-family: var(--text-mono); }
@@ -118,7 +118,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .filter-bar-inline { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 .filter-group { display: flex; align-items: center; gap: 0.5rem; }
 .filter-group-right { margin-left: auto; }
-.filter-label { font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--accent-blue); text-transform: uppercase; }
+.filter-label { font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--accent-text); text-transform: uppercase; }
 
 /* Scroll boxes */
 .scroll-lg { max-height: 450px !important; }
@@ -140,7 +140,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .game-info-link { display: block; color: hsl(213, 94%, 68%); text-decoration: none; margin-bottom: 0.5rem; }
 
 /* FAQ Sections */
-.faq-summary { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-label), sans-serif; color: var(--accent-blue); cursor: pointer; list-style: none; text-shadow: 1px 1px 0px var(--black); }
+.faq-summary { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-label), sans-serif; color: var(--accent-text); cursor: pointer; list-style: none; text-shadow: 1px 1px 0px var(--black); }
 .faq-summary::-webkit-details-marker { display: none; }
 .faq-arrow { font-size: 0.75rem; color: var(--text-muted); transition: transform 0.2s ease; }
 .faq-details[open] .faq-arrow { transform: rotate(180deg); }

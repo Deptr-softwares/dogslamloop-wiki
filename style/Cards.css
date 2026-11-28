@@ -187,7 +187,7 @@
 .collaborator-link { text-decoration: none; }
 .collaborator-thanks { margin: 0 0 1rem; }
 .collaborator-thanks > li + li { margin-top: 0.5rem; }
-.collaborator-line-name { color: var(--accent-blue); font-family: var(--text-mono); }
+.collaborator-line-name { color: var(--accent-text); font-family: var(--text-mono); }
 .collaborator-line-reason { color: var(--text-primary); }
 /* The Update Log's part headings (Features, Fine-tuning, Bug fixes), each opening
    its own list. An entry with no headings is one list. */
@@ -196,7 +196,7 @@
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     margin: 1.25rem 0 0.25rem 0;
     padding-bottom: 0.3rem;
     border-bottom: 1px solid var(--border-color);

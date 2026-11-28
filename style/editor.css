@@ -179,7 +179,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--theme-bg
 
 .editor-header-titles .editor-subtitle {
     display: block;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-size: 0.75rem;
     font-family: var(--text-mono);
     white-space: nowrap;
@@ -213,7 +213,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--theme-bg
 .editor-chrome-toggle {
     background: none;
     border: 1px solid var(--grey-33);
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-size: 0.7rem;
     line-height: 1;
     padding: 0.25rem 0.4rem;
@@ -324,7 +324,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: var(--theme-bg
     font-size: 0.65rem;
     font-weight: bold;
     letter-spacing: 0.08em;
-    color: var(--accent-yellow);
+    color: var(--accent-yellow-text);
 }
 
 .block-selection-actions {
@@ -633,7 +633,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     font-size: 0.55rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     margin: 0.5rem 0 0.2rem;
 }
 .format-jump-group:first-child { margin-top: 0; }
@@ -651,7 +651,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     cursor: pointer;
     transition: transform 0.12s ease, color 0.12s ease;
 }
-.format-jump-toggle:hover { color: var(--accent-blue); }
+.format-jump-toggle:hover { color: var(--accent-text); }
 .format-jump-toggle[aria-expanded="false"] { transform: rotate(-90deg); }
 /* Indented and dimmed: two levels without a second colour. */
 .format-jump-children { margin-left: 0.6rem; border-left: 1px solid var(--grey-33); padding-left: 0.3rem; }
@@ -838,11 +838,11 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     border-radius: 50%;
     box-shadow: 0 0 8px currentColor;
 }
-.status-dot.offline { color: var(--red); background: var(--red); }
-.status-dot.online { color: var(--green); background: var(--green); }
+.status-dot.offline { color: var(--red-text); background: var(--red); }
+.status-dot.online { color: var(--green-text); background: var(--green); }
 
 /* The QA modal (openQAModal) */
-.editor-intercept-label { color: var(--purple); }
+.editor-intercept-label { color: var(--purple-text); }
 .qa-form-container { display: flex; flex-direction: column; text-align: left; }
 .sub-tabs.qa-tabs-row { margin-bottom: 1rem; }
 .qa-field-label { font-family: var(--text-mono); font-size: 0.65rem; color: var(--grey-88); }
@@ -858,7 +858,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* The tier list editor's notice where the preview would be */
 .tierlist-preview-disabled-notice { padding: 2rem; color: var(--grey-88); text-align: center; border: 1px dashed var(--grey-33); margin-top: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
 .tierlist-preview-disabled-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
-.tierlist-preview-disabled-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; letter-spacing: 1px; }
+.tierlist-preview-disabled-title { color: var(--accent-text); font-family: var(--font-label), sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
 /* The tool page editor: short notes under a control, since what they say (an
@@ -937,7 +937,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     color: var(--text-muted);
 }
 .character-mode-chip.editor-mode-add:hover {
-    color: var(--accent-blue);
+    color: var(--accent-text);
     border-color: var(--accent-blue);
 }
 
@@ -1004,8 +1004,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* The section banners across the tab editors */
 .editor-section-banner { background: var(--grey-0a); border-top: 1px solid var(--grey-22); border-bottom: 1px solid var(--grey-22); border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center; }
 .editor-section-banner-spaced { margin-top: 0.5rem; }
-.editor-section-banner-text { color: var(--accent-blue); font-family: inherit; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-.editor-section-banner-text-inline { color: var(--accent-blue); font-family: inherit; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+.editor-section-banner-text { color: var(--accent-text); font-family: inherit; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+.editor-section-banner-text-inline { color: var(--accent-text); font-family: inherit; font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
 .editor-extra-title-row { display: flex; align-items: center; gap: 0.75rem; width: 100%; }
 .editor-extra-title-input { margin: 0; max-width: 300px; font-size: 0.85rem; font-family: var(--text-mono); border-radius: 0; padding: 0.4rem 0.6rem; text-transform: uppercase; }
 .daw-editor-target-spacing { padding-bottom: 1rem; }
@@ -1072,7 +1072,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-input.daw-variant-scale-inp { margin: 0; width: 80px; }
 /* Compound: .daw-container sets padding at the same specificity. */
 .daw-container.daw-branch-empty-notice { text-align: center; padding: 3rem 1rem; }
-.daw-branch-title { color: var(--accent-blue); font-family: inherit; font-size: 1.1rem; margin-bottom: 1rem; text-transform: uppercase; }
+.daw-branch-title { color: var(--accent-text); font-family: inherit; font-size: 1.1rem; margin-bottom: 1rem; text-transform: uppercase; }
 .daw-branch-label-row { display: flex; justify-content: center; margin-bottom: 1.5rem; }
 .editor-input.daw-branch-label-inp { max-width: 250px; text-align: center; font-size: 0.9rem; }
 .daw-branch-hint { color: var(--text-muted); font-family: var(--text-mono); margin-bottom: 1.5rem; }
@@ -1101,8 +1101,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .block-editor-container.block-editor-container-blocklist { margin-top: 0; margin-bottom: 3rem; }
 .block-card-split { flex: 1; min-width: 300px; }
 /* Compound: .block-type-badge sets colour at the same specificity. */
-.block-type-badge.block-type-badge-positive { color: var(--green); }
-.block-type-badge.block-type-badge-negative { color: var(--red); }
+.block-type-badge.block-type-badge-positive { color: var(--green-text); }
+.block-type-badge.block-type-badge-negative { color: var(--red-text); }
 .strategy-toolbar-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .strategy-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 /* The Block editor's row has nothing on its left, so space-between would drag
@@ -1110,7 +1110,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
    uses .strategy-toolbar-row with two children. */
 .strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed var(--purple); padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-.accordion-back-label { color: var(--purple); font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
+.accordion-back-label { color: var(--purple-text); font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: var(--theme-text-white, var(--white)); font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
 /* Two dropdowns share this row, and Forms.css's .manga-select-wrapper is
    flex:1 with min-width:0, which in a shrink-wrapping row resolves to zero width
@@ -1312,7 +1312,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 /* The two rows that are not folders. */
 .folder-option-none { font-style: italic; color: var(--theme-text-muted, #6b7280) !important; }
 .folder-option-none::before { content: '\2014\00a0'; }
-.folder-option-new { color: var(--green) !important; border-top: 1px solid var(--grey-22); }
+.folder-option-new { color: var(--green-text) !important; border-top: 1px solid var(--grey-22); }
 .folder-option-new:hover,
 .folder-option-new.is-active { background: var(--green) !important; color: var(--black) !important; }
 
@@ -1382,7 +1382,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 #btn-media-prev:disabled, #btn-media-next:disabled { opacity: 0.3; }
 
 .media-status-msg { color: var(--grey-88); font-family: var(--text-mono); font-size: 0.75rem; padding: 2rem; text-align: center; grid-column: 1 / -1; }
-.media-error-msg { color: var(--red); grid-column: 1 / -1; }
+.media-error-msg { color: var(--red-text); grid-column: 1 / -1; }
 
 /* A list of names and one preview, no thumbnails: only the file picked is
    fetched. Side by side on a desktop, the preview above the list on a phone. */
@@ -1406,7 +1406,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-row:hover, .media-row:focus-visible { border-color: var(--accent-blue); }
 .media-row.is-selected { border-color: var(--accent-blue); background: rgba(96, 165, 250, 0.12); }
 .media-row-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.media-row-type { flex: none; color: var(--accent-blue); font-size: 0.6rem; }
+.media-row-type { flex: none; color: var(--accent-text); font-size: 0.6rem; }
 /* A credit, not a label: muted, a size down, cut before the name is. */
 .media-row-uploader { flex: 0 1 auto; max-width: 35%; color: var(--text-muted); font-size: 0.6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -1443,11 +1443,11 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 /* Bounded: a refusal is a sentence, and would push the file name out of the row. */
 .media-upload-row-detail { color: var(--grey-88); max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .media-upload-row-queued .media-upload-row-name { color: var(--grey-88); }
-.media-upload-row-working .media-upload-row-detail { color: var(--accent-blue); }
-.media-upload-row-done .media-upload-row-detail { color: var(--green); }
+.media-upload-row-working .media-upload-row-detail { color: var(--accent-text); }
+.media-upload-row-done .media-upload-row-detail { color: var(--green-text); }
 /* A failure stays visible after the rest of the run. */
-.media-upload-row-failed .media-upload-row-detail { color: var(--red); }
-.media-upload-row-failed .media-upload-row-name { color: var(--red); }
+.media-upload-row-failed .media-upload-row-detail { color: var(--red-text); }
+.media-upload-row-failed .media-upload-row-name { color: var(--red-text); }
 /* A heavy clip waiting on the question above: yellow, the site's "look at this",
    not red, since nothing failed. */
 .media-upload-row-heavy .media-upload-row-detail { color: #f4cc43; }
@@ -1697,7 +1697,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     z-index: 50;
     pointer-events: none;
     background: rgba(59, 130, 246, 0.15);
-    color: var(--accent-blue);
+    color: var(--accent-text);
     border: 1px solid var(--accent-blue);
     padding: 0.25rem 0.75rem;
     font-family: var(--text-mono);
@@ -1721,7 +1721,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 .diff-section-title {
     font-family: var(--font-label), sans-serif;
-    color: var(--purple);
+    color: var(--purple-text);
     font-size: 1rem;
     border-bottom: 1px dashed var(--grey-33);
     padding-bottom: 0.5rem;
@@ -1888,8 +1888,8 @@ del.diff-del {
     text-transform: uppercase;
     margin-bottom: 1rem;
 }
-.diff-stacked-label.old { color: var(--red); }
-.diff-stacked-label.new { color: var(--green); }
+.diff-stacked-label.old { color: var(--red-text); }
+.diff-stacked-label.new { color: var(--green-text); }
 
 /* The structured field diff (renderStructuredDiff) for the Overseer's move stats
    and metadata. */
@@ -1913,7 +1913,7 @@ del.diff-del {
 /* The Draft Manager (openDraftManager) */
 .draft-empty-msg { color: var(--grey-66); font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed var(--grey-33); }
 .draft-row { display: flex; justify-content: space-between; align-items: center; background: var(--grey-05); border: 1px solid var(--grey-33); padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
-.draft-row-label { color: var(--accent-blue); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
+.draft-row-label { color: var(--accent-text); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
 .draft-row-title { color: var(--theme-text-white, var(--white)); font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
 .draft-row-context { color: var(--grey-88); font-weight: normal; }
 .draft-row-timestamp { color: var(--grey-66); font-family: var(--text-mono); font-size: 0.65rem; }
@@ -1921,7 +1921,7 @@ del.diff-del {
 .draft-row-actions { display: flex; gap: 0.5rem; align-items: center; }
 /* Compound: .btn-sys sets padding and font at the same specificity. */
 .btn-sys.draft-resume-btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; }
-.draft-active-badge { color: var(--green); font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid var(--green); }
+.draft-active-badge { color: var(--green-text); font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid var(--green); }
 .btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: var(--font-label), sans-serif; font-size: 0.65rem; }
 
 /* The system page editor (renderSystemEditor), on the tab strip's established
@@ -2007,7 +2007,7 @@ del.diff-del {
     flex: 1; text-align: left; font-family: var(--text-mono); font-size: 0.7rem;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.combo-row-item.active .combo-row-open { border-color: var(--accent-blue); color: var(--accent-blue); }
+.combo-row-item.active .combo-row-open { border-color: var(--accent-blue); color: var(--accent-text); }
 .combo-row-remove { flex: 0 0 auto; }
 
 /* Up and down within the list, stacked so the pair is one row tall. Scoped to
@@ -2061,7 +2061,7 @@ del.diff-del {
 }
 .find-replace-where {
     font-family: var(--text-mono); font-size: 0.6rem; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--accent-blue);
+    letter-spacing: 0.08em; color: var(--accent-text);
     margin: 0.6rem 0 0.25rem;
 }
 .find-replace-where:first-child { margin-top: 0; }
@@ -2104,7 +2104,7 @@ del.diff-del {
 /* Kept at the ends, disabled: hiding it would shift the row as the selection
    moves. */
 .daw-tab-move-btn:disabled { opacity: 0.25; cursor: default; }
-.daw-tab-insert-btn { color: var(--green); font-weight: bold; }
+.daw-tab-insert-btn { color: var(--green-text); font-weight: bold; }
 .daw-tab-insert-btn:hover { background: rgba(34, 197, 94, 0.15); }
 
 /* The 44px phone minimum the rest of the site's buttons have. */
@@ -2195,7 +2195,7 @@ del.diff-del {
 }
 
 .tutorial-title {
-    font-family: var(--font-title), sans-serif; color: var(--accent-blue);
+    font-family: var(--font-title), sans-serif; color: var(--accent-text);
     font-size: 1.1rem; margin: 0.25rem 0 0.75rem;
     text-shadow: 2px 2px 0 var(--manga-shadow);
 }
@@ -2226,7 +2226,7 @@ del.diff-del {
 .mos-body { text-align: left; max-height: 70vh; overflow-y: auto; }
 
 .mos-heading {
-    font-family: var(--text-mono); font-size: 0.7rem; color: var(--accent-blue);
+    font-family: var(--text-mono); font-size: 0.7rem; color: var(--accent-text);
     text-transform: uppercase; letter-spacing: 0.08em;
     margin: 1rem 0 0.5rem; border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.3rem;
@@ -2240,7 +2240,7 @@ del.diff-del {
     font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted);
     margin: 1rem 0 0;
 }
-.mos-footnote a { color: var(--accent-blue); }
+.mos-footnote a { color: var(--accent-text); }
 
 /* Paused while a notice is up: hidden, not removed, so resuming is a class. */
 .tutorial-overlay.is-paused .tutorial-box,
@@ -2267,20 +2267,20 @@ del.diff-del {
 .sbox-editor-sections { margin-top: 0.6rem; border-top: 1px dashed var(--grey-33); padding-top: 0.6rem; }
 .sbox-editor-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
-    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+    letter-spacing: 0.08em; color: var(--accent-text); margin-bottom: 0.4rem;
 }
 .sbox-editor-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
 .sbox-editor-row .editor-input { flex: 1; min-width: 0; }
 .sbox-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
 /* Which part of a Section Box the author went into, beside its title. */
-.accordion-back-part { color: var(--accent-blue); }
+.accordion-back-part { color: var(--accent-text); }
 
 /* A Combo Card's sections in the editor */
 .cardsec-switch { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem; }
 .cardsec-strip { border: 1px dashed var(--grey-33); padding: 0.5rem; margin-bottom: 0.6rem; }
 .cardsec-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
-    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+    letter-spacing: 0.08em; color: var(--accent-text); margin-bottom: 0.4rem;
 }
 .sub-tabs.cardsec-tabs { margin-bottom: 0.4rem; }
 
@@ -2289,7 +2289,7 @@ del.diff-del {
 .nstyle-editor { border: 1px dashed var(--grey-33); padding: 0.5rem; margin: 0.5rem 0 0.6rem; }
 .nstyle-editor-label {
     font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
-    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+    letter-spacing: 0.08em; color: var(--accent-text); margin-bottom: 0.4rem;
 }
 .nstyle-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
 .nstyle-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
@@ -2306,17 +2306,17 @@ del.diff-del {
 }
 .nstyle-name-chip:hover, .nstyle-name-chip:focus-visible { border-color: var(--accent-blue); outline: none; }
 .nstyle-name-count { color: var(--text-muted); margin-left: 0.35rem; }
-.nstyle-names-note { flex-basis: 100%; color: var(--accent-yellow); }
+.nstyle-names-note { flex-basis: 100%; color: var(--accent-yellow-text); }
 .nstyle-names-note:empty { display: none; }
 
 /* A Collaborator's links that will not show, named the same way. */
-.collaborator-links-note { color: var(--accent-yellow); font-family: var(--text-mono); font-size: 0.7rem; margin: 0.35rem 0 0; }
+.collaborator-links-note { color: var(--accent-yellow-text); font-family: var(--text-mono); font-size: 0.7rem; margin: 0.35rem 0 0; }
 
 /* Writing checks: a line under the field for each name or broken tag, and the
    list at Submit. */
 .writing-checks {
     display: flex; flex-direction: column; gap: 0.25rem; margin: 0.3rem 0;
-    font-family: var(--text-mono); font-size: 0.68rem; line-height: 1.4; color: var(--accent-yellow);
+    font-family: var(--text-mono); font-size: 0.68rem; line-height: 1.4; color: var(--accent-yellow-text);
 }
 .writing-check { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .writing-check-fix { padding: 0.1rem 0.5rem; font-size: 0.6rem; }
@@ -2348,7 +2348,7 @@ del.diff-del {
 .config-section-title {
     margin: 0; padding-bottom: 0.2rem; border-bottom: 1px solid var(--grey-33);
     font-family: var(--text-mono); font-size: 0.75rem; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--accent-blue);
+    text-transform: uppercase; color: var(--accent-text);
 }
 
 /* Config > Page. The word list does not scroll on its own: the colour popup opens
@@ -2505,7 +2505,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
     margin: 0;
     font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-transform: uppercase;
 }
 }

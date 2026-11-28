@@ -121,7 +121,7 @@
     font-family: var(--text-mono);
     font-size: 0.72rem;
     font-weight: bold;
-    color: var(--accent-blue);
+    color: var(--accent-text);
 }
 
 .forum-row-count,

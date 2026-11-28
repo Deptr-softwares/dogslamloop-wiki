@@ -52,12 +52,13 @@ html.reduce-motion .btn-sys { transition: none; }
 
 .btn-sys-regular { --sys-edge: var(--grey-55); --sys-fill: var(--grey-88); --sys-text: var(--theme-text-muted, #aaa); }
 /* Blue is fixed, not var(--accent-blue), which a character page's theme re-points;
-   it is the site's default accent. */
-.btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); --sys-text: hsl(213, 94%, 68%); }
-.btn-sys-green   { --sys-edge: var(--green); --sys-fill: var(--green); --sys-text: var(--green); }
-.btn-sys-red     { --sys-edge: var(--red); --sys-fill: var(--red); --sys-text: var(--red); }
-.btn-sys-yellow  { --sys-edge: var(--yellow); --sys-fill: var(--yellow); --sys-text: var(--yellow); }
-.btn-sys-purple  { --sys-edge: var(--purple); --sys-fill: var(--purple); --sys-text: var(--purple); }
+   it is the site's default accent. Its words darken on a light theme like the
+   status colours' (Common.css). */
+.btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); --sys-text: var(--theme-blue-text, hsl(213, 94%, 68%)); }
+.btn-sys-green   { --sys-edge: var(--green); --sys-fill: var(--green); --sys-text: var(--green-text); }
+.btn-sys-red     { --sys-edge: var(--red); --sys-fill: var(--red); --sys-text: var(--red-text); }
+.btn-sys-yellow  { --sys-edge: var(--yellow); --sys-fill: var(--yellow); --sys-text: var(--yellow-text); }
+.btn-sys-purple  { --sys-edge: var(--purple); --sys-fill: var(--purple); --sys-text: var(--purple-text); }
 
 /* Filled variants, for modals, always worn with .btn-sys and its colour tier. */
 .btn-danger-fill { background: var(--red) !important; color: var(--black) !important; border-color: var(--red) !important; }
@@ -131,7 +132,7 @@ html.reduce-motion .btn-sys { transition: none; }
 /* Ghost buttons */
 .btn-ghost {
     display: inline-flex; align-items: center; gap: 0.5rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     font-family: var(--text-mono);
     font-size: 0.75rem;
     text-decoration: none;
@@ -140,7 +141,7 @@ html.reduce-motion .btn-sys { transition: none; }
 }
 
 .btn-ghost:hover {
-    color: var(--accent-blue-hover);
+    color: var(--accent-hover-text);
     transform: translateX(3px);
 }
 
@@ -169,7 +170,7 @@ html.reduce-motion .btn-sys { transition: none; }
 .sub-tab.sub-tab-removable { padding-right: 1.6rem; }
 .sub-tab-remove {
     position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: var(--red); font-size: 10px; cursor: pointer;
+    background: none; border: none; color: var(--red-text); font-size: 10px; cursor: pointer;
 }
 .sub-tabs-action { align-self: center; font-size: 0.65rem; padding: 0.3rem 0.6rem; margin-left: 0.25rem; }
 /* The tabs of a strip that also holds an action button, laid out as the strip's own. */

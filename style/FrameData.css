@@ -165,7 +165,7 @@
    7 columns once the legend is 840px wide. In the narrower room beside a sidebar,
    or in VIEW DIFF, 7 columns cut "Explosion" short. */
 .legend-section { margin-bottom: 2rem; container-type: inline-size; }
-.legend-title { font-family: var(--font-label), sans-serif; font-size: 0.875rem; color: var(--accent-blue); margin-bottom: 0.75rem; margin-top: 0; text-shadow: 1px 1px 0 var(--black); }
+.legend-title { font-family: var(--font-label), sans-serif; font-size: 0.875rem; color: var(--accent-text); margin-bottom: 0.75rem; margin-top: 0; text-shadow: 1px 1px 0 var(--black); }
 .legend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; font-size: 0.75rem; font-family: var(--text-mono); }
 @container (min-width: 520px) { .legend-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @container (min-width: 640px) { .legend-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -186,7 +186,7 @@
 html:not(.look-classic) {
 .skill-title {
     font-family: var(--font-title), sans-serif;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     text-shadow: 2px 2px 0px var(--manga-shadow);
 }
 .legend-section { padding: 1.25rem; }

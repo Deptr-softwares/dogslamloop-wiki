@@ -19,8 +19,8 @@
     border-bottom: 1px dashed var(--border-color);
 }
 .change-card-page-link { margin: 0; color: var(--text-white); font-family: var(--font-label), sans-serif; font-size: 1.1rem; text-decoration: none; }
-.change-card-page-link:hover { color: var(--accent-blue); }
-.change-card-scope { font-size: 0.75rem; color: var(--purple); font-family: var(--text-mono); margin-top: 0.25rem; }
+.change-card-page-link:hover { color: var(--accent-text); }
+.change-card-scope { font-size: 0.75rem; color: var(--purple-text); font-family: var(--text-mono); margin-top: 0.25rem; }
 .change-card-meta { text-align: right; font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted); }
 .change-card-meta strong { color: var(--text-white); font-size: 0.85rem; }
 .change-card-meta .reviewer { color: #34d399; }

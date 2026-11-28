@@ -94,7 +94,7 @@ select.editor-select.manga-initialized {
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.6rem;
-    color: var(--accent-blue);
+    color: var(--accent-text);
     transition: transform 0.2s ease;
 }
 
