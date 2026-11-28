@@ -76,7 +76,17 @@
     --text-primary: #eaecf0;
     --text-white: hsl(0, 0%, 100%);
     --text-muted: #a2a9b1;
-    
+
+    /* Text in a status colour or the accent: the colour itself, and a darker shade of
+       its hue on a light theme. A border or a fill reads the colour, never these. */
+    --red-text: var(--red);
+    --green-text: var(--green);
+    --yellow-text: var(--yellow);
+    --purple-text: var(--purple);
+    --accent-text: var(--accent-blue);
+    --accent-hover-text: var(--accent-blue-hover);
+    --accent-yellow-text: var(--accent-yellow);
+
     --text-mono: Arial, Helvetica, sans-serif;
     --manga-shadow: transparent;
 
@@ -399,4 +409,44 @@ html:is([data-theme="light"], [data-theme="shadow"], [data-theme="brown-paper"],
     --theme-text-primary: var(--text-primary); --theme-text-white: var(--text-white); --theme-text-muted: var(--text-muted);
     --theme-character-ink: var(--character-ink);
 }
+/* The themes, as the owner picked them from the mockups. Each sets the role colours;
+   the accent's ink is black unless the theme says white. */
+html[data-theme="light"] {
+    --bg-main: #f4f5f7; --bg-secondary: var(--white); --border-color: #d5d9e0;
+    --text-primary: #24292f; --text-white: #0d1117; --text-muted: #57606a;
+    --accent-blue: #0969da; --accent-blue-hover: #0550ae; --character-ink: var(--white);
+}
+html[data-theme="shadow"] {
+    --bg-main: var(--black); --bg-secondary: #0b0b0d; --border-color: #26262b;
+    --text-primary: #bfc3c9; --text-white: #f2f2f2; --text-muted: #80858d;
+    --accent-blue: #8ab4f8; --accent-blue-hover: #aecbfa;
+}
+html[data-theme="brown-paper"] {
+    --bg-main: #eadfc8; --bg-secondary: #f4ecdb; --border-color: #c5ad86;
+    --text-primary: #3d3024; --text-white: #22190f; --text-muted: #7b6650;
+    --accent-blue: #9a4b16; --accent-blue-hover: #7a3a10; --character-ink: var(--white);
+}
+html[data-theme="light-blue"] {
+    --bg-main: #e6f0fa; --bg-secondary: #f4f8fd; --border-color: #b8cce3;
+    --text-primary: #1d2b3a; --text-white: #0c1724; --text-muted: #50667e;
+    --accent-blue: #1565c0; --accent-blue-hover: #0d47a1; --character-ink: var(--white);
+}
+html[data-theme="shadow"]:not(.look-classic) { --manga-shadow: var(--black); }
+/* The light themes: tints that darken, the hard shadow in the theme's text colour, the
+   browser's own controls drawn light, and text in a status colour or the accent in a
+   darker shade of its hue, light enough to stay that hue and dark enough to read. */
+html:is([data-theme="light"], [data-theme="brown-paper"], [data-theme="light-blue"]) {
+    color-scheme: light;
+    --tint-2: rgba(0,0,0,0.02); --tint-3: rgba(0,0,0,0.03); --tint-5: rgba(0,0,0,0.05); --tint-6: rgba(0,0,0,0.06);
+    --tint-7: rgba(0,0,0,0.07); --tint-8: rgba(0,0,0,0.08); --tint-10: rgba(0,0,0,0.1); --tint-20: rgba(0,0,0,0.2);
+    --red-text: oklch(from var(--red) min(l, 0.5) c h);
+    --green-text: oklch(from var(--green) min(l, 0.5) c h);
+    --yellow-text: oklch(from var(--yellow) min(l, 0.5) c h);
+    --purple-text: oklch(from var(--purple) min(l, 0.5) c h);
+    --accent-text: oklch(from var(--accent-blue) min(l, 0.5) c h);
+    --accent-hover-text: oklch(from var(--accent-blue-hover) min(l, 0.42) c h);
+    --accent-yellow-text: oklch(from var(--accent-yellow) min(l, 0.5) c h);
+    --theme-blue-text: oklch(from hsl(213, 94%, 68%) min(l, 0.5) c h);
+}
+html:is([data-theme="light"], [data-theme="brown-paper"], [data-theme="light-blue"]):not(.look-classic) { --manga-shadow: var(--text-primary); }
 }
