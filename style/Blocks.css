@@ -47,7 +47,7 @@
 .profile-pager-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
 .profile-pager-link {
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; min-width: 0;
-    padding: 0.5rem; border: 1px solid #333; background: rgba(255, 255, 255, 0.02);
+    padding: 0.5rem; border: 1px solid var(--grey-33); background: var(--tint-2);
     text-decoration: none; transition: border-color 0.2s ease;
 }
 .profile-pager-next { grid-column: 2; align-items: flex-end; text-align: right; }
@@ -103,16 +103,16 @@
 .wiki-divider-pad-large { margin: 4rem 0; }
 .wiki-divider-pad-massive { margin: 6rem 0; }
 
-.wiki-divider-line-solid { width: 100%; height: 2px; background: var(--border-color, #333); }
-.wiki-divider-line-dashed { width: 100%; height: 2px; border-bottom: 2px dashed var(--border-color, #333); }
-.wiki-divider-line-dotted { width: 100%; height: 4px; border-bottom: 4px dotted var(--border-color, #333); }
-.wiki-divider-line-double { width: 100%; height: 6px; border-top: 2px solid var(--border-color, #333); border-bottom: 2px solid var(--border-color, #333); }
-.wiki-divider-line-fade { width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--border-color, #333) 20%, var(--border-color, #333) 80%, transparent); }
+.wiki-divider-line-solid { width: 100%; height: 2px; background: var(--border-color, var(--grey-33)); }
+.wiki-divider-line-dashed { width: 100%; height: 2px; border-bottom: 2px dashed var(--border-color, var(--grey-33)); }
+.wiki-divider-line-dotted { width: 100%; height: 4px; border-bottom: 4px dotted var(--border-color, var(--grey-33)); }
+.wiki-divider-line-double { width: 100%; height: 6px; border-top: 2px solid var(--border-color, var(--grey-33)); border-bottom: 2px solid var(--border-color, var(--grey-33)); }
+.wiki-divider-line-fade { width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--border-color, var(--grey-33)) 20%, var(--border-color, var(--grey-33)) 80%, transparent); }
 
-.wiki-divider-segment { flex-grow: 1; height: 2px; background: var(--border-color, #333); }
+.wiki-divider-segment { flex-grow: 1; height: 2px; background: var(--border-color, var(--grey-33)); }
 .wiki-divider-circle-dot { margin: 0 1rem; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
 .wiki-divider-cross-plus { margin: 0 1rem; font-family: var(--text-mono); color: var(--accent-blue); font-weight: bold; font-size: 1.4rem; line-height: 0.5; }
-.wiki-divider-slash-mark { margin: 0 1rem; font-family: var(--font-label), sans-serif; color: var(--border-color, #333); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
+.wiki-divider-slash-mark { margin: 0 1rem; font-family: var(--font-label), sans-serif; color: var(--border-color, var(--grey-33)); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
 .wiki-divider-diamond-mark { margin: 0 1rem; transform: rotate(45deg); width: 10px; height: 10px; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
 
 /* Playstyle Component (js/pages/core/page_render.js generatePlaystyleHTML) */
@@ -122,17 +122,17 @@
 .playstyle-list { margin: 0; font-size: 0.8rem; }
 .playstyle-item { margin-bottom: 0.5rem; gap: 0.6rem; align-items: flex-start; }
 .playstyle-icon { font-weight: bold; font-size: 1rem; line-height: 1; }
-.playstyle-icon.likes { color: #22c55e; }
-.playstyle-icon.dislikes { color: #ef4444; }
+.playstyle-icon.likes { color: var(--green); }
+.playstyle-icon.dislikes { color: var(--red); }
 .playstyle-item-text { line-height: 1.4; }
 
 /* Content Blocks (generateHTMLForBlocks): media, callout tooltip content, tables,
    accordions. Square corners, like everything else on the site. */
-.wiki-block-image { width: 100%; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
+.wiki-block-image { width: 100%; box-shadow: 4px 4px 0px var(--manga-shadow, var(--black)); }
 
 .wiki-figcaption { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-style: italic; }
-.wiki-video-embed { width: 100%; aspect-ratio: 16/9; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
-.wiki-video-native { width: 100%; background: #050505; display: block; box-shadow: 4px 4px 0px var(--manga-shadow); }
+.wiki-video-embed { width: 100%; aspect-ratio: 16/9; box-shadow: 4px 4px 0px var(--manga-shadow); background: var(--grey-05); border: none; display: block; }
+.wiki-video-native { width: 100%; background: var(--grey-05); display: block; box-shadow: 4px 4px 0px var(--manga-shadow); }
 
 /* The video player, in var(--accent-blue), so it takes the page's colour; square
    corners, hard shadows and square glyphs. */
@@ -290,7 +290,7 @@
     background: var(--accent-blue);
     clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
-.wiki-clip-open:hover .wiki-clip-open-glyph { background: var(--character-ink, #000); }
+.wiki-clip-open:hover .wiki-clip-open-glyph { background: var(--character-ink, var(--black)); }
 
 /* The video player: the site's dialog (Modals.css) in the player's own look. */
 dialog.site-dialog.video-dialog {
@@ -299,7 +299,7 @@ dialog.site-dialog.video-dialog {
     max-height: none;
     overflow: visible;
     padding: 2rem 1rem 1rem;
-    background: var(--bg-secondary, #111);
+    background: var(--bg-secondary, var(--grey-11));
     border: 2px solid var(--accent-blue);
     box-shadow: 8px 8px 0px var(--manga-shadow);
 }
@@ -317,10 +317,10 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     padding: 0.2rem 0.4rem;
     cursor: pointer;
 }
-.wiki-video-modal-close:hover { background: var(--accent-blue); color: var(--character-ink, #000); }
+.wiki-video-modal-close:hover { background: var(--accent-blue); color: var(--character-ink, var(--black)); }
 /* In the box the player fills it and the video is capped by height, so a tall clip
    keeps the duration bar on screen. */
-.wiki-player-modal .wiki-video-native { max-height: 70vh; width: 100%; object-fit: contain; background: #000; }
+.wiki-player-modal .wiki-video-native { max-height: 70vh; width: 100%; object-fit: contain; background: var(--black); }
 
 /* A storage image pasted into a table cell. Sized down to the row rather than
    rendered full width, which is the whole point of the feature. */
@@ -345,8 +345,8 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     gap: 0.5rem;
     padding: 1.5rem 1rem;
     min-height: 140px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 2px dashed var(--border-color, #333);
+    background: var(--tint-2);
+    border: 2px dashed var(--border-color, var(--grey-33));
 }
 .wiki-media-placeholder-label {
     font-family: var(--font-title), sans-serif;
@@ -357,29 +357,27 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 .wiki-media-placeholder-icon { width: 64px; height: auto; opacity: 0.55; display: block; }
 
 .callout-tooltip-title { font-size: 0.9rem; display: block; margin-bottom: 0.5rem; padding-bottom: 0.25rem; color: var(--tooltip-accent); border-bottom: 1px solid var(--tooltip-accent); }
-.callout-tooltip-desc { font-size: 0.75rem; color: #e5e7eb; line-height: 1.5; display: block; }
+.callout-tooltip-desc { font-size: 0.75rem; color: var(--grey-e5); line-height: 1.5; display: block; }
 
 /* Scoped to .wiki-content-table: .update-table's base rule is the home page's
    changelog table, a different look under the same class. */
-.wiki-table-wrapper { overflow-x: auto; margin: 1.5rem 0; background: var(--bg-secondary, #0a0a0a); }
+.wiki-table-wrapper { overflow-x: auto; margin: 1.5rem 0; background: var(--bg-secondary, var(--grey-0a)); }
 .update-table.wiki-content-table { font-size: 0.85rem; }
-.update-table.wiki-content-table thead tr { background: var(--bg-main, #050505); border-bottom: 2px solid var(--border-color, #333); }
+.update-table.wiki-content-table thead tr { background: var(--bg-main, var(--grey-05)); border-bottom: 2px solid var(--border-color, var(--grey-33)); }
 .update-table.wiki-content-table td { color: var(--text-primary); }
-.update-table.wiki-content-table tbody tr { border-bottom: 1px dashed var(--border-color, #222); transition: background 0.1s; }
-.update-table.wiki-content-table tbody tr:nth-child(even):not(:where(.update-table tbody tr:is(:nth-child(2n), :hover))) { background: rgba(255,255,255,0.02); }
-.update-table.wiki-content-table tbody tr:hover:not(:where(.update-table tbody tr:is(:nth-child(2n), :hover))) { background: rgba(255,255,255,0.05); }
-.wiki-table-empty-cell { padding: 1rem; text-align: center; color: #888; font-style: italic; }
+.update-table.wiki-content-table tbody tr { border-bottom: 1px dashed var(--border-color, var(--grey-22)); transition: background 0.1s; }
+.wiki-table-empty-cell { padding: 1rem; text-align: center; color: var(--grey-88); font-style: italic; }
 
 .wiki-accordion-wrapper { margin: 1.5rem 0; width: 100%; }
 .wiki-accordion-wrapper .manga-accordion summary::-webkit-details-marker { display: none; }
 .wiki-accordion-wrapper .manga-accordion[open] summary .accordion-arrow { transform: translateY(-50%) rotate(180deg) !important; }
-.manga-accordion { background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); width: 100%; }
+.manga-accordion { background: var(--bg-main, var(--grey-05)); border: 1px solid var(--border-color, var(--grey-33)); box-shadow: 4px 4px 0px var(--manga-shadow, var(--black)); width: 100%; }
 .wiki-accordion-summary { position: relative; padding: 0.75rem 2.5rem 0.75rem 1rem; cursor: pointer; list-style: none; outline: none; user-select: none; }
-.accordion-arrow { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, #888); transition: transform 0.2s; }
+.accordion-arrow { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, var(--grey-88)); transition: transform 0.2s; }
 /* Not a flex container: media floats, and a flex item ignores float. Normal flow
    with a clearfix; any container that nests Blocks must avoid flex too. */
 .wiki-accordion-body { padding: 1rem; text-align: left; }
-.wiki-accordion-body { border-top-width: 1px; border-top-color: var(--border-color, #333); }
+.wiki-accordion-body { border-top-width: 1px; border-top-color: var(--border-color, var(--grey-33)); }
 .wiki-accordion-body > * + * { margin-top: 0.5rem; }
 .wiki-accordion-body::after { content: ""; display: block; clear: both; }
 
@@ -408,7 +406,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 .combo-block {
     display: flow-root; width: fit-content; max-width: 100%;
     background: var(--bg-secondary); border: 2px solid var(--border-color);
-    border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+    border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, var(--black));
     padding: 0.45rem 0.6rem; margin: 1.25rem 0 1.7rem;
 }
 .combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
@@ -474,17 +472,17 @@ dialog.site-dialog.video-dialog[open] { display: block; }
    readable text on it (site_lookups.js), or a light character renders white on white. */
 .combo-node:hover {
     background-color: var(--accent-blue);
-    color: var(--character-ink, #000);
+    color: var(--character-ink, var(--black));
 }
 .combo-note {
-    background: rgba(255,255,255,0.05); border: 1px dashed #444; color: #aaa;
+    background: var(--tint-5); border: 1px dashed var(--grey-44); color: #aaa;
     font-family: var(--text-mono); font-size: 0.75rem; padding: 0.25rem 0.5rem;
 }
 /* Right after the route, so it reads as the end of the combo, sized to sit with the
    chips. */
 .combo-damage {
     color: hsl(3, 93%, 63%); font-family: var(--text-mono); font-weight: bold;
-    font-size: 0.9rem; text-shadow: 1px 1px 0px #000; margin-left: 0.3rem;
+    font-size: 0.9rem; text-shadow: 1px 1px 0px var(--black); margin-left: 0.3rem;
 }
 
 /* An authored strategy block's heading: a card's heading with a rule across the
@@ -565,7 +563,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     width: 100%; border-collapse: collapse; font-family: var(--text-mono);
     font-size: 0.75rem; background: var(--bg-secondary);
     border: 2px solid var(--border-color); border-radius: 0;
-    box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+    box-shadow: 0 4px 0 0 var(--manga-shadow, var(--black));
 }
 
 .combo-th {
@@ -619,7 +617,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 
     .combo-row {
         background: var(--bg-secondary); border: 2px solid var(--border-color);
-        box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+        box-shadow: 0 4px 0 0 var(--manga-shadow, var(--black));
         margin-bottom: 1.1rem; padding: 0.5rem 0.2rem;
     }
 
@@ -649,7 +647,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
    the combo Block and the table: three things that are "a combo" read as one family. */
 .theorybox {
     background: var(--bg-secondary); border: 2px solid var(--border-color);
-    border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+    border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, var(--black));
     padding: 0.75rem 0.9rem; margin: 1rem 0 1.5rem;
 }
 .theorybox-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
@@ -689,8 +687,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
 
 /* The infobox's rows: the label, then the value, as a table would. */
 .profile-stat-row { justify-content: flex-start; gap: 0.75rem; padding: 0.3rem 0; }
-.profile-stat-label { flex: 0 0 45%; color: var(--text-primary); font-weight: bold; }
-.profile-stat-val { font-weight: normal; color: var(--text-primary); }
+.profile-stat-label { flex: 0 0 45%; font-weight: bold; }
 
 /* Playstyle: a two-column table, a list in each cell. The 1px gap over the
    border colour draws the rules, also when the columns stack on a phone. */
@@ -701,7 +698,7 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     background: var(--border-color);
     border: 1px solid var(--border-color);
 }
-.playstyle-col { min-width: 0; padding: 0; border: 0; box-shadow: none; background: var(--bg-main); }
+.playstyle-col { min-width: 0; background: var(--bg-main); }
 .playstyle-col .playstyle-header {
     margin: 0;
     padding: 0.4rem 0.75rem;
@@ -709,27 +706,26 @@ dialog.site-dialog.video-dialog[open] { display: block; }
     border-bottom: 1px solid var(--border-color);
     color: var(--text-white);
 }
-.playstyle-list { list-style: disc; padding: 0.5rem 0.75rem 0.5rem 2rem; font-family: inherit; color: var(--text-primary); }
-.playstyle-item { display: list-item; }
+.playstyle-list { padding: 0.5rem 0.75rem 0.5rem 2rem; }
 .playstyle-icon { display: none; }
 
 /* Tables in page content: every cell ruled, a grey header row. Play is a link. */
-.wiki-table-wrapper { border: 0; box-shadow: none; }
 .update-table { border: 1px solid var(--border-color); background: var(--bg-main); }
 .update-table :is(th, td) { border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; }
 .update-table th { background: var(--bg-secondary); color: var(--text-white); }
-.update-table tbody tr:is(:nth-child(even), :hover) { background: none; }
-.wiki-video-btn { background: none; border: 0; box-shadow: none; padding: 0; color: var(--accent-blue); transform: none; }
-.wiki-video-btn:hover { background: none; color: var(--accent-blue-hover); text-decoration: underline; transform: none; }
-.wiki-accordion-summary { color: var(--text-primary); font-size: 0.9rem; background: var(--bg-secondary); }
-.wiki-accordion-body { background: none; border-top-style: solid; }
+.wiki-video-btn { color: var(--accent-blue); }
+.wiki-video-btn:hover { color: var(--accent-blue-hover); text-decoration: underline; }
+.wiki-accordion-summary { font-size: 0.9rem; background: var(--bg-secondary); }
+.wiki-accordion-body { border-top-style: solid; }
 .sbox-boxed,
-.wiki-block-list-boxed { border-width: 1px; box-shadow: none; }
+.wiki-block-list-boxed { border-width: 1px; }
 }
 
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
+.update-table { border: none; background: none; }
+.update-table :is(th, td) { border: none; padding: 0; }
 .update-table th {
     padding: 0.5rem 0.75rem;
     font-family: var(--font-label), sans-serif;
@@ -744,8 +740,9 @@ html:not(.look-classic) {
 .profile-stat-row {
     justify-content: space-between;
     padding: 0.5rem 0;
+    gap: normal;
 }
-.profile-stat-label { color: #8b949e; }
+.profile-stat-label { color: #8b949e; flex: initial; font-weight: inherit; }
 .profile-stat-val {
     color: var(--text-white);
     font-weight: bold;
@@ -769,46 +766,49 @@ html:not(.look-classic) {
 .playstyle-container {
     display: flex;
     gap: 1rem;
+    grid-template-columns: none;
+    background: none;
+    border: none;
 }
 .playstyle-col {
     min-width: 250px;
-    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    box-shadow: 4px 4px 0px var(--manga-shadow, var(--black));
     padding: 1.25rem 1.5rem;
+    background: none;
 }
 .playstyle-col.likes {
     background: rgba(34, 197, 94, 0.05);
-    border: 1px solid #22c55e;
+    border: 1px solid var(--green);
 }
 .playstyle-col.dislikes {
     background: rgba(239, 68, 68, 0.05);
-    border: 1px solid #ef4444;
+    border: 1px solid var(--red);
 }
 .playstyle-header {
     font-family: var(--font-label), sans-serif;
     text-transform: uppercase;
-    margin-top: 0;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
+    margin: 0 0 1rem;
+    padding: 0 0 0.5rem;
     border-bottom: 1px dotted;
+    background: none;
+    color: inherit;
 }
 .playstyle-col.likes .playstyle-header {
-    color: #22c55e;
-    border-bottom-color: #22c55e;
+    color: var(--green);
 }
 .playstyle-col.dislikes .playstyle-header {
-    color: #ef4444;
-    border-bottom-color: #ef4444;
+    color: var(--red);
 }
 .playstyle-list {
     list-style: none;
     padding: 0;
     font-family: var(--text-mono);
-    color: #e5e7eb;
+    color: var(--grey-e5);
 }
 .playstyle-item { display: flex; }
+.playstyle-icon { display: inline; }
 .wiki-video-btn {
     padding: 0.15rem 0.5rem;
-    background: transparent;
     border: 1px solid var(--accent-blue);
     box-shadow: 2px 2px 0px var(--manga-shadow);
     color: var(--accent-blue);
@@ -817,8 +817,9 @@ html:not(.look-classic) {
 }
 .wiki-video-btn:hover {
     background: var(--accent-blue);
-    color: var(--character-ink, #000);
+    color: var(--character-ink, var(--black));
     transform: translate(-1px, -1px);
+    text-decoration: none;
 }
 .wiki-video-btn:active {
     transform: translate(1px, 1px);
@@ -830,8 +831,8 @@ html:not(.look-classic) {
 }
 .callout-tooltip-desc { font-family: var(--text-mono); }
 .wiki-table-wrapper {
-    border: 2px solid var(--border-color, #333);
-    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    border: 2px solid var(--border-color, var(--grey-33));
+    box-shadow: 4px 4px 0px var(--manga-shadow, var(--black));
 }
 .update-table.wiki-content-table th {
     padding: 0.85rem 1rem;
@@ -842,35 +843,23 @@ html:not(.look-classic) {
     border-bottom: none;
 }
 .update-table.wiki-content-table td { padding: 0.75rem 1rem; }
-.update-table.wiki-content-table tbody tr:nth-child(even):where(.update-table tbody tr:is(:nth-child(2n), :hover)) {
-    background: rgba(255,255,255,0.02);
-}
-.update-table.wiki-content-table tbody tr:hover:where(.update-table tbody tr:is(:nth-child(2n), :hover)) {
-    background: rgba(255,255,255,0.05);
-}
+.update-table.wiki-content-table tbody tr:nth-child(even) { background: var(--tint-2); }
+.update-table.wiki-content-table tbody tr:hover { background: var(--tint-5); }
 .wiki-accordion-summary {
     font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     color: var(--accent-blue, #3b82f6);
     text-transform: uppercase;
+    background: none;
 }
-.wiki-accordion-body { border-top-style: dashed; }
-.wiki-accordion-body { background: var(--bg-secondary, #111); }
-.sbox-boxed {
-    border-width: 2px;
-}
+.wiki-accordion-body { border-top-style: dashed; background: var(--bg-secondary, var(--grey-11)); }
+.sbox-boxed, .wiki-block-list-boxed { border-width: 2px; }
 .sbox-boxed { box-shadow: 4px 4px 0px var(--manga-shadow); }
 .sbox-title { font-family: var(--font-label), sans-serif; }
 .strategy-title {
     font-family: var(--font-title), sans-serif;
-    font-weight: bold;
     color: var(--text-white);
-}
-.strategy-title {
     border-bottom-width: 1px;
-}
-.wiki-block-list-boxed {
-    border-width: 2px;
 }
 }
 }

@@ -23,6 +23,9 @@
  * sheets this page loads. Only a page that never draws it, or never loads the sheet
  * that styles it, makes one harmless.
  *
+ * A border colour on a side whose border style is none in both trees is left out: no
+ * border is drawn there to show it.
+ *
  * @since v1.3
  * @touches git (the base commit's files), the working tree, every request off localhost
  *   (fetched once, replayed)
@@ -178,6 +181,13 @@ const fromGit = file => {
 const SNAPSHOT = (roots) => {
     // Every animation held at its start, so both trees are read at the same moment of it.
     document.getAnimations().forEach(a => { try { a.pause(); a.currentTime = 0; } catch (e) { /* a finished one cannot be held: it is left as it ended */ } });
+    // Again at every read: the ratio, or a file the lazy loader set, can arrive after the
+    // load-time hold.
+    document.querySelectorAll('video').forEach(v => {
+        const had = v.hasAttribute('src') || v.querySelector('source');
+        v.removeAttribute('poster'); v.removeAttribute('data-lazy-src'); v.style.removeProperty('aspect-ratio');
+        if (had) { v.removeAttribute('src'); v.querySelectorAll('source').forEach(s => s.remove()); v.load(); }
+    });
     const read = (el, pseudo) => {
         const cs = getComputedStyle(el, pseudo);
         if (pseudo && (cs.content === 'none' || cs.content === 'normal')) return '';
@@ -238,9 +248,13 @@ async function load(browser, origin, url) {
         Promise.all([...document.images].filter(i => !i.complete && i.loading !== 'lazy').map(i => new Promise(r => { i.addEventListener('load', r); i.addEventListener('error', r); }))),
         new Promise(r => setTimeout(r, 8000)),
     ]));
-    // A video takes its file's height only once the file says it, which may come in one
-    // tree and not the other: every video is held with no file, in both.
-    await page.evaluate(() => document.querySelectorAll('video').forEach(v => { v.removeAttribute('src'); v.querySelectorAll('source').forEach(s => s.remove()); v.load(); }));
+    // A video takes its height from its file, or from the ratio and still page_render.js
+    // sets once the list of stills arrives, and either may come in one tree only: every
+    // video is held with no file, no still and no inline ratio, in both.
+    await page.evaluate(() => document.querySelectorAll('video').forEach(v => {
+        v.removeAttribute('src'); v.removeAttribute('data-lazy-src'); v.removeAttribute('poster'); v.style.removeProperty('aspect-ratio');
+        v.querySelectorAll('source').forEach(s => s.remove()); v.load();
+    }));
     await page.evaluate(html => (document.querySelector('.main-content-area, main') || document.body).insertAdjacentHTML('beforeend', html), SPECIMEN);
     await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
     return { context, page, errors };
@@ -289,6 +303,12 @@ async function hoverSnap(page, look) {
 
 const split = s => new Map(s ? s.split(';').map(p => [p.slice(0, p.indexOf(':')), p.slice(p.indexOf(':') + 1)]) : []);
 
+// A side's border colour draws nothing while that side has no border style, in both trees.
+const unseen = (p, a, b) => {
+    const side = /^border-(.+)-color$/.exec(p);
+    return !!side && [a, b].every(m => /^(none|hidden)$/.test(m.get(`border-${side[1]}-style`)));
+};
+
 /** Each element that differs: its index, which of itself, ::before or ::after, and the properties. */
 function diff(before, after) {
     const out = [];
@@ -300,7 +320,8 @@ function diff(before, after) {
             if (before[i].s[k] === after[i].s[k]) continue;
             const a = split(after[i].s[k]);
             const b = split(before[i].s[k]);
-            const props = [...new Set([...a.keys(), ...b.keys()])].filter(p => a.get(p) !== b.get(p));
+            const props = [...new Set([...a.keys(), ...b.keys()])].filter(p => a.get(p) !== b.get(p) && !unseen(p, a, b));
+            if (!props.length) continue;
             out.push({ i, pseudo: ['', '::before', '::after'][k], props, specimen: after[i].specimen,
                 sizeOnly: props.every(p => GEOMETRY.test(p)),
                 text: `${after[i].label}${['', '::before', '::after'][k]}  ${props.map(p => `${p}: ${b.get(p)} -> ${a.get(p)}`).join('; ')}` });

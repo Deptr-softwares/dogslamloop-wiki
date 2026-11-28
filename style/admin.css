@@ -72,7 +72,7 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 0.75rem;
-    text-shadow: 1px 1px 0px #000;
+    text-shadow: 1px 1px 0px var(--black);
 }
 
 #preview-nav-sidebar .toc-list {
@@ -102,7 +102,7 @@
 }
 
 
-.admin-body { margin: 0; overflow: hidden; background-color: #050505; }
+.admin-body { margin: 0; overflow: hidden; background-color: var(--grey-05); }
 
 .admin-sidebar { 
     flex: 0 0 320px; 
@@ -110,7 +110,7 @@
     overflow-y: auto; 
     display: flex; 
     flex-direction: column; 
-    border-right: 1px solid #222;
+    border-right: 1px solid var(--grey-22);
 }
 
 /* The owner tools page: one pane */
@@ -125,7 +125,7 @@
 .sub-tabs.owner-nav { margin-bottom: 1.5rem; }
 .sub-tab.owner-nav-btn { font-size: 0.75rem; padding: 0.6rem 1.1rem; min-height: 44px; }
 /* A destructive tool does not look like an editing tool, even in the nav. */
-.sub-tab.owner-nav-btn-danger { --sub-tab-accent: #ef4444; }
+.sub-tab.owner-nav-btn-danger { --sub-tab-accent: var(--red); }
 
 .owner-group {
     display: grid;
@@ -135,7 +135,7 @@
 }
 .owner-group[hidden] { display: none; }
 
-.owner-group[data-group="danger"] .admin-tool-card { border-left: 4px solid #ef4444; }
+.owner-group[data-group="danger"] .admin-tool-card { border-left: 4px solid var(--red); }
 
 /* One column, full-width controls. */
 .owner-tool-area .admin-tool-card { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -189,7 +189,7 @@
         padding: 0.6rem 0.5rem;
         border-bottom: none;
         border-top: 2px solid var(--accent-blue);
-        background: var(--bg-main, #050505);
+        background: var(--bg-main, var(--grey-05));
         box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.5);
         flex-wrap: wrap;
         gap: 0.4rem;
@@ -232,7 +232,7 @@
     body .ticket-left-col {
         border-right: none;
         padding-right: 0;
-        border-bottom: 1px dashed #333;
+        border-bottom: 1px dashed var(--grey-33);
         padding-bottom: 1.25rem;
     }
     body .ticket-right-col {
@@ -259,10 +259,10 @@
         gap: 0;
         align-items: stretch;
         min-width: 180px;
-        background: #0a0a0a;
+        background: var(--grey-0a);
         border: 2px solid var(--accent-blue);
         border-top: 4px solid var(--accent-blue);
-        box-shadow: 8px 8px 0px var(--manga-shadow, #000);
+        box-shadow: 8px 8px 0px var(--manga-shadow, var(--black));
         z-index: 70;
     }
     body .admin-secondary-actions.open { display: flex; }
@@ -272,7 +272,7 @@
         /* Rows have no cut corner: it would notch every line of the menu. */
         --sys-cut: 0px;
         border: none;
-        border-bottom: 1px dashed #222;
+        border-bottom: 1px dashed var(--grey-22);
         box-shadow: none;
         transform: none !important;
         width: 100%;
@@ -299,7 +299,7 @@
 .admin-mobile-menu-btn { display: none; font-size: 0.65rem; padding: 0.4rem 0.6rem; }
 .admin-sidebar-content { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
 
-#preview-nav-sidebar { display: block; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed #333; }
+#preview-nav-sidebar { display: block; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed var(--grey-33); }
 .admin-split-header { margin-bottom: 0.75rem; border-bottom: 1px solid var(--accent-blue); padding-bottom: 0.5rem; }
 .admin-section-title { color: var(--text-white); font-size: 0.9rem; margin: 0; text-transform: uppercase; }
 .admin-toc-empty { color: var(--text-muted); font-style: italic; font-size: 0.75rem; margin: 0; }
@@ -323,19 +323,19 @@
 
 /* Tool cards, shared by both pages */
 .admin-tool-card { position: relative; margin-bottom: 1rem; }
-.admin-tool-card.permissions { border-left-color: #eab308; }
-.admin-tool-card.pages { border-left-color: #22c55e; }
+.admin-tool-card.permissions { border-left-color: var(--yellow); }
+.admin-tool-card.pages { border-left-color: var(--green); }
 .admin-tool-card.faq { border-left-color: #3b82f6; }
 .admin-tool-title { font-size: 0.8rem; margin: 0; text-transform: uppercase; }
-.admin-tool-title.personnel { color: #a855f7; }
-.admin-tool-title.gc { color: #ef4444; }
-.admin-tool-title.permissions { color: #eab308; }
-.admin-tool-title.pages { color: #22c55e; }
+.admin-tool-title.personnel { color: var(--purple); }
+.admin-tool-title.gc { color: var(--red); }
+.admin-tool-title.permissions { color: var(--yellow); }
+.admin-tool-title.pages { color: var(--green); }
 .admin-tool-title.faq { color: var(--accent-blue); }
 .page-row-path { font-family: var(--text-mono); font-size: 0.62rem; color: var(--text-muted); overflow-wrap: anywhere; }
-.badge-status-live { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; }
-.badge-status-draft { background: rgba(136,136,136,0.15); color: #888; border: 1px solid #888; }
-.badge-status-archived { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
+.badge-status-live { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
+.badge-status-draft { background: rgba(136,136,136,0.15); color: var(--grey-88); border: 1px solid var(--grey-88); }
+.badge-status-archived { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
 .admin-tool-hint { font-family: var(--text-mono); font-size: 0.68rem; color: var(--text-muted); line-height: 1.5; margin: 0.5rem 0 0 0; }
 
 /* The one control on a tool card that destroys data, set apart from SAVE so
@@ -343,11 +343,11 @@
 .admin-tool-danger-row {
     margin-top: 1.25rem;
     padding-top: 1rem;
-    border-top: 1px dashed #ef4444;
+    border-top: 1px dashed var(--red);
 }
 
 .admin-tool-danger-row .admin-tool-hint { margin-top: 0; margin-bottom: 0.6rem; }
-.admin-tool-danger-row .admin-tool-hint strong { color: #ef4444; }
+.admin-tool-danger-row .admin-tool-hint strong { color: var(--red); }
 .permissions-list { margin: 1rem 0; }
 
 /* The personnel roster, on owner.html */
@@ -361,7 +361,7 @@
 .personnel-row-actions { display: flex; gap: 0.4rem; align-items: center; }
 .personnel-role-select { margin: 0; font-size: 0.7rem; padding: 0.3rem; }
 .personnel-add { border-top: 1px dashed var(--border-color); padding-top: 1rem; margin-top: 1rem; }
-.owner-success-text { color: #22c55e; }
+.owner-success-text { color: var(--green); }
 
 /* A whole row is the hit target, next to role controls that are destructive. */
 .owner-perk-row {
@@ -369,7 +369,7 @@
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.75rem;
-    border: 1px dashed #333;
+    border: 1px dashed var(--grey-33);
     border-radius: 4px;
     cursor: pointer;
     font-family: var(--text-mono);
@@ -390,18 +390,18 @@
     line-height: 1.5;
 }
 /* The same role colours as the rest of the staff tooling. */
-.badge-role-admin { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid #a855f7; }
+.badge-role-admin { background: rgba(168,85,247,0.15); color: var(--purple); border: 1px solid var(--purple); }
 .badge-role-reviewer { background: rgba(59,130,246,0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
-.badge-role-trusted_editor { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
-.badge-role-contributor { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; }
-.badge-role-viewer { background: rgba(136,136,136,0.15); color: #888; border: 1px solid #888; }
+.badge-role-trusted_editor { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
+.badge-role-contributor { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
+.badge-role-viewer { background: rgba(136,136,136,0.15); color: var(--grey-88); border: 1px solid var(--grey-88); }
 
 .admin-input-full { width: 100%; margin: 0.75rem 0; font-size: 0.75rem; padding: 0.5rem; box-sizing: border-box; }
 .admin-input-full.select { margin-bottom: 0.75rem; margin-top: 0; }
 /* The site dropdown drawn for it keeps its room below. */
 .admin-input-full.select + .manga-select-wrapper { margin-bottom: 0.75rem; }
 .admin-tool-btn { font-size: 0.7rem; padding: 0.4rem; width: 100%; margin-top: 0.5rem; }
-.admin-tool-results { margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.7rem; color: #888; line-height: 1.4; }
+.admin-tool-results { margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.7rem; color: var(--grey-88); line-height: 1.4; }
 
 /* The media queue */
 /* Text first: a file is not in the page until a reviewer presses VIEW. */
@@ -411,31 +411,31 @@
 .admin-queue-count:not(:empty) { margin-left: 0.4rem; color: var(--accent-blue); font-weight: bold; }
 .media-queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .media-queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
-.media-queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: #888; margin: 0 0 0.75rem 0; }
+.media-queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: var(--grey-88); margin: 0 0 0.75rem 0; }
 
-.media-queue-row { border: 1px solid #222; border-left: 3px solid #333; padding: 0.6rem 0.75rem; background: hsl(0, 0%, 3%); }
-.media-queue-row-flagged { border-left-color: #ef4444; }
-.media-queue-row-approved { border-left-color: #22c55e; }
-.media-queue-row-unchecked { border-left-color: #eab308; }
+.media-queue-row { border: 1px solid var(--grey-22); border-left: 3px solid var(--grey-33); padding: 0.6rem 0.75rem; background: hsl(0, 0%, 3%); }
+.media-queue-row-flagged { border-left-color: var(--red); }
+.media-queue-row-approved { border-left-color: var(--green); }
+.media-queue-row-unchecked { border-left-color: var(--yellow); }
 
 .media-queue-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-.media-queue-name { font-family: var(--text-mono); font-size: 0.72rem; color: #fff; word-break: break-all; }
-.media-queue-status-unchecked { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
-.media-queue-status-approved { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; }
-.media-queue-status-flagged { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; }
+.media-queue-name { font-family: var(--text-mono); font-size: 0.72rem; color: var(--white); word-break: break-all; }
+.media-queue-status-unchecked { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
+.media-queue-status-approved { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
+.media-queue-status-flagged { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid var(--red); }
 
-.media-queue-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; font-family: var(--text-mono); font-size: 0.65rem; color: #888; }
+.media-queue-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; font-family: var(--text-mono); font-size: 0.65rem; color: var(--grey-88); }
 /* Where a file is used is the most useful sort, so it is coloured. */
-.media-queue-usage-live { color: #22c55e; }
-.media-queue-usage-history { color: #eab308; }
+.media-queue-usage-live { color: var(--green); }
+.media-queue-usage-history { color: var(--yellow); }
 .media-queue-usage-unused { color: #f97316; }
-.media-queue-pages { display: block; margin-top: 0.25rem; font-family: var(--text-mono); font-size: 0.62rem; color: #666; word-break: break-word; }
-.media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: #ef4444; }
+.media-queue-pages { display: block; margin-top: 0.25rem; font-family: var(--text-mono); font-size: 0.62rem; color: var(--grey-66); word-break: break-word; }
+.media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: var(--red); }
 
 /* The phone's preview only; wider, a clip opens in the main pane. */
 .media-queue-preview:empty { display: none; }
 .media-queue-preview { margin-top: 0.6rem; }
-.media-queue-media { width: 100%; max-height: 220px; object-fit: contain; background: #000; border: 1px solid #222; display: block; }
+.media-queue-media { width: 100%; max-height: 220px; object-fit: contain; background: var(--black); border: 1px solid var(--grey-22); display: block; }
 
 /* A clip opens in the review pane, where there is room to judge it. */
 .media-preview-panel {
@@ -470,8 +470,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #000;
-    border: 1px solid #222;
+    background: var(--black);
+    border: 1px solid var(--grey-22);
     min-height: 240px;
 }
 
@@ -493,12 +493,12 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* Media garbage collection, on owner.html */
 /* Pinned, since the button it hides deletes files. */
 .admin-tool-btn[hidden] { display: none; }
-.gc-orphan-count { color: #eab308; }
-.gc-orphan-list { margin: 0.35rem 0 0 0; padding: 0.4rem 0.4rem 0.4rem 1.4rem; max-height: 9rem; overflow-y: auto; border: 1px dashed #333; }
+.gc-orphan-count { color: var(--yellow); }
+.gc-orphan-list { margin: 0.35rem 0 0 0; padding: 0.4rem 0.4rem 0.4rem 1.4rem; max-height: 9rem; overflow-y: auto; border: 1px dashed var(--grey-33); }
 .gc-orphan-list li { word-break: break-all; }
 
 /* The preview area */
-.admin-live-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #222; flex-shrink: 0; width: 100%; box-sizing: border-box; }
+.admin-live-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--grey-22); flex-shrink: 0; width: 100%; box-sizing: border-box; }
 .admin-status-container { display: flex; align-items: center; }
 
 /* The queue column pops in and out, so the pane and the side by side get the
@@ -526,10 +526,10 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
     box-sizing: border-box; 
     box-shadow: 0 4px 6px hsla(0, 0%, 0%, 0.3); 
 }
-.ticket-left-col { flex: 1; border-right: 1px solid #333; padding-right: 2rem; display: flex; flex-direction: column; }
+.ticket-left-col { flex: 1; border-right: 1px solid var(--grey-33); padding-right: 2rem; display: flex; flex-direction: column; }
 .ticket-right-col { flex: 2; display: flex; flex-direction: column; }
 .ticket-header-title { margin: 0 0 0.75rem 0; font-size: 0.85rem; font-family: var(--font-label), sans-serif; }
-.ticket-header-title.status { color: #eab308; }
+.ticket-header-title.status { color: var(--yellow); }
 .ticket-header-title.log { color: var(--accent-blue); }
 .ticket-header-title.qa { color: #3b82f6; }
 
@@ -548,12 +548,12 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* A changelog with a staff note, and a merged ticket's evidence, are several lines. */
 .qa-report-value { white-space: pre-wrap; }
 .ticket-status-text { font-size: 0.75rem; margin: 0 0 0.25rem 0; font-family: var(--text-mono); }
-.ticket-status-text.support { color: #22c55e; }
-.ticket-status-text.oppose { color: #ef4444; margin-bottom: 1.5rem; }
+.ticket-status-text.support { color: var(--green); }
+.ticket-status-text.oppose { color: var(--red); margin-bottom: 1.5rem; }
 #ticket-support-actions { margin-top: auto; }
 
 .ticket-chat-log { flex: 1; min-height: 150px; max-height: 250px; overflow-y: auto; background: hsl(0, 0%, 0%); border: 1px inset hsl(0, 0%, 13%); padding: 0.75rem; font-family: var(--text-mono); font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
-#ticket-typing-indicator { font-size: 0.7rem; color: #888; height: 16px; margin-top: 4px; font-style: italic; font-family: var(--text-mono); }
+#ticket-typing-indicator { font-size: 0.7rem; color: var(--grey-88); height: 16px; margin-top: 4px; font-style: italic; font-family: var(--text-mono); }
 .ticket-chat-input-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
 .ticket-chat-input { flex: 1; padding: 0.5rem; font-size: 0.8rem; }
 .ticket-chat-send-btn { padding: 0.4rem 1rem; font-size: 0.75rem; }
@@ -564,47 +564,47 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* The side by side draws the page twice, so it takes the pane's whole width. */
 body.sbs-active .admin-main-pane .max-w-7xl,
 body.sbs-active #preview-content-area { max-width: none; }
-#version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed #222; padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
+#version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed var(--grey-22); padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
 
 /* Access denied */
-.access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #050505; }
-.access-denied-title { color: #ef4444; font-family: var(--font-label), sans-serif; }
+.access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: var(--grey-05); }
+.access-denied-title { color: var(--red); font-family: var(--font-label), sans-serif; }
 
 /* The queue's loading, error and empty states */
-.admin-error-text { color: #ef4444; font-size: 0.75rem; }
-.admin-queue-empty-msg { border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem; }
+.admin-error-text { color: var(--red); font-size: 0.75rem; }
+.admin-queue-empty-msg { border: 1px dashed var(--grey-33); padding: 1.5rem 1rem; font-size: 0.7rem; }
 
 .admin-queue-group-title { font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
 .admin-merge-btn { font-size: 0.65rem; padding: 0.3rem 0.6rem; }
 
 /* Queue badges */
-.badge-status-ticket-open { background: #eab308; color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
-.badge-status-pending { background: var(--accent-blue); color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
+.badge-status-ticket-open { background: var(--yellow); color: var(--black); border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
+.badge-status-pending { background: var(--accent-blue); color: var(--black); border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
 /* The one .update-badge with text not written by hand: a system section's key
    runs long, so it breaks anywhere. `anywhere`, not `break-word`: only it also
    shrinks the min-content size, so the badge yields as a flex item. */
 .badge-patch-delta {
-    background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid #a855f7;
+    background: rgba(168,85,247,0.1); color: var(--purple); border: 1px solid var(--purple);
     font-size: 0.55rem; padding: 0.1rem 0.4rem;
     white-space: normal;
     overflow-wrap: anywhere;
     max-width: 100%;
     box-sizing: border-box;
 }
-.badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-page-id { font-size: 0.5rem; background: #333; color: #fff; border: 1px solid #555; padding: 0.15rem 0.4rem; }
+.badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-page-id { font-size: 0.5rem; background: var(--grey-33); color: var(--white); border: 1px solid var(--grey-55); padding: 0.15rem 0.4rem; }
 
 /* A rough size hint, from the changed content's length at load. */
-.badge-size-s { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid #22c55e; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-size-m { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid #eab308; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-size-l { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-s { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid var(--green); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-m { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid var(--yellow); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-l { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
 /* The contributor's confidence, in the size badges' three colours, since both
    answer "what to open next". N/A is muted: typo fixes are no risk, not a level. */
-.badge-confidence-high { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid #22c55e; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-confidence-medium { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid #eab308; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-confidence-low { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
-.badge-confidence-na { background: rgba(136,136,136,0.1); color: #888; border: 1px solid #555; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-high { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid var(--green); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-medium { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid var(--yellow); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-low { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-na { background: rgba(136,136,136,0.1); color: var(--grey-88); border: 1px solid var(--grey-55); font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
 /* Clamped to three lines and visual only: the full note stays selectable and
    findable. */
@@ -639,7 +639,7 @@ body.sbs-active #preview-content-area { max-width: none; }
    and pushes REVIEW out of the card. */
 .admin-queue-card-info { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; flex: 1 1 auto; }
 .admin-queue-card-info .update-title { font-size: 0.85rem; }
-.admin-queue-card-info .update-log-meta { font-size: 0.65rem; color: #888; }
+.admin-queue-card-info .update-log-meta { font-size: 0.65rem; color: var(--grey-88); }
 .admin-queue-badges-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 .admin-queue-author-name { color: var(--text-white); }
 .admin-queue-time-relative { color: var(--accent-blue); }
@@ -649,11 +649,11 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* The preview header and the diff view */
 .admin-preview-status-highlight { color: var(--text-white); }
-.diff-view-title { color: #a855f7; }
+.diff-view-title { color: var(--purple); }
 /* The breadcrumb a reviewer navigates by, so it is bright. */
 .diff-location-label { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-primary); margin-bottom: 1.5rem; margin-top: 2rem; }
 .diff-location-lead { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 0.4rem; }
-.diff-crumb-sep { color: #555; margin: 0 0.15rem; }
+.diff-crumb-sep { color: var(--grey-55); margin: 0 0.15rem; }
 /* Says this is the fallback view, so a reviewer knows it is a real change. */
 .diff-unknown-scope {
     font-size: 0.8rem;
@@ -675,20 +675,20 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* The ticket's score and chat */
 .ticket-score-value { font-size: 1.1rem; }
-.ticket-perk-note { color: #a855f7; font-weight: bold; }
-.ticket-requirement-text { color: #888; font-size: 0.75rem; }
-.ticket-own-submission-note { color: #ef4444; font-size: 0.65rem; font-family: var(--text-mono); }
+.ticket-perk-note { color: var(--purple); font-weight: bold; }
+.ticket-requirement-text { color: var(--grey-88); font-size: 0.75rem; }
+.ticket-own-submission-note { color: var(--red); font-size: 0.65rem; font-family: var(--text-mono); }
 .ticket-vote-btn { flex: 1; }
 .ticket-vote-actions-row { display: flex; gap: 0.5rem; width: 100%; }
 .ticket-qa-field { margin-bottom: 0.5rem; }
 .ticket-qa-label { color: var(--text-white); }
 .ticket-qa-link { color: var(--accent-blue); text-decoration: underline; }
-.ticket-chat-empty { color: #555; font-style: italic; }
+.ticket-chat-empty { color: var(--grey-55); font-style: italic; }
 .ticket-chat-author { color: var(--accent-blue); }
 
 /* A REQUEST CHANGES message stands out from ordinary chat. */
-.ticket-chat-changes-requested { background: rgba(234,179,8,0.08); border-left: 3px solid #eab308; padding: 0.5rem 0.75rem; margin: 0.35rem 0; }
-.ticket-chat-changes-requested-label { color: #eab308; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
+.ticket-chat-changes-requested { background: rgba(234,179,8,0.08); border-left: 3px solid var(--yellow); padding: 0.5rem 0.75rem; margin: 0.35rem 0; }
+.ticket-chat-changes-requested-label { color: var(--yellow); font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
 .ticket-chat-changes-requested-text { color: var(--text-white); }
 
 /* Page History */
@@ -700,14 +700,14 @@ body.sbs-active #preview-content-area { max-width: none; }
 .page-history-diff { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
 
 /* The merge compiler */
-.compiler-title-highlight { color: #fff; }
+.compiler-title-highlight { color: var(--white); }
 .compiler-status-text { color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem; }
-.compiler-empty-text { color: var(--text-muted); padding: 2rem; border: 1px dashed #333; text-align: center; }
-.compiler-instructions { font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-bottom: 1.5rem; line-height: 1.5; }
-.compiler-select { margin-bottom: 0; border-color: #a855f7; background: rgba(168,85,247,0.1); color: #fff; font-weight: bold; }
-.compiler-discard-option { color: #888; font-weight: normal; }
-.compiler-conflict-card { background: rgba(255,255,255,0.02); border: 1px solid #333; padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid #a855f7; }
-.compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
+.compiler-empty-text { color: var(--text-muted); padding: 2rem; border: 1px dashed var(--grey-33); text-align: center; }
+.compiler-instructions { font-family: var(--text-mono); font-size: 0.75rem; color: var(--grey-88); margin-bottom: 1.5rem; line-height: 1.5; }
+.compiler-select { margin-bottom: 0; border-color: var(--purple); background: rgba(168,85,247,0.1); color: var(--white); font-weight: bold; }
+.compiler-discard-option { color: var(--grey-88); font-weight: normal; }
+.compiler-conflict-card { background: var(--tint-2); border: 1px solid var(--grey-33); padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid var(--purple); }
+.compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: var(--white); margin-bottom: 0.5rem; text-transform: uppercase; }
 #btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
 /* Per-account capabilities, on owner.html */
@@ -718,10 +718,10 @@ body.sbs-active #preview-content-area { max-width: none; }
     gap: 0.4rem;
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px dashed #222;
+    border-top: 1px dashed var(--grey-22);
     font-family: var(--text-mono);
     font-size: 0.65rem;
-    color: #888;
+    color: var(--grey-88);
     cursor: pointer;
 }
 .personnel-capability:hover { color: var(--text-white); }
@@ -729,7 +729,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* A disabled box says why in its label, and the row dims. */
 .personnel-capability:has(.personnel-capability-box:disabled) { cursor: default; opacity: 0.6; }
-.personnel-capability:has(.personnel-capability-box:disabled):hover { color: #888; }
+.personnel-capability:has(.personnel-capability-box:disabled):hover { color: var(--grey-88); }
 .personnel-capability-note { font-style: italic; opacity: 0.85; }
 
 /* Account search, on owner.html. The same rows as the roster; only the input line
@@ -761,7 +761,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 }
 /* A stripe for "nothing set", so unset is never mistaken for black. */
 .page-meta-color-swatch-empty {
-    background: repeating-linear-gradient(45deg, #222, #222 4px, #111 4px, #111 8px) !important;
+    background: repeating-linear-gradient(45deg, var(--grey-22), var(--grey-22) 4px, var(--grey-11) 4px, var(--grey-11) 8px) !important;
 }
 .page-meta-color-picker {
     flex: 0 0 auto;
@@ -775,7 +775,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* The page registry's groups, on owner.html: <details>, so the keyboard and
    find-in-page open them. */
-.page-group { border-bottom: 1px solid #222; }
+.page-group { border-bottom: 1px solid var(--grey-22); }
 .page-group[hidden] { display: none; }
 .page-group-summary {
     display: flex;
@@ -795,9 +795,9 @@ body.sbs-active #preview-content-area { max-width: none; }
 /* The count says what is behind a closed heading. */
 .page-group-count {
     font-size: 0.65rem;
-    color: #888;
+    color: var(--grey-88);
     background: #1c1c1c;
-    border: 1px solid #333;
+    border: 1px solid var(--grey-33);
     padding: 0.1rem 0.45rem;
 }
 .page-group .personnel-row:last-child { border-bottom: none; }
@@ -810,7 +810,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     flex: 1 0 100%;
     margin-top: 0.6rem;
     padding-top: 0.6rem;
-    border-top: 1px dashed #333;
+    border-top: 1px dashed var(--grey-33);
 }
 .owner-inline-editor .block-field-label-sm { margin-top: 0.5rem; }
 .owner-inline-editor-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
@@ -831,8 +831,8 @@ body.sbs-active #preview-content-area { max-width: none; }
 /* The report queue: built from the media queue's pieces, so three queues share
    one layout. */
 .report-card {
-    background: var(--bg-secondary, #111);
-    border: 2px solid var(--border-color, #333);
+    background: var(--bg-secondary, var(--grey-11));
+    border: 2px solid var(--border-color, var(--grey-33));
     padding: 0.75rem 0.85rem;
 }
 
@@ -844,10 +844,10 @@ body.sbs-active #preview-content-area { max-width: none; }
     margin-bottom: 0.4rem;
 }
 
-.report-reason-badge { background: #eab308; color: #000; }
+.report-reason-badge { background: var(--yellow); color: var(--black); }
 
 /* The report count: red, since it is the thing to look at first. */
-.report-count-badge { background: #ef4444; color: #000; }
+.report-count-badge { background: var(--red); color: var(--black); }
 
 .report-page {
     font-family: var(--text-mono);
@@ -872,7 +872,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 .report-note {
     font-size: 0.75rem;
-    color: #eab308;
+    color: var(--yellow);
     margin-bottom: 0.5rem;
     overflow-wrap: break-word;
 }
@@ -881,10 +881,10 @@ body.sbs-active #preview-content-area { max-width: none; }
 .report-quote {
     margin: 0 0 0.5rem 0;
     padding: 0.4rem 0 0.4rem 0.7rem;
-    border-left: 3px solid var(--border-color, #333);
+    border-left: 3px solid var(--border-color, var(--grey-33));
     font-size: 0.78rem;
     line-height: 1.45;
-    color: #fff;
+    color: var(--white);
     white-space: pre-wrap;
     overflow-wrap: break-word;
     max-height: 12rem;
@@ -900,7 +900,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     font-family: var(--text-mono);
     font-size: 0.65rem;
     letter-spacing: 0.06em;
-    color: #eab308;
+    color: var(--yellow);
     margin-bottom: 0.3rem;
 }
 .report-edit-when { font-size: 0.7rem; color: var(--text-muted); margin: 0.3rem 0 0.2rem; }
@@ -908,20 +908,20 @@ body.sbs-active #preview-content-area { max-width: none; }
 /* The broken-media report, on owner.html. */
 .media-report-summary { margin: 0.5rem 0; color: var(--text-white); font-size: 0.85rem; }
 .media-report-note { margin: 0 0 0.5rem 0; color: var(--text-muted); font-size: 0.75rem; }
-.media-report-page { border-top: 1px solid var(--border-color, #333); padding: 0.5rem 0; }
+.media-report-page { border-top: 1px solid var(--border-color, var(--grey-33)); padding: 0.5rem 0; }
 .media-report-page-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
 .media-report-page-name { color: var(--text-white); font-weight: bold; }
-.media-report-count { font-family: var(--text-mono); font-size: 0.7rem; color: #ef4444; }
+.media-report-count { font-family: var(--text-mono); font-size: 0.7rem; color: var(--red); }
 .media-report-list { list-style: none; margin: 0.35rem 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
 .media-report-item { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: baseline; font-size: 0.75rem; }
 .media-report-where { color: var(--text-muted); }
 .media-report-file { font-family: var(--text-mono); color: var(--accent-blue); overflow-wrap: anywhere; }
-.media-report-state { font-family: var(--text-mono); font-size: 0.65rem; text-transform: uppercase; color: #ef4444; }
+.media-report-state { font-family: var(--text-mono); font-size: 0.65rem; text-transform: uppercase; color: var(--red); }
 .media-report-state.is-unknown { color: #facc15; }
 
 /* A reported post's images, small, each opening the full file. */
 .report-images { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.5rem 0; }
-.report-images img { display: block; width: 96px; height: 96px; object-fit: cover; border: 1px solid var(--border-color, #333); }
+.report-images img { display: block; width: 96px; height: 96px; object-fit: cover; border: 1px solid var(--border-color, var(--grey-33)); }
 
 .report-already,
 .report-resolved {
@@ -956,7 +956,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
 .media-queue-confirm {
     margin-top: 0.6rem;
     padding: 0.7rem;
-    border: 2px solid #ef4444;
+    border: 2px solid var(--red);
     background: rgba(239, 68, 68, 0.06);
 }
 
@@ -967,7 +967,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     font-family: var(--text-mono);
     font-size: 0.72rem;
     font-weight: bold;
-    color: #ef4444;
+    color: var(--red);
     overflow-wrap: anywhere;
 }
 
@@ -985,7 +985,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     margin: 0 0 0.5rem 0;
     font-family: var(--text-mono);
     font-size: 0.68rem;
-    color: #ef4444;
+    color: var(--red);
 }
 
 .media-queue-confirm-status {
@@ -998,7 +998,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
    today is not bound to change together. */
 .queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
-.queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: #888; margin: 0 0 0.75rem 0; }
+.queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: var(--grey-88); margin: 0 0 0.75rem 0; }
 
 /* Page experts, on owner.html: the roster's rows, grouped by page. */
 .expert-group { margin-bottom: 1rem; }
@@ -1006,7 +1006,7 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     font-family: var(--text-mono); font-size: 0.7rem; text-transform: uppercase;
     letter-spacing: 0.05em; color: var(--accent-blue);
     margin: 0 0 0.4rem 0; padding-bottom: 0.25rem;
-    border-bottom: 1px solid #222;
+    border-bottom: 1px solid var(--grey-22);
 }
 
 /* The contributor's own reply in the ticket, told apart from staff. */
@@ -1030,16 +1030,13 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
 @layer dogslamloop {
 html:not(.look-classic) {
 .update-log-item {
-    background: var(--bg-secondary, #0a0a0a);
-    border: 1px solid var(--border-color, #333);
+    border: 1px solid var(--border-color, var(--grey-33));
     box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
-    padding: 1rem;
 }
 .admin-tool-card {
-    padding: 1rem;
     border-left: 3px solid;
 }
-.admin-tool-card.personnel { border-left-color: #a855f7; }
-.admin-tool-card.gc { border-left-color: #ef4444; }
+.admin-tool-card.personnel { border-left-color: var(--purple); }
+.admin-tool-card.gc { border-left-color: var(--red); }
 }
 }

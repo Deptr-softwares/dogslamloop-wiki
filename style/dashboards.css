@@ -72,7 +72,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     padding: 0.2rem 0;
     font-family: var(--text-mono);
     font-weight: bold;
-    color: #000;
+    color: var(--black);
     border: 2px solid var(--border-color);
 }
 .tier-snapshot-names { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; }
@@ -140,7 +140,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .game-info-link { display: block; color: hsl(213, 94%, 68%); text-decoration: none; margin-bottom: 0.5rem; }
 
 /* FAQ Sections */
-.faq-summary { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-label), sans-serif; color: var(--accent-blue); cursor: pointer; list-style: none; text-shadow: 1px 1px 0px #000; }
+.faq-summary { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-label), sans-serif; color: var(--accent-blue); cursor: pointer; list-style: none; text-shadow: 1px 1px 0px var(--black); }
 .faq-summary::-webkit-details-marker { display: none; }
 .faq-arrow { font-size: 0.75rem; color: var(--text-muted); transition: transform 0.2s ease; }
 .faq-details[open] .faq-arrow { transform: rotate(180deg); }
@@ -303,7 +303,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .matchup-grid-link.is-clash::after,
 .matchup-legend-swatch.is-clash::after {
     content: ''; position: absolute; top: 0; right: 0;
-    border-style: solid; border-color: transparent #111 transparent transparent;
+    border-style: solid; border-color: transparent var(--grey-11) transparent transparent;
 }
 .matchup-grid-link.is-clash::after { border-width: 0 9px 9px 0; }
 .matchup-legend-swatch.is-clash::after { border-width: 0 6px 6px 0; }

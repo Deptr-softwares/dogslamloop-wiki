@@ -112,12 +112,12 @@
 
 .frame-bar-container { 
     display: flex; width: 100%; height: 2.5rem; background-color: var(--bg-main); 
-    border: 2px solid #000; border-radius: 0; overflow: hidden; 
+    border: 2px solid var(--black); border-radius: 0; overflow: hidden; 
     box-shadow: 3px 3px 0px var(--manga-shadow); 
 }
 .phase-section { display: flex; height: 100%; cursor: pointer; transition: opacity 0.2s; }
 .phase-section:hover { opacity: 0.8; }
-.frame-tick { flex-grow: 1; height: 100%; border-right: 1px solid #000000; }
+.frame-tick { flex-grow: 1; height: 100%; border-right: 1px solid var(--black); }
 
 /* An estimated phase: skill_card.js draws no .frame-tick in it, so the block is
    solid, and that absence is the marker, since the ticks mean "measured". Nothing
@@ -165,13 +165,13 @@
    7 columns once the legend is 840px wide. In the narrower room beside a sidebar,
    or in VIEW DIFF, 7 columns cut "Explosion" short. */
 .legend-section { margin-bottom: 2rem; container-type: inline-size; }
-.legend-title { font-family: var(--font-label), sans-serif; font-size: 0.875rem; color: var(--accent-blue); margin-bottom: 0.75rem; margin-top: 0; text-shadow: 1px 1px 0 #000; }
+.legend-title { font-family: var(--font-label), sans-serif; font-size: 0.875rem; color: var(--accent-blue); margin-bottom: 0.75rem; margin-top: 0; text-shadow: 1px 1px 0 var(--black); }
 .legend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; font-size: 0.75rem; font-family: var(--text-mono); }
 @container (min-width: 520px) { .legend-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @container (min-width: 640px) { .legend-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @container (min-width: 840px) { .legend-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 .legend-item { display: flex; align-items: flex-start; gap: 0.5rem; }
-.legend-swatch { width: 1rem; height: 1rem; border-radius: 0; border: 1px solid var(--text-white); flex-shrink: 0; margin-top: 0.125rem; box-shadow: 2px 2px 0 #000;}
+.legend-swatch { width: 1rem; height: 1rem; border-radius: 0; border: 1px solid var(--text-white); flex-shrink: 0; margin-top: 0.125rem; box-shadow: 2px 2px 0 var(--black);}
 .legend-name { color: var(--text-white); display: block; font-weight: bold; }
 
 /* Frame data reads in monospace. */

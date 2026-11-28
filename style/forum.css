@@ -49,11 +49,11 @@
 /* Each category's colour, on its filter button and on every post's tag. Blue is a
    fixed value, as .btn-sys-blue's is. */
 .forum-cat-question    { --cat: hsl(213, 94%, 68%); }
-.forum-cat-guide       { --cat: #22c55e; }
-.forum-cat-discussion  { --cat: #eab308; }
+.forum-cat-guide       { --cat: var(--green); }
+.forum-cat-discussion  { --cat: var(--yellow); }
 .forum-cat-art         { --cat: #f472b6; }
 .forum-cat-game-update { --cat: #f97316; }
-.forum-cat-promotion   { --cat: #a855f7; }
+.forum-cat-promotion   { --cat: var(--purple); }
 
 /* A filter button is .btn-sys, whose colour tier is these three. Two classes,
    so it beats .btn-sys-regular whichever file loads last. All has no
@@ -66,7 +66,7 @@
 
 /* The category on show is filled with its colour, as a hovered button is. */
 .forum-filter[aria-pressed="true"] {
-    color: #000;
+    color: var(--black);
 }
 
 .forum-list {

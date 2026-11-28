@@ -138,7 +138,7 @@
     justify-content: center;
     font-family: var(--font-label), sans-serif;
     font-size: 1.5rem;
-    color: #000;
+    color: var(--black);
     text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
     border-right: 2px solid var(--bg-secondary);
     box-shadow: inset -4px 0px 8px rgba(0, 0, 0, 0.2);
@@ -202,7 +202,7 @@
    is blue like the old changelog entries so the page still reads as the same
    section it was. */
 .ctl-change {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--tint-2);
     border-left: 3px solid var(--accent-blue);
     padding: 0.7rem 0.9rem;
     margin-bottom: 0.6rem;
@@ -277,7 +277,6 @@
     border-bottom: 2px solid var(--border-color);
 }
 .tierlist-sidebar-title:not(:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title))) { margin: 0; padding: 0; border: none; }
-.tierlist-sidebar-title:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) { margin-top: 0px; margin-right: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 
 .tierlist-sidebar-actions {
     display: flex;

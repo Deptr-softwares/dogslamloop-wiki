@@ -29,8 +29,8 @@
 .post-card-summary { margin: 0.75rem 0 0 0; color: var(--text-primary); line-height: 1.6; }
 .post-header { border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
 .post-title { font-family: var(--font-label), sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; }
-.post-error { color: #ef4444; }
+.post-error { color: var(--red); }
 /* Distinguishes a hotfix note from a versioned release entry in the Update
    Log, where the two are deliberately interleaved. */
-.badge-hotfix { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
+.badge-hotfix { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
 }

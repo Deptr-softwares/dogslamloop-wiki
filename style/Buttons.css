@@ -31,8 +31,8 @@ button {
 @property --sys-edge { syntax: '<color>'; inherits: true; initial-value: #555; }
 @property --sys-fill { syntax: '<color>'; inherits: true; initial-value: #888; }
 .btn-sys {
-    --sys-edge: #555;
-    --sys-fill: #888;
+    --sys-edge: var(--grey-55);
+    --sys-fill: var(--grey-88);
     --sys-cut: 9px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 0.7rem; font-weight: bold;
@@ -49,18 +49,18 @@ button {
 /* html.reduce-motion: the device's preference or Site settings (js/utility/site_utils.js). */
 html.reduce-motion .btn-sys { transition: none; }
 
-.btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
+.btn-sys-regular { --sys-edge: var(--grey-55); --sys-fill: var(--grey-88); color: #aaa; }
 /* Blue is fixed, not var(--accent-blue), which a character page's theme re-points;
    it is the site's default accent. */
 .btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); color: hsl(213, 94%, 68%); }
-.btn-sys-green   { --sys-edge: #22c55e; --sys-fill: #22c55e; color: #22c55e; }
-.btn-sys-red     { --sys-edge: #ef4444; --sys-fill: #ef4444; color: #ef4444; }
-.btn-sys-yellow  { --sys-edge: #eab308; --sys-fill: #eab308; color: #eab308; }
-.btn-sys-purple  { --sys-edge: #a855f7; --sys-fill: #a855f7; color: #a855f7; }
+.btn-sys-green   { --sys-edge: var(--green); --sys-fill: var(--green); color: var(--green); }
+.btn-sys-red     { --sys-edge: var(--red); --sys-fill: var(--red); color: var(--red); }
+.btn-sys-yellow  { --sys-edge: var(--yellow); --sys-fill: var(--yellow); color: var(--yellow); }
+.btn-sys-purple  { --sys-edge: var(--purple); --sys-fill: var(--purple); color: var(--purple); }
 
 /* Filled variants, for modals, always worn with .btn-sys and its colour tier. */
-.btn-danger-fill { background: #ef4444 !important; color: #000 !important; border-color: #ef4444 !important; }
-.btn-purple-fill { background: #a855f7 !important; color: #000 !important; border-color: #a855f7 !important; }
+.btn-danger-fill { background: var(--red) !important; color: var(--black) !important; border-color: var(--red) !important; }
+.btn-purple-fill { background: var(--purple) !important; color: var(--black) !important; border-color: var(--purple) !important; }
 
 
 /* Manga buttons: the live wiki's actions and filters */
@@ -82,7 +82,7 @@ html.reduce-motion .btn-sys { transition: none; }
     cursor: pointer;
     box-sizing: border-box;
 }
-.btn-manga:hover:not(:where(:is(.btn-manga, .filter-toggle).active)), .filter-toggle:hover:not(:where(:is(.btn-manga, .filter-toggle).active)) { background: var(--bg-main); color: var(--text-white); border-color: var(--manga-accent); }
+.btn-manga:hover, .filter-toggle:hover { color: var(--text-white); border-color: var(--manga-accent); }
 
 /* Active / Selected State */
 .btn-manga.active, .filter-toggle.active {
@@ -161,14 +161,14 @@ html.reduce-motion .btn-sys { transition: none; }
     color: var(--text-muted);
     padding: 0.35rem 0.7rem; cursor: pointer;
 }
-.sub-tab:hover:not(:where(.sub-tab.is-active)) { color: var(--text-white); }
+.sub-tab:hover { color: var(--text-white); }
 .sub-tab.is-active { background: var(--bg-main); }
 .sub-tab[hidden] { display: none; }
 .sub-tab-item { display: inline-flex; position: relative; }
 .sub-tab.sub-tab-removable { padding-right: 1.6rem; }
 .sub-tab-remove {
     position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: #ef4444; font-size: 10px; cursor: pointer;
+    background: none; border: none; color: var(--red); font-size: 10px; cursor: pointer;
 }
 .sub-tabs-action { align-self: center; font-size: 0.65rem; padding: 0.3rem 0.6rem; margin-left: 0.25rem; }
 /* The tabs of a strip that also holds an action button, laid out as the strip's own. */
@@ -187,84 +187,39 @@ html.reduce-motion .btn-sys { transition: none; }
 
 /* Buttons and tabs: plain boxes. */
 .btn-sys {
-    clip-path: none;
-    box-shadow: none;
     background: color-mix(in srgb, var(--sys-edge) 12%, var(--bg-main));
 }
 .btn-sys:is(:hover, :active):not(:disabled) {
-    transform: none;
-    box-shadow: none;
     color: var(--text-white);
     background: color-mix(in srgb, var(--sys-edge) 30%, var(--bg-main));
 }
 :is(.btn-manga, .filter-toggle) {
     border-width: 1px;
-    box-shadow: none;
-    transform: none;
-    animation: none;
-    font-family: Arial, Helvetica, sans-serif;
 }
 :is(.btn-manga, .filter-toggle).active {
     background: var(--bg-secondary);
     color: var(--text-white);
     border-color: var(--text-primary);
 }
-.btn-manga-content { transform: none; }
 .sub-tabs { border-bottom-width: 1px; }
-.sub-tab { font-size: 0.8rem; letter-spacing: 0; }
+.sub-tab { font-size: 0.8rem; }
 .sub-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
 }
 
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
-button:where(.wiki-video-btn, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav, .btn-sys.dock-action-btn, .inline-callout-btn) {
-    border: none;
-}
-button:where(:is(.btn-manga, .filter-toggle)) {
-    border-width: medium;
-}
-button:where(:is(.btn-manga, .filter-toggle).active, .inline-callout-btn:hover, .sub-tab.is-active, .manga-select-trigger, :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger)) {
-    border-color: currentcolor;
-}
-button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header, .manga-option) {
-    border-bottom: none;
-}
-button:where(.manga-option.selected) {
-    border-left: none;
-}
-button:where(.btn-sys, .btn-sys:is(:hover, :active):not(:disabled), :is(.btn-manga, .filter-toggle).active, .wiki-video-btn, .wiki-video-btn:hover, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active, .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled), .inline-callout-btn, .manga-select-trigger) {
-    background: transparent;
-}
-button:where(.wiki-video-btn, :is(.local-sidebar-right, .global-sidebar-left) .btn-nav, .btn-sys.dock-action-btn) {
-    padding: 0;
-}
-button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) {
-    padding-bottom: 0px;
-}
-button:where(.local-sidebar-right .btn-nav.toc-link-minor, :is(.manga-option:hover, .manga-option.is-active)) {
-    padding-left: 0px;
-}
-button:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) { margin: 0; }
-button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) {
-    margin-bottom: 0px;
-}
-button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
-    font-family: inherit;
-}
-.btn-sys { font-family: var(--text-mono); }
-.btn-sys:where(.btn-sys.dock-action-btn) {
+.btn-sys:where(.dock-action-btn) {
     font-size: 0.7rem;
     font-weight: bold;
-}
-.btn-sys { text-transform: uppercase; }
-.btn-sys:where(.btn-sys.dock-action-btn) {
     padding: 0.4rem 0.75rem;
     border: 1px solid var(--sys-edge);
 }
 .btn-sys {
+    font-family: var(--text-mono);
+    text-transform: uppercase;
     background: linear-gradient(225deg, transparent calc(50% - 0.75px), var(--sys-edge) calc(50% - 0.75px), var(--sys-edge) calc(50% + 0.75px), transparent calc(50% + 0.75px)) right top / var(--sys-cut) var(--sys-cut) no-repeat border-box, linear-gradient(var(--sys-fill), var(--sys-fill)) left top / 0% 100% no-repeat border-box, color-mix(in srgb, var(--sys-edge) 9%, var(--bg-main, #0d1117));
-    box-shadow: 3px 3px 0 var(--manga-shadow, #000);
+    box-shadow: 3px 3px 0 var(--manga-shadow, var(--black));
     clip-path: polygon(0 0, calc(100% - var(--sys-cut)) 0, calc(100% + 6px) calc(var(--sys-cut) + 6px), calc(100% + 6px) calc(100% + 6px), 0 calc(100% + 6px));
 }
 .btn-sys:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
@@ -274,12 +229,12 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
 .btn-sys:hover:not(:disabled) {
     transform: translateY(-1px);
     background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto;
-    box-shadow: 3px 4px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
-    color: #000;
+    box-shadow: 3px 4px 0 color-mix(in srgb, var(--sys-fill) 40%, var(--black));
+    color: var(--black);
 }
 .btn-sys:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
+    box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, var(--black));
 }
 &.reduce-motion .btn-sys:hover:not(:disabled),
 &.reduce-motion .btn-sys:active:not(:disabled) {
@@ -288,20 +243,9 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
 .btn-sys-regular:where(.btn-sys:is(:hover, :active):not(:disabled), .btn-sys.dock-action-btn, .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled)) {
     color: #aaa;
 }
-.btn-danger-fill:where(.btn-sys, .btn-sys:is(:hover, :active):not(:disabled)) {
-    background: #ef4444 !important;
-}
-.btn-danger-fill:where(.btn-sys:is(:hover, :active):not(:disabled)) { color: #000 !important; }
 .btn-manga,
 .filter-toggle {
     border-width: 2px;
-}
-.btn-manga:where(:is(.btn-manga, .filter-toggle).active),
-.filter-toggle:where(:is(.btn-manga, .filter-toggle).active) {
-    border-color: var(--manga-border);
-}
-.btn-manga,
-.filter-toggle {
     font-family: var(--font-title), sans-serif;
     text-transform: uppercase;
     box-shadow: 3px 3px 0px var(--manga-shadow);
@@ -322,34 +266,26 @@ button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-
 .btn-manga-box:hover { transform: translate(-2px, -2px); }
 .btn-manga-content { transform: skewX(10deg); }
 .btn-manga-box .btn-manga-content { transform: none; }
-.btn-manga-icon:where(.global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon) {
-    display: flex;
-}
 .btn-nav:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) { padding: 0.2rem 0.5rem; }
-.btn-nav:where(.local-sidebar-right .btn-nav.toc-link-minor) { padding-left: 0.5rem; }
 .btn-nav {
     margin-bottom: 1px;
     font-family: var(--text-mono);
     color: var(--text-muted);
     font-size: 0.75rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid #333;
+    background: var(--tint-2);
+    border: 1px solid var(--grey-33);
     border-left: 3px solid transparent;
 }
 .btn-nav:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-left-color: #555;
+    background: var(--tint-5);
+    border-left-color: var(--grey-55);
     transform: translateX(2px);
     color: var(--text-white);
 }
 .btn-nav.active {
     background: rgba(59, 130, 246, 0.1);
-    border-color: #333;
+    color: var(--text-white);
 }
-.btn-nav.active:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) {
-    border-left-color: var(--accent-blue) !important;
-}
-.btn-nav.active { color: var(--text-white); }
 .sub-tabs { border-bottom-width: 2px; }
 .sub-tab {
     font-family: var(--text-mono);

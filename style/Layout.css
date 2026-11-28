@@ -100,14 +100,14 @@
     font-family: var(--font-title), sans-serif;
     text-transform: uppercase;
 }
-.column-subgroup-title { font-size: 1.15rem; color: var(--text-white); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
+.column-subgroup-title { font-size: 1.15rem; color: var(--text-white); border-bottom: 2px solid var(--border-color); text-shadow: 2px 2px 0px var(--manga-shadow); letter-spacing: 0.05em; }
 
 /* "On this tab" header row (local-sidebar-right, above the ToC) */
 .sidebar-tab-header {
     display: flex; justify-content: space-between; align-items: flex-end;
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);
 }
-.sidebar-tab-header .sidebar-master-title { margin-top: 0px; margin-right: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
+.sidebar-tab-header .sidebar-master-title { margin-top: 0px; margin-left: 0px; }
 
 .sidebar-header-top { display: flex; align-items: center; margin-bottom: 1.5rem; width: 100%; white-space: normal; }
 .sidebar-site-logo { width: 38px; height: 38px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px var(--manga-shadow); object-fit: cover; flex-shrink: 0; }
@@ -146,7 +146,6 @@
 
     /* Stated, not inherited: font: inherit would beat the title styling it sits in. */
 }
-.sidebar-nav-title.sidebar-group-header { padding-top: 0px; padding-right: 0px; padding-left: 0px; border-top-width: medium; border-right-width: medium; border-left-width: medium; border-top-style: none; border-right-style: none; border-left-style: none; border-top-color: currentcolor; border-right-color: currentcolor; border-left-color: currentcolor; border-image-source: none; border-image-slice: 100%; border-image-width: 1; border-image-outset: 0; border-image-repeat: stretch; }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
 .sidebar-group-wrapper .toc-list { margin-top: 0.3rem; }
 
@@ -165,7 +164,7 @@
 .toc-toggle-btn:hover { color: var(--text-white); }
 .toc-sublist { list-style: none; padding: 0; margin: 0; }
 .loading-msg-toc { padding: 0.25rem 0.75rem; }
-.loading-msg-error { color: #ef4444; }
+.loading-msg-error { color: var(--red); }
 
 /* Auth/dock action buttons (js/pages/core/page_shell.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
@@ -198,7 +197,7 @@
 .site-setting-name { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
 .site-setting-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
 .site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
-.site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
+.site-settings-error { margin: 0; color: var(--red); font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
 
 /* Character page sidebar dock (js/pages/core/page_shell.js populates #sidebar-dynamic-dock) */
@@ -424,9 +423,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     width: 100%;
     padding: 1rem;
     box-sizing: border-box;
-    border: 1px dashed #ef4444;
+    border: 1px dashed var(--red);
     background: rgba(239, 68, 68, 0.06);
-    color: #ef4444;
+    color: var(--red);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-align: center;
@@ -438,9 +437,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     display: inline-flex;
     align-items: center;
     padding: 0.15rem 0.5rem;
-    border: 1px dashed #ef4444;
+    border: 1px dashed var(--red);
     background: rgba(239, 68, 68, 0.06);
-    color: #ef4444;
+    color: var(--red);
     font-family: var(--text-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -512,7 +511,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         background: none; border: none; padding: 0; margin: 0;
         text-align: left; cursor: pointer;
     }
-    .mobile-logo-img { width: 32px; height: 32px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px #000; object-fit: cover; }
+    .mobile-logo-img { width: 32px; height: 32px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px var(--black); object-fit: cover; }
     /* The wiki's own typeface on the phone's one piece of branding. */
     .mobile-site-title {
         font-family: var(--font-title), sans-serif;
@@ -647,13 +646,13 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-hit:hover,
 .site-search-hit.is-active { background: var(--accent-blue); }
 .site-search-hit:hover .site-search-title,
-.site-search-hit.is-active .site-search-title { color: #000; }
+.site-search-hit.is-active .site-search-title { color: var(--black); }
 .site-search-hit:hover .site-search-where,
 .site-search-hit:hover .site-search-parent,
 .site-search-hit:hover .site-search-kind,
 .site-search-hit.is-active .site-search-where,
 .site-search-hit.is-active .site-search-parent,
-.site-search-hit.is-active .site-search-kind { color: #222; }
+.site-search-hit.is-active .site-search-kind { color: var(--grey-22); }
 
 .site-search-title {
     display: block; color: var(--text-white);
@@ -677,11 +676,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-more {
     display: block; padding: 0.45rem 0.6rem;
     border-top: 2px solid var(--border-color);
-    background: var(--bg-dark, #111);
+    background: var(--bg-dark, var(--grey-11));
     color: var(--accent-blue); text-decoration: none;
     font-family: var(--text-mono); font-size: 0.6rem;
 }
-.site-search-more:hover { background: var(--accent-blue); color: #000; }
+.site-search-more:hover { background: var(--accent-blue); color: var(--black); }
 
 /* Sidebar headings and small panel labels: small grey words over a rule. */
 :is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title),
@@ -706,18 +705,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* "On this tab" and the site menu: plain links, the minor ones indented. A
    character's name keeps its own colour. */
 :is(.local-sidebar-right, .global-sidebar-left) .btn-nav {
-    background: none;
-    border: 0;
     padding: 0.15rem 0;
     margin: 0;
     font-size: 0.85rem;
     color: var(--accent-blue);
-    transform: none;
 }
-.local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; opacity: 1; }
-:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active { background: none; color: var(--text-white); font-weight: bold; }
+.local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; }
+:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active { color: var(--text-white); font-weight: bold; }
 /* WIP and EA in the menu: small coloured words, not a filled tag. */
-.global-sidebar-left .update-badge { background: none; border: 0; padding: 0; color: var(--accent-yellow); }
+.global-sidebar-left .update-badge { border: 0; padding: 0; color: var(--accent-yellow); }
 .global-sidebar-left .badge-ea { color: hsl(28, 99%, 53%); }
 
 /* The account buttons are links under "Account"; Site settings keeps its box, and a
@@ -739,14 +735,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon { display: none; }
 .dock-badge {
-    position: static;
     width: auto;
     height: auto;
-    background: none;
-    border: 0;
-    box-shadow: none;
-    transform: none;
-    color: #ef4444;
+    color: var(--red);
     font-size: 0.75rem;
 }
 .dock-badge::before { content: '(new)'; }
@@ -757,8 +748,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 html:not(.look-classic) {
 .sidebar-master-title {
     font-family: var(--font-title), sans-serif;
-}
-.sidebar-master-title {
     font-size: 1.15rem;
     color: var(--text-white);
     margin-bottom: 1rem;
@@ -766,8 +755,6 @@ html:not(.look-classic) {
     border-bottom: 2px solid var(--border-color);
     text-shadow: 2px 2px 0px var(--manga-shadow);
     letter-spacing: 0.05em;
-}
-.sidebar-master-title {
     text-transform: uppercase;
 }
 .sidebar-tab-header .sidebar-master-title {
@@ -784,14 +771,11 @@ html:not(.look-classic) {
     margin-bottom: 0.4rem;
     text-shadow: 1px 1px 0px var(--manga-shadow);
 }
-.sidebar-nav-title.sidebar-group-header { margin-bottom: 0; }
 .sidebar-nav-title.sidebar-group-header {
-    padding-bottom: 0px;
+    margin-bottom: 0;
+    padding-bottom: 0;
     border-bottom: none;
-}
-.sidebar-nav-title.sidebar-group-header {
     font-family: var(--font-title), sans-serif;
-    color: var(--accent-blue);
     text-transform: inherit;
     letter-spacing: inherit;
 }
@@ -801,11 +785,9 @@ html:not(.look-classic) {
     opacity: 0.7;
 }
 .btn-nav.toc-link-major {
-    font-size: 0.75rem;
     color: var(--text-white);
 }
 .btn-nav.toc-link-major-toggle {
-    font-size: 0.75rem;
     color: var(--text-white);
     padding-right: 2rem;
 }
@@ -818,21 +800,8 @@ html:not(.look-classic) {
 }
 #sidebar-dynamic-dock { gap: 0.75rem; }
 .home-main-title { color: var(--text-white); }
-.section-title-clean:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
-    border-bottom-width: medium !important;
-}
-.section-title-flex:where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
-    border-bottom-width: medium !important;
-}
-&.reduce-motion *:where(:is(.btn-manga, .filter-toggle), .manga-select-wrapper .manga-select-options) {
-    animation-duration: 0.01ms !important;
-    animation-delay: 0s !important;
-    animation-iteration-count: 1 !important;
-}
-.system-content-grid-section { padding: 0 0.5rem; }
 @media (max-width: 640px) {
     .wiki-section { padding: 1rem; }
-    .wiki-section:where(.wiki-section.submission-card) { padding-bottom: 1rem; }
     .sidebar-master-title {
         font-size: 1rem;
     }

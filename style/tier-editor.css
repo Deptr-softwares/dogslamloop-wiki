@@ -30,7 +30,7 @@
 
 /* A move not saved yet: yellow, like the pending moves list, so it reads as
    "about to be this". */
-.ctl-change-pending { border-left: 2px solid #eab308; background: rgba(234, 179, 8, 0.05); padding-left: 0.6rem; }
+.ctl-change-pending { border-left: 2px solid var(--yellow); background: rgba(234, 179, 8, 0.05); padding-left: 0.6rem; }
 
 /* Taller than the reader's row: an empty tier must still be easy to drop on. */
 .tier-editor-row .ctl-chars { min-height: 96px; }
@@ -53,7 +53,7 @@
 .tier-pending-moves { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .tier-move {
-    border: 2px solid #eab308;
+    border: 2px solid var(--yellow);
     background: rgba(234, 179, 8, 0.05);
     padding: 0.6rem 0.7rem;
 }
@@ -76,7 +76,7 @@
 .tier-move-arrow {
     font-family: var(--text-mono);
     font-size: 0.68rem;
-    color: #eab308;
+    color: var(--yellow);
 }
 
 .tier-move-note { width: 100%; box-sizing: border-box; font-size: 0.78rem; }
@@ -85,7 +85,7 @@
     font-family: var(--text-mono);
     font-size: 0.8rem;
     font-weight: bold;
-    color: #eab308;
+    color: var(--yellow);
 }
 
 .tier-save-row {
@@ -134,7 +134,7 @@
     z-index: 60;
     width: 13rem;
     padding: 0.6rem;
-    background: #0a0a0a;
+    background: var(--grey-0a);
     border: 2px solid var(--accent-blue);
     box-shadow: 6px 6px 0px var(--manga-shadow);
 }
