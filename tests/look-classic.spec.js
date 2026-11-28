@@ -311,15 +311,30 @@ test('in Default the account buttons keep their own colour at rest and pressed, 
         expect(rest[id].colour, `${id} is not the plain text colour`).not.toBe(rest.untiered);
     }
 
-    // Pressed without the pointer over it, as a held Space key does.
+    // Pressed without the pointer over it, as a held Space key does: an account
+    // button, and a system button outside the dock.
+    await page.evaluate(() => {
+        const b = document.createElement('button');
+        b.id = 'test-sys-blue';
+        b.className = 'btn-sys btn-sys-blue';
+        b.textContent = 'Blue';
+        document.body.appendChild(b);
+    });
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('DOM.enable');
     await cdp.send('CSS.enable');
     const { root } = await cdp.send('DOM.getDocument');
-    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#dock-btn-inbox' });
-    await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['active'] });
-    expect((await read())['dock-btn-inbox'].colour, 'pressed').toBe(rest['dock-btn-inbox'].tierColour);
-    await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+    const pressed = {};
+    for (const id of ['dock-btn-inbox', 'test-sys-blue']) {
+        const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `#${id}` });
+        await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['active'] });
+        pressed[id] = await page.evaluate(i => {
+            document.getAnimations().forEach(a => { try { a.finish(); } catch (e) { /* endless */ } });
+            return getComputedStyle(document.getElementById(i)).color;
+        }, id);
+        await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+    }
+    expect(pressed, 'pressed').toEqual({ 'dock-btn-inbox': rest['dock-btn-inbox'].tierColour, 'test-sys-blue': rest['dock-btn-inbox'].tierColour });
 
     await page.locator('#dock-btn-inbox').hover();
     expect((await read())['dock-btn-inbox'].colour, 'hovered: black on the fill').toBe('rgb(0, 0, 0)');
