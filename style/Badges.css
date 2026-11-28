@@ -102,6 +102,7 @@ html:not(.look-classic) {
 .update-badge:where(.global-sidebar-left .update-badge) {
     padding: 0.25rem 0.4rem 0.15rem 0.4rem;
     border: 1px solid #000;
+    color: inherit;
 }
 .badge-wip {
     background-color: var(--accent-yellow);
@@ -119,6 +120,8 @@ html:not(.look-classic) {
     border: 2px solid #050505;
     transform: skewX(10deg);
     box-shadow: 2px 2px 0px #000;
+    color: inherit;
+    font-size: inherit;
 }
 }
 }

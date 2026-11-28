@@ -209,16 +209,6 @@ html.reduce-motion .btn-sys { transition: none; }
 /* The Dogslamloop look: Default's own, off when a reader picks Classic. */
 @layer dogslamloop {
 html:not(.look-classic) {
-button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header, .manga-option) {
-    border-bottom: none;
-}
-button:where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title), .sidebar-nav-title.sidebar-group-header) {
-    padding-bottom: 0px;
-}
-button:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) { margin: 0; }
-button:where(:is(.btn-manga, .filter-toggle), :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
-    font-family: inherit;
-}
 .btn-sys:where(.dock-action-btn) {
     font-size: 0.7rem;
     font-weight: bold;

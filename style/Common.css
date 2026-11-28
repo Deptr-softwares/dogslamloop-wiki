@@ -297,86 +297,25 @@ html:not(.look-classic) {
 --manga-shadow: #000000;
 --font-title: 'Finger-Paint';
 --font-label: 'CC-Wild-Words';
+/* Where Default's value is the browser's own, which differs by tag (a heading's bold), it is revert. */
 :where(:is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title)) {
-    font-family: revert;
+    font-family: inherit;
     font-weight: revert;
-}
-:where(.profile-stat-row) {
-    gap: revert;
-}
-:where(.profile-stat-label) {
-    flex: revert;
-    font-weight: revert;
-}
-:where(.playstyle-container) {
-    grid-template-columns: revert;
-    background: revert;
-    border: revert;
-}
-:where(.playstyle-col) {
-    background: revert;
-}
-:where(.playstyle-col .playstyle-header) {
-    margin: revert;
-    padding: revert;
-    background: revert;
-    color: revert;
-}
-:where(.playstyle-icon) { display: revert; }
-:where(.update-table) {
-    border: revert;
-    background: revert;
-}
-:where(.update-table :is(th, td)) {
-    border: revert;
-    padding: revert;
-}
-:where(.wiki-video-btn:hover) {
-    text-decoration: revert;
 }
 :where(:is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title)) {
     font-size: revert;
     font-weight: revert;
     color: revert;
-    border-bottom: revert;
-    padding-bottom: revert;
+    border-bottom: none;
+    padding-bottom: 0;
     margin-bottom: revert;
 }
-:where(#sidebar-dynamic-dock)::before {
-    font-size: revert;
-    color: revert;
-    border-bottom: revert;
-    padding-bottom: revert;
-    margin-bottom: revert;
-}
-:where(.sidebar-nav-title.sidebar-group-header) {
-    margin-bottom: revert;
-}
-:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav) {
-    margin: revert;
-}
-:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active) {
-    font-weight: revert;
-}
-:where(.global-sidebar-left .update-badge) {
-    color: revert;
-}
-:where(#sidebar-dynamic-dock)::before { content: revert; }
-:where(.dock-badge) {
-    width: revert;
-    height: revert;
-    color: revert;
-    font-size: revert;
-}
-:where(.dock-badge)::before { content: revert; }
-:where(.wiki-accordion-summary) {
-    background: revert;
-}
-:where(.manga-option.selected) {
-    font-weight: revert;
-}
+:where(.sidebar-nav-title.sidebar-group-header) { margin-bottom: revert; }
+:where(:is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active) { font-weight: revert; }
+:where(#sidebar-dynamic-dock, .dock-badge)::before { content: none; }
+:where(.manga-option.selected) { font-weight: revert; }
 :where(:is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sub-tab, .manga-select-trigger, .manga-option)) {
-    font-family: revert;
+    font-family: inherit;
 }
 body {
     background-image: repeating-linear-gradient( -45deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 2px, transparent 2px, transparent 8px );
